@@ -1,0 +1,50 @@
+# Node.js / Next.js
+node_modules/
+.next/
+out/
+dist/
+.vercel/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+package-lock.json
+
+# Tailwind / PostCSS
+*.css.map
+
+# Local env files
+.env
+.env.*.local
+.env.local
+.next-env.d.ts
+
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.egg
+*.egg-info/
+.eggs/
+dist/
+build/
+develop-eggs/
+.installed.cfg
+*.egg-info/
+MANIFEST
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+Scripts/
+Lib/
+Include/
+pyvenv.cfg
+
+# IDE/editor
+.vscode/
+.idea/
+*.swp
+.DS_Store
