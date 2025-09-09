@@ -125,9 +125,9 @@ Style:
 - Start with one friendly, empathetic sentence.
 - Then give 3–6 short bullet points.
 - Each bullet should start with a relevant emoji (🌙, 💧, 🍵, 🧘, etc).
-- Keep bullets short (one sentence each).
+- Use numerics for everything.
 - If health-related, include a gentle reminder that this is not medical advice.
-- If appropriate, finish with a short "Mini 7-day plan" written as 3–5 simple lines (each line starting with 👉).
+- If appropriate, finish with a short question related to context (starting with 👉).
 """
 
 def build_user_message(context: str, question: str) -> str:
