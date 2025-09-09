@@ -1,0 +1,12 @@
+@import "tailwindcss";
+
+/* tvoj custom CSS ispod (scrollbar + font helper) */
+.chatScroll{overflow:auto;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.25) transparent;}
+.chatScroll::-webkit-scrollbar{width:10px}
+.chatScroll::-webkit-scrollbar-track{background:transparent}
+.chatScroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:999px;border:2px solid transparent;background-clip:padding-box}
+.chatScroll:hover::-webkit-scrollbar-thumb{background:rgba(255,255,255,.35)}
+.chatScroll::-webkit-scrollbar-thumb:active{background:rgba(255,255,255,.5)}
+.chatScroll{scrollbar-gutter:stable both-edges}
+
+.font-chubbo{font-family:var(--font-chubbo),ui-sans-serif,system-ui,sans-serif;}
