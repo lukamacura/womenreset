@@ -117,41 +117,44 @@ export default function Page() {
           )}
         </div>
 
-        {/* Input row */}
-        <div
-          className="flex gap-2 sm:gap-3 border-t border-[#A8DADC33] bg-[#1E1A1B]
-                     px-3 py-3 sm:px-4 sm:py-3.5 sticky bottom-[env(safe-area-inset-bottom)]
-                     z-10 touch-manipulation"
-        >
-          <textarea
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                send();
-              }
-            }}
-            placeholder="Ask Clara anything… (e.g., How can I sleep better through the night?)"
-            aria-label="Message Clara"
-            className="flex-1 min-h-[58px] max-h-[160px] resize-none rounded-xl border border-[#A8DADC33]
-                       bg-[#191516] px-4 py-3 text-[16px] leading-[1.3] outline-none
-                       placeholder:text-[#A8DADC] text-[#DFF8EB]
-                       focus:ring-2 focus:ring-[#A8DADC66] focus:border-transparent
-                       font-[family-name:var(--font-chubbo)]"
-          />
-          <button
-            onClick={send}
-            disabled={loading}
-            className="min-w-[120px] sm:min-w-[124px] rounded-xl bg-[#E09891] text-[#231F20]
-                       px-4 py-3 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed
-                       transition active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2
-                       focus:ring-[#A8DADC66] focus:ring-offset-[#1E1A1B] touch-manipulation select-none font-[family-name:var(--font-chubbo)] font-bold"
-            aria-label="Send message"
-          >
-            Send
-          </button>
-        </div>
+       {/* Input row */}
+<div
+  className="flex flex-col sm:flex-row gap-2 sm:gap-3 border-t border-[#A8DADC33] bg-[#1E1A1B]
+             px-3 py-3 sm:px-4 sm:py-3.5 sticky bottom-[env(safe-area-inset-bottom)]
+             z-10 touch-manipulation"
+>
+ <textarea
+  value={q}
+  onChange={(e) => setQ(e.target.value)}
+  onKeyDown={(e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      send();
+    }
+  }}
+  placeholder="Ask Clara anything… (e.g., How can I sleep better through the night?)"
+  aria-label="Message Clara"
+  className="flex-1 min-h-[72px] max-h-[200px] overflow-y-auto resize-none rounded-xl border border-[#A8DADC33]
+             bg-[#191516] px-4 py-3 text-[16px] leading-[1.3] outline-none
+             placeholder:text-[#A8DADC] text-[#DFF8EB]
+             focus:ring-2 focus:ring-[#A8DADC66] focus:border-transparent
+             font-[family-name:var(--font-chubbo)]"
+/>
+
+  <button
+    onClick={send}
+    disabled={loading}
+    className="w-full sm:w-auto min-w-[120px] sm:min-w-[124px] rounded-xl bg-[#E09891] text-[#231F20]
+               px-4 py-6 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed
+               transition active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2
+               focus:ring-[#A8DADC66] focus:ring-offset-[#1E1A1B] touch-manipulation select-none 
+               font-[family-name:var(--font-chubbo)] font-bold"
+    aria-label="Send message"
+  >
+    Send
+  </button>
+</div>
+
 
         {/* Chips */}
         <div className="flex flex-wrap font-[family-name:var(--font-chubbo)] gap-2 border-t border-[#A8DADC33] bg-[#1D191A] px-4 py-3">

@@ -1,8 +1,7 @@
-fastapi==0.116.1
-uvicorn[standard]==0.30.6
-chromadb==1.0.20
-pydantic==2.8.2
-openai>=1.0.0
-tiktoken
+fastapi
+uvicorn[standard]
+chromadb
 sentence-transformers
-python-dotenv>=1.0.0
+python-dotenv
+openai
+pydantic

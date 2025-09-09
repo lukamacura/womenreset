@@ -10,3 +10,30 @@
 .chatScroll{scrollbar-gutter:stable both-edges}
 
 .font-chubbo{font-family:var(--font-chubbo),ui-sans-serif,system-ui,sans-serif;}
+/* Tanji, zaobljen skrol na textarea */
+textarea {
+  scrollbar-width: thin;                /* Firefox */
+  scrollbar-color: #A8DADC #1E1A1B;     /* Firefox (thumb, track) */
+  scrollbar-gutter: stable;             /* spreči skakanje layouta */
+  -webkit-overflow-scrolling: touch;    /* glatko na iOS-u */
+}
+
+/* WebKit (Chrome, Edge, Safari) */
+textarea::-webkit-scrollbar {
+  width: 10px;
+}
+
+textarea::-webkit-scrollbar-track {
+  background: #1E1A1B;                  /* tvoj track */
+  border-radius: 10px;
+}
+
+textarea::-webkit-scrollbar-thumb {
+  background: #A8DADC;                  /* tvoj thumb */
+  border-radius: 10px;
+  border: 2px solid #1E1A1B;            /* „padding” efekat oko thumb-a */
+}
+
+textarea::-webkit-scrollbar-thumb:hover {
+  background: #B5E3E3;                  /* suptilan hover */
+}
