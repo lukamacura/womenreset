@@ -143,7 +143,7 @@ app = FastAPI(title="Women Reset RAG API")
 # ⚠️ Podesi origines (privremeno * za test)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # za produkciju stavi tačan domen front-enda
+allow_origins=["https://womenreset.vercel.app", "https://<tvoj-preview>.vercel.app"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
