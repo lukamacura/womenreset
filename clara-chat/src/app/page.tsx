@@ -60,7 +60,7 @@ export default function Page() {
   return (
     <div className="mx-auto max-w-[860px] px-4 sm:px-6 py-6">
       {/* Header */}
-      <header className="mb-5 flex items-center gap-3">
+      <header className="mb-5 items-center gap-3 hidden md:flex">
   <Image
     src="/Clara.png"   // stavi sliku u /public folder projekta
     alt="Clara avatar"
