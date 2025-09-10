@@ -202,6 +202,7 @@ Instructions for the answer:
 6. Keep it personal and non-generic; tailor examples to the question.
 7. If health-related, include a brief non-medical-advice reminder.
 8. End with a short follow-up question (👉) if helpful to move her forward.
+9. Do not use bold or italic text
 """
 
 
