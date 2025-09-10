@@ -19,7 +19,7 @@ export default function Page() {
         {
           who: "bot",
           text:
-            "Hi, I’m Clara. Tell me what you’re struggling with most—sleep, hot flashes, mood, weight or energy—and I’ll give you a few simple steps you can try today.",
+            "Hi, I’m Clara. What’s bothering you most right now?",
         },
       ]);
     }
