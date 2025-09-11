@@ -132,21 +132,13 @@ Style:
 - Provide 3–6 concise bullet points.
 - Each paragraph and bullet begins with a relevant emoji (🌙, 💧, 🍵, 🧘, 🌸, 🌞, 🩺).
 - Always use specific numbers (minutes, hours, amounts, frequency, percentages) where possible.
+- If something is of critical importance use alert emoji and paragraph starting with heading Alert or Here is the catch
 - Keep language personal and situation-aware; avoid templates.
 - Close with a brief contextual follow-up question (👉) when useful.
 """
 
 
 EXPERT_ROUTER = {
-    "habits": {
-        "label": "Behavior Change & Habits",
-        "inspired_by": "James Clear-style behavior design (identity, friction, cues)",
-        "principles": [
-            "Use 1–3 tiny steps (≤2 minutes each).",
-            "Make it obvious, attractive, easy, and satisfying.",
-            "Measure weekly with 1–2 simple metrics."
-        ]
-    },
     "menopause": {
         "label": "Menopause & Perimenopause Clinician",
         "inspired_by": "NAMS-certified menopause practitioner approach (evidence-first, safety-focused)",
@@ -156,25 +148,152 @@ EXPERT_ROUTER = {
             "Note red flags and medication interactions succinctly.",
             "State that this is not medical advice and suggest physician follow-up when indicated."
         ],
-        "keywords": ["menopause", "perimenopause", "hot flash", "night sweats", "vaginal dryness", "HRT", "MHT", "hormone therapy", "irregular periods", "sleep in midlife"]
+        "keywords": [
+            "menopause", "perimenopause", "hot flash", "night sweats",
+            "vaginal dryness", "hrt", "mht", "hormone therapy",
+            "irregular periods", "sleep in midlife"
+        ]
+    },
+
+    "weight_loss": {
+        "label": "Menopausal Weight Loss Coach (Evidence-based)",
+        "inspired_by": "Calorie balance, high-satiety nutrition, sustainable behavior change",
+        "principles": [
+            "Aim for a modest weekly loss (0.3–0.7 kg) with a 10–20% energy deficit.",
+            "Emphasize protein (1.2–1.6 g/kg) and fiber (25–35 g/day).",
+            "Use step targets and strength training 2–3×/week to preserve muscle.",
+            "Track 1–2 simple metrics weekly (weight trend, waist circumference)."
+        ],
+        "keywords": [
+            "lose weight", "weight loss", "fat loss", "belly fat",
+            "deficit", "calorie deficit", "cutting", "shredding"
+        ]
+    },
+
+    "nutrition": {
+        "label": "Menopausal Expert on Nutrition",
+        "inspired_by": "Mary Claire Haver",
+        "principles": [
+            "Center meals on protein (20–40 g/meal) and fiber (25-30 grams per day).",
+            "Plan simple defaults; batch prep 1–2 times/week.",
+            "Hydration 1.5–2.5 L/day; adjust for exercise and climate.",
+        ],
+        "keywords": [
+            "nutrition", "diet", "protein", "fiber", "macros", "calories",
+            "meal plan", "meal prep", "snack", "vitamin", "supplement",
+            "satiety", "hunger", "cravings", "sugar"
+        ]
+    },
+
+    "fitness": {
+        "label": "Menopausal Strength & Cardio Coach",
+        "inspired_by": "dr Stacy Sims",
+        "principles": [
+            "Strength 2–4×/week (6–12 reps, 2–4 sets, RPE 7–9).",
+            "Cardio 90–150 min/week (mix steady + intervals).",
+            "Daily steps target 6k–10k; start +1k from baseline.",
+            "Prioritize form, recovery, and gradual progress."
+        ],
+        "keywords": [
+            "fitness", "exercise", "workout", "strength", "resistance",
+            "weights", "gym", "cardio", "hiit", "walking", "running",
+            "squat", "deadlift", "pushup", "pullup", "mobility"
+        ]
+    },
+
+    "sleep": {
+        "label": "Menopausal Sleep Coach",
+        "inspired_by": "CBT-I principles, circadian rhythm alignment",
+        "principles": [
+            "Consistent wake time ±15 min, 7 days/week.",
+            "Wind-down 30–60 min; dim light 2 hours pre-bed.",
+            "Caffeine cut-off 8–10 hours before bed; alcohol minimal.",
+            "If awake >20 min, get up, low-light reset; back to bed when sleepy."
+        ],
+        "keywords": [
+            "sleep", "insomnia", "wake at night", "sleep hygiene",
+            "melatonin", "circadian", "nap", "restless", "groggy"
+        ]
+    },
+
+    "stress": {
+        "label": "Menopausal Stress & Resilience Coach",
+        "inspired_by": "Cognitive behavioral therapy, Mindfulness-Based Cognitive therapist",
+        "principles": [
+            "Daily 4–6 breath cycles (4–6 per minute) for 2–5 minutes.",
+            "Short decompression walks (5–10 minutes) after stress spikes.",
+            "Boundaries: time-box work blocks (25–50 minutes) + micro-breaks.",
+            "Track stressors and supports; edit 1 lever/week."
+        ],
+        "keywords": [
+            "stress", "anxiety", "overwhelm", "burnout", "cortisol",
+            "breathing", "breathwork", "relax", "tension"
+        ]
+    },
+
+    "willpower": {
+        "label": "Willpower & Self-Regulation Coach",
+        "inspired_by": "Implementation intentions, temptation bundling, friction design, Lesley Waldron",
+        "principles": [
+            "If-then plans for known traps (“If 9 pm craving, then tea + 5-minute pause”).",
+            "Reduce friction to good choices; add friction to unhelpful ones.",
+            "Use commitment devices and visual cues; review weekly.",
+            "Focus on identity: ‘I am the kind of person who…’"
+        ],
+        "keywords": [
+            "willpower", "motivation", "discipline", "self control",
+            "cravings", "urge", "temptation", "procrastination"
+        ]
+    },
+
+    "habits": {
+        "label": "Behavior Change & Habits",
+        "inspired_by": "James Clear-style behavior design (identity, friction, cues)",
+        "principles": [
+            "Use 1–3 tiny steps (≤2 minutes each).",
+            "Make it obvious, attractive, easy, and satisfying.",
+            "Measure weekly with 1–2 simple metrics."
+        ],
+        "keywords": [
+            "habit", "habits", "routine", "ritual", "consistency",
+            "streak", "trigger", "Lazy", "Motivation", "Motivated"
+        ]
+    },
+
+    # Fallback
+    "default": {
+        "label": "Topic-Relevant Expert",
+        "inspired_by": "Evidence-based, practical guidance",
+        "principles": ["Be specific, numeric, kind; avoid generic phrasing."],
+        "keywords": []
     }
 }
 
 def select_expert_persona(context: str, question: str) -> dict:
     q_text = f"{context} {question}".lower()
-    # 1) Menopauza/perimenopauza
-    for kw in EXPERT_ROUTER["menopause"]["keywords"]:
-        if kw in q_text:
-            return EXPERT_ROUTER["menopause"]
-    # 2) Navike (primer)
-    if any(w in q_text for w in ["habit", "routine", "consistency", "procrastination", "atomic"]):
-        return EXPERT_ROUTER["habits"]
-    # 3) Podrazumevano – bez tvrdog imenovanja, samo “topic-relevant expert”
-    return {
-        "label": "Topic-Relevant Expert",
-        "inspired_by": "Evidence-based, practical guidance",
-        "principles": ["Be specific, numeric, kind; avoid generic phrasing."]
-    }
+
+    # Priority order to avoid collisions (e.g., weight loss vs nutrition)
+    priorities = [
+        "menopause",
+        "weight_loss",
+        "sleep",
+        "stress",
+        "fitness",
+        "nutrition",
+        "habits",
+        "willpower",
+    ]
+
+    for key in priorities:
+        kws = EXPERT_ROUTER[key].get("keywords", [])
+        if any(kw in q_text for kw in kws):
+            return EXPERT_ROUTER[key]
+
+    # Extra safety net for common terms that may not be exact substring matches
+    if "lose weight" in q_text or "weight-loss" in q_text or ("weight" in q_text and "loss" in q_text):
+        return EXPERT_ROUTER["weight_loss"]
+
+    return EXPERT_ROUTER["default"]
 
 
 def build_user_message(context: str, question: str) -> str:
@@ -194,7 +313,7 @@ User question:
 {persona_block}
 
 Instructions for the answer:
-1. Write in warm, supportive, precise English, suitable for women 40+.
+1. Write in warm, supportive, compassionate, precise English, suitable for women 40+.
 2. Do not use bold (**), markdown (#), or code formatting.
 3. Begin with 1 empathetic sentence (1–2 lines max).
 4. Provide 3–6 short bullet points with emojis at the start.
@@ -203,6 +322,7 @@ Instructions for the answer:
 7. If health-related, include a brief non-medical-advice reminder.
 8. End with a short follow-up question (👉) if helpful to move her forward.
 9. Do not use bold or italic text
+10.If something is of critical importance use alert emoji and paragraph starting with heading Alert or Here is the catch
 """
 
 
