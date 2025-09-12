@@ -150,7 +150,7 @@ export default function Page() {
           ))}
 
           {loading && (
-            <div className="text-[#E8B9AB] text-md">Clara is typing…</div>
+            <div className="text-[#E8B9AB] text-lg">Clara is typing…</div>
           )}
         </div>
 
