@@ -2,6 +2,23 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 
+type ApiOk = { answer: string };
+type ApiErr = { detail?: string; error?: string; answer?: string };
+
+function parseJsonSafe(x: unknown): ApiOk | ApiErr {
+  if (typeof x === "object" && x !== null) return x as ApiOk | ApiErr;
+  return { error: "Upstream returned non-JSON." };
+}
+
+function pickErrMsg(d: unknown): string {
+  if (typeof d === "object" && d !== null) {
+    const o = d as Record<string, unknown>;
+    if (typeof o.detail === "string") return o.detail;
+    if (typeof o.error === "string") return o.error;
+    if (typeof o.answer === "string") return o.answer;
+  }
+  return "Server error";
+}
 
 type Row = { who: "bot" | "user"; text: string };
 
@@ -36,23 +53,43 @@ export default function Page() {
     setRows((r) => [...r, { who: "user", text }]);
     setQ("");
     setLoading(true);
-    try {
-      const res = await fetch("/api/ask", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: text }),
-      });
-      const data = await res.json();
-      const answer = (data?.answer || "I’m here for you. Could you rephrase?").trim();
-      setRows((r) => [...r, { who: "bot", text: answer }]);
-    } catch {
-      setRows((r) => [
-        ...r,
-        { who: "bot", text: "Hmm, I couldn’t reach the server. Please try again." },
-      ]);
-    } finally {
-      setLoading(false);
-    }
+   try {
+  const res = await fetch("/api/ask", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ question: text }),
+  });
+
+  const raw: unknown = await res.json().catch(() => ({}));
+  const data = parseJsonSafe(raw);
+
+  if (!res.ok) {
+    const errMsg = pickErrMsg(data);
+    setRows((r) => [...r, { who: "bot", text: `Oops — ${errMsg}` }]);
+    return;
+  }
+
+  const answer =
+    typeof (data as ApiOk).answer === "string"
+      ? (data as ApiOk).answer.trim()
+      : "";
+
+  if (!answer) {
+    setRows((r) => [...r, { who: "bot", text: "Hmm, response had no answer." }]);
+    return;
+  }
+
+  setRows((r) => [...r, { who: "bot", text: answer }]);
+} catch (e) {
+  const msg = e instanceof Error ? e.message : String(e);
+  setRows((r) => [
+    ...r,
+    { who: "bot", text: `Hmm, I couldn’t reach the server. ${msg}` },
+  ]);
+} finally {
+  setLoading(false);
+}
+
   }
 
   const chips = ["Better sleep at night", "Hot flashes relief", "Mood swings", "Weight gain after 40"];
@@ -62,7 +99,7 @@ export default function Page() {
       {/* Header */}
       <header className="mb-5 items-center gap-3 hidden md:flex">
   <Image
-    src="/Clara.png"   // stavi sliku u /public folder projekta
+    src="/Clara.webp"   // stavi sliku u /public folder projekta
     alt="Clara avatar"
     width={46}
     height={46}
@@ -80,7 +117,7 @@ export default function Page() {
       </header>
 
       {/* Panel */}
-      <section className="rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,.25)] overflow-hidden bg-[#231F20]">
+      <section className="rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,.25)] text-lg overflow-hidden bg-[#231F20]">
         {/* Chat area */}
         <div
           ref={chatRef}
@@ -113,7 +150,7 @@ export default function Page() {
           ))}
 
           {loading && (
-            <div className="text-[#E8B9AB] text-sm">Clara is typing…</div>
+            <div className="text-[#E8B9AB] text-md">Clara is typing…</div>
           )}
         </div>
 
@@ -135,7 +172,7 @@ export default function Page() {
   placeholder="Ask Clara anything… (e.g., How can I sleep better through the night?)"
   aria-label="Message Clara"
   className="flex-1 min-h-[72px] max-h-[200px] overflow-y-auto resize-none rounded-xl border border-[#A8DADC33]
-             bg-[#191516] px-4 py-3 text-[16px] leading-[1.3] outline-none
+             bg-[#191516] px-4 py-3 text-md leading-[1.3] outline-none
              placeholder:text-[#A8DADC] text-[#DFF8EB]
              focus:ring-2 focus:ring-[#A8DADC66] focus:border-transparent
              font-[family-name:var(--font-chubbo)]"
@@ -144,7 +181,7 @@ export default function Page() {
   <button
     onClick={send}
     disabled={loading}
-    className="w-full sm:w-auto min-w-[120px] sm:min-w-[124px] rounded-xl bg-[#E09891] text-[#231F20]
+    className="w-full text-xl sm:w-auto min-w-[120px] sm:min-w-[124px] rounded-xl bg-[#E09891] text-[#231F20]
                px-4 py-6 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed
                transition active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2
                focus:ring-[#A8DADC66] focus:ring-offset-[#1E1A1B] touch-manipulation select-none 
@@ -163,7 +200,7 @@ export default function Page() {
               key={c}
               onClick={() => setQ(`Can you help with ${c.toLowerCase()}?`)}
               className="cursor-pointer rounded-full border border-[#A8DADC66] bg-[#DFF8EB] text-[#231F20]
-                         px-3.5 py-2 text-[13px] hover:border-[#A8DADC] transition select-none touch-manipulation
+                         px-3.5 py-2 text-sm hover:border-[#A8DADC] transition select-none touch-manipulation
                          focus:outline-none focus:ring-2 focus:ring-[#A8DADC66]"
               type="button"
               aria-label={c}
@@ -176,7 +213,7 @@ export default function Page() {
 
       {/* Disclaimer */}
       <p className="mt-3 rounded-lg border-l-4 border-[#E09891] bg-[#1D191A] px-4 py-3 text-[#DFF8EB]
-                    text-[13px] sm:text-[14px] font-[family-name:var(--font-chubbo)]">
+                    text-lg sm:text-[14px] font-[family-name:var(--font-chubbo)]">
         Clara provides educational information, not medical advice. For personal medical concerns,
         consult a qualified healthcare provider.
       </p>

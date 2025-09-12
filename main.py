@@ -2,9 +2,10 @@
 import os
 import json
 import shutil
-from typing import Optional, List
+import traceback
+from typing import List, Optional
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
@@ -16,15 +17,13 @@ from openai import OpenAI
 # ---- ENV ----
 load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-
-# ---- CONFIG (kroz ENV, sa podrazumevanim vrednostima) ----
-USE_LOCAL_EMB = os.getenv("USE_LOCAL_EMB", "true").lower() == "true"   # true=SentenceTransformer, false=OpenAI
-CHROMA_DB_PATH = os.getenv("CHROMA_DB_PATH", "data")                   # na Render/Railway: /data
-KNOWLEDGE_FILE = os.getenv("KNOWLEDGE_FILE", "data/knowledge.jsonl")   # može i data/knowledge.json
-OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
-
-# dozvoljeni frontend origin-i, npr: "https://womenreset.vercel.app,https://womenreset-git-main.vercel.app"
+USE_LOCAL_EMB = os.getenv("USE_LOCAL_EMB", "true").lower() == "true"
+CHROMA_DB_PATH = os.getenv("CHROMA_DB_PATH", "data")                   # /var/tmp/chroma na Renderu
+KNOWLEDGE_FILE = os.getenv("KNOWLEDGE_FILE", "data/knowledge.jsonl")   # ili .json
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o")                     # koristi validan model
 FRONTEND_ORIGINS = [o.strip() for o in os.getenv("FRONTEND_ORIGINS", "*").split(",") if o.strip()]
+ADMIN_TOKEN = os.getenv("ADMIN_TOKEN", "")                              # za /admin/reindex
+BYPASS_LLM = os.getenv("BYPASS_LLM", "0") == "1"                        # za brzi test puta bez LLM-a
 
 # ---- EMBEDDINGS ----
 if USE_LOCAL_EMB:
@@ -35,9 +34,11 @@ else:
     from chromadb import EmbeddingFunction, Documents, Embeddings
     class OpenAIEmbeddingEF(EmbeddingFunction):
         def __init__(self, model="text-embedding-3-small"):
+            if not OPENAI_API_KEY:
+                raise RuntimeError("OPENAI_API_KEY is missing for embeddings")
             self.client = OpenAI(api_key=OPENAI_API_KEY)
             self.model = model
-        def __call__(self, texts: Documents) -> Embeddings:
+        def __call__(self, texts: "Documents") -> "Embeddings":
             resp = self.client.embeddings.create(model=self.model, input=texts)
             return [d.embedding for d in resp.data]
     ef = OpenAIEmbeddingEF()
@@ -48,7 +49,7 @@ def get_collection():
     return client.get_or_create_collection(
         name="knowledge",
         embedding_function=ef,
-        metadata={"hnsw:space": "cosine"}
+        metadata={"hnsw:space": "cosine"},
     )
 
 def _load_jsonl(path: str):
@@ -68,8 +69,8 @@ def _load_jsonl(path: str):
     return docs, ids, metas
 
 def _load_json_array(path: str):
-    docs, ids, metas = [], [], []
     arr = json.load(open(path, "r", encoding="utf-8"))
+    docs, ids, metas = [], [], []
     for rec in arr:
         txt = (rec.get("text") or "").strip()
         if not txt:
@@ -80,7 +81,6 @@ def _load_json_array(path: str):
     return docs, ids, metas
 
 def load_initial_data(collection, path=KNOWLEDGE_FILE):
-    # dodaj podatke samo ako je prazno
     try:
         if collection.count() > 0:
             return
@@ -100,17 +100,36 @@ def load_initial_data(collection, path=KNOWLEDGE_FILE):
         collection.add(documents=docs, ids=ids, metadatas=metas)
         print(f"[INIT] Loaded {len(docs)} docs into Chroma.")
 
-def retrieve_context(collection, question: str, k: int = 5) -> str:
-    res = collection.query(query_texts=[question], n_results=k)
-    docs = (res or {}).get("documents") or []
-    if not docs or not docs[0]:
+def retrieve_context(collection, question: str, k: int = 5, threshold: float = 0.35) -> str:
+    """
+    Vraća top-k pasuse ispod distance praga (manje = sličnije).
+    Deduplikuje i filtrira slabe pogodke.
+    """
+    try:
+        res = collection.query(
+            query_texts=[question],
+            n_results=k,
+            include=["documents", "distances", "ids"],
+        ) or {}
+    except Exception as e:
+        print("[CTX][WARN] retrieval failed:", repr(e))
         return ""
+
+    docs = (res.get("documents") or [[]])[0]
+    dists = (res.get("distances") or [[]])[0]
+
     picked, seen = [], set()
-    for d in docs[0]:
-        d = d.strip()
-        if d and d not in seen:
-            picked.append(d)
-            seen.add(d)
+    for d, dist in zip(docs, dists):
+        if not d:
+            continue
+        # Chroma vraća kosinus distancu: 0.0–2.0 (0 je identično)
+        if dist is None or dist > threshold:
+            continue
+        t = d.strip()
+        if t and t not in seen:
+            picked.append(t)
+            seen.add(t)
+
     return "\n---\n".join(picked[:k])
 
 STYLE_PROMPT = """You are a warm, clear, and supportive assistant for women 40+.
@@ -130,13 +149,16 @@ Expert Persona:
 Style:
 - Start with 1 short, warm, empathetic sentence.
 - Provide 3–6 concise bullet points.
+- If the question is very short or casual, reply in 1–2 warm sentences without forcing bullet points.
 - Each paragraph and bullet begins with a relevant emoji (🌙, 💧, 🍵, 🧘, 🌸, 🌞, 🩺).
 - Always use specific numbers (minutes, hours, amounts, frequency, percentages) where possible.
 - If something is of critical importance use alert emoji and paragraph starting with heading Alert or Here is the catch
 - Keep language personal and situation-aware; avoid templates.
 - Close with a brief contextual follow-up question (👉) when useful.
-"""
 
+Grounding:
+- For nutrition, supplements, doses and any numeric guidance: use only facts present in the Context block. Do not invent numbers. If missing, say what is needed and avoid guesses.
+"""
 
 EXPERT_ROUTER = {
     "menopause": {
@@ -146,15 +168,14 @@ EXPERT_ROUTER = {
             "Clarify symptom pattern, duration, and impact using numbers.",
             "Offer first-line options with dose ranges and frequencies.",
             "Note red flags and medication interactions succinctly.",
-            "State that this is not medical advice and suggest physician follow-up when indicated."
+            "State that this is not medical advice and suggest physician follow-up when indicated.",
         ],
         "keywords": [
             "menopause", "perimenopause", "hot flash", "night sweats",
             "vaginal dryness", "hrt", "mht", "hormone therapy",
-            "irregular periods", "sleep in midlife"
-        ]
+            "irregular periods", "sleep in midlife",
+        ],
     },
-
     "weight_loss": {
         "label": "Menopausal Weight Loss Coach (Evidence-based)",
         "inspired_by": "Calorie balance, high-satiety nutrition, sustainable behavior change",
@@ -162,14 +183,10 @@ EXPERT_ROUTER = {
             "Aim for a modest weekly loss (0.3–0.7 kg) with a 10–20% energy deficit.",
             "Emphasize protein (1.2–1.6 g/kg) and fiber (25–35 g/day).",
             "Use step targets and strength training 2–3×/week to preserve muscle.",
-            "Track 1–2 simple metrics weekly (weight trend, waist circumference)."
+            "Track 1–2 simple metrics weekly (weight trend, waist circumference).",
         ],
-        "keywords": [
-            "lose weight", "weight loss", "fat loss", "belly fat",
-            "deficit", "calorie deficit", "cutting", "shredding"
-        ]
+        "keywords": ["lose weight", "weight loss", "fat loss", "belly fat", "deficit", "calorie deficit", "cutting", "shredding"],
     },
-
     "nutrition": {
         "label": "Menopausal Expert on Nutrition",
         "inspired_by": "Mary Claire Haver",
@@ -178,13 +195,8 @@ EXPERT_ROUTER = {
             "Plan simple defaults; batch prep 1–2 times/week.",
             "Hydration 1.5–2.5 L/day; adjust for exercise and climate.",
         ],
-        "keywords": [
-            "nutrition", "diet", "protein", "fiber", "macros", "calories",
-            "meal plan", "meal prep", "snack", "vitamin", "supplement",
-            "satiety", "hunger", "cravings", "sugar"
-        ]
+        "keywords": ["nutrition", "diet", "protein", "fiber", "macros", "calories", "meal plan", "meal prep", "snack", "vitamin", "supplement", "satiety", "hunger", "cravings", "sugar"],
     },
-
     "fitness": {
         "label": "Menopausal Strength & Cardio Coach",
         "inspired_by": "dr Stacy Sims",
@@ -192,15 +204,10 @@ EXPERT_ROUTER = {
             "Strength 2–4×/week (6–12 reps, 2–4 sets, RPE 7–9).",
             "Cardio 90–150 min/week (mix steady + intervals).",
             "Daily steps target 6k–10k; start +1k from baseline.",
-            "Prioritize form, recovery, and gradual progress."
+            "Prioritize form, recovery, and gradual progress.",
         ],
-        "keywords": [
-            "fitness", "exercise", "workout", "strength", "resistance",
-            "weights", "gym", "cardio", "hiit", "walking", "running",
-            "squat", "deadlift", "pushup", "pullup", "mobility"
-        ]
+        "keywords": ["fitness", "exercise", "workout", "strength", "resistance", "weights", "gym", "cardio", "hiit", "walking", "running", "squat", "deadlift", "pushup", "pullup", "mobility"],
     },
-
     "sleep": {
         "label": "Menopausal Sleep Coach",
         "inspired_by": "CBT-I principles, circadian rhythm alignment",
@@ -208,14 +215,10 @@ EXPERT_ROUTER = {
             "Consistent wake time ±15 min, 7 days/week.",
             "Wind-down 30–60 min; dim light 2 hours pre-bed.",
             "Caffeine cut-off 8–10 hours before bed; alcohol minimal.",
-            "If awake >20 min, get up, low-light reset; back to bed when sleepy."
+            "If awake >20 min, get up, low-light reset; back to bed when sleepy.",
         ],
-        "keywords": [
-            "sleep", "insomnia", "wake at night", "sleep hygiene",
-            "melatonin", "circadian", "nap", "restless", "groggy"
-        ]
+        "keywords": ["sleep", "insomnia", "wake at night", "sleep hygiene", "melatonin", "circadian", "nap", "restless", "groggy"],
     },
-
     "stress": {
         "label": "Menopausal Stress & Resilience Coach",
         "inspired_by": "Cognitive behavioral therapy, Mindfulness-Based Cognitive therapist",
@@ -223,14 +226,10 @@ EXPERT_ROUTER = {
             "Daily 4–6 breath cycles (4–6 per minute) for 2–5 minutes.",
             "Short decompression walks (5–10 minutes) after stress spikes.",
             "Boundaries: time-box work blocks (25–50 minutes) + micro-breaks.",
-            "Track stressors and supports; edit 1 lever/week."
+            "Track stressors and supports; edit 1 lever/week.",
         ],
-        "keywords": [
-            "stress", "anxiety", "overwhelm", "burnout", "cortisol",
-            "breathing", "breathwork", "relax", "tension"
-        ]
+        "keywords": ["stress", "anxiety", "overwhelm", "burnout", "cortisol", "breathing", "breathwork", "relax", "tension"],
     },
-
     "willpower": {
         "label": "Willpower & Self-Regulation Coach",
         "inspired_by": "Implementation intentions, temptation bundling, friction design, Lesley Waldron",
@@ -238,63 +237,39 @@ EXPERT_ROUTER = {
             "If-then plans for known traps (“If 9 pm craving, then tea + 5-minute pause”).",
             "Reduce friction to good choices; add friction to unhelpful ones.",
             "Use commitment devices and visual cues; review weekly.",
-            "Focus on identity: ‘I am the kind of person who…’"
+            "Focus on identity: ‘I am the kind of person who…’",
         ],
-        "keywords": [
-            "willpower", "motivation", "discipline", "self control",
-            "cravings", "urge", "temptation", "procrastination"
-        ]
+        "keywords": ["willpower", "motivation", "discipline", "self control", "cravings", "urge", "temptation", "procrastination"],
     },
-
     "habits": {
         "label": "Behavior Change & Habits",
         "inspired_by": "James Clear-style behavior design (identity, friction, cues)",
         "principles": [
             "Use 1–3 tiny steps (≤2 minutes each).",
             "Make it obvious, attractive, easy, and satisfying.",
-            "Measure weekly with 1–2 simple metrics."
+            "Measure weekly with 1–2 simple metrics.",
         ],
-        "keywords": [
-            "habit", "habits", "routine", "ritual", "consistency",
-            "streak", "trigger", "Lazy", "Motivation", "Motivated"
-        ]
+        "keywords": ["habit", "habits", "routine", "ritual", "consistency", "streak", "trigger", "Lazy", "Motivation", "Motivated"],
     },
-
-    # Fallback
     "default": {
         "label": "Topic-Relevant Expert",
         "inspired_by": "Evidence-based, practical guidance",
         "principles": ["Be specific, numeric, kind; avoid generic phrasing."],
-        "keywords": []
-    }
+        "keywords": [],
+    },
 }
 
 def select_expert_persona(context: str, question: str) -> dict:
-    q_text = f"{context} {question}".lower()
-
-    # Priority order to avoid collisions (e.g., weight loss vs nutrition)
-    priorities = [
-        "menopause",
-        "weight_loss",
-        "sleep",
-        "stress",
-        "fitness",
-        "nutrition",
-        "habits",
-        "willpower",
-    ]
-
+    # biramo personu samo iz pitanja (ne iz context-a)
+    q_text = (question or "").lower()
+    priorities = ["menopause", "weight_loss", "sleep", "stress", "fitness", "nutrition", "habits", "willpower"]
     for key in priorities:
         kws = EXPERT_ROUTER[key].get("keywords", [])
         if any(kw in q_text for kw in kws):
             return EXPERT_ROUTER[key]
-
-    # Extra safety net for common terms that may not be exact substring matches
     if "lose weight" in q_text or "weight-loss" in q_text or ("weight" in q_text and "loss" in q_text):
         return EXPERT_ROUTER["weight_loss"]
-
     return EXPERT_ROUTER["default"]
-
 
 def build_user_message(context: str, question: str) -> str:
     persona = select_expert_persona(context, question)
@@ -303,7 +278,6 @@ def build_user_message(context: str, question: str) -> str:
         f"Inspired by: {persona.get('inspired_by','')}\n"
         f"Principles: " + "; ".join(persona.get('principles', []))
     )
-
     return f"""Context from knowledge base (use only if relevant):
 {context}
 
@@ -322,23 +296,45 @@ Instructions for the answer:
 7. If health-related, include a brief non-medical-advice reminder.
 8. End with a short follow-up question (👉) if helpful to move her forward.
 9. Do not use bold or italic text
-10.If something is of critical importance use alert emoji and paragraph starting with heading Alert or Here is the catch
+10. If something is of critical importance use alert emoji and paragraph starting with heading Alert or Here is the catch
 """
 
+def generate_answer(question: str, history: Optional[list] = None) -> str:
+    # Bypass za brzu potvrdu da lanac radi
+    if BYPASS_LLM:
+        return "Backend OK (bypass). Check your OPENAI_API_KEY/MODEL next."
 
-def generate_answer(question: str) -> str:
+    if not OPENAI_API_KEY:
+        raise RuntimeError("OPENAI_API_KEY is missing")
+
+    # RAG kontekst (ne-fatalno ako nema dokumenata)
     collection = get_collection()
     context = retrieve_context(collection, question, k=5)
+
     client = OpenAI(api_key=OPENAI_API_KEY)
-    resp = client.chat.completions.create(
-        model=OPENAI_MODEL,
-        messages=[
-            {"role": "system", "content": STYLE_PROMPT},
-            {"role": "user", "content": build_user_message(context, question)},
-        ],
-        temperature=0.5,
-    )
-    return resp.choices[0].message.content.strip()
+
+    messages = [{"role": "system", "content": STYLE_PROMPT}]
+    if history:
+        messages.extend(history)
+    messages.append({"role": "user", "content": build_user_message(context, question)})
+
+    try:
+        resp = client.chat.completions.create(
+            model=OPENAI_MODEL,
+            messages=messages,
+            temperature=0.5,
+        )
+    except Exception as e:
+        # tipično: invalid key, model_not_found, network
+        raise RuntimeError(f"OpenAI chat call failed: {e}")
+
+    if not resp or not getattr(resp, "choices", None):
+        raise RuntimeError("OpenAI returned empty response")
+
+    content = resp.choices[0].message.content
+    if not content:
+        raise RuntimeError("OpenAI returned no content")
+    return content.strip()
 
 # ---- FASTAPI APP ----
 app = FastAPI(title="Women Reset RAG API")
@@ -359,10 +355,8 @@ class AskOut(BaseModel):
 
 @app.on_event("startup")
 def on_startup():
-    # ako KNOWLEDGE_FILE pokazuje na /data, a nema ga – pokušaj kopiranje iz repo-a
     try:
         if KNOWLEDGE_FILE.startswith("/"):
-            # npr. /data/knowledge.json → probaj da kopiraš iz data/knowledge.json
             src_guess = KNOWLEDGE_FILE.replace("/data/", "data/")
             if not os.path.exists(KNOWLEDGE_FILE) and os.path.exists(src_guess):
                 os.makedirs(os.path.dirname(KNOWLEDGE_FILE), exist_ok=True)
@@ -373,17 +367,19 @@ def on_startup():
 
     coll = get_collection()
     load_initial_data(coll, KNOWLEDGE_FILE)
+
     try:
-        _ = ef(["warmup"])  # init embedder
-        print("[STARTUP] Embedding ready.")
+        _ = ef(["warmup"])
+        print("[STARTUP] Embedding ready. Docs:", coll.count())
     except Exception as e:
-        print("[STARTUP][WARN]", e)
-    if not OPENAI_API_KEY:
+        print("[STARTUP][WARN] embeddings not ready:", e)
+
+    if not OPENAI_API_KEY and not BYPASS_LLM:
         print("[WARN] OPENAI_API_KEY is missing; LLM calls will fail.")
 
 @app.get("/health")
 def health():
-    return {"ok": True}
+    return {"ok": True, "model": OPENAI_MODEL, "bypass": BYPASS_LLM}
 
 @app.post("/ask", response_model=AskOut)
 def ask(item: AskIn):
@@ -391,5 +387,25 @@ def ask(item: AskIn):
         ans = generate_answer(item.question)
         return AskOut(answer=ans)
     except Exception as e:
+        # loguj detaljno
         print("[ERROR]", repr(e))
-        raise HTTPException(status_code=500, detail="Internal error")
+        print(traceback.format_exc())
+        # pošalji realan razlog frontendu
+        raise HTTPException(status_code=500, detail=str(e))
+
+# --- Admin reindex (jednostavna zaštita headerom) ---
+@app.post("/admin/reindex")
+def admin_reindex(req: Request):
+    if not ADMIN_TOKEN:
+        raise HTTPException(status_code=403, detail="Reindex disabled (no ADMIN_TOKEN).")
+    if req.headers.get("x-admin-token") != ADMIN_TOKEN:
+        raise HTTPException(status_code=401, detail="Unauthorized.")
+
+    client = chromadb.PersistentClient(path=CHROMA_DB_PATH)
+    try:
+        client.delete_collection("knowledge")
+    except Exception:
+        pass
+    coll = get_collection()
+    load_initial_data(coll, KNOWLEDGE_FILE)
+    return {"ok": True, "count": coll.count()}
