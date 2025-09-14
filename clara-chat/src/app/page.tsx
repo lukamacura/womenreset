@@ -8,13 +8,53 @@ type ApiErr = { detail?: string; error?: string; answer?: string };
 type ChatMessage = { role: "user" | "assistant"; content: string };
 type Row = { who: "bot" | "user"; text: string };
 
+// === NEW: heuristika za kratke follow-up poruke ===
+function enhanceQuestion(text: string, rows: Row[]): string {
+  const t = text.trim();
+  const wordCount = t.split(/\s+/).filter(Boolean).length;
+
+  // kratko ili fragment (<=3 reči ili <24 znaka bez tačke/upitnika/uzvika)
+  const isShort =
+    wordCount <= 3 || (t.length < 24 && !/[.!?…]$/.test(t));
+
+  if (!isShort) return t;
+
+  // nađi poslednju bot poruku (tipično pitanje/smernice)
+  const lastBot = [...rows].reverse().find(r => r.who === "bot")?.text || "";
+  const lastUser = [...rows].reverse().find(r => r.who === "user")?.text || "";
+
+  // preformuliši da bude jasno da je nastavak
+  return `Follow-up to the previous assistant message. 
+Previous assistant said:
+"""${lastBot.slice(0, 700)}"""
+
+Previous user message (for context):
+"""${lastUser.slice(0, 300)}"""
+
+User adds (short fragment): "${t}"
+
+Please interpret the fragment in-context and continue the same topic.`;
+}
+
 // ===== Helpers =====
 function buildHistory(rows: Row[]): ChatMessage[] {
-  return rows.map((r) => ({
-    role: r.who === "user" ? "user" : "assistant",
-    content: r.text,
-  }));
+  return rows
+    .filter((r) => {
+      if (r.who === "user") return true;
+      const t = r.text.toLowerCase();
+      if (t.startsWith("hi, i’m clara")) return false;
+      if (t.startsWith("oops —")) return false;
+      if (t.startsWith("hmm, i couldn’t reach")) return false;
+      if (t.includes("provides educational information")) return false; // disclaimer bubble
+      return true;
+    })
+    .slice(-12)
+    .map((r) => ({
+      role: r.who === "user" ? "user" : "assistant",
+      content: r.text,
+    }));
 }
+
 
 function parseJsonSafe(x: unknown): ApiOk | ApiErr {
   if (typeof x === "object" && x !== null) return x as ApiOk | ApiErr;
@@ -73,18 +113,20 @@ export default function Page() {
     const text = q.trim();
     if (!text || loading) return;
 
-    const history = buildHistory(rows);
+const history = buildHistory(rows);
+const question = enhanceQuestion(text, rows);  // ⬅️ NOVO
 
-    setRows((r) => [...r, { who: "user", text }]);
-    setQ("");
-    setLoading(true);
+setRows((r) => [...r, { who: "user", text }]);
+setQ("");
+setLoading(true);
 
-    try {
-      const res = await fetch("/api/ask", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: text, history }),
-      });
+try {
+  const res = await fetch("/api/ask", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ question, history }), // ⬅️ promeni "text" u "question"
+  });
+
       const raw: unknown = await res.json().catch(() => ({}));
       const data = parseJsonSafe(raw);
 

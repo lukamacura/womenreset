@@ -22,7 +22,7 @@ function getBackendUrl(): string {
   return raw.endsWith("/") ? raw.slice(0, -1) : raw;
 }
 
-// helpers for safe type guards (bez any)
+// type guards
 function isRecord(x: unknown): x is Record<string, unknown> {
   return typeof x === "object" && x !== null;
 }
@@ -40,9 +40,7 @@ function isAskBody(x: unknown): x is AskBody {
   const q = x.question;
   const h = x.history;
   const qOk = typeof q === "string" && q.trim().length > 0;
-  const hOk =
-    h === undefined ||
-    (Array.isArray(h) && h.every((m) => isChatMessage(m)));
+  const hOk = h === undefined || (Array.isArray(h) && h.every((m) => isChatMessage(m)));
   return qOk && hOk;
 }
 
@@ -61,7 +59,7 @@ export async function POST(req: Request) {
       history: parsed.history ?? [],
     };
 
-    // dedupe window
+    // dedupe
     const key = JSON.stringify(body);
     const now = Date.now();
     const cached = recent.get(key);
@@ -71,10 +69,10 @@ export async function POST(req: Request) {
 
     const url = getBackendUrl();
 
-    // 30s timeout
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 30_000);
 
+    // call backend
     const upstream = await fetch(`${url}/ask`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -83,24 +81,28 @@ export async function POST(req: Request) {
       signal: controller.signal,
     }).finally(() => clearTimeout(timeout));
 
+    // be defensive: JSON or not
     let data: AskResponse;
     try {
-      const parsedUp: unknown = await upstream.json();
-      data =
-        typeof parsedUp === "object" && parsedUp !== null
-          ? (parsedUp as Record<string, unknown>)
-          : { answer: "Upstream returned non-JSON." };
+      const ct = upstream.headers.get("content-type") || "";
+      if (!ct.includes("application/json")) {
+        const text = await upstream.text();
+        data = { answer: `Upstream error (non-JSON). ${text.slice(0, 300)}` };
+      } else {
+        const parsedUp: unknown = await upstream.json();
+        data =
+          typeof parsedUp === "object" && parsedUp !== null
+            ? (parsedUp as Record<string, unknown>)
+            : { answer: "Upstream returned non-JSON." };
+      }
     } catch {
       data = { answer: "Upstream error (non-JSON)." };
     }
 
-    // save to dedupe cache (sa bezbednim brisanjem najstarijeg ključa)
     recent.set(key, { ts: now, payload: data });
     if (recent.size > 200) {
       const it = recent.keys().next();
-      if (!it.done) {
-        recent.delete(it.value);
-      }
+      if (!it.done) recent.delete(it.value);
     }
 
     return NextResponse.json<AskResponse>(data, { status: upstream.status });
@@ -119,9 +121,7 @@ export async function GET() {
     const r = await fetch(`${url}/health`, { cache: "no-store" });
     const parsed: unknown = await r.json();
     const data: Record<string, unknown> =
-      typeof parsed === "object" && parsed !== null
-        ? (parsed as Record<string, unknown>)
-        : { ok: false };
+      typeof parsed === "object" && parsed !== null ? (parsed as Record<string, unknown>) : { ok: false };
     return NextResponse.json(data, { status: r.status });
   } catch {
     return NextResponse.json({ ok: false }, { status: 500 });
