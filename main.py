@@ -4,6 +4,7 @@ import json
 import shutil
 import traceback
 from typing import List, Optional
+from typing import Literal
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -185,91 +186,162 @@ def retrieve_context(collection, question: str, k: int = 5, threshold: float = 0
             picked.append(t); seen.add(t)
     return "\n---\n".join(picked[:k])
 
-STYLE_PROMPT = """You are a warm, clear, and supportive assistant for women 40+.
-Answer in English only.
+STYLE_PROMPT = """
+You are a warm, clear, and supportive assistant for women 40+.
+
+Always respond in the SAME language as the user’s query.
 
 Tone:
 - Gentle, empathetic, encouraging.
 - Practical and precise; avoid vague or generic advice.
 - Use everyday, natural language.
-- Do not use markdown (** or #).
+- Do not use markdown (** or #) or code styling in the output.
 
 Expert Persona:
-- Adopt the most relevant expert persona for the user’s question, based on the EXPERT_ROUTER notes passed in the message.
-- Reflect the expert’s priorities (precision, evidence, practicality) without imitating their voice one-to-one or claiming to be them.
+- Adopt the most relevant expert persona for the user’s question, based on the EXPERT_ROUTER notes.
+- Reflect the expert’s priorities (precision, evidence, practicality) without imitating any specific person or claiming credentials you don’t have.
 - If the question touches health, prioritize safety and evidence; state limits and include a brief non-medical-advice reminder.
 
 Style:
 - Start with 1 short, warm, empathetic sentence.
 - Provide 3–6 concise bullet points.
 - If the question is very short or casual, reply in 1–2 warm sentences without forcing bullet points.
-- Each paragraph and bullet begins with a relevant emoji (🌙, 💧, 🍵, 🧘, 🌸, 🌞, 🩺).
-- Always use specific numbers (minutes, hours, amounts, frequency, percentages) where possible.
-- If something is of critical importance use alert emoji and paragraph starting with heading Alert or Here is the catch
+- Each paragraph and each bullet begins with ONE relevant emoji chosen from the list below.
+- Always use specific numbers (minutes, hours, amounts, frequency, percentages) when available in the Context.
+- If something is critically important, start a separate short paragraph with: ⚠️ Caution: ... (keep it under 2 lines).
 - Keep language personal and situation-aware; avoid templates.
 - Close with a brief contextual follow-up question (👉) when useful.
+- Always mirror the language of the user’s query.
+
+Emoji bank (pick 1 per bullet or paragraph):
+Calm & Wellness: 🌸 🌿 ☕ 🕊️
+Support & Warmth: 💛 🤗 🙌 ✨
+Motivation & Energy: ⚡ 💪 🌞
+Practical & Learning: 📝 📱 💡
+Trust & Proof: ✅ 🛡️ 🎉
 
 Grounding:
-- For nutrition, supplements, doses and any numeric guidance: use only facts present in the Context block. Do not invent numbers. If missing, say what is needed and avoid guesses.
+- For nutrition, supplements, doses and ANY numeric guidance: use ONLY facts present in the Context block.
+- Do NOT invent numbers. If missing, say what data is needed and avoid guesses.
+- Prefer ranges and frequencies exactly as stated in Context.
 """
 
 EXPERT_ROUTER = {
-    "menopause": {"label": "Menopause & Perimenopause Clinician", "inspired_by": "NAMS-certified menopause practitioner approach (evidence-first, safety-focused)",
-                  "principles": ["Clarify symptom pattern, duration, and impact using numbers.",
-                                 "Offer first-line options with dose ranges and frequencies.",
-                                 "Note red flags and medication interactions succinctly.",
-                                 "State that this is not medical advice and suggest physician follow-up when indicated."],
-                  "keywords": ["menopause","perimenopause","hot flash","night sweats","vaginal dryness","hrt","mht","hormone therapy","irregular periods","sleep in midlife"]},
-    "weight_loss": {"label": "Menopausal Weight Loss Coach (Evidence-based)","inspired_by":"Calorie balance, high-satiety nutrition, sustainable behavior change",
-                    "principles":["Aim for a modest weekly loss (0.3–0.7 kg) with a 10–20% energy deficit.",
-                                  "Emphasize protein (1.2–1.6 g/kg) and fiber (25–35 g/day).",
-                                  "Use step targets and strength training 2–3×/week to preserve muscle.",
-                                  "Track 1–2 simple metrics weekly (weight trend, waist circumference)."],
-                    "keywords":["lose weight","weight loss","fat loss","belly fat","deficit","calorie deficit","cutting","shredding"]},
-    "nutrition": {"label":"Menopausal Expert on Nutrition","inspired_by":"Mary Claire Haver",
-                  "principles":["Center meals on protein (20–40 g/meal) and fiber (25-30 grams per day).",
-                                "Plan simple defaults; batch prep 1–2 times/week.",
-                                "Hydration 1.5–2.5 L/day; adjust for exercise and climate."],
-                  "keywords":["nutrition","diet","protein","fiber","macros","calories","meal plan","meal prep","snack","vitamin","supplement","satiety","hunger","cravings","sugar"]},
-    "fitness": {"label":"Menopausal Strength & Cardio Coach","inspired_by":"dr Stacy Sims",
-                "principles":["Strength 2–4×/week (6–12 reps, 2–4 sets, RPE 7–9).",
-                              "Cardio 90–150 min/week (mix steady + intervals).",
-                              "Daily steps target 6k–10k; start +1k from baseline.",
-                              "Prioritize form, recovery, and gradual progress."],
-                "keywords":["fitness","exercise","workout","strength","resistance","weights","gym","cardio","hiit","walking","running","squat","deadlift","pushup","pullup","mobility"]},
-    "sleep": {"label":"Menopausal Sleep Coach","inspired_by":"CBT-I principles, circadian rhythm alignment",
-              "principles":["Consistent wake time ±15 min, 7 days/week.",
-                            "Wind-down 30–60 min; dim light 2 hours pre-bed.",
-                            "Caffeine cut-off 8–10 hours before bed; alcohol minimal.",
-                            "If awake >20 min, get up, low-light reset; back to bed when sleepy."],
-              "keywords":["sleep","insomnia","wake at night","sleep hygiene","melatonin","circadian","nap","restless","groggy"]},
-    "stress": {"label":"Menopausal Stress & Resilience Coach","inspired_by":"CBT / Mindfulness",
-               "principles":["Daily 4–6 breath cycles (4–6 per minute) for 2–5 minutes.",
-                             "Short decompression walks (5–10 minutes) after stress spikes.",
-                             "Boundaries: time-box work blocks (25–50 minutes) + micro-breaks.",
-                             "Track stressors and supports; edit 1 lever/week."],
-               "keywords":["stress","anxiety","overwhelm","burnout","cortisol","breathing","breathwork","relax","tension"]},
-    "willpower": {"label":"Willpower & Self-Regulation Coach","inspired_by":"Implementation intentions, friction design",
-                  "principles":["If-then plans for known traps.",
-                                "Reduce friction to good choices; add friction to unhelpful ones.",
-                                "Use commitment devices and visual cues; review weekly.",
-                                "Focus on identity: ‘I am the kind of person who…’"],
-                  "keywords":["willpower","motivation","discipline","self control","cravings","urge","temptation","procrastination"]},
-    "habits": {"label":"Behavior Change & Habits","inspired_by":"James Clear-style design",
-               "principles":["Use 1–3 tiny steps (≤2 minutes each).",
-                             "Make it obvious, attractive, easy, and satisfying.",
-                             "Measure weekly with 1–2 simple metrics."],
-               "keywords":["habit","habits","routine","ritual","consistency","streak","trigger","Lazy","Motivation","Motivated"]},
-    "default": {"label":"Topic-Relevant Expert","inspired_by":"Evidence-based, practical guidance",
-                "principles":["Be specific, numeric, kind; avoid generic phrasing."],"keywords":[]},
+    "menopause": {
+        "label": "Menopause & Perimenopause Clinician",
+        "inspired_by": "NAMS-informed, evidence-first, safety-focused approach",
+        "principles": [
+            "Clarify symptom pattern, duration, and impact using numbers.",
+            "Offer first-line options with dose ranges and frequencies when present in Context.",
+            "Note red flags and medication interactions succinctly.",
+            "State that this is not medical advice; suggest clinician follow-up when indicated."
+        ],
+        "keywords": [
+            "menopause","perimenopause","hot flash","night sweats","vaginal dryness",
+            "hrt","mht","hormone therapy","irregular periods","sleep in midlife"
+        ],
+    },
+    "weight_loss": {
+        "label": "Menopausal Weight Loss Coach (Evidence-based)",
+        "inspired_by": "Energy balance, high-satiety nutrition, sustainable behavior change",
+        "principles": [
+            "Aim for modest weekly loss using a sustainable energy deficit when Context provides numbers.",
+            "Emphasize protein and fiber targets from Context; avoid inventing values.",
+            "Use step targets and strength training 2–3×/week when appropriate.",
+            "Track 1–2 simple metrics weekly (e.g., weight trend, waist)."
+        ],
+        "keywords": [
+            "lose weight","weight loss","fat loss","belly fat","deficit","calorie deficit","cutting","shredding"
+        ],
+    },
+    "nutrition": {
+        "label": "Menopausal Expert on Nutrition",
+        "inspired_by": "Protein- and fiber-centered meals; simple planning and hydration",
+        "principles": [
+            "Center meals on protein and fiber amounts ONLY if provided in Context.",
+            "Plan simple defaults; batch prep 1–2 times/week.",
+            "Hydration guidance only when numeric details exist in Context."
+        ],
+        "keywords": [
+            "nutrition","diet","protein","fiber","macros","calories","meal plan","meal prep",
+            "snack","vitamin","supplement","satiety","hunger","cravings","sugar"
+        ],
+    },
+    "fitness": {
+        "label": "Menopausal Strength & Cardio Coach",
+        "inspired_by": "Strength + cardio with recovery and progression",
+        "principles": [
+            "Strength 2–4×/week; reps/sets/RPE only if numbers exist in Context.",
+            "Cardio 90–150 min/week mix when Context supports; otherwise describe types without numbers.",
+            "Daily steps guidance only if Context provides targets; focus on +1k from baseline heuristic."
+        ],
+        "keywords": [
+            "fitness","exercise","workout","strength","resistance","weights","gym","cardio",
+            "hiit","walking","running","squat","deadlift","pushup","pullup","mobility"
+        ],
+    },
+    "sleep": {
+        "label": "Menopausal Sleep Coach",
+        "inspired_by": "CBT-I principles, circadian alignment",
+        "principles": [
+            "Consistent wake time; exact windows only when in Context.",
+            "Wind-down and light hygiene specifics only if provided in Context.",
+            "State safe limits for caffeine/alcohol if present in Context."
+        ],
+        "keywords": [
+            "sleep","insomnia","wake at night","sleep hygiene","melatonin","circadian","nap","restless","groggy"
+        ],
+    },
+    "stress": {
+        "label": "Menopausal Stress & Resilience Coach",
+        "inspired_by": "CBT / Mindfulness",
+        "principles": [
+            "Short breathing protocols and decompression walks; use numeric timing only if in Context.",
+            "Time-boxing and micro-breaks; keep instructions simple and actionable."
+        ],
+        "keywords": [
+            "stress","anxiety","overwhelm","burnout","cortisol","breathing","breathwork","relax","tension"
+        ],
+    },
+    "willpower": {
+        "label": "Willpower & Self-Regulation Coach",
+        "inspired_by": "Implementation intentions, friction design",
+        "principles": [
+            "If-then plans for known traps.",
+            "Reduce friction to good choices; add friction to unhelpful ones.",
+            "Commitment devices and visual cues; review weekly."
+        ],
+        "keywords": [
+            "willpower","motivation","discipline","self control","cravings","urge","temptation","procrastination"
+        ],
+    },
+    "habits": {
+        "label": "Behavior Change & Habits",
+        "inspired_by": "Tiny steps; obvious, easy, satisfying",
+        "principles": [
+            "Use 1–3 tiny steps (≤2 minutes each).",
+            "Measure weekly with 1–2 simple metrics."
+        ],
+        "keywords": [
+            "habit","habits","routine","ritual","consistency","streak","trigger","lazy","motivation","motivated"
+        ],
+    },
+    "default": {
+        "label": "Topic-Relevant Expert",
+        "inspired_by": "Evidence-based, practical guidance",
+        "principles": ["Be specific, numeric, kind; avoid generic phrasing."],
+        "keywords": [],
+    },
 }
 
 def select_expert_persona(context: str, question: str) -> dict:
     q = (question or "").lower()
+    # Priority routing by domain keywords
     for key in ["menopause","weight_loss","sleep","stress","fitness","nutrition","habits","willpower"]:
         kws = EXPERT_ROUTER[key].get("keywords", [])
         if any(kw in q for kw in kws):
             return EXPERT_ROUTER[key]
+    # Extra catch: weight + loss split
     if "lose weight" in q or "weight-loss" in q or ("weight" in q and "loss" in q):
         return EXPERT_ROUTER["weight_loss"]
     return EXPERT_ROUTER["default"]
@@ -281,26 +353,30 @@ def build_user_message(context: str, question: str) -> str:
         f"Inspired by: {persona.get('inspired_by','')}\n"
         f"Principles: " + "; ".join(persona.get('principles', []))
     )
-    return f"""Context from knowledge base (use only if relevant):
+    return f"""Context (use ONLY if relevant; never invent numbers):
 {context}
 
-User question:
+User question (mirror this language exactly in your response):
 {question}
 
 {persona_block}
 
 Instructions for the answer:
-1. Write in warm, supportive, compassionate, precise English, suitable for women 40+.
-2. Do not use bold (**), markdown (#), or code formatting.
-3. Begin with 1 empathetic sentence (1–2 lines max).
-4. Provide 3–6 short bullet points with emojis at the start.
-5. Use concrete numeric details (times, doses, frequencies, ranges, percentages) where appropriate.
-6. Keep it personal and non-generic; tailor examples to the question.
-7. If health-related, include a brief non-medical-advice reminder.
-8. End with a short follow-up question (👉) if helpful to move her forward.
-9. Do not use bold or italic text
-10. If something is of critical importance use alert emoji and paragraph starting with heading Alert or Here is the catch
+1) Write in warm, supportive, compassionate, precise language suitable for women 40+.
+2) Do NOT use markdown or code formatting in the output.
+3) Begin with 1 empathetic sentence (max 2 lines).
+4) Provide 3–6 short bullet points with ONE emoji at the start of each bullet, chosen from the Emoji bank.
+5) Use concrete numeric details ONLY if present in Context; otherwise state what data is needed (no guessing).
+6) Keep it personal and non-generic; tailor examples to the question.
+7) If health-related, include a one-line non-medical-advice reminder.
+8) End with a short follow-up question (👉) that helps her take the next step.
+9) If something is critically important, add a short separate line starting with: ⚠️ Caution: ...
+10) Always respond in the SAME language as the user’s question.
+11) If food related, always specify macros (proteins, fiber, calories)
+
+Emoji bank: Calm & Wellness 🌸 🌿 ☕ 🕊️ | Support 💛 🤗 🙌 ✨ | Energy ⚡ 💪 🌞 | Practical 📝 📱 💡 | Trust ✅ 🛡️ 🎉
 """
+
 
 def generate_answer(question: str, history: Optional[list] = None) -> str:
     if BYPASS_LLM:
@@ -321,7 +397,7 @@ def generate_answer(question: str, history: Optional[list] = None) -> str:
         resp = client.chat.completions.create(
             model=OPENAI_MODEL,
             messages=messages,
-            temperature=0.5,
+            temperature=0.1,
         )
     except Exception as e:
         raise RuntimeError(f"OpenAI chat call failed: {e}")
@@ -344,11 +420,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+class ChatMessage(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str
+
 class AskIn(BaseModel):
     question: str
+    history: Optional[List[ChatMessage]] = None  # NEW
 
 class AskOut(BaseModel):
     answer: str
+
 
 @app.on_event("startup")
 def on_startup():
@@ -382,7 +464,7 @@ def health():
 @app.post("/ask", response_model=AskOut)
 def ask(item: AskIn):
     try:
-        ans = generate_answer(item.question)
+        ans = generate_answer(item.question, history=[m.dict() for m in (item.history or [])])
         return AskOut(answer=ans)
     except Exception as e:
         print("[ERROR]", repr(e))

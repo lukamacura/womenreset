@@ -6,15 +6,13 @@ export const revalidate = 0;
 export const fetchCache = "default-no-store";
 export const runtime = "nodejs";
 
-type AskBody = { question: string };
+type ChatRole = "user" | "assistant";
+type ChatMessage = { role: ChatRole; content: string };
+type AskBody = { question: string; history?: ChatMessage[] };
 type AskResponse = { answer: string } | Record<string, unknown>;
 
 const DEDUPE_WINDOW_MS = 5000;
 const recent = new Map<string, { ts: number; payload: AskResponse }>();
-
-function makeKey(body: AskBody): string {
-  return JSON.stringify(body);
-}
 
 function getBackendUrl(): string {
   const raw =
@@ -24,10 +22,28 @@ function getBackendUrl(): string {
   return raw.endsWith("/") ? raw.slice(0, -1) : raw;
 }
 
+// helpers for safe type guards (bez any)
+function isRecord(x: unknown): x is Record<string, unknown> {
+  return typeof x === "object" && x !== null;
+}
+function isChatRole(x: unknown): x is ChatRole {
+  return x === "user" || x === "assistant";
+}
+function isChatMessage(x: unknown): x is ChatMessage {
+  if (!isRecord(x)) return false;
+  const role = x.role;
+  const content = x.content;
+  return isChatRole(role) && typeof content === "string";
+}
 function isAskBody(x: unknown): x is AskBody {
-  if (typeof x !== "object" || x === null) return false;
-  const q = (x as Record<string, unknown>).question;
-  return typeof q === "string" && q.trim().length > 0;
+  if (!isRecord(x)) return false;
+  const q = x.question;
+  const h = x.history;
+  const qOk = typeof q === "string" && q.trim().length > 0;
+  const hOk =
+    h === undefined ||
+    (Array.isArray(h) && h.every((m) => isChatMessage(m)));
+  return qOk && hOk;
 }
 
 export async function POST(req: Request) {
@@ -39,10 +55,14 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
-    const body: AskBody = { question: parsed.question.trim() };
+
+    const body: AskBody = {
+      question: parsed.question.trim(),
+      history: parsed.history ?? [],
+    };
 
     // dedupe window
-    const key = makeKey(body);
+    const key = JSON.stringify(body);
     const now = Date.now();
     const cached = recent.get(key);
     if (cached && now - cached.ts < DEDUPE_WINDOW_MS) {
@@ -79,7 +99,7 @@ export async function POST(req: Request) {
     if (recent.size > 200) {
       const it = recent.keys().next();
       if (!it.done) {
-        recent.delete(it.value); // ovde je sigurno string
+        recent.delete(it.value);
       }
     }
 
