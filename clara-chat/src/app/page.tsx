@@ -217,15 +217,7 @@ try {
               key={i}
               className={`flex items-start gap-3 ${r.who === "user" ? "justify-end" : "justify-start"}`}
             >
-              {r.who === "bot" && (
-                <Image
-                  src="/Clara.png"
-                  alt="Clara avatar"
-                  width={40}
-                  height={40}
-                  className="rounded-full shrink-0 h-12 w-12 mt-1"
-                />
-              )}
+              
 
               {/* Wider bubbles for easier reading */}
               <div

@@ -1,0 +1,97 @@
+Brain Fog & Cognitive Changes — Knowledge Base
+
+1. Symptoms & Causes
+Q: What is brain fog in menopause?
+A: Brain fog feels like mental fuzziness, memory lapses, trouble finding words, and difficulty concentrating.
+Q: Why does brain fog happen?
+A: Estrogen decline slows brain energy and neuron activity. Poor sleep, hot flashes, and stress make it worse.
+
+2. Lifestyle Solutions
+Q: What habits help brain clarity?
+A: Prioritize good sleep, manage stress, and follow a consistent routine. Mindfulness, yoga, and relaxation support focus.
+Q: Can exercise help?
+A: Yes. Cardio (30 min, 3–5x/week) and strength training boost blood flow and BDNF, improving memory and focus by up to 40%.
+
+3. Brain Training
+Q: How can I keep my brain sharp?
+A: Stimulate it daily with puzzles, reading, or learning new skills. This builds cognitive reserve.
+
+4. Nutrition & Supplements
+Q: What foods support brain health?
+A: A Mediterranean diet with leafy greens, berries, nuts, and fatty fish. Omega-3s (1–2g EPA/DHA daily) may support memory.
+Q: Are supplements useful?
+A: Omega-3s, antioxidants, magnesium, and B vitamins may help. Always check with your doctor before starting supplements.
+
+5. Monitoring & Therapy
+Q: When should I see a doctor?
+A: If brain fog is severe or persistent. Doctors can check thyroid, vitamin levels, or do cognitive tests.
+Q: Can HRT help?
+A: Early hormone therapy may stabilize brain energy for some women.
+
+? Brain Fog & Cognitive Changes — Chatbot Script
+
+Symptoms & Causes
+User Intent:
+    • “Why do I feel so forgetful?”
+    • “What is brain fog?”
+Bot Response:
+Brain fog is common in menopause. It feels like memory lapses, fuzzy thinking, and trouble concentrating.
+Bot Follow-up:
+? “Would you like me to explain why it happens, or what helps improve it?”
+
+Lifestyle Solutions
+User Intent:
+    • “How can I clear brain fog naturally?”
+    • “What habits help my memory?”
+Bot Response:
+Good sleep, stress management, and consistency in your daily routine make a big difference. Mindfulness or yoga can also sharpen focus.
+Bot Follow-up:
+? “Want me to share how exercise supports brain clarity?”
+
+Exercise
+User Intent:
+    • “Can exercise help my brain?”
+    • “Does working out improve memory?”
+Bot Response:
+Yes! Cardio and strength training increase blood flow and brain chemicals that boost focus and memory by up to 40%.
+Action Tips:
+    1. Aim for 30 minutes of cardio 3–5 times weekly.
+    2. Add strength training 2–3 times weekly.
+    3. Move daily, even short walks help.
+Bot Follow-up:
+? “Would you like quick exercise ideas?”
+
+Brain Training
+User Intent:
+    • “How can I keep my brain sharp?”
+Bot Response:
+Challenge your brain daily with puzzles, reading, or learning new skills. This builds your cognitive reserve.
+Bot Follow-up:
+? “Want me to suggest brain training activities?”
+
+Nutrition & Supplements
+User Intent:
+    • “What should I eat for brain health?”
+    • “Do supplements help brain fog?”
+Bot Response:
+Leafy greens, berries, nuts, and fatty fish support brain energy. Omega-3s, magnesium, and B vitamins may help, but check with your doctor.
+Bot Follow-up:
+? “Want me to give you a sample brain-friendly meal?”
+
+Monitoring & Therapy
+User Intent:
+    • “Should I see a doctor about brain fog?”
+Bot Response:
+Yes. If brain fog is severe or persistent, a doctor can check thyroid, vitamins, or run memory tests. HRT may also help some women.
+Bot Follow-up:
+? “Would you like to know what tests doctors usually recommend?”
+
+Fallbacks
+General Fallback:
+“Brain fog is common in menopause, but it’s not permanent. Do you want to focus on lifestyle, diet, or medical options?”
+Empathy Fallback:
+“Many women feel worried about brain fog—you’re not alone. The good news: your brain can stay sharp with the right habits.”
+Safety Fallback:
+“This chatbot provides educational support, not diagnosis. Please consult your doctor if symptoms are severe or worsening.”
+
+
