@@ -1,492 +1,391 @@
-# main.py
+# main.py — MULTI-DATA (Nutrition + Mindset)
+
 import os
 import json
-import shutil
-import traceback
-import hashlib
-from typing import List, Optional
-from typing import Literal
+from typing import List, Dict, Any
+from contextlib import asynccontextmanager
+import asyncio
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
-import chromadb
-from chromadb.utils import embedding_functions
-from openai import OpenAI
+# LangChain & Chroma
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_chroma import Chroma
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.chains import RetrievalQA
+from langchain.prompts import PromptTemplate
+from langchain_core.retrievers import BaseRetriever
+from langchain_core.documents import Document
 
-# ---- ENV ----
+# -----------------------------
+# 0) Config
+# -----------------------------
+NUTRITION_PATH = "./data/nutrition.jsonl"
+MINDSET_PATH   = "./data/mindset.jsonl"
+CHROMA_DIR     = "./chroma_store"
+
+NUTRITION_COLLECTION = "menopause_nutrition"
+MINDSET_COLLECTION   = "mindset_global"
+
+EMBED_MODEL = "text-embedding-3-large"   # ili "text-embedding-3-small"
+CHAT_MODEL  = "gpt-4o-mini"
+K = 3                         # top-k iz nutritivnog store-a
+K_MINDSET = 1                 # koliko mindset pasusa uvek dodajemo
+DO_CHUNK = True
+
+# ENV / API key
 load_dotenv()
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-USE_LOCAL_EMB = os.getenv("USE_LOCAL_EMB", "false").lower() == "true"
-CHROMA_DB_PATH = os.getenv("CHROMA_DB_PATH", "/var/tmp/chroma")
-KNOWLEDGE_FILE = os.getenv("KNOWLEDGE_FILE", "data/knowledge.jsonl")
-OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o")
-FRONTEND_ORIGINS = [o.strip() for o in os.getenv("FRONTEND_ORIGINS", "*").split(",") if o.strip()]
-ADMIN_TOKEN = os.getenv("ADMIN_TOKEN", "")
-BYPASS_LLM = os.getenv("BYPASS_LLM", "0") == "1"
+if not os.getenv("OPENAI_API_KEY"):
+    raise RuntimeError("OPENAI_API_KEY is missing. Add it to .env")
 
-# ---- Token/Chunk utils ----
-def approx_tokens(s: str) -> int:
-  return max(1, len(s) // 4)
+# -----------------------------
+# 1) Load JSONL
+# -----------------------------
+def load_jsonl(path: str) -> List[Dict[str, Any]]:
+    if not os.path.isfile(path):
+        return []
+    with open(path, "r", encoding="utf-8") as f:
+        return [json.loads(line) for line in f if line.strip()]
 
-MAX_CHARS_PER_CHUNK = 1200
-CHUNK_OVERLAP = 120
-EMB_MAX_TOKENS_PER_REQ = 280_000
-EMB_MAX_BATCH_SIZE = 128
-ADD_BATCH_SIZE = 200
+# -----------------------------
+# 2) Build texts + metadata
+# -----------------------------
+def build_corpus(
+    records: List[Dict[str, Any]],
+    do_chunk: bool = True,
+    default_doc_type: str = "nutrition",
+    source_name: str | None = None,
+):
+    """
+    Vraća texts, metas. Ako je doc_type= "mindset", u tekst dodajemo prefiks [MINDSET]
+    da bi prompt znao da ubaci 'Mindset tip'.
+    """
+    texts, metas = [], []
 
-def split_into_chunks(text: str, max_chars: int = MAX_CHARS_PER_CHUNK, overlap: int = CHUNK_OVERLAP):
-  text = (text or "").strip()
-  if not text: return []
-  if len(text) <= max_chars: return [text]
-  chunks = []
-  i = 0
-  n = len(text)
-  step = max(1, max_chars - overlap)
-  while i < n:
-    chunks.append(text[i:i+max_chars])
-    i += step
-  return chunks
+    def body_from(r):
+        return r.get("answer") or r.get("explanation") or ""
 
-# ---- EMBEDDINGS ----
-if USE_LOCAL_EMB:
-  ef = embedding_functions.SentenceTransformerEmbeddingFunction(
-    model_name="all-MiniLM-L6-v2"
-  )
-else:
-  from chromadb import EmbeddingFunction, Documents, Embeddings
-  class OpenAIEmbeddingEF(EmbeddingFunction):
-    def __init__(self, model="text-embedding-3-small"):
-      if not OPENAI_API_KEY:
-        raise RuntimeError("OPENAI_API_KEY is missing for embeddings")
-      self.client = OpenAI(api_key=OPENAI_API_KEY)
-      self.model = model
-    def __call__(self, texts: "Documents") -> "Embeddings":
-      if not texts: return []
-      vectors, batch, tok_sum = [], [], 0
-      for t in texts:
-        t = t or ""
-        t_tok = approx_tokens(t)
-        if batch and (len(batch) >= EMB_MAX_BATCH_SIZE or tok_sum + t_tok > EMB_MAX_TOKENS_PER_REQ):
-          resp = self.client.embeddings.create(model=self.model, input=batch)
-          vectors.extend([d.embedding for d in resp.data])
-          batch, tok_sum = [], 0
-        batch.append(t); tok_sum += t_tok
-      if batch:
-        resp = self.client.embeddings.create(model=self.model, input=batch)
-        vectors.extend([d.embedding for d in resp.data])
-      return vectors
-  ef = OpenAIEmbeddingEF()
+    def prefix_from(r):
+        intents = r.get("intent", [])
+        return " | ".join(intents)
 
-# ---- CHROMA ----
-def get_collection():
-  client = chromadb.PersistentClient(path=CHROMA_DB_PATH)
-  return client.get_or_create_collection(
-    name="knowledge",
-    embedding_function=ef,
-    metadata={"hnsw:space": "cosine"},
-  )
-
-def _safe_id(rec, fallback):
-  raw = f"{rec.get('topic','')}_{rec.get('subtopic','')}_{rec.get('id',fallback)}"
-  h = hashlib.md5(raw.encode("utf-8")).hexdigest()[:8]
-  return f"{rec.get('id', fallback)}__{h}"
-
-def _yield_records_jsonl(path: str):
-  with open(path, "r", encoding="utf-8") as f:
-    idx = 0
-    for line in f:
-      line = line.strip()
-      if not line:
-        idx += 1
-        continue
-      rec = json.loads(line)
-      base_id = _safe_id(rec, f"doc_{idx+1}")
-      txt = (rec.get("text") or "").strip()
-      meta = rec.get("metadata") or {}
-      idx += 1
-      if not txt: continue
-      chunks = split_into_chunks(txt)
-      for ci, chunk in enumerate(chunks):
-        out_meta = dict(meta)
-        out_meta["source_id"] = base_id
-        out_meta["chunk_index"] = ci + 1
-        yield chunk, f"{base_id}__c{ci+1}", out_meta
-
-def _yield_records_json(path: str):
-  arr = json.load(open(path, "r", encoding="utf-8"))
-  for i, rec in enumerate(arr):
-    base_id = _safe_id(rec, f"doc_{i+1}")
-    txt = (rec.get("text") or "").strip()
-    meta = rec.get("metadata") or {}
-    if not txt: continue
-    chunks = split_into_chunks(txt)
-    for ci, chunk in enumerate(chunks):
-      out_meta = dict(meta)
-      out_meta["source_id"] = base_id
-      out_meta["chunk_index"] = ci + 1
-      yield chunk, f"{base_id}__c{ci+1}", out_meta
-
-def load_initial_data(collection, path=KNOWLEDGE_FILE):
-  try:
-    if collection.count() > 0:
-      return
-  except Exception:
-    pass
-
-  try:
-    generator = _yield_records_jsonl(path) if path.endswith(".jsonl") else _yield_records_json(path)
-  except FileNotFoundError:
-    print(f"[WARN] {path} not found.")
-    return
-
-  docs, ids, metas, added = [], [], [], 0
-  for doc, _id, meta in generator:
-    docs.append(doc); ids.append(_id); metas.append(meta)
-    if len(docs) >= ADD_BATCH_SIZE:
-      collection.add(documents=docs, ids=ids, metadatas=metas)
-      added += len(docs)
-      docs, ids, metas = [], [], []
-      print(f"[INIT] Added {added} chunks...")
-  if docs:
-    collection.add(documents=docs, ids=ids, metadatas=metas)
-    added += len(docs)
-  if added:
-    print(f"[INIT] Loaded {added} chunks into Chroma.")
-
-def retrieve_context(collection, question: str, k: int = 5, threshold: float = 0.45) -> str:
-  try:
-    res = collection.query(query_texts=[question], n_results=k, include=["documents", "distances", "ids"]) or {}
-  except Exception as e:
-    print("[CTX][WARN] retrieval failed:", repr(e))
-    return ""
-  docs = (res.get("documents") or [[]])[0]
-  dists = (res.get("distances") or [[]])[0]
-  picked, seen = [], set()
-  for d, dist in zip(docs, dists):
-    if not d: continue
-    if dist is None or dist > threshold: continue
-    t = d.strip()
-    if t and t not in seen:
-      picked.append(t); seen.add(t)
-  return "\n---\n".join(picked[:k])
-
-STYLE_PROMPT = """
-You are a warm, clear, and supportive assistant for women 40+.
-
-Always respond in the SAME language as the user’s query.
-
-Tone:
-- Gentle, empathetic, encouraging & motivational.
-- Practical and precise; avoid vague or generic advice.
-- Use everyday, natural language.
-- Do not use markdown (** or #) or code styling in the output.
-
-Expert Persona:
-- Adopt the most relevant expert persona for the user’s question, based on the EXPERT_ROUTER notes.
-- Reflect the expert’s priorities (precision, evidence, practicality) without imitating any specific person or claiming credentials you don’t have.
-- If the question touches health, prioritize safety and evidence; state limits and include a brief non-medical-advice reminder.
-
-Style:
-- Start with 1 short, warm, empathetic, encouraging & motivational sentence.
-- Provide 3–10 concise bullet points.
-- If the question is very short or casual, reply in 1–2 warm sentences without forcing bullet points.
-- If you see that question is emotional always give 1 encouraging quote that is linked to question starting & ending with " and separated from other text
-- Each paragraph and each bullet begins with ONE relevant emoji chosen from the list below.
-- Always use specific numbers (minutes, hours, amounts, frequency, percentages) when available in the Context.
-- If something is critically important, start a separate short paragraph with: ⚠️ Caution: ... (keep it under 2 lines).
-- Keep language personal and situation-aware; avoid templates.
-- Close with a brief contextual follow-up question (👉) when useful.
-- Always mirror the language of the user’s query.
-
-Emoji bank (pick 1 per bullet or paragraph):
-Calm & Wellness: 🌸 🌿 ☕ 🕊️
-Support & Warmth: 💛 🤗 🙌 ✨
-Motivation & Energy: ⚡ 💪 🌞
-Practical & Learning: 📝 📱 💡
-Trust & Proof: ✅ 🛡️ 🎉
-
-Grounding:
-- For nutrition, supplements, doses and ANY numeric guidance: use ONLY facts present in the Context block.
-- Do NOT invent numbers. If missing, say what data is needed and avoid guesses.
-- Prefer ranges and frequencies exactly as stated in Context.
-"""
-
-EXPERT_ROUTER = {
-    "menopause": {
-        "label": "Menopause & Perimenopause Clinician",
-        "inspired_by": "NAMS-informed, evidence-first, safety-focused approach",
-        "principles": [
-            "Clarify symptom pattern, duration, and impact using numbers.",
-            "Offer first-line options with dose ranges and frequencies when present in Context.",
-            "Note red flags and medication interactions succinctly.",
-            "State that this is not medical advice; suggest clinician follow-up when indicated."
-        ],
-        "keywords": [
-            "menopause","perimenopause","hot flash","night sweats","vaginal dryness",
-            "hrt","mht","hormone therapy","irregular periods","sleep in midlife"
-        ],
-    },
-    "weight_loss": {
-        "label": "Menopausal Weight Loss Coach (Evidence-based)",
-        "inspired_by": "Energy balance, high-satiety nutrition, sustainable behavior change",
-        "principles": [
-            "Aim for modest weekly loss using a sustainable energy deficit when Context provides numbers.",
-            "Emphasize protein and fiber targets from Context; avoid inventing values.",
-            "Use step targets and strength training 2–3×/week when appropriate.",
-            "Track 1–2 simple metrics weekly (e.g., weight trend, waist)."
-        ],
-        "keywords": [
-            "lose weight","weight loss","fat loss","belly fat","deficit","calorie deficit","cutting","shredding"
-        ],
-    },
-    "nutrition": {
-        "label": "Menopausal Expert on Nutrition",
-        "inspired_by": "Protein- and fiber-centered meals; simple planning and hydration",
-        "principles": [
-            "Center meals on protein and fiber amounts ONLY if provided in Context.",
-            "Plan simple defaults; batch prep 1–2 times/week.",
-            "Hydration guidance only when numeric details exist in Context."
-        ],
-        "keywords": [
-            "nutrition","diet","protein","fiber","macros","calories","meal plan","meal prep",
-            "snack","vitamin","supplement","satiety","hunger","cravings","sugar"
-        ],
-    },
-    "fitness": {
-        "label": "Menopausal Strength & Cardio Coach",
-        "inspired_by": "Strength + cardio with recovery and progression",
-        "principles": [
-            "Strength 2–4×/week; reps/sets/RPE only if numbers exist in Context.",
-            "Cardio 90–150 min/week mix when Context supports; otherwise describe types without numbers.",
-            "Daily steps guidance only if Context provides targets; focus on +1k from baseline heuristic."
-        ],
-        "keywords": [
-            "fitness","exercise","workout","strength","resistance","weights","gym","cardio",
-            "hiit","walking","running","squat","deadlift","pushup","pullup","mobility"
-        ],
-    },
-    "sleep": {
-        "label": "Menopausal Sleep Coach",
-        "inspired_by": "CBT-I principles, circadian alignment",
-        "principles": [
-            "Consistent wake time; exact windows only when in Context.",
-            "Wind-down and light hygiene specifics only if provided in Context.",
-            "State safe limits for caffeine/alcohol if present in Context."
-        ],
-        "keywords": [
-            "sleep","insomnia","wake at night","sleep hygiene","melatonin","circadian","nap","restless","groggy"
-        ],
-    },
-    "stress": {
-        "label": "Menopausal Stress & Resilience Coach",
-        "inspired_by": "CBT / Mindfulness",
-        "principles": [
-            "Short breathing protocols and decompression walks; use numeric timing only if in Context.",
-            "Time-boxing and micro-breaks; keep instructions simple and actionable."
-        ],
-        "keywords": [
-            "stress","anxiety","overwhelm","burnout","cortisol","breathing","breathwork","relax","tension"
-        ],
-    },
-    "willpower": {
-        "label": "Willpower & Self-Regulation Coach",
-        "inspired_by": "Implementation intentions, friction design",
-        "principles": [
-            "If-then plans for known traps.",
-            "Reduce friction to good choices; add friction to unhelpful ones.",
-            "Commitment devices and visual cues; review weekly."
-        ],
-        "keywords": [
-            "willpower","motivation","discipline","self control","cravings","urge","temptation","procrastination"
-        ],
-    },
-    "habits": {
-        "label": "Behavior Change & Habits",
-        "inspired_by": "Tiny steps; obvious, easy, satisfying",
-        "principles": [
-            "Use 1–3 tiny steps (≤2 minutes each).",
-            "Measure weekly with 1–2 simple metrics."
-        ],
-        "keywords": [
-            "habit","habits","routine","ritual","consistency","streak","trigger","lazy","motivation","motivated"
-        ],
-    },
-    "default": {
-        "label": "Topic-Relevant Expert",
-        "inspired_by": "Evidence-based, practical guidance",
-        "principles": ["Be specific, numeric, kind; avoid generic phrasing."],
-        "keywords": [],
-    },
-}
-def _is_short_fragment(s: str) -> bool:
-    s = (s or "").strip()
-    if not s: return False
-    words = len([w for w in s.split() if w])
-    return words <= 3 or (len(s) < 24 and not s.endswith((".", "?", "!", "…")))
-
-def _repair_followup(question: str, history: Optional[list]) -> str:
-    if not _is_short_fragment(question) or not history:
-        return question
-    last_assistant = next((m.get("content","") for m in reversed(history) if m.get("role") == "assistant"), "")
-    last_user = next((m.get("content","") for m in reversed(history) if m.get("role") == "user"), "")
-    if not last_assistant and not last_user:
-        return question
-    return (
-        "Follow-up to the previous assistant message.\n"
-        f"Previous assistant said:\n\"\"\"{(last_assistant or '')[:700]}\"\"\"\n\n"
-        f"Previous user message (for context):\n\"\"\"{(last_user or '')[:300]}\"\"\"\n\n"
-        f"User adds (short fragment): \"{question}\"\n\n"
-        "Please interpret the fragment in-context and continue the same topic."
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=800, chunk_overlap=120, separators=["\n\n", "\n", ".", " ", ""]
     )
 
-def select_expert_persona(context: str, question: str) -> dict:
-  q = (question or "").lower()
-  for key in ["menopause","weight_loss","sleep","stress","fitness","nutrition","habits","willpower"]:
-    kws = EXPERT_ROUTER[key].get("keywords", [])
-    if any(kw in q for kw in kws):
-      return EXPERT_ROUTER[key]
-  if "lose weight" in q or "weight-loss" in q or ("weight" in q and "loss" in q):
-    return EXPERT_ROUTER["weight_loss"]
-  return EXPERT_ROUTER["default"]
+    for r in records:
+        body = body_from(r)
+        prefix = prefix_from(r)
+        base_text = (prefix + " || " + body).strip(" |")
 
-def build_user_message(context: str, question: str) -> str:
-  persona = select_expert_persona(context, question)
-  persona_block = (
-    f"Expert persona: {persona['label']}\n"
-    f"Inspired by: {persona.get('inspired_by','')}\n"
-    f"Principles: " + "; ".join(persona.get('principles', []))
-  )
-  return f"""Context (use ONLY if relevant; never invent numbers):
+        # doc_type & source
+        doc_type = r.get("doc_type") or default_doc_type
+        source = r.get("source") or (source_name or f"{default_doc_type}.jsonl")
+
+        # Prefiks za mindset da LLM zna da doda Mindset tip
+        preface = "[MINDSET] " if doc_type == "mindset" else ""
+        base_text = (preface + base_text).strip()
+
+        metadata = {
+            "id": r.get("id"),
+            "topic": r.get("topic"),
+            "subtopic": r.get("subtopic"),
+            "doc_type": doc_type,
+            "audience": r.get("audience", "women_40_plus"),
+            "source": source,
+            "lang": r.get("lang", "en"),
+        }
+
+        if do_chunk and base_text:
+            for chunk in splitter.split_text(base_text):
+                texts.append(chunk)
+                metas.append(metadata)
+        else:
+            texts.append(base_text)
+            metas.append(metadata)
+
+    return texts, metas
+
+# -----------------------------
+# 3) Vector store (Chroma)
+# -----------------------------
+def get_vectorstore(texts: List[str], metas: List[Dict[str, Any]], collection_name: str) -> Chroma:
+    import chromadb
+    embeddings = OpenAIEmbeddings(model=EMBED_MODEL)
+    client = chromadb.PersistentClient(path=CHROMA_DIR)
+
+    vs = Chroma(
+        client=client,
+        collection_name=collection_name,
+        embedding_function=embeddings,
+    )
+    # inicijalno popuni ako je prazno
+    try:
+        count = vs._collection.count()
+    except Exception:
+        count = 0
+
+    if count == 0 and texts:
+        vs.add_texts(texts=texts, metadatas=metas)
+
+    return vs
+
+# -----------------------------
+# 4) Prompt
+# -----------------------------
+SYSTEM_PROMPT = """You are CLARA, a warm, practical menopause coach for women 40+.
+Be concise and specific. Use everyday foods and 2–4 bullet steps when helpful.
+If the user asks for medical-specific guidance, add a short disclaimer.
+Ground your reply ONLY in the provided context; if unsure, say so briefly.
+If any retrieved text contains the tag [MINDSET], add one short line at the end starting with "Mindset tip:" summarizing that insight."""
+
+QA_TEMPLATE = PromptTemplate.from_template(
+    """{system}
+
+Context (retrieved passages):
 {context}
 
-User question (mirror this language exactly in your response):
+User question:
 {question}
 
-{persona_block}
-
-Instructions for the answer:
-1) Write in warm, supportive, compassionate, precise language suitable for women 40+.
-2) Do NOT use markdown or code formatting in the output.
-3) Begin with 1 empathetic sentence (max 2 lines).
-4) Provide 3–10 short bullet points with ONE emoji at the start of each bullet.
-5) Use numeric details ONLY if present in Context (no guessing).
-6) Give motivational quote related to question only if needed
-6) End with a short follow-up question (👉).
-"""
-
-def generate_answer(question: str, history: Optional[list] = None) -> str:
-  orig_question = question
-  question = _repair_followup(question, history)
-
-  if BYPASS_LLM:
-    return "Backend OK (bypass). Check your OPENAI_API_KEY/MODEL next."
-  if not OPENAI_API_KEY:
-    raise RuntimeError("OPENAI_API_KEY is missing")
-
-  collection = get_collection()
-  context = retrieve_context(collection, orig_question, k=5)   # <-- izmena
-
-  client = OpenAI(api_key=OPENAI_API_KEY)
-
-  # Natural turn order: SYSTEM -> history (user/assistant) -> USER
-  messages = [{"role": "system", "content": STYLE_PROMPT}]
-  if history:
-    for m in history:
-      if isinstance(m, dict) and m.get("role") in ("user", "assistant") and isinstance(m.get("content"), str):
-        messages.append({"role": m["role"], "content": m["content"]})
-  messages.append({"role": "user", "content": build_user_message(context, question)})
-
-  try:
-    resp = client.chat.completions.create(
-      model=OPENAI_MODEL,
-      messages=messages,
-      temperature=0.1,
-    )
-  except Exception as e:
-    raise RuntimeError(f"OpenAI chat call failed: {e}")
-
-  if not resp or not getattr(resp, "choices", None):
-    raise RuntimeError("OpenAI returned empty response")
-  content = resp.choices[0].message.content
-  if not content:
-    raise RuntimeError("OpenAI returned no content")
-  return content.strip()
-
-# ---- FASTAPI APP ----
-app = FastAPI(title="Women Reset RAG API")
-
-app.add_middleware(
-  CORSMiddleware,
-  allow_origins=FRONTEND_ORIGINS if FRONTEND_ORIGINS != ["*"] else ["*"],
-  allow_credentials=True,
-  allow_methods=["*"],
-  allow_headers=["*"],
+Rules:
+- Keep answers practical and empathetic.
+- Do not bold or try to style text
+- If you talk about food always calculate basic macros (Calories, Protein, Fiber) when possible.
+- Use appropriate emojis in front of every bullet
+- If advice may be medical, end with: "This is educational, not medical advice."
+- Cite 1–3 short source tags like: [topic → subtopic].""".strip()
 )
 
-class ChatMessage(BaseModel):
-  role: Literal["user", "assistant"]
-  content: str
+# -----------------------------
+# 5) Dual retriever (nutrition + mindset)
+# -----------------------------
+# -----------------------------
+# 5) Dual retriever (nutrition + mindset)
+# -----------------------------
+from typing import Any, List
+from langchain_core.retrievers import BaseRetriever
+from langchain_core.documents import Document
 
-class AskIn(BaseModel):
-  question: str
-  history: Optional[List[ChatMessage]] = None
+class DualRetriever(BaseRetriever):
+    # Pydantic polja (moraju biti deklarisana)
+    primary: Any
+    secondary: Any
+    kp: int = 3
+    ks: int = 1
 
-class AskOut(BaseModel):
-  answer: str
+    class Config:
+        arbitrary_types_allowed = True  # dozvoli LangChain objekte kao tipove
 
-@app.on_event("startup")
-def on_startup():
-  print("[STARTUP] USE_LOCAL_EMB:", USE_LOCAL_EMB)
-  try:
-    if KNOWLEDGE_FILE.startswith("/"):
-      src_guess = KNOWLEDGE_FILE.replace("/data/", "data/")
-      if not os.path.exists(KNOWLEDGE_FILE) and os.path.exists(src_guess):
-        os.makedirs(os.path.dirname(KNOWLEDGE_FILE), exist_ok=True)
-        shutil.copyfile(src_guess, KNOWLEDGE_FILE)
-        print(f"[STARTUP] Copied {src_guess} -> {KNOWLEDGE_FILE}")
-  except Exception as e:
-    print("[STARTUP][copy warn]", e)
+    def _get_relevant_documents(self, query: str) -> List[Document]:
+        d1 = self.primary.get_relevant_documents(query)[: self.kp]
+        d2 = self.secondary.get_relevant_documents(query)[: self.ks]
+        return d1 + d2
 
-  coll = get_collection()
-  load_initial_data(coll, KNOWLEDGE_FILE)
+    async def _aget_relevant_documents(self, query: str) -> List[Document]:
+        d1, d2 = await asyncio.gather(
+            self.primary.aget_relevant_documents(query),
+            self.secondary.aget_relevant_documents(query),
+        )
+        return d1[: self.kp] + d2[: self.ks]
 
-  try:
-    _ = ef(["warmup"])
-    print("[STARTUP] Embedding ready. Docs:", coll.count())
-  except Exception as e:
-    print("[STARTUP][WARN] embeddings not ready:", e)
 
-  if not OPENAI_API_KEY and not BYPASS_LLM:
-    print("[WARN] OPENAI_API_KEY is missing; LLM calls will fail.")
+# -----------------------------
+# 6) Build chain from a retriever
+# -----------------------------
+def build_chain_from_retriever(retriever):
+    llm = ChatOpenAI(model=CHAT_MODEL, temperature=0)
+    chain = RetrievalQA.from_chain_type(
+        llm=llm,
+        retriever=retriever,
+        chain_type="stuff",
+        return_source_documents=True,
+        chain_type_kwargs={"prompt": QA_TEMPLATE.partial(system=SYSTEM_PROMPT)},
+    )
+    return chain
+
+# -----------------------------
+# 7) Lifespan (startup/shutdown)
+# -----------------------------
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Nutrition
+    rec_n = load_jsonl(NUTRITION_PATH)
+    txt_n, meta_n = build_corpus(rec_n, do_chunk=DO_CHUNK, default_doc_type="nutrition", source_name="nutrition.jsonl")
+    vs_n = get_vectorstore(txt_n, meta_n, NUTRITION_COLLECTION)
+
+    # Mindset
+    rec_m = load_jsonl(MINDSET_PATH)
+    txt_m, meta_m = build_corpus(rec_m, do_chunk=DO_CHUNK, default_doc_type="mindset", source_name="mindset.jsonl")
+    vs_m = get_vectorstore(txt_m, meta_m, MINDSET_COLLECTION)
+
+    # Retrievers
+    r_n = vs_n.as_retriever(search_kwargs={"k": K})
+    r_m = vs_m.as_retriever(search_kwargs={"k": max(1, K_MINDSET)})
+
+    # Combined retriever
+    combo = DualRetriever(primary=r_n, secondary=r_m, kp=K, ks=K_MINDSET)
+
+
+    # Chain
+    app.state.qa = build_chain_from_retriever(combo)
+
+    # Save for status/debug/reindex
+    app.state.vs_n, app.state.vs_m = vs_n, vs_m
+
+    yield
+
+# --------- App (create ONCE) ----------
+app = FastAPI(title="CLARA RAG", lifespan=lifespan)
+
+# CORS (if you call directly from :3000)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# -----------------------------
+# 8) Routes
+# -----------------------------
+class AskPayload(BaseModel):
+    question: str
+    history: list[dict] | None = None  # [{role:"user"|"assistant", content:"..."}]
 
 @app.get("/health")
 def health():
-  return {"ok": True, "model": OPENAI_MODEL, "bypass": BYPASS_LLM}
+    return {"ok": True, "status": "up"}
 
-@app.post("/ask", response_model=AskOut)
-def ask(item: AskIn):
-  try:
-    ans = generate_answer(item.question, history=[m.dict() for m in (item.history or [])])
-    return AskOut(answer=ans)
-  except Exception as e:
-    print("[ERROR]", repr(e))
-    print(traceback.format_exc())
-    raise HTTPException(status_code=500, detail=str(e))
+@app.get("/status")
+def status():
+    def count(vs):
+        try:
+            return vs._collection.count()
+        except Exception:
+            return None
+    return {
+        "ok": True,
+        "docs": {
+            "nutrition": count(getattr(app.state, "vs_n", None)),
+            "mindset": count(getattr(app.state, "vs_m", None)),
+        },
+        "paths": {"nutrition": NUTRITION_PATH, "mindset": MINDSET_PATH},
+        "models": {"embed": EMBED_MODEL, "chat": CHAT_MODEL},
+        "k": {"nutrition": K, "mindset": K_MINDSET},
+    }
 
-@app.post("/admin/reindex")
-def admin_reindex(req: Request):
-  if not ADMIN_TOKEN:
-    raise HTTPException(status_code=403, detail="Reindex disabled (no ADMIN_TOKEN).")
-  if req.headers.get("x-admin-token") != ADMIN_TOKEN:
-    raise HTTPException(status_code=401, detail="Unauthorized.")
-  client = chromadb.PersistentClient(path=CHROMA_DB_PATH)
-  try:
-    client.delete_collection("knowledge")
-  except Exception:
-    pass
-  coll = get_collection()
-  load_initial_data(coll, KNOWLEDGE_FILE)
-  return {"ok": True, "count": coll.count()}
+@app.post("/debug/retrieve")
+def debug_retrieve(body: AskPayload):
+    # koristi isti retriever iz chain-a
+    retriever = app.state.qa.retriever
+    docs = retriever.get_relevant_documents(body.question)
+    out = []
+    for d in docs:
+        out.append({
+            "preview": (d.page_content[:300] + "…") if d.page_content else "",
+            "topic": d.metadata.get("topic"),
+            "subtopic": d.metadata.get("subtopic"),
+            "doc_type": d.metadata.get("doc_type"),
+            "source": d.metadata.get("source"),
+        })
+    return {"hits": out}
+
+@app.post("/reindex")
+def reindex():
+    import chromadb
+    client = chromadb.PersistentClient(path=CHROMA_DIR)
+    # delete old collections if exist
+    for name in (NUTRITION_COLLECTION, MINDSET_COLLECTION):
+        try:
+            client.delete_collection(name)
+        except Exception:
+            pass
+
+    # rebuild
+    rec_n = load_jsonl(NUTRITION_PATH)
+    txt_n, meta_n = build_corpus(rec_n, do_chunk=DO_CHUNK, default_doc_type="nutrition", source_name="nutrition.jsonl")
+    vs_n = get_vectorstore(txt_n, meta_n, NUTRITION_COLLECTION)
+
+    rec_m = load_jsonl(MINDSET_PATH)
+    txt_m, meta_m = build_corpus(rec_m, do_chunk=DO_CHUNK, default_doc_type="mindset", source_name="mindset.jsonl")
+    vs_m = get_vectorstore(txt_m, meta_m, MINDSET_COLLECTION)
+
+    r_n = vs_n.as_retriever(search_kwargs={"k": K})
+    r_m = vs_m.as_retriever(search_kwargs={"k": max(1, K_MINDSET)})
+    combo = DualRetriever(r_n, r_m, k_primary=K, k_secondary=K_MINDSET)
+    app.state.qa = build_chain_from_retriever(combo)
+    app.state.vs_n, app.state.vs_m = vs_n, vs_m
+
+    def count(vs):
+        try:
+            return vs._collection.count()
+        except Exception:
+            return None
+
+    return {"ok": True, "docs": {"nutrition": count(vs_n), "mindset": count(vs_m)}}
+
+@app.post("/ask")
+def ask(payload: AskPayload):
+    q = payload.question
+    if payload.history:
+        last_msgs = payload.history[-8:]
+        hist_str = "\n".join([f'{m.get("role")}: {m.get("content")}' for m in last_msgs])
+        q = f"Previous conversation:\n{hist_str}\n\nUser asks now:\n{q}"
+
+    out = app.state.qa.invoke(q)
+    sources = [
+        {
+            "id": d.metadata.get("id"),
+            "topic": d.metadata.get("topic"),
+            "subtopic": d.metadata.get("subtopic"),
+            "doc_type": d.metadata.get("doc_type"),
+            "source": d.metadata.get("source"),
+        }
+        for d in out.get("source_documents", [])
+    ]
+    return {"answer": out["result"], "sources": sources}
+
+# -----------------------------
+# 9) Entrypoint
+# -----------------------------
+def interactive_cli(chain):
+    print("CLARA RAG (type 'exit' to quit')")
+    while True:
+        q = input("\nYou: ").strip()
+        if q.lower() in {"exit", "quit"}:
+            break
+        out = chain.invoke(q)
+        print("\nAssistant:", out["result"])
+        srcs = []
+        for d in out.get("source_documents", []):
+            t, s = d.metadata.get("topic"), d.metadata.get("subtopic")
+            if t or s:
+                srcs.append(f"[{t} → {s}]")
+        if srcs:
+            print("Sources:", " ".join(sorted(set(srcs))[:3]))
+
+if __name__ == "__main__":
+    mode = os.getenv("CLARA_MODE", "cli")
+    if mode == "api":
+        import uvicorn
+        uvicorn.run(app, host="0.0.0.0", port=8000)
+    else:
+        # local CLI
+        rec_n = load_jsonl(NUTRITION_PATH)
+        txt_n, meta_n = build_corpus(rec_n, do_chunk=DO_CHUNK, default_doc_type="nutrition", source_name="nutrition.jsonl")
+        vs_n = get_vectorstore(txt_n, meta_n, NUTRITION_COLLECTION)
+
+        rec_m = load_jsonl(MINDSET_PATH)
+        txt_m, meta_m = build_corpus(rec_m, do_chunk=DO_CHUNK, default_doc_type="mindset", source_name="mindset.jsonl")
+        vs_m = get_vectorstore(txt_m, meta_m, MINDSET_COLLECTION)
+
+        r_n = vs_n.as_retriever(search_kwargs={"k": K})
+        r_m = vs_m.as_retriever(search_kwargs={"k": max(1, K_MINDSET)})
+        combo = DualRetriever(r_n, r_m, k_primary=K, k_secondary=K_MINDSET)
+        qa = build_chain_from_retriever(combo)
+        interactive_cli(qa)

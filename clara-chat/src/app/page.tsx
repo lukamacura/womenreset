@@ -8,6 +8,7 @@ type ApiErr = { detail?: string; error?: string; answer?: string };
 type ChatMessage = { role: "user" | "assistant"; content: string };
 type Row = { who: "bot" | "user"; text: string };
 
+
 // === NEW: heuristika za kratke follow-up poruke ===
 function enhanceQuestion(text: string, rows: Row[]): string {
   const t = text.trim();
@@ -76,56 +77,51 @@ export default function Page() {
   const [rows, setRows] = useState<Row[]>([]);
   const [q, setQ] = useState("");
   const [loading, setLoading] = useState(false);
-  const [textScale, setTextScale] = useState<"M" | "L" | "XL">("L"); // larger by default for 40+
   const chatRef = useRef<HTMLDivElement>(null);
 
-  // Load saved chat + UI prefs
+  // Fixed large/accessible type scale for 40+
+  const scale = {
+    base: "text-[20px] sm:text-[21px] md:text-[22px]",
+    bubble: "text-[21px] sm:text-[22px] md:text-[23px]",
+    input: "text-[21px] sm:text-[22px] md:text-[23px]",
+    line: "leading-[1.75]",
+  } as const;
+
+  // Load saved chat
   useEffect(() => {
     try {
       const saved = localStorage.getItem("clara_chat");
-      const savedScale = localStorage.getItem("clara_text_scale");
       if (saved) {
         const parsed = JSON.parse(saved) as Row[];
         if (Array.isArray(parsed)) setRows(parsed);
         else throw new Error("Bad shape");
       } else {
-        setRows([{ who: "bot", text: "Hi, I’m Clara. What’s bothering you most right now?" }]);
-      }
-      if (savedScale === "M" || savedScale === "L" || savedScale === "XL") {
-        setTextScale(savedScale);
+        setRows([{ who: "bot", text: "Hi, i'm Clara, your menopause support companion ❤️. How are you feeling today?" }]);
       }
     } catch {
-      setRows([{ who: "bot", text: "Hi, I’m Clara. What’s bothering you most right now?" }]);
+      setRows([{ who: "bot", text: "Hi, i'm Clara, your menopause support companion ❤️. How are you feeling today?" }]);
     }
   }, []);
 
-  // Persist chat + prefs and auto-scroll
+  // Persist chat and auto-scroll
   useEffect(() => {
     localStorage.setItem("clara_chat", JSON.stringify(rows));
     chatRef.current?.scrollTo({ top: chatRef.current.scrollHeight, behavior: "smooth" });
   }, [rows]);
 
-  useEffect(() => {
-    localStorage.setItem("clara_text_scale", textScale);
-  }, [textScale]);
-
   async function send() {
-    const text = q.trim();
-    if (!text || loading) return;
+    const userText = q.trim();
+    if (!userText || loading) return;
 
-const history = buildHistory(rows);
-const question = enhanceQuestion(text, rows);  // ⬅️ NOVO
+    const history = buildHistory(rows);
+    const question = enhanceQuestion(userText, rows);
 
-setRows((r) => [...r, { who: "user", text }]);
-setQ("");
-setLoading(true);
+    setRows((r) => [...r, { who: "user", text: userText }]);
+    setQ("");
+    setLoading(true);
 
-try {
-  const res = await fetch("/api/ask", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ question, history }), // ⬅️ promeni "text" u "question"
-  });
+    try {
+      const res = await fetch("/api/ask", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ question, history }) })
 
       const raw: unknown = await res.json().catch(() => ({}));
       const data = parseJsonSafe(raw);
@@ -136,11 +132,21 @@ try {
         return;
       }
 
-      const answer = typeof (data as ApiOk).answer === "string" ? (data as ApiOk).answer.trim() : "";
-      setRows((r) => [...r, { who: "bot", text: answer || "Hmm, response had no answer." }]);
+      const answer =
+        typeof (data as ApiOk).answer === "string"
+          ? (data as ApiOk).answer.trim()
+          : "";
+
+      setRows((r) => [
+        ...r,
+        { who: "bot", text: answer || "Hmm, response had no answer." },
+      ]);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      setRows((r) => [...r, { who: "bot", text: `Hmm, I couldn’t reach the server. ${msg}` }]);
+      setRows((r) => [
+        ...r,
+        { who: "bot", text: `Hmm, I couldn’t reach the server. ${msg}` },
+      ]);
     } finally {
       setLoading(false);
     }
@@ -154,75 +160,47 @@ try {
     "Weight gain after 40",
   ];
 
-  // Text scale presets (rem values mapped to Tailwind classes via inline style)
-  const scaleMap = {
-    M: { base: "text-[17px]", bubble: "text-[18px]", input: "text-[18px]", line: "leading-[1.6]" },
-    L: { base: "text-[18px]", bubble: "text-[19px]", input: "text-[19px]", line: "leading-[1.7]" },
-    XL: { base: "text-[20px]", bubble: "text-[21px]", input: "text-[21px]", line: "leading-[1.75]" },
-  } as const;
-
-  const scale = scaleMap[textScale];
-
   return (
-    <div className={`mx-auto max-w-[1280px] px-4 sm:px-6 py-6 sm:py-8 ${scale.base} ${scale.line}`}>      
+    <div className={`mx-auto max-w-screen-2xl px-4 sm:px-8 py-6 sm:py-10 ${scale.base} ${scale.line}`}>      
       {/* Header */}
-      <header className="mb-5 flex items-center gap-4 sm:gap-5">
+      <header className="mb-6 sm:mb-8 flex items-center gap-5 sm:gap-6">
         <Image
           src="/Clara.png"
           alt="Clara avatar"
-          width={72}
-          height={72}
-          className="rounded-full shrink-0 h-[72px] w-[72px] sm:h-[84px] sm:w-[84px]"
+          width={92}
+          height={92}
+          className="rounded-full shrink-0 h-[92px] w-[92px] sm:h-[108px] sm:w-[108px]"
           priority
         />
         <div className="min-w-0">
-          <div className="truncate text-[24px] sm:text-[28px] font-black font-[family-name:var(--font-chubbo)] text-[#F2FFF7]">
+          <div className="truncate text-[30px] sm:text-[34px] md:text-[38px] font-black font-[family-name:var(--font-chubbo)] text-[#F2FFF7]">
             Chat with Clara
           </div>
-          <div className="text-[15px] sm:text-[16px] text-[#CFECE7]">
+          <div className="text-[18px] sm:text-[19px] md:text-[20px] text-[#CFECE7]">
             Empathetic, practical guidance for women 40+ (perimenopause & menopause).
-          </div>
-        </div>
-        {/* Text size control */}
-        <div className="ml-auto flex items-center gap-2" aria-label="Text size">
-          <span className="text-[#CFECE7] hidden sm:inline">Text size</span>
-          <div className="inline-flex rounded-full bg-[#2A2527] p-1 border border-[#6AD1C866]/50" role="group">
-            {["M", "L", "XL"].map((s) => (
-              <button
-                key={s}
-                onClick={() => setTextScale(s as typeof textScale)}
-                className={`px-3 py-1.5 rounded-full focus:outline-none focus:ring-2 focus:ring-[#A8DADC66] transition
-                ${textScale === s ? "bg-[#E3FBF2] text-[#1B1618]" : "text-[#DFF8EB]"}`}
-                aria-pressed={textScale === (s as typeof textScale)}
-              >
-                {s}
-              </button>
-            ))}
           </div>
         </div>
       </header>
 
       {/* Panel */}
-      <section className="rounded-3xl shadow-[0_12px_36px_rgba(0,0,0,.28)] overflow-hidden bg-[#171417] border border-[#3A3436]">
+      <section className="rounded-[28px] md:rounded-[32px] shadow-[0_14px_40px_rgba(0,0,0,.28)] overflow-hidden bg-[#171417] border border-[#3A3436]">
         {/* Chat area */}
         <div
           ref={chatRef}
           role="log"
           aria-live="polite"
           aria-relevant="additions"
-          className="chatScroll h-[72vh] min-h-[520px] px-4 sm:px-6 md:px-8 py-4 sm:py-6 space-y-4 overflow-y-auto scroll-smooth"
+          className="chatScroll h-[74vh] min-h-[560px] px-5 sm:px-8 md:px-10 py-5 sm:py-7 space-y-5 overflow-y-auto scroll-smooth"
         >
           {rows.map((r, i) => (
             <div
               key={i}
-              className={`flex items-start gap-3 ${r.who === "user" ? "justify-end" : "justify-start"}`}
+              className={`flex items-start gap-4 ${r.who === "user" ? "justify-end" : "justify-start"}`}
             >
-              
-
               {/* Wider bubbles for easier reading */}
               <div
-                className={`whitespace-pre-wrap rounded-2xl px-5 md:px-6 py-4 md:py-5 shadow-[0_2px_10px_rgba(0,0,0,.25)]
-                max-w-[95%] sm:max-w-[92%] md:max-w-[88%]
+                className={`whitespace-pre-wrap rounded-3xl px-6 md:px-7 py-5 md:py-6 shadow-[0_2px_12px_rgba(0,0,0,.25)]
+                max-w-[96%] sm:max-w-[94%] md:max-w-[92%]
                 ${r.who === "user" ? "bg-[#2B2628]" : "bg-[#1E1A1F]"} text-[#F4FAF7] ${scale.bubble}`}
               >
                 {r.text}
@@ -230,7 +208,7 @@ try {
 
               {r.who === "user" && (
                 <div
-                  className="flex items-center justify-center h-10 w-10 rounded-full bg-[#F2C6BA] shrink-0 text-sm font-bold text-[#1B1618]"
+                  className="flex items-center justify-center h-12 w-12 rounded-full bg-[#F2C6BA] shrink-0 text-base md:text-lg font-bold text-[#1B1618]"
                   aria-hidden
                 >
                   You
@@ -245,11 +223,9 @@ try {
         </div>
 
         {/* Input row */}
-<div
-  className="flex flex-col md:flex-row gap-2 md:gap-3 border-t border-[#2E2A2C] bg-[#1A1719] px-3 py-3 md:px-4 md:py-4 sticky bottom-[env(safe-area-inset-bottom)] z-10"
->
-
-
+        <div
+          className="flex flex-col md:flex-row gap-3 md:gap-4 border-t border-[#2E2A2C] bg-[#1A1719] px-4 sm:px-6 md:px-8 py-4 md:py-5 sticky bottom-[env(safe-area-inset-bottom)] z-10"
+        >
           <label htmlFor="clara-input" className="sr-only">Message Clara</label>
 
           <textarea
@@ -264,8 +240,8 @@ try {
             }}
             placeholder="Ask Clara anything… (e.g., How can I sleep better through the night?)"
             aria-label="Message Clara"
-            className={`flex-1 min-h-[96px] max-h-[280px] overflow-y-auto resize-none rounded-2xl border border-[#4C4447]
-              bg-[#171417] px-5 md:px-6 py-4 md:py-5 ${scale.input}
+            className={`flex-1 min-h-[120px] max-h-[320px] overflow-y-auto resize-none rounded-3xl border border-[#4C4447]
+              bg-[#171417] px-6 md:px-7 py-5 md:py-6 ${scale.input}
               outline-none placeholder:text-[#BFD8D4] text-[#F4FAF7]
               focus:ring-2 focus:ring-[#7BDAD0] focus:border-transparent`}
           />
@@ -273,10 +249,10 @@ try {
           <button
             onClick={send}
             disabled={loading}
-            className="w-full md:w-auto md:min-w-[148px] rounded-2xl bg-[#F2C6BA] text-[#201C1E]
-              px-5 py-4 md:px-6 md:py-5 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed
+            className="w-full md:w-auto md:min-w-[176px] rounded-3xl bg-[#F2C6BA] text-[#201C1E]
+              px-6 py-5 md:px-7 md:py-6 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed
               transition active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2
-              focus:ring-[#7BDAD0] focus:ring-offset-[#1A1719] select-none font-[family-name:var(--font-chubbo)] font-bold text-[18px]"
+              focus:ring-[#7BDAD0] focus:ring-offset-[#1A1719] select-none font-[family-name:var(--font-chubbo)] font-bold text-[20px]"
             aria-label="Send message"
           >
             Send
@@ -284,13 +260,13 @@ try {
         </div>
 
         {/* Chips */}
-        <div className="flex flex-wrap gap-2 md:gap-3 border-t border-[#2E2A2C] bg-[#191618] px-3 md:px-4 py-3 md:py-4">
+        <div className="flex flex-wrap gap-3 md:gap-4 border-t border-[#2E2A2C] bg-[#191618] px-4 sm:px-6 md:px-8 py-4 md:py-5">
           {chips.map((c) => (
             <button
               key={c}
               onClick={() => setQ(`Can you help with ${c.toLowerCase()}?`)}
               className="cursor-pointer rounded-full border border-[#4C4447] bg-[#ECFFF7] text-[#1B1618]
-                px-4 py-2 text-[15px] md:text-[16px] hover:border-[#7BDAD0] transition select-none
+                px-5 py-3 text-[18px] md:text-[19px] hover:border-[#7BDAD0] transition select-none
                 focus:outline-none focus:ring-2 focus:ring-[#7BDAD0]"
               type="button"
               aria-label={c}
@@ -303,13 +279,12 @@ try {
 
       {/* Disclaimer */}
       <p
-        className="mt-4 rounded-xl border-l-4 border-[#F2C6BA] bg-[#191618] px-4 py-3 text-[#F4FAF7]
-        text-[15px] sm:text-[16px] md:text-[16px] font-[family-name:var(--font-chubbo)]"
+        className="mt-5 rounded-xl border-l-4 border-[#F2C6BA] bg-[#191618] px-5 py-4 text-[#F4FAF7]
+        text-[18px] sm:text-[19px] md:text-[20px] font-[family-name:var(--font-chubbo)]"
       >
         Clara provides educational information, not medical advice. For personal medical concerns, consult a qualified healthcare provider.
       </p>
 
-    
     </div>
   );
 }
