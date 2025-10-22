@@ -1,14 +1,29 @@
 "use client";
-export const dynamic = "force-dynamic";
-import { useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import Link from "next/link";
 
+// (opciono, ali bezbedno): spreči statički prerender
+export const dynamic = "force-dynamic";
+
 export default function LoginPage() {
   const router = useRouter();
-  const qp = useSearchParams();
-  const redirectTarget = useRef(qp.get("redirectedFrom") || "/dashboard");
+
+  // default destinacija dok se ne pročita query iz URL-a na klijentu
+  const redirectTarget = useRef("/dashboard");
+
+  // PROČITAJ QUERY POSLE MOUNT-A (bez useSearchParams)
+  useEffect(() => {
+    try {
+      const sp = new URLSearchParams(window.location.search);
+      const r = sp.get("redirectedFrom");
+      if (r) redirectTarget.current = r;
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
@@ -27,7 +42,6 @@ export default function LoginPage() {
       if (error) { setErr(error.message); return; }
 
       router.replace(redirectTarget.current);
-      // refresh ponekad pomogne App Router-u da odmah vidi auth stanje u klijentu
       router.refresh();
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Unknown error");
