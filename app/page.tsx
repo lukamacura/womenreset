@@ -25,10 +25,10 @@ export default function Home() {
         <div className="grid gap-10 lg:grid-cols-2 lg:gap-16 items-center py-0 sm:py-0 lg:py-0">
           {/* Copy */}
           <div className="space-y-6">
-            <h1 className="font-display text-balance text-4xl/tight sm:text-5xl/tight lg:text-5xl/tight font-extrabold tracking-tight">
-              30 Days to More Energy, Better Sleep & a Balanced Body, For Women 40+
+            <h1 className="font-display text-balance text-4xl/tight sm:text-5xl/tight lg:text-5xl/tight font-normal tracking-tight">
+              <b>30 Days</b> to More Energy, Better Sleep & a Balanced Body, For Women 40+
               {" "}
-              <span className="inline-block bg-linear-to-r from-primary/90 to-primary/60 bg-clip-text text-transparent">
+              <span className="inline-block font-extrabold bg-linear-to-r from-primary/90 to-primary/60 bg-clip-text text-transparent">
                 OR YOUR MONEY BACK
               </span>
             </h1>
