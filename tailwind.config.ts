@@ -1,15 +1,18 @@
 import type { Config } from "tailwindcss";
 
-const config: Config = {
-  content: ["./app/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}"],
+export default {
+  content: [
+    "./app/**/*.{ts,tsx,js,jsx}",
+    "./components/**/*.{ts,tsx,js,jsx}",
+    "./pages/**/*.{ts,tsx,js,jsx}",   // samo ako koristiš pages/
+  ],
   theme: {
     extend: {
       fontFamily: {
-        sans: ["var(--font-body)", "system-ui", "sans-serif"],
-        heading: ["var(--font-heading)", "ui-serif", "Georgia", "serif"],
+        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
+        display: ["var(--font-display)", "serif"],
       },
     },
   },
   plugins: [],
-};
-export default config;
+} satisfies Config;

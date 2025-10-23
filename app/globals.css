@@ -1,30 +1,41 @@
-
-
 @import "tailwindcss";
 
+/* Tailwind v4 tokens (NEMA samoreferenci) */
+@theme {
+  /* font tokeni koje Tailwind koristi */
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+  --font-display: var(--font-playfair), serif;
+
+  /* default (light) boje — ZADAJ IH OVDE, ne preko var(--primary) */
+  --color-background: #ffffff;
+  --color-foreground: #171717;
+  --color-primary: #D81E5B; /* <— postojana vrednost u light */
+}
+
+/* Globalni rendering tweaks – van dark media upita */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  font-synthesis-weight: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-primary: var(--primary);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
+/* Dark tema — PREPIŠI tokene koje želiš u dark */
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #1a011d;
-    --foreground: #EBBAB9;
-    --primary: #D81E5B;
+    --color-background: #1a011d;
+    --color-foreground: #EBBAB9;
+    --color-primary: #D81E5B; /* može ista ili druga */
   }
 }
 
+/* (opciono) zadrži pomoćne CSS varijable ako ih koristiš drugde */
+:root {
+  --background: var(--color-background);
+  --foreground: var(--color-foreground);
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-background);
+  color: var(--color-foreground);
 }
