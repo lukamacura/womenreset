@@ -7,9 +7,9 @@
   --font-display: var(--font-playfair), serif;
 
   /* default (light) boje — ZADAJ IH OVDE, ne preko var(--primary) */
-  --color-background: #ffffff;
-  --color-foreground: #171717;
-  --color-primary: #D81E5B; /* <— postojana vrednost u light */
+  --color-background: #ffe9ef;
+  --color-foreground: #111;
+  --color-primary: #fc809f; /* <— postojana vrednost u light */
 }
 
 /* Globalni rendering tweaks – van dark media upita */
@@ -23,9 +23,9 @@
 /* Dark tema — PREPIŠI tokene koje želiš u dark */
 @media (prefers-color-scheme: dark) {
   :root {
-    --color-background: #1a011d;
-    --color-foreground: #EBBAB9;
-    --color-primary: #D81E5B; /* može ista ili druga */
+    --color-background: #ffe9ef;
+    --color-foreground: #111;
+    --color-primary: #fc809f; /* može ista ili druga */
   }
 }
 

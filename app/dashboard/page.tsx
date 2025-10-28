@@ -9,7 +9,7 @@ import type { User } from "@supabase/supabase-js";
 // Prevent static prerendering (safe)
 export const dynamic = "force-dynamic";
 
-const TRIAL_DAYS = 7;
+const TRIAL_DAYS = 3;
 const CHAT_URL = "https://app.vectorshift.ai/chatbots/deployed/68f8cbbb5fd286eb2fdfe742";
 
 // ---------------------------

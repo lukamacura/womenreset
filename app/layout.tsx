@@ -30,8 +30,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <nav className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
             <Link href="/" className="font-semibold tracking-tight">WomenReset</Link>
             <div className="flex items-center gap-4">
-              <Link href="/login" className="font-bold text-sm text-gray-300 hover:text-white">Log in</Link>
-              <Link href="/register" className="font-bold text-sm text-gray-300 hover:text-white">Sign up</Link>
+              <Link href="/login" className="font-bold text-sm text-black hover:text-primary">Log in</Link>
+              <Link href="/register" className="font-bold text-sm text-black hover:text-primary">Sign up</Link>
               <Link href="/dashboard" className="font-bold text-sm bg-primary text-black px-3 py-1.5 rounded-md hover:opacity-90">
                 Dashboard
               </Link>

@@ -35,10 +35,8 @@ export default function RegisterPage() {
       const { error } = await supabase.auth.signUp({
         email,
         password: pass,
-        options: {
-          data: { trial_start: nowIso },
-          emailRedirectTo: typeof window !== "undefined" ? `${window.location.origin}/login` : undefined,
-        },
+        options: { data: { trial_start: nowIso } },
+
       });
 
       if (error) {
@@ -54,12 +52,15 @@ export default function RegisterPage() {
       }
 
       // If email confirmation is disabled, a session may exist immediately
-      const { data } = await supabase.auth.getSession();
-      if (data.session) {
-        router.replace("/dashboard");
-        router.refresh();
-        return;
-      }
+     const { data } = await supabase.auth.getSession();
+if (data.session) {
+  router.replace("/dashboard");
+  router.refresh();
+  return;
+}
+// Ako je potvrda uključena, i dalje možeš prikazati info:
+setInfo("Check your inbox to confirm your email, then log in.");
+
 
       // Otherwise, guide the user
       setInfo("Check your inbox to confirm your email, then log in.");
