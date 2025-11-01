@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
@@ -10,7 +11,8 @@ import type { User } from "@supabase/supabase-js";
 export const dynamic = "force-dynamic";
 
 const TRIAL_DAYS = 3;
-const CHAT_URL = "https://app.vectorshift.ai/chatbots/deployed/68f8cbbb5fd286eb2fdfe742";
+// Internal chat route
+const CHAT_ROUTE = "/chat";
 
 // ---------------------------
 // Small UI helpers
@@ -53,8 +55,45 @@ function Skeleton({ className }: { className?: string }) {
 // ---------------------------
 // Types
 // ---------------------------
-
 type TrialMeta = { trial_start?: string };
+
+// ---------------------------
+// Bot cards config
+// ---------------------------
+const BOTS = [
+  {
+    key: "nutrina",
+    name: "Nutrina",
+    role: "Nutrition expert",
+    img: "/nutrina.png",
+    ring: "ring-emerald-200",
+    bg: "from-emerald-50 to-emerald-300",
+  },
+  {
+    key: "fitina",
+    name: "Fitina",
+    role: "Fitness expert",
+    img: "/fitina.png",
+    ring: "ring-pink-200",
+    bg: "from-pink-50 to-pink-300",
+  },
+  {
+    key: "ema",
+    name: "Ema",
+    role: "Psychology expert",
+    img: "/ema.png",
+    ring: "ring-indigo-200",
+    bg: "from-orange-50 to-orange-300",
+  },
+  {
+    key: "mina",
+    name: "Mina",
+    role: "Menopause expert",
+    img: "/mina.png",
+    ring: "ring-rose-200",
+    bg: "from-red-50 to-red-300",
+  },
+] as const;
 
 // ---------------------------
 // Page
@@ -143,7 +182,6 @@ export default function DashboardPage() {
       };
     }
 
-    // Normalize to timestamps to avoid TZ issues
     const startTs = start.getTime();
     const endTs = startTs + TRIAL_DAYS * MS.DAY;
     const nowTs = now.getTime();
@@ -231,7 +269,9 @@ export default function DashboardPage() {
       <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Dashboard</h1>
-          <p className="text-sm text-muted-foreground">Welcome{user?.email ? `, ${user.email}` : ""}.</p>
+          <p className="text-sm text-muted-foreground">
+            Welcome{user?.email ? `, ${user.email}` : ""}.
+          </p>
         </div>
         <div className="flex gap-2">
           <button
@@ -252,14 +292,19 @@ export default function DashboardPage() {
                 <h2 className="text-lg font-semibold">Your trial is active</h2>
                 <p className="text-sm text-muted-foreground">
                   {trial.start && (
-                    <>Started on {trial.start.toLocaleDateString()} · Ends {trial.end?.toLocaleDateString()}</>
+                    <>
+                      Started on {trial.start.toLocaleDateString()} · Ends{" "}
+                      {trial.end?.toLocaleDateString()}
+                    </>
                   )}
                 </p>
               </>
             ) : (
               <>
                 <h2 className="text-lg font-semibold">Your trial has expired</h2>
-                <p className="text-sm text-muted-foreground">Upgrade to continue using the chatbot.</p>
+                <p className="text-sm text-muted-foreground">
+                  Upgrade to continue using the chatbot.
+                </p>
               </>
             )}
           </div>
@@ -267,7 +312,9 @@ export default function DashboardPage() {
           <div className="w-full sm:w-80">
             <Progress value={trial.progressPct} />
             <div className="mt-1 flex items-center justify-between text-xs text-muted-foreground">
-              <span>{Math.min(TRIAL_DAYS, trial.elapsedDays)} / {TRIAL_DAYS} days used</span>
+              <span>
+                {Math.min(TRIAL_DAYS, trial.elapsedDays)} / {TRIAL_DAYS} days used
+              </span>
               <span>{trial.daysLeft} days left</span>
             </div>
           </div>
@@ -277,40 +324,87 @@ export default function DashboardPage() {
         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <Stat label="Status" value={trial.expired ? "Expired" : "Active"} />
           <Stat label="Days left" value={String(trial.daysLeft)} />
-          <Stat label="Ends in" value={`${trial.remaining.d}d ${trial.remaining.h}h ${trial.remaining.m}m ${trial.remaining.s}s`} />
+          <Stat
+            label="Ends in"
+            value={`${trial.remaining.d}d ${trial.remaining.h}h ${trial.remaining.m}m ${trial.remaining.s}s`}
+          />
           <Stat label="Plan" value={trial.expired ? "—" : "Trial"} />
         </div>
 
-        {/* CTAs */}
-        <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-          <a
-            href={CHAT_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={classNames(
-              "inline-flex items-center justify-center rounded-xl px-4 py-2.5 font-semibold ring-1 ring-inset transition",
-              trial.expired
-                ? "cursor-not-allowed opacity-60 ring-foreground/15 bg-foreground/10"
-                : "bg-primary text-primary-foreground ring-primary/20 hover:brightness-95"
-            )}
-            aria-disabled={trial.expired}
-          >
-            Open Chatbot
-          </a>
+        {/* Bots (replaces the old single “Open Chatbot” CTA) */}
+        <div className="mt-6">
+          <h3 className="mb-3 text-sm font-semibold text-foreground/80">Choose your expert</h3>
 
-          <Link
-            href="/pricing"
-            className="inline-flex items-center justify-center rounded-xl border border-foreground/15 px-4 py-2.5 font-semibold hover:bg-foreground/5"
-          >
-            {trial.expired ? "Upgrade now" : "See pricing"}
-          </Link>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {BOTS.map((b) => {
+              const CardInner = (
+                <div
+                  className={classNames(
+                    "group relative h-full rounded-2xl border border-foreground/10 p-4 shadow-sm",
+                    "bg-linear-to-b",
+                    b.bg,
+                    trial.expired && "opacity-60"
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={classNames("relative h-14 w-14 rounded-full overflow-hidden ring-2", b.ring)}>
+                      <Image src={b.img} alt={b.name} fill className="object-cover" />
+                    </div>
+                    <div>
+                      <div className="font-semibold leading-tight">{b.name}</div>
+                      <div className="text-xs text-foreground/60">{b.role}</div>
+                    </div>
+                  </div>
+
+                  <p className="mt-3 text-xs text-foreground/70">
+                    Start a conversation with {b.name} for tailored {b.role.toLowerCase()} guidance.
+                  </p>
+
+                  <div className="mt-4 flex items-center gap-2 text-sm font-medium">
+                    <span className="transition-transform group-hover:translate-x-0.5">
+                      {trial.expired ? "Locked" : "Start chat"}
+                    </span>
+                    {!trial.expired && (
+                      <svg
+                        className="h-4 w-4 transition-transform group-hover:translate-x-0.5"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M10.293 3.293a1 1 0 011.414 0l5 5a1 1 0 010 1.414l-5 5a1 1 0 01-1.414-1.414L13.586 10H4a1 1 0 110-2h9.586l-3.293-3.293a1 1 0 010-1.414z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    )}
+                  </div>
+
+                  {trial.expired && (
+                    <div className="pointer-events-none absolute inset-0 rounded-2xl" />
+                  )}
+                </div>
+              );
+
+              return trial.expired ? (
+                <div key={b.key} className="h-full">{CardInner}</div>
+              ) : (
+                <Link
+                  key={b.key}
+                  href={`${CHAT_ROUTE}?bot=${encodeURIComponent(b.key)}`}
+                  className="h-full"
+                >
+                  {CardInner}
+                </Link>
+              );
+            })}
+          </div>
+
+          {trial.expired && (
+            <p className="mt-3 text-xs text-muted-foreground">
+              Access is closed while on an expired trial. Choose a plan to continue.
+            </p>
+          )}
         </div>
-
-        {trial.expired && (
-          <p className="mt-3 text-xs text-muted-foreground">
-            Access is closed while on an expired trial. Choose a plan to continue.
-          </p>
-        )}
       </section>
 
       {/* Helpful area */}
@@ -326,9 +420,8 @@ export default function DashboardPage() {
         <div className="rounded-2xl border border-foreground/10 p-5">
           <h3 className="font-semibold mb-2">Need help?</h3>
           <p className="text-sm text-muted-foreground">
-            Visit <Link className="underline underline-offset-4" href="/help">Help Center</Link> or
-            {" "}
-            <Link className="underline underline-offset-4" href="/contact">contact support</Link>.
+            Visit <Link className="underline underline-offset-4" href="/help">Help Center</Link>{" "}
+            or <Link className="underline underline-offset-4" href="/contact">contact support</Link>.
           </p>
         </div>
       </section>
