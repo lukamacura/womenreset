@@ -21,10 +21,9 @@ const features: Array<{ label: string; Icon: React.ComponentType<any> }> = [
   { label: "Connected to a powerful VectorShift AI pipeline", Icon: Cpu },
   { label: "Backed by a carefully edited and trusted knowledge base", Icon: BookOpen },
 ];
-
 export default function Home() {
   return (
-    <main className="relative overflow-hidden">
+    <main className="relative overflow-hidden p-0 m-0">
       {/* Background accent */}
       <div
         aria-hidden
@@ -61,7 +60,7 @@ export default function Home() {
                 <Link
                   href="/register"
                   aria-label="Get started"
-                  className="inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3 font-semibold shadow-sm ring-1 ring-inset ring-primary/20 bg-primary text-primary-foreground hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 transition"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3 font-semibold shadow-sm ring-1 ring-inset ring-primary/20 bg-rose-600 text-white hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 transition"
                 >
                   <Sparkles aria-hidden className="h-4 w-4" />
                   Start my 3-Day free trial
@@ -91,7 +90,7 @@ export default function Home() {
             className="mx-auto w-full max-w-lg"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45, delay: 0.1, ease: "easeOut" }}
+            transition={{ duration: 0.1, delay: 0, ease: "easeOut" }}
           >
             <div className="rounded-2xl border border-foreground/10 bg-background/60 backdrop-blur p-6 shadow-sm">
               <div className="mb-3 text-sm font-medium text-muted-foreground">Demo conversation</div>

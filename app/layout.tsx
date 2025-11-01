@@ -94,7 +94,7 @@ export default async function RootLayout({
           </nav>
         </header>
 
-        <main className="max-w-screen mx-auto font-sans px-4 py-5">
+        <main className="max-w-screen mx-auto font-sans px-0 py-5">
           {children}
         </main>
 
