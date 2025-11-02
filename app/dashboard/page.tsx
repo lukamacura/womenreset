@@ -347,9 +347,16 @@ export default function DashboardPage() {
                   )}
                 >
                   <div className="flex items-center gap-3">
-                    <div className={classNames("relative h-14 w-14 rounded-full overflow-hidden ring-2", b.ring)}>
-                      <Image src={b.img} alt={b.name} fill className="object-cover" />
-                    </div>
+                    <Image
+                      src={b.img}           // should be a .png URL or static import
+                      alt={b.name}
+                      width={100}            // 14 * 4 = 300px
+                      height={100}
+                      className="rounded-full h-32 w-auto"
+                      // If you MUST guarantee PNG is served (no WebP/AVIF), add:
+                      // unoptimized
+                    />
+                    
                     <div>
                       <div className="font-semibold leading-tight">{b.name}</div>
                       <div className="text-xs text-foreground/60">{b.role}</div>
