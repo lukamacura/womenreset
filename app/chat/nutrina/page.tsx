@@ -377,14 +377,14 @@ function onSubmit(e: React.FormEvent) {
     <div className="h-full flex flex-col">
       <div className="flex items-center gap-3 mb-4">
         <div className="mx-auto">
-  <Image
-    src="/nutrina.png"
-    alt="Nutrina"
-    width={112}  // 28 * 4 = 112px
-    height={112}
-    className="rounded-full ring-1 ring-foreground/10 object-cover"
-  />
-</div>
+    <Image
+      src="/nutrina.png"
+      alt="Nutrina"
+      width={112}  // 28 * 4 = 112px
+      height={112}
+      className="rounded-full object-cover"
+    />
+  </div>
 
         <div className="text-sm font-semibold">Nutrina</div>
       </div>
@@ -418,12 +418,6 @@ function onSubmit(e: React.FormEvent) {
         </a>
       </nav>
 
-      <div className="mt-auto rounded-xl bg-transparent p-3">
-        <div className="relative mx-auto h-28 w-28 overflow-hidden rounded-full ring-foreground/10">
-          <Image src="/nutrina.png" alt="Nutrina" fill className="object-cover" />
-        </div>
-        <p className="mt-2 text-center text-sm italic text-foreground/60">Nutrina</p>
-      </div>
     </div>
   );
 
