@@ -225,6 +225,43 @@ export default function ChatPage() {
   }, [input]);
 
   /* ---------- Sessions helpers ---------- */
+  // stavi negde uz ostale helpers
+function upsertAndAppendMessage(convId: string, msg: Msg, makeIfMissing?: () => Conversation) {
+  setSessions((prev) => {
+    const i = prev.findIndex((c) => c.id === convId);
+    if (i === -1) {
+      // ako chat ne postoji (npr. odmah posle newChat), napravi ga i upiši poruku
+      const base = makeIfMissing ? makeIfMissing() : {
+        id: convId,
+        title: "New chat",
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        messages: [],
+      };
+      const created: Conversation = {
+        ...base,
+        messages: [...base.messages, msg],
+        updatedAt: Date.now(),
+      };
+      return [created, ...prev];
+    }
+    // postoji → samo apenduj
+    const next = [...prev];
+    const c = next[i];
+    next[i] = {
+      ...c,
+      messages: [...c.messages, msg],
+      updatedAt: Date.now(),
+      title: c.title === "New chat" && msg.role === "user" && msg.content
+        ? msg.content.slice(0, 40)
+        : c.title,
+    };
+    return next;
+  });
+}
+
+
+
   function updateActive(updater: (c: Conversation) => Conversation) {
     setSessions((all) => all.map((c) => (c.id === activeId && active ? updater(c) : c)));
   }
@@ -279,61 +316,60 @@ export default function ChatPage() {
   );
 
   async function sendToAPI(text: string, targetId?: string) {
-    const id = targetId ?? activeId;
-    if (!id) return;
+  const id = targetId ?? activeId;
+  if (!id) return;
 
-    // append user message into specific conversation
-    updateById(id, (c) => ({
-      ...c,
-      messages: [...c.messages, { role: "user", content: text }],
+  // ✅ siguran upis user poruke čak i ako je chat tek kreiran
+  upsertAndAppendMessage(
+    id,
+    { role: "user", content: text },
+    () => ({
+      id,
+      title: "New chat",
+      createdAt: Date.now(),
       updatedAt: Date.now(),
-      title: c.title === "New chat" && text ? text.slice(0, 40) : c.title,
-    }));
-    setInput("");
-    setLoading(true);
+      messages: [{ role: "assistant", content: "Hi, I’m Nutrina 🥦 How can I help?" }],
+    })
+  );
 
-    try {
-      const res = await fetch("/api/nutrina", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userInput: text }),
-      });
-      if (!res.ok) throw new Error(await res.text());
-      const { reply } = (await res.json()) as { reply: string };
+  setInput("");
+  setLoading(true);
 
-      updateById(id, (c) => ({
-        ...c,
-        messages: [...c.messages, { role: "assistant", content: String(reply) }],
-        updatedAt: Date.now(),
-      }));
-    } catch (e: any) {
-      updateById(id, (c) => ({
-        ...c,
-        messages: [
-          ...c.messages,
-          {
-            role: "assistant",
-            content:
-              "Hmm, something went wrong reaching the brain 🧠 — " +
-              (e?.message ?? "unknown error"),
-          },
-        ],
-        updatedAt: Date.now(),
-      }));
-    } finally {
-      setLoading(false);
+  try {
+    const res = await fetch("/api/nutrina", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userInput: text }),
+      cache: "no-store",                 // ✅ spreči keš / viseće requeste
+    });
+
+    if (!res.ok) {
+      const errTxt = await res.text();
+      throw new Error(errTxt || res.statusText);
     }
-  }
+    const { reply } = (await res.json()) as { reply: string };
 
-  function onSubmit(e: React.FormEvent) {
+    upsertAndAppendMessage(id, { role: "assistant", content: String(reply || "⚠️ Empty reply") });
+  } catch (e: any) {
+    upsertAndAppendMessage(id, {
+      role: "assistant",
+      content: "Oops, something went wrong 🧠 — " + (e?.message ?? "unknown error"),
+    });
+  } finally {
+    setLoading(false);
+  }
+}
+
+
+function onSubmit(e: React.FormEvent) {
   e.preventDefault();
   const text = input.trim();
   if (!text || loading) return;
 
-  // koristi aktivni, a kreiraj novi samo ako ne postoji
-  const id = activeId ?? newChat();
+  const id = activeId ?? newChat();  // ✅ napravi samo ako ne postoji
   void sendToAPI(text, id);
 }
+
 
 
   /* ---------- Sidebar content (unchanged visually, green theme) ---------- */
