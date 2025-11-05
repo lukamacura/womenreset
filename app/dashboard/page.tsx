@@ -12,9 +12,10 @@ export const dynamic = "force-dynamic";
 
 const TRIAL_DAYS = 3;
 // Internal chat route
-const CHAT_ROUTE = "/chat";
+const CHAT_BASE = "/chat";
 
-// ---------------------------
+ 
+// --------------------------- 
 // Small UI helpers
 // ---------------------------
 const MS = {
@@ -395,13 +396,13 @@ export default function DashboardPage() {
               return trial.expired ? (
                 <div key={b.key} className="h-full">{CardInner}</div>
               ) : (
-                <Link
-                  key={b.key}
-                  href={`${CHAT_ROUTE}?bot=${encodeURIComponent(b.key)}`}
-                  className="h-full"
-                >
-                  {CardInner}
-                </Link>
+                 <Link
+                 key={b.key}
+                 href={`${CHAT_BASE}/${encodeURIComponent(b.key)}`}
+                 className="h-full"
+               >
+                   {CardInner}
+                 </Link>
               );
             })}
           </div>
