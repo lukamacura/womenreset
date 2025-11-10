@@ -6,12 +6,18 @@ import Image from "next/image";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Loader2, Menu, Plus, Send, Trash, Trash2, X, Rocket, User } from "lucide-react";
+import { motion } from "framer-motion";
+import {
+  Loader2, Menu, Plus, Send, Trash, Trash2, X, Rocket, User,
+  Copy, Check, Link as LinkIcon, Quote, Heading1,
+} from "lucide-react";
 
-/* ===== Theme ===== */
+/* ===== Theme (warmer + accessible) ===== */
 const THEME = {
-  lavender: { 300: "#CBA7E2", 500: "#A56BCF", 600: "#8D55B7" },
-  mint: { 200: "#D3FBF0", 300: "#C9F4E7", 400: "#9EE6D8" },
+  lavender: { 100: "#F4ECFB", 300: "#CBA7E2", 500: "#A56BCF", 600: "#8D55B7", 800: "#5D3C80" },
+  mint:     { 100: "#EFFFF9", 200: "#D3FBF0", 300: "#C9F4E7", 400: "#9EE6D8", 700: "#2EBE8D" },
+  ink:      { 900: "#1E293B", 700: "#334155", 500: "#64748B" },
+  paper:    { 50:  "#FAFAFB", 100:"#FFFFFF" },
 } as const;
 
 /* ===== Types & Keys ===== */
@@ -35,7 +41,6 @@ const safeLSGet = (k: string) => {
   try { return typeof window !== "undefined" ? localStorage.getItem(k) : null; } catch { return null; }
 };
 const safeLSSet = (k: string, v: string) => { try { if (typeof window !== "undefined") localStorage.setItem(k, v); } catch {} };
-const lsRemove = (k: string) => { try { if (typeof window !== "undefined") localStorage.removeItem(k); } catch {} };
 
 /** Build a compact history of previous turns (NOT including the current user message). */
 function buildHistory(messages: Msg[], maxChars = 4000): string {
@@ -75,10 +80,208 @@ function deriveMemoryContext(allMessages: Msg[], charCap = 400): string {
   return s.length > charCap ? s.slice(0, charCap - 1) + "…" : s;
 }
 
-function MarkdownBubble({ children }: { children: string }) {
+/* ===================== */
+/*   Markdown Styling    */
+/* ===================== */
+
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
   return (
-    <div className="prose prose-sm max-w-none prose-a:text-[#2EBE8D] prose-strong:font-semibold prose-p:my-2 prose-pre:my-3">
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>{children}</ReactMarkdown>
+    <button
+      type="button"
+      onClick={async (e) => {
+        e.preventDefault();
+        try { await navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 1200); } catch {}
+      }}
+      className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-md border bg-white/80 px-2 py-1 text-[11px] shadow-sm backdrop-blur hover:bg-white"
+      aria-label="Copy code"
+    >
+      {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />} {copied ? "Copied" : "Copy"}
+    </button>
+  );
+}
+
+function MarkdownBubble({ children }: { children: string }) {
+  // Reduced motion
+  const prefersReduced =
+    typeof window !== "undefined" &&
+    window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
+  const enter = prefersReduced ? {} : { initial: { y: 8, opacity: 0 }, animate: { y: 0, opacity: 1 } };
+
+  const strip = (props: any) => {
+    const { node, inline, ordered, ...rest } = props || {};
+    return rest;
+  };
+
+  return (
+    <div className="prose prose-slate max-w-none md:prose-lg prose-headings:font-semibold prose-p:my-3 prose-strong:font-semibold prose-a:no-underline prose-a:font-medium prose-li:my-1 prose-blockquote:font-normal">
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={{
+          h1(p: any) {
+            const { children, ...rest } = p;
+            return (
+              <motion.div layout {...enter}>
+                <h1
+                  {...strip(rest)}
+                  className="mt-1 mb-3 text-2xl md:text-[26px] font-extrabold tracking-tight text-transparent bg-clip-text bg-linear-to-r from-[#8D55B7] to-[#2EBE8D] flex items-center gap-2"
+                >
+                  <Heading1 className="h-5 w-5" />
+                  {children}
+                </h1>
+                <div className="h-0.5 w-16 rounded-full bg-linear-to-r from-[#CBA7E2] to-[#9EE6D8]" />
+              </motion.div>
+            );
+          },
+          h2(p: any) {
+            const { children, ...rest } = p;
+            return (
+              <motion.div layout {...enter}>
+                <h2
+                  {...strip(rest)}
+                  className="mt-6 mb-2 text-xl md:text-[20px] font-bold text-slate-800 flex items-center gap-2"
+                >
+                  <span className="inline-block h-5 w-1 rounded-full bg-linear-to-b from-[#CBA7E2] to-[#2EBE8D]" />
+                  {children}
+                </h2>
+              </motion.div>
+            );
+          },
+          h3(p: any) {
+            return (
+              <motion.div layout {...enter}>
+                <h3 {...strip(p)} className="mt-5 mb-2 text-[17px] font-semibold text-slate-800" />
+              </motion.div>
+            );
+          },
+          p(p: any) {
+            return (
+              <motion.div layout {...enter}>
+                <p {...strip(p)} className="leading-7 text-slate-800/95" />
+              </motion.div>
+            );
+          },
+          hr() {
+            return (
+              <motion.hr
+                layout
+                {...(prefersReduced ? {} : { initial: { scaleX: 0, opacity: 0 }, animate: { scaleX: 1, opacity: 1 } })}
+                transition={{ type: "spring", stiffness: 80, damping: 18 }}
+                className="my-6 h-0.5 border-0 bg-linear-to-r from-transparent via-[#A56BCF]/60 to-transparent"
+              />
+            );
+          },
+          a(p: any) {
+            const { children, ...rest } = p;
+            return (
+              <motion.div layout {...enter}>
+                <a
+                  {...strip(rest)}
+                  className="group inline-flex items-center gap-1 underline decoration-2 decoration-dotted underline-offset-[5px] hover:underline-offset-[7px] text-[#5D3C80]"
+                  target="_blank"
+                  rel="noreferrer noopener"
+                >
+                  <LinkIcon className="h-3.5 w-3.5 transition-transform group-hover:-translate-y-px" />
+                  {children}
+                </a>
+              </motion.div>
+            );
+          },
+          ul(p: any) {
+            return (
+              <motion.div layout {...enter}>
+                <ul {...strip(p)} className="my-3 space-y-2 pl-4" />
+              </motion.div>
+            );
+          },
+          ol(p: any) {
+            return (
+              <motion.div layout {...enter}>
+                <ol {...strip(p)} className="my-3 space-y-2 pl-5 list-decimal" />
+              </motion.div>
+            );
+          },
+          li(p: any) {
+            const { children, ...rest } = p;
+            return (
+              <motion.div layout {...enter}>
+                <li {...strip(rest)} className="relative pl-5">
+                  <span className="absolute left-0 top-2 h-2 w-2 rounded-full bg-linear-to-br from-[#CBA7E2] to-[#2EBE8D]" />
+                  {children}
+                </li>
+              </motion.div>
+            );
+          },
+          blockquote(p: any) {
+            // Callout auto-detect: [!tip], [!note], [!caution]
+            const raw = String(p?.children?.[0] ?? "").toLowerCase();
+            const kind = raw.includes("[!tip]") ? "Tip"
+              : raw.includes("[!note]") ? "Note"
+              : raw.includes("[!caution]") ? "Caution"
+              : "Insight";
+            const colors = {
+              Tip:     { ring: "#2EBE8D", bg: "#F0FFF9", text: "#155E54" },
+              Note:    { ring: "#8D55B7", bg: "#F7F2FB", text: "#5D3C80" },
+              Caution: { ring: "#F59E0B", bg: "#FFF7ED", text: "#7C2D12" },
+              Insight: { ring: "#A56BCF", bg: "#F7F2FB", text: "#5D3C80" },
+            }[kind];
+
+            return (
+              <motion.div layout {...enter}>
+                <blockquote
+                  className="my-4 rounded-xl border-l-4 p-3"
+                  style={{ borderColor: colors.ring, backgroundColor: colors.bg, color: colors.text }}
+                >
+                  <div className="mb-1 flex items-center gap-2 font-medium">
+                    <Quote className="h-4 w-4" /> {kind}
+                  </div>
+                  <div className="text-slate-800/90">
+                    {String(p.children as any).replace(/\[\!(tip|note|caution)\]\s*/i, "")}
+                  </div>
+                </blockquote>
+              </motion.div>
+            );
+          },
+          table(p: any) {
+            return (
+              <motion.div layout {...enter} className="my-5 overflow-hidden rounded-xl ring-1 ring-black/5 bg-white/80">
+                <table {...strip(p)} className="w-full text-[15px]" />
+              </motion.div>
+            );
+          },
+          thead(p: any) {
+            return <thead {...strip(p)} className="bg-slate-50 text-slate-700" />;
+          },
+          th(p: any) {
+            return <th {...strip(p)} className="px-3 py-2 text-left font-semibold" />;
+          },
+          td(p: any) {
+            return <td {...strip(p)} className="px-3 py-2 border-t text-slate-800/90" />;
+          },
+          code(p: any) {
+            const { inline, children, ...rest } = p;
+            const txt = String(children ?? "");
+            if (inline) {
+              return (
+                <code {...strip(rest)} className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[13px] font-mono">
+                  {txt}
+                </code>
+              );
+            }
+            return (
+              <motion.pre layout {...enter} className="relative my-3 overflow-auto rounded-xl border bg-slate-50 p-3">
+                <CopyButton text={txt} />
+                <code {...strip(rest)} className="block min-w-full whitespace-pre font-mono text-[13px] leading-6">
+                  {txt}
+                </code>
+              </motion.pre>
+            );
+          },
+        }}
+      >
+        {children}
+      </ReactMarkdown>
     </div>
   );
 }
@@ -97,7 +300,8 @@ function ChatPageInner() {
       updatedAt: now,
       messages: [{
         role: "assistant",
-        content: "Hi, I’m Lisa 🌸 - your menopause assistant trained on **200+ expert-reviewed documents**. How can I help today?",
+        content:
+          "# Welcome ✨\n\n— Hi, I’m **Lisa** 🌸 — your companion through menopause. Ask anything and you’ll get a beautiful, structured *Markdown* reply with sections, lists and gentle dividers.",
         ts: now,
       }],
     };
@@ -155,7 +359,7 @@ function ChatPageInner() {
     const now = Date.now();
     const conv: Conversation = {
       id, title: "Menopause Support Chat", createdAt: now, updatedAt: now,
-      messages: [{ role: "assistant", content: "Hi, I’m Lisa 🌸 - your menopause assistant trained on 200+ documents. How can I help today?", ts: now }],
+      messages: [{ role: "assistant", content: "# Hello, I’m **Lisa** 🌸\n\nReady for your next question!", ts: now }],
     };
     setSessions(prev => [conv, ...prev]);
     setActiveId(id);
@@ -165,13 +369,6 @@ function ChatPageInner() {
   }, []);
 
   const openChat = useCallback((id: string) => { setActiveId(id); setMenuOpen(false); }, []);
-  const deleteChat = useCallback((id: string) => {
-    setSessions(prev => {
-      const rest = prev.filter(x => x.id !== id);
-      setActiveId(curr => (curr === id ? rest[0]?.id ?? null : curr));
-      return rest;
-    });
-  }, []);
 
   /* ---- API ---- */
   const sendToAPI = useCallback(async (text: string, targetId?: string) => {
@@ -183,7 +380,7 @@ function ChatPageInner() {
       { role: "user", content: text },
       () => ({
         id, title: "Menopause Support Chat", createdAt: Date.now(), updatedAt: Date.now(),
-        messages: [{ role: "assistant", content: "Hi, I’m Lisa 🌸 - your menopause assistant trained on 200+ documents. How can I help today?", ts: Date.now() }],
+        messages: [{ role: "assistant", content: "# Hello, I’m **Lisa** 🌸\n\nHow can I help?", ts: Date.now() }],
       })
     );
 
@@ -232,14 +429,6 @@ function ChatPageInner() {
       setLoading(false);
     }
   }, [activeId, sessions, upsertAndAppendMessage]);
-
-  const onSubmit = useCallback((e: React.FormEvent) => {
-    e.preventDefault();
-    const text = input.trim();
-    if (!text || loading) return;
-    const id = activeId ?? newChat();
-    void sendToAPI(text, id);
-  }, [input, loading, activeId, newChat, sendToAPI]);
 
   /* ---- UI ---- */
   const SidebarContent = (
@@ -300,7 +489,10 @@ function ChatPageInner() {
   );
 
   return (
-    <div className="flex min-h-dvh w-full bg-[#FFEFF6]/40 text-foreground transition-all duration-500 ease-in-out">
+    <div
+      className="flex min-h-dvh w-full text-foreground transition-all duration-500 ease-in-out"
+      style={{ background: `linear-gradient(180deg, ${THEME.mint[100]} 0%, ${THEME.paper[50]} 60%)`, color: THEME.ink[900] }}
+    >
       {/* Sidebar - Desktop */}
       <aside className="hidden lg:block fixed inset-y-0 left-0 w-72 z-30" aria-label="Sidebar">
         <div className="h-full rounded-none border-r border-foreground/10 backdrop-blur p-4 shadow-sm" style={{ backgroundColor: `${THEME.lavender[300]}40` }}>
@@ -354,23 +546,22 @@ function ChatPageInner() {
                   <br />
                   How can I support you today?
                 </h1>
-                <p className="mt-3 max-w-prose text-sm" style={{ color: "#475569" }}>
-                  I can summarize trusted menopause resources, provide personalized guidance, and explain your body’s
-                  changes - powered by a knowledge base of <strong>200+ clinical and wellness documents</strong>.
+                <p className="mt-3 max-w-prose text-[15.5px]" style={{ color: THEME.ink[700] }}>
+                  Personalized, kind guidance through menopause — grounded in a curated library of <strong>200+ expert-reviewed resources</strong>.
                 </p>
               </div>
               <div className="pointer-events-none absolute -right-6 -top-6 h-40 w-40 rounded-full" style={{ backgroundColor: `${THEME.lavender[300]}4D` }} />
               <div className="pointer-events-none absolute -left-10 bottom-0 h-32 w-32 rounded-full" style={{ backgroundColor: `${THEME.mint[400]}33` }} />
             </div>
 
-            {/* Suggestions */}
+            {/* Suggestions → calm cards */}
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {SUGGESTIONS.map((s, i) => (
                 <button
                   key={s}
                   onClick={() => { const id = activeId ?? newChat(); void sendToAPI(s, id); }}
-                  className="rounded-lg border border-foreground/10 bg-white/50 px-3 py-2 text-left text-xs leading-5 text-foreground/70 hover:bg-white/70 transition-transform duration-300 hover:scale-[1.02]"
-                  style={{ transitionDelay: `${i * 80}ms` }}
+                  className="rounded-xl border border-foreground/10 bg-white/80 px-4 py-3 text-left text-[13.5px] leading-5 text-slate-700 hover:bg-white transition-transform duration-300 hover:scale-[1.015] shadow-sm"
+                  style={{ transitionDelay: `${i * 70}ms` }}
                   aria-label={`Use suggestion: ${s}`}
                 >
                   {s}
@@ -386,15 +577,21 @@ function ChatPageInner() {
             {(active?.messages ?? []).map((m, i) => {
               const isUser = m.role === "user";
               return (
-                <div key={`${m.ts ?? i}-${i}`} className={`group relative flex items-start gap-2 ${isUser ? "justify-end" : ""}`}>
+                <motion.div
+                  key={`${m.ts ?? i}-${i}`}
+                  initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{ type: "spring", stiffness: 100, damping: 12 }}
+                  className={`group relative flex items-start gap-2 ${isUser ? "justify-end" : ""}`}
+                >
                   {!isUser && (
-                    <Image src="/profile.png" alt="Lisa avatar" width={40} height={40} className="mt-1 shrink-0 rounded-full  ring-foreground/10 object-cover" />
+                    <Image src="/profile.png" alt="Lisa avatar" width={40} height={40} className="mt-1 shrink-0 rounded-full ring-foreground/10 object-cover" />
                   )}
                   <div
-                    className={`max-w-[88%] rounded-2xl px-4 py-3 text-sm leading-relaxed sm:max-w-[78%] ${isUser ? "ml-auto bg-foreground text-background" : "bg-white/70 shadow-sm"}`}
+                    className={`max-w-[88%] sm:max-w-[78%] rounded-2xl px-5 py-4 text-[15.5px] leading-7 ${isUser ? "ml-auto bg-[#F4ECFB]" : "bg-white/85 backdrop-blur shadow-sm ring-1 ring-black/5"}`}
                   >
                     <MarkdownBubble>{m.content}</MarkdownBubble>
-                    {m.ts && <div className="mt-1 text-[10px] opacity-60">{new Date(m.ts).toLocaleTimeString(DATE_LOCALE, { hour: "2-digit", minute: "2-digit" })}</div>}
+                    {m.ts && <div className="mt-2 text-[10px]  opacity-60">{new Date(m.ts).toLocaleTimeString(DATE_LOCALE, { hour: "2-digit", minute: "2-digit" })}</div>}
                   </div>
                   {isUser && (
                     <div className="relative mt-1 h-10 w-10 shrink-0 overflow-hidden rounded-full ring-foreground/10" aria-hidden>
@@ -403,13 +600,13 @@ function ChatPageInner() {
                       </div>
                     </div>
                   )}
-                </div>
+                </motion.div>
               );
             })}
             {loading && (
               <div className="flex items-center gap-2 pl-1 text-xs text-foreground/70">
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                Lisa is reviewing the knowledge base…
+                Lisa is thinking…
               </div>
             )}
           </div>
@@ -417,7 +614,14 @@ function ChatPageInner() {
 
         {/* Composer */}
         <footer className="sticky bottom-0 z-20 px-3 py-3 sm:px-4">
-          <form onSubmit={(e) => { e.preventDefault(); const text = input.trim(); if (!text || loading) return; const id = activeId ?? newChat(); void sendToAPI(text, id); }} className="mx-auto flex w-full max-w-3xl items-end gap-2">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              const text = input.trim(); if (!text || loading) return;
+              const id = activeId ?? newChat(); void sendToAPI(text, id);
+            }}
+            className="mx-auto flex w-full max-w-3xl items-end gap-2"
+          >
             <div className="relative w-full flex justify-center items-center">
               <label htmlFor="composer" className="sr-only">Message Lisa</label>
               <textarea
@@ -435,7 +639,7 @@ function ChatPageInner() {
                 }}
                 aria-label="Type your message"
                 placeholder="Ask anything"
-                className="w-full bg-white/90 backdrop-blur text-foreground placeholder:text-foreground/50 overflow-hidden resize-none rounded-xl border border-foreground/20 px-4 py-3 text-md leading-6 outline-none focus:ring-2 focus:ring-[#9EE6D8]"
+                className="w-full bg-white/90 backdrop-blur text-foreground placeholder:text-foreground/50 overflow-hidden resize-none rounded-xl border border-foreground/20 px-4 py-3 text-[15px] leading-6 outline-none focus:ring-2 focus:ring-[#9EE6D8]"
               />
             </div>
 
@@ -456,7 +660,7 @@ function ChatPageInner() {
                 setSessions((all) =>
                   all.map((c) =>
                     c.id === activeId
-                      ? { ...c, messages: [{ role: "assistant", content: "Chat cleared. What’s next? ✨", ts: Date.now() }], updatedAt: Date.now() }
+                      ? { ...c, messages: [{ role: "assistant", content: "---\n\n## Chat cleared ✨\n\n> [!note] Ready for your next question.\n\n---", ts: Date.now() }], updatedAt: Date.now() }
                       : c
                   )
                 );
