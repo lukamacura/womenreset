@@ -14,8 +14,7 @@ const TRIAL_DAYS = 3;
 // Internal chat route
 const CHAT_BASE = "/chat";
 
- 
-// --------------------------- 
+// ---------------------------
 // Small UI helpers
 // ---------------------------
 const MS = {
@@ -32,15 +31,15 @@ function classNames(...xs: (string | false | null | undefined)[]) {
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl border border-foreground/10 bg-background/60 px-4 py-3">
-      <div className="text-xs text-muted-foreground">{label}</div>
-      <div className="text-lg font-semibold">{value}</div>
+      <div className="text-sm text-muted-foreground">{label}</div>
+      <div className="text-xl font-semibold">{value}</div>
     </div>
   );
 }
 
 function Progress({ value }: { value: number }) {
   return (
-    <div className="h-2 w-full overflow-hidden rounded-full bg-foreground/10">
+    <div className="h-2.5 w-full overflow-hidden rounded-full bg-foreground/10">
       <div
         className="h-full bg-primary transition-[width] duration-500"
         style={{ width: `${Math.max(0, Math.min(100, value))}%` }}
@@ -57,44 +56,6 @@ function Skeleton({ className }: { className?: string }) {
 // Types
 // ---------------------------
 type TrialMeta = { trial_start?: string };
-
-// ---------------------------
-// Bot cards config
-// ---------------------------
-const BOTS = [
-  {
-    key: "nutrina",
-    name: "Nutrina",
-    role: "Nutrition expert",
-    img: "/nutrina.png",
-    ring: "ring-emerald-200",
-    bg: "from-emerald-50 to-emerald-300",
-  },
-  {
-    key: "fitina",
-    name: "Fitina",
-    role: "Fitness expert",
-    img: "/fitina.png",
-    ring: "ring-pink-200",
-    bg: "from-pink-50 to-pink-300",
-  },
-  {
-    key: "ema",
-    name: "Ema",
-    role: "Psychology expert",
-    img: "/ema.png",
-    ring: "ring-indigo-200",
-    bg: "from-orange-50 to-orange-300",
-  },
-  {
-    key: "mina",
-    name: "Mina",
-    role: "Menopause expert",
-    img: "/mina.png",
-    ring: "ring-rose-200",
-    bg: "from-red-50 to-red-300",
-  },
-] as const;
 
 // ---------------------------
 // Page
@@ -227,34 +188,34 @@ export default function DashboardPage() {
   // ---------------------------
   if (loading) {
     return (
-      <main className="mx-auto max-w-4xl p-6 sm:p-8 space-y-6">
-        <Skeleton className="h-8 w-40" />
-        <Skeleton className="h-24 w-full" />
+      <main className="mx-auto max-w-4xl p-6 sm:p-8 space-y-6 text-[17px] sm:text-[18px]">
+        <Skeleton className="h-9 w-44" />
+        <Skeleton className="h-28 w-full" />
         <div className="grid grid-cols-2 gap-3">
           <Skeleton className="h-16" />
           <Skeleton className="h-16" />
         </div>
-        <Skeleton className="h-10 w-48" />
+        <Skeleton className="h-11 w-52" />
       </main>
     );
   }
 
   if (err) {
     return (
-      <main className="mx-auto max-w-4xl p-6 sm:p-8">
+      <main className="mx-auto max-w-4xl p-6 sm:p-8 text-[17px] sm:text-[18px]">
         <div role="alert" className="rounded-xl border border-rose-400/30 bg-rose-500/10 p-4">
-          <div className="font-semibold text-rose-300">Error</div>
-          <p className="mt-1 text-sm text-rose-200/90">{err}</p>
+          <div className="font-semibold text-rose-300 text-lg">Error</div>
+          <p className="mt-1 text-base text-rose-200/90">{err}</p>
           <div className="mt-4 flex gap-2">
             <button
               onClick={() => router.refresh()}
-              className="inline-flex items-center rounded-lg bg-foreground/10 px-3 py-1.5 text-sm hover:bg-foreground/15"
+              className="inline-flex items-center rounded-lg bg-foreground/10 px-3 py-2 text-base hover:bg-foreground/15"
             >
               Try again
             </button>
             <button
               onClick={handleLogout}
-              className="inline-flex items-center rounded-lg border border-foreground/15 px-3 py-1.5 text-sm hover:bg-foreground/5"
+              className="inline-flex items-center rounded-lg border border-foreground/15 px-3 py-2 text-base hover:bg-foreground/5"
             >
               Log out
             </button>
@@ -265,19 +226,19 @@ export default function DashboardPage() {
   }
 
   return (
-    <main className="mx-auto max-w-7xl p-6 sm:p-8 space-y-8">
+    <main className="mx-auto max-w-7xl p-6 sm:p-8 space-y-8 text-[17px] sm:text-[18px]">
       {/* Header */}
       <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Dashboard</h1>
-          <p className="text-sm text-muted-foreground">
+          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">Dashboard</h1>
+          <p className="text-base text-muted-foreground">
             Welcome{user?.email ? `, ${user.email}` : ""}.
           </p>
         </div>
         <div className="flex gap-2">
           <button
             onClick={handleLogout}
-            className="inline-flex items-center rounded-lg border border-foreground/15 px-3 py-2 text-sm hover:bg-foreground/5"
+            className="inline-flex items-center rounded-lg border border-foreground/15 px-4 py-2 text-base hover:bg-foreground/5"
           >
             Log out
           </button>
@@ -290,8 +251,8 @@ export default function DashboardPage() {
           <div className="space-y-1.5">
             {!trial.expired ? (
               <>
-                <h2 className="text-lg font-semibold">Your trial is active</h2>
-                <p className="text-sm text-muted-foreground">
+                <h2 className="text-xl font-semibold">Your trial is active</h2>
+                <p className="text-base text-muted-foreground">
                   {trial.start && (
                     <>
                       Started on {trial.start.toLocaleDateString()} · Ends{" "}
@@ -302,17 +263,15 @@ export default function DashboardPage() {
               </>
             ) : (
               <>
-                <h2 className="text-lg font-semibold">Your trial has expired</h2>
-                <p className="text-sm text-muted-foreground">
-                  Upgrade to continue using the chatbot.
-                </p>
+                <h2 className="text-xl font-semibold">Your trial has expired</h2>
+                <p className="text-base text-muted-foreground">Upgrade to continue using the chatbot.</p>
               </>
             )}
           </div>
 
-          <div className="w-full sm:w-80">
+          <div className="w-full sm:w-96">
             <Progress value={trial.progressPct} />
-            <div className="mt-1 flex items-center justify-between text-xs text-muted-foreground">
+            <div className="mt-1 flex items-center justify-between text-sm text-muted-foreground">
               <span>
                 {Math.min(TRIAL_DAYS, trial.elapsedDays)} / {TRIAL_DAYS} days used
               </span>
@@ -329,52 +288,49 @@ export default function DashboardPage() {
             label="Ends in"
             value={`${trial.remaining.d}d ${trial.remaining.h}h ${trial.remaining.m}m ${trial.remaining.s}s`}
           />
-          <Stat label="Plan" value={trial.expired ? "—" : "Trial"} />
+          <Stat label="Plan" value={trial.expired ? "-" : "Trial"} />
         </div>
 
-        {/* Bots (replaces the old single “Open Chatbot” CTA) */}
+        {/* Single bot: Lisa */}
         <div className="mt-6">
-          <h3 className="mb-3 text-sm font-semibold text-foreground/80">Choose your expert</h3>
+          <h3 className="mb-3 text-base font-semibold text-foreground/80">Your menopause expert</h3>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {BOTS.map((b) => {
+          <div className="grid grid-cols-1 gap-3 sm:max-w-lg">
+            {(() => {
+              const trialLocked = trial.expired;
               const CardInner = (
                 <div
                   className={classNames(
-                    "group relative h-full rounded-2xl border border-foreground/10 p-4 shadow-sm",
-                    "bg-linear-to-b",
-                    b.bg,
-                    trial.expired && "opacity-60"
+                    "group relative h-full rounded-2xl p-4 shadow-sm",
+                    "bg-linear-to-b from-red-50 to-[#CBA7E2]",
+                    trialLocked && "opacity-60"
                   )}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-4">
                     <Image
-                      src={b.img}           // should be a .png URL or static import
-                      alt={b.name}
-                      width={100}            // 14 * 4 = 300px
-                      height={100}
+                      src="/lisa.png" // zameni sa /lisa.png ako dodaš asset
+                      alt="Lisa"
+                      width={110}
+                      height={110}
                       className="rounded-full h-32 w-auto"
-                      // If you MUST guarantee PNG is served (no WebP/AVIF), add:
-                      // unoptimized
                     />
-                    
                     <div>
-                      <div className="font-semibold leading-tight">{b.name}</div>
-                      <div className="text-xs text-foreground/60">{b.role}</div>
+                      <div className="text-xl font-semibold leading-tight">Lisa</div>
+                      <div className="text-sm text-foreground/70">Expert for menopause</div>
                     </div>
                   </div>
 
-                  <p className="mt-3 text-xs text-foreground/70">
-                    Start a conversation with {b.name} for tailored {b.role.toLowerCase()} guidance.
+                  <p className="mt-3 text-base text-foreground/80">
+                    Chat with Lisa for tailored menopause guidance - symptoms, lifestyle, nutrition & more.
                   </p>
 
-                  <div className="mt-4 flex items-center gap-2 text-sm font-medium">
+                  <div className="mt-4 flex items-center gap-2 text-lg font-medium">
                     <span className="transition-transform group-hover:translate-x-0.5">
-                      {trial.expired ? "Locked" : "Start chat"}
+                      {trialLocked ? "Locked" : "Start chat"}
                     </span>
-                    {!trial.expired && (
+                    {!trialLocked && (
                       <svg
-                        className="h-4 w-4 transition-transform group-hover:translate-x-0.5"
+                        className="h-5 w-5 transition-transform group-hover:translate-x-0.5"
                         viewBox="0 0 20 20"
                         fill="currentColor"
                       >
@@ -387,28 +343,22 @@ export default function DashboardPage() {
                     )}
                   </div>
 
-                  {trial.expired && (
-                    <div className="pointer-events-none absolute inset-0 rounded-2xl" />
-                  )}
+                  {trialLocked && <div className="pointer-events-none absolute inset-0 rounded-2xl" />}
                 </div>
               );
 
-              return trial.expired ? (
-                <div key={b.key} className="h-full">{CardInner}</div>
+              return trialLocked ? (
+                <div className="h-full">{CardInner}</div>
               ) : (
-                 <Link
-                 key={b.key}
-                 href={`${CHAT_BASE}/${encodeURIComponent(b.key)}`}
-                 className="h-full"
-               >
-                   {CardInner}
-                 </Link>
+                <Link href={`${CHAT_BASE}/lisa`} className="h-full">
+                  {CardInner}
+                </Link>
               );
-            })}
+            })()}
           </div>
 
           {trial.expired && (
-            <p className="mt-3 text-xs text-muted-foreground">
+            <p className="mt-3 text-sm text-muted-foreground">
               Access is closed while on an expired trial. Choose a plan to continue.
             </p>
           )}
@@ -418,16 +368,16 @@ export default function DashboardPage() {
       {/* Helpful area */}
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="rounded-2xl border border-foreground/10 p-5">
-          <h3 className="font-semibold mb-2">Quick tips</h3>
-          <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-1">
+          <h3 className="font-semibold mb-2 text-lg">Quick tips</h3>
+          <ul className="list-disc pl-5 text-base text-muted-foreground space-y-1.5">
             <li>Ask targeted questions to get tailored recommendations.</li>
             <li>Track symptoms daily to see patterns during your trial.</li>
             <li>Review your plan before the trial ends.</li>
           </ul>
         </div>
         <div className="rounded-2xl border border-foreground/10 p-5">
-          <h3 className="font-semibold mb-2">Need help?</h3>
-          <p className="text-sm text-muted-foreground">
+          <h3 className="font-semibold mb-2 text-lg">Need help?</h3>
+          <p className="text-base text-muted-foreground">
             Visit <Link className="underline underline-offset-4" href="/help">Help Center</Link>{" "}
             or <Link className="underline underline-offset-4" href="/contact">contact support</Link>.
           </p>

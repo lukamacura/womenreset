@@ -1,24 +1,51 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// app/api/vectorshift/route.ts
-export async function POST(req: Request) {
+import { NextRequest, NextResponse } from "next/server";
+
+export const runtime = "nodejs";
+
+export async function POST(req: NextRequest) {
   try {
-    const { userInput } = (await req.json()) as { userInput: string };
+    const { userInput, memoryContext, history } = (await req.json()) as {
+      userInput?: string;
+      memoryContext?: string;
+      history?: string;
+    };
 
     if (!userInput?.trim()) {
-      return new Response("Missing userInput", { status: 400 });
+      return NextResponse.json({ error: "Missing userInput" }, { status: 400 });
     }
 
-    const apiKey = process.env.VECTORSHIFT_API_KEY!;
-    const pipelineId = process.env.VECTORSHIFT_PIPELINE_ID!;
-    const url = `https://api.vectorshift.ai/v1/pipeline/${pipelineId}/run`;
+    const apiKey =
+      process.env.VECTORSHIFT_API_KEY ||
+      (process.env as any).vectorshift_api_key ||
+      "";
+    const pipelineId =
+      process.env.VECTORSHIFT_PIPELINE_ID ||
+      (process.env as any).vectorshift_pipeline_id ||
+      "";
 
-    // Najjednostavniji, zvanični oblik payload-a: "inputs" kao mapa
-    const body = JSON.stringify({
-      inputs: {
-        // promeni "user_input" ako se tvoj ulaz zove drugačije
-        user_input: userInput,
-      },
-    });
+    if (!apiKey) {
+      return NextResponse.json(
+        { error: "Missing VECTORSHIFT_API_KEY" },
+        { status: 500 }
+      );
+    }
+    if (!pipelineId) {
+      return NextResponse.json(
+        { error: "Missing VECTORSHIFT_PIPELINE_ID" },
+        { status: 500 }
+      );
+    }
+
+    const url = `https://api.vectorshift.ai/v1/pipeline/${encodeURIComponent(
+      pipelineId
+    )}/run`;
+
+    const inputs = {
+      user_input: userInput,
+      memory_context: memoryContext ?? "No prior user profile saved.",
+      history: history ?? "",
+    };
 
     const r = await fetch(url, {
       method: "POST",
@@ -26,26 +53,40 @@ export async function POST(req: Request) {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
-      body,
+      body: JSON.stringify({ inputs }),
+      cache: "no-store",
     });
+
+    const raw = await r.text();
+    let data: any = null;
+    try {
+      data = JSON.parse(raw);
+    } catch {}
 
     if (!r.ok) {
-      const text = await r.text();
-      return new Response(`Vectorshift error: ${text}`, { status: 500 });
+      const msg = data?.error || data?.message || raw || r.statusText;
+      return NextResponse.json(
+        { error: `Vectorshift error: ${msg}` },
+        { status: 500 }
+      );
     }
 
-    // Očekivan odgovor: { status:"success", run_id:"...", outputs:{ ... } }
-    const data = await r.json();
-    // Podesi ključ izlaza po svom pipeline-u; često se zove "output"
     const reply =
+      data?.outputs?.output_0 ??
       data?.outputs?.output ??
       data?.outputs?.answer ??
-      JSON.stringify(data?.outputs ?? {}, null, 2);
+      (data?.outputs
+        ? (Object.values(data.outputs).find(
+            (v: any) => typeof v === "string"
+          ) as string)
+        : null) ??
+      "⚠️ No reply.";
 
-    return Response.json({ reply });
+    return NextResponse.json({ reply: String(reply) });
   } catch (e: any) {
-    return new Response(`Internal error: ${e?.message ?? "unknown"}`, {
-      status: 500,
-    });
+    return NextResponse.json(
+      { error: `Internal error: ${e?.message ?? "unknown"}` },
+      { status: 500 }
+    );
   }
 }
