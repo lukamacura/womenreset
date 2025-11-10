@@ -36,10 +36,37 @@ const SUGGESTIONS = [
 ] as const;
 
 /* ===== Utils ===== */
+/** Robustly convert “markdown-looking” text into real Markdown. */
+function normalizeMarkdown(src: string): string {
+  if (!src) return "";
+  let s = src.replace(/\r\n?/g, "\n");
+
+  // Unwrap single full-message fences like ```md ... ```
+  s = s.replace(/^```(?:markdown|md)?\s*\n([\s\S]*?)\n```$/i, "$1");
+
+  // Remove zero-width & NBSP
+  s = s.replace(/[\u200B-\u200D\uFEFF]/g, "");
+  s = s.replace(/\u00A0/g, " ");
+
+  // Normalize ATX headings & ensure blank line before
+  s = s.replace(/^[\t ]*(#{1,6})([ \t]+)([^\n]+)$/gm, (_m, hashes, _sp, text) => `${hashes} ${text.trim()}`);
+  s = s.replace(/([^\n])\n(#{1,6}\s+)/g, "$1\n\n$2");
+
+  // Convert setext to ATX
+  s = s.replace(/^([^\n]+)\n[=]{3,}\s*$/gm, (_m, t) => `# ${t.trim()}`);
+  s = s.replace(/^([^\n]+)\n[-]{3,}\s*$/gm, (_m, t) => `## ${t.trim()}`);
+
+  // Prevent accidental 4-space code blocks
+  s = s.replace(/^\s{4}([^\n]+)/gm, (_m, line) => line);
+
+  // Collapse excessive blank lines
+  s = s.replace(/\n{3,}/g, "\n\n");
+
+  return s.trim();
+}
+
 const uid = () => Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
-const safeLSGet = (k: string) => {
-  try { return typeof window !== "undefined" ? localStorage.getItem(k) : null; } catch { return null; }
-};
+const safeLSGet = (k: string) => { try { return typeof window !== "undefined" ? localStorage.getItem(k) : null; } catch { return null; } };
 const safeLSSet = (k: string, v: string) => { try { if (typeof window !== "undefined") localStorage.setItem(k, v); } catch {} };
 
 /** Build a compact history of previous turns (NOT including the current user message). */
@@ -102,7 +129,9 @@ function CopyButton({ text }: { text: string }) {
 }
 
 function MarkdownBubble({ children }: { children: string }) {
-  // Reduced motion
+  // Normalize at render (bulletproof against old/badly stored messages)
+  const text = useMemo(() => normalizeMarkdown(children), [children]);
+
   const prefersReduced =
     typeof window !== "undefined" &&
     window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
@@ -149,16 +178,22 @@ function MarkdownBubble({ children }: { children: string }) {
             );
           },
           h3(p: any) {
+            const { children, ...rest } = p;
             return (
               <motion.div layout {...enter}>
-                <h3 {...strip(p)} className="mt-5 mb-2 text-[17px] font-semibold text-slate-800" />
+                <h3 {...strip(rest)} className="mt-5 mb-2 text-[17px] font-semibold text-slate-800">
+                  {children}
+                </h3>
               </motion.div>
             );
           },
           p(p: any) {
+            const { children, ...rest } = p;
             return (
               <motion.div layout {...enter}>
-                <p {...strip(p)} className="leading-7 text-slate-800/95" />
+                <p {...strip(rest)} className="leading-7 text-slate-800/95">
+                  {children}
+                </p>
               </motion.div>
             );
           },
@@ -189,16 +224,22 @@ function MarkdownBubble({ children }: { children: string }) {
             );
           },
           ul(p: any) {
+            const { children, ...rest } = p;
             return (
               <motion.div layout {...enter}>
-                <ul {...strip(p)} className="my-3 space-y-2 pl-4" />
+                <ul {...strip(rest)} className="my-3 space-y-2 pl-4">
+                  {children}
+                </ul>
               </motion.div>
             );
           },
           ol(p: any) {
+            const { children, ...rest } = p;
             return (
               <motion.div layout {...enter}>
-                <ol {...strip(p)} className="my-3 space-y-2 pl-5 list-decimal" />
+                <ol {...strip(rest)} className="my-3 space-y-2 pl-5 list-decimal">
+                  {children}
+                </ol>
               </motion.div>
             );
           },
@@ -214,11 +255,10 @@ function MarkdownBubble({ children }: { children: string }) {
             );
           },
           blockquote(p: any) {
-            // Callout auto-detect: [!tip], [!note], [!caution]
-            const raw = String(p?.children?.[0] ?? "").toLowerCase();
-            const kind = raw.includes("[!tip]") ? "Tip"
-              : raw.includes("[!note]") ? "Note"
-              : raw.includes("[!caution]") ? "Caution"
+            const first = typeof p?.children?.[0] === "string" ? (p.children[0] as string).toLowerCase() : "";
+            const kind = first.includes("[!tip]") ? "Tip"
+              : first.includes("[!note]") ? "Note"
+              : first.includes("[!caution]") ? "Caution"
               : "Insight";
             const colors = {
               Tip:     { ring: "#2EBE8D", bg: "#F0FFF9", text: "#155E54" },
@@ -237,27 +277,37 @@ function MarkdownBubble({ children }: { children: string }) {
                     <Quote className="h-4 w-4" /> {kind}
                   </div>
                   <div className="text-slate-800/90">
-                    {String(p.children as any).replace(/\[\!(tip|note|caution)\]\s*/i, "")}
+                    {Array.isArray(p.children)
+                      ? p.children.map((ch: any) =>
+                          typeof ch === "string" ? ch.replace(/\[\!(tip|note|caution)\]\s*/i, "") : ch
+                        )
+                      : p.children}
                   </div>
                 </blockquote>
               </motion.div>
             );
           },
           table(p: any) {
+            const { children, ...rest } = p;
             return (
               <motion.div layout {...enter} className="my-5 overflow-hidden rounded-xl ring-1 ring-black/5 bg-white/80">
-                <table {...strip(p)} className="w-full text-[15px]" />
+                <table {...strip(rest)} className="w-full text-[15px]">
+                  {children}
+                </table>
               </motion.div>
             );
           },
           thead(p: any) {
-            return <thead {...strip(p)} className="bg-slate-50 text-slate-700" />;
+            const { children, ...rest } = p;
+            return <thead {...strip(rest)} className="bg-slate-50 text-slate-700">{children}</thead>;
           },
           th(p: any) {
-            return <th {...strip(p)} className="px-3 py-2 text-left font-semibold" />;
+            const { children, ...rest } = p;
+            return <th {...strip(rest)} className="px-3 py-2 text-left font-semibold">{children}</th>;
           },
           td(p: any) {
-            return <td {...strip(p)} className="px-3 py-2 border-t text-slate-800/90" />;
+            const { children, ...rest } = p;
+            return <td {...strip(rest)} className="px-3 py-2 border-t text-slate-800/90">{children}</td>;
           },
           code(p: any) {
             const { inline, children, ...rest } = p;
@@ -280,17 +330,34 @@ function MarkdownBubble({ children }: { children: string }) {
           },
         }}
       >
-        {children}
+        {text}
       </ReactMarkdown>
     </div>
   );
 }
 
+/* ===== LocalStorage hydration with normalization ===== */
+function hydrate(raw: string | null): Conversation[] | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as Conversation[];
+    return parsed.map(c => ({
+      ...c,
+      messages: c.messages.map(m =>
+        m.role === "assistant" ? { ...m, content: normalizeMarkdown(m.content) } : m
+      ),
+    }));
+  } catch {
+    return null;
+  }
+}
+
 function ChatPageInner() {
   /* ---- State ---- */
   const [sessions, setSessions] = useState<Conversation[]>(() => {
-    const raw = safeLSGet(SESSIONS_KEY);
-    if (raw) { try { return JSON.parse(raw) as Conversation[]; } catch {} }
+    const normalized = hydrate(safeLSGet(SESSIONS_KEY));
+    if (normalized) return normalized;
+
     const id = uid();
     const now = Date.now();
     const conv: Conversation = {
@@ -300,8 +367,9 @@ function ChatPageInner() {
       updatedAt: now,
       messages: [{
         role: "assistant",
-        content:
-          "# Welcome ✨\n\n— Hi, I’m **Lisa** 🌸 — your companion through menopause. Ask anything and you’ll get a beautiful, structured *Markdown* reply with sections, lists and gentle dividers.",
+        content: normalizeMarkdown(
+          "# Welcome ✨\n\n— Hi, I’m **Lisa** 🌸 — your companion through menopause. Ask anything and you’ll get a beautiful, structured *Markdown* reply with sections, lists and gentle dividers."
+        ),
         ts: now,
       }],
     };
@@ -359,7 +427,11 @@ function ChatPageInner() {
     const now = Date.now();
     const conv: Conversation = {
       id, title: "Menopause Support Chat", createdAt: now, updatedAt: now,
-      messages: [{ role: "assistant", content: "# Hello, I’m **Lisa** 🌸\n\nReady for your next question!", ts: now }],
+      messages: [{
+        role: "assistant",
+        content: normalizeMarkdown("# Hello, I’m **Lisa** 🌸\n\nReady for your next question!"),
+        ts: now
+      }],
     };
     setSessions(prev => [conv, ...prev]);
     setActiveId(id);
@@ -380,7 +452,7 @@ function ChatPageInner() {
       { role: "user", content: text },
       () => ({
         id, title: "Menopause Support Chat", createdAt: Date.now(), updatedAt: Date.now(),
-        messages: [{ role: "assistant", content: "# Hello, I’m **Lisa** 🌸\n\nHow can I help?", ts: Date.now() }],
+        messages: [{ role: "assistant", content: normalizeMarkdown("# Hello, I’m **Lisa** 🌸\n\nHow can I help?"), ts: Date.now() }],
       })
     );
 
@@ -396,11 +468,7 @@ function ChatPageInner() {
       const res = await fetch("/api/vectorshift", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userInput: text,
-          memoryContext,
-          history,
-        }),
+        body: JSON.stringify({ userInput: text, memoryContext, history }),
         cache: "no-store",
       });
 
@@ -413,7 +481,7 @@ function ChatPageInner() {
         throw new Error(msg);
       }
 
-      const reply: string =
+      const rawReply: string =
         data?.reply ??
         data?.outputs?.output_0 ??
         data?.outputs?.output ??
@@ -421,6 +489,7 @@ function ChatPageInner() {
         (data?.outputs ? (Object.values(data.outputs).find((v: any) => typeof v === "string") as string) : "") ??
         "⚠️ Empty reply";
 
+      const reply = normalizeMarkdown(rawReply);
       upsertAndAppendMessage(id, { role: "assistant", content: reply });
     } catch (e: any) {
       const safeMsg = String(e?.message || "unknown error").replace(/<[^>]*>/g, "");
@@ -656,11 +725,20 @@ function ChatPageInner() {
             <button
               type="button"
               onClick={() => {
-                if (!active) return;
+                const id = activeId;
+                if (!id) return;
                 setSessions((all) =>
                   all.map((c) =>
-                    c.id === activeId
-                      ? { ...c, messages: [{ role: "assistant", content: "---\n\n## Chat cleared ✨\n\n> [!note] Ready for your next question.\n\n---", ts: Date.now() }], updatedAt: Date.now() }
+                    c.id === id
+                      ? {
+                          ...c,
+                          messages: [{
+                            role: "assistant",
+                            content: normalizeMarkdown("---\n\n## Chat cleared ✨\n\n> [!note] Ready for your next question.\n\n---"),
+                            ts: Date.now()
+                          }],
+                          updatedAt: Date.now()
+                        }
                       : c
                   )
                 );
