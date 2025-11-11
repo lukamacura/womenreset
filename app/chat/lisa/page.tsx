@@ -6,6 +6,8 @@ import Image from "next/image";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
+import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import { motion } from "framer-motion";
 import {
   Loader2, Menu, Plus, Send, Trash, Trash2, X, Rocket, User,
@@ -36,7 +38,21 @@ const SUGGESTIONS = [
 ] as const;
 
 /* ===== Utils ===== */
-/** Robustly convert “markdown-looking” text into real Markdown. */
+function splitByFences(src: string) {
+  const parts: { code: boolean; text: string }[] = [];
+  let i = 0;
+  const fence = /```[\s\S]*?```/g;
+  let m: RegExpExecArray | null;
+  while ((m = fence.exec(src))) {
+    if (m.index > i) parts.push({ code: false, text: src.slice(i, m.index) });
+    parts.push({ code: true, text: m[0] });
+    i = m.index + m[0].length;
+  }
+  if (i < src.length) parts.push({ code: false, text: src.slice(i) });
+  return parts;
+}
+
+/** Robustly convert “markdown-looking” / HTML-ish text into real Markdown. */
 function normalizeMarkdown(src: string): string {
   if (!src) return "";
   let s = src.replace(/\r\n?/g, "\n");
@@ -48,20 +64,50 @@ function normalizeMarkdown(src: string): string {
   s = s.replace(/[\u200B-\u200D\uFEFF]/g, "");
   s = s.replace(/\u00A0/g, " ");
 
-  // Normalize ATX headings & ensure blank line before
-  s = s.replace(/^[\t ]*(#{1,6})([ \t]+)([^\n]+)$/gm, (_m, hashes, _sp, text) => `${hashes} ${text.trim()}`);
-  s = s.replace(/([^\n])\n(#{1,6}\s+)/g, "$1\n\n$2");
+  // Process non-code chunks for HTMLy artifacts
+  const parts = splitByFences(s).map(({ code, text }) => {
+    if (code) return { code, text };
 
-  // Convert setext to ATX
-  s = s.replace(/^([^\n]+)\n[=]{3,}\s*$/gm, (_m, t) => `# ${t.trim()}`);
-  s = s.replace(/^([^\n]+)\n[-]{3,}\s*$/gm, (_m, t) => `## ${t.trim()}`);
+    let t = text;
 
-  // Prevent accidental 4-space code blocks
-  s = s.replace(/^\s{4}([^\n]+)/gm, (_m, line) => line);
+    // Keep <br> tags (we allow them via rehype-raw + sanitize)
+    // DO NOT convert <br> to \n here.
 
-  // Collapse excessive blank lines
-  s = s.replace(/\n{3,}/g, "\n\n");
+    // Basic HTML list to Markdown
+    t = t
+      .replace(/<\/li>\s*/gi, "\n")
+      .replace(/<li[^>]*>/gi, "- ")
+      .replace(/<\/?(ul|ol)[^>]*>/gi, "\n");
 
+    // Paragraph-like tags → blank lines
+    t = t.replace(/<\/?(p|div)[^>]*>/gi, "\n\n");
+
+    // Strip other small tags but keep <br>
+    t = t.replace(/<(?!br\s*\/?>)[^>\n]{1,60}>/gi, "");
+
+    // Clean “ | ” separators inside bullet content
+    t = t.replace(/^(\s*[-*]\s+.*)$/gm, (line) =>
+      line.replace(/\s*\|\s*\|\s*/g, " — ").replace(/\s\|\s/g, " — ")
+    );
+
+    // Normalize ATX headings & ensure blank line before
+    t = t.replace(/^[\t ]*(#{1,6})([ \t]+)([^\n]+)$/gm, (_m, hashes, _sp, txt) => `${hashes} ${txt.trim()}`);
+    t = t.replace(/([^\n])\n(#{1,6}\s+)/g, "$1\n\n$2");
+
+    // Convert setext to ATX
+    t = t.replace(/^([^\n]+)\n[=]{3,}\s*$/gm, (_m, tt) => `# ${tt.trim()}`);
+    t = t.replace(/^([^\n]+)\n[-]{3,}\s*$/gm, (_m, tt) => `## ${tt.trim()}`);
+
+    // Prevent accidental 4-space code blocks
+    t = t.replace(/^\s{4}([^\n]+)/gm, (_m, line) => line);
+
+    // Collapse excessive blank lines
+    t = t.replace(/\n{3,}/g, "\n\n");
+
+    return { code, text: t };
+  });
+
+  s = parts.map(p => p.text).join("");
   return s.trim();
 }
 
@@ -111,6 +157,12 @@ function deriveMemoryContext(allMessages: Msg[], charCap = 400): string {
 /*   Markdown Styling    */
 /* ===================== */
 
+// Allow only <br> HTML via rehype-raw + sanitize
+const sanitizeSchema = {
+  ...defaultSchema,
+  tagNames: [...(defaultSchema.tagNames || []), "br"],
+};
+
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
   return (
@@ -129,7 +181,6 @@ function CopyButton({ text }: { text: string }) {
 }
 
 function MarkdownBubble({ children }: { children: string }) {
-  // Normalize at render (bulletproof against old/badly stored messages)
   const text = useMemo(() => normalizeMarkdown(children), [children]);
 
   const prefersReduced =
@@ -139,7 +190,7 @@ function MarkdownBubble({ children }: { children: string }) {
   const enter = prefersReduced ? {} : { initial: { y: 8, opacity: 0 }, animate: { y: 0, opacity: 1 } };
 
   const strip = (props: any) => {
-    const { node, inline, ordered, ...rest } = props || {};
+    const { ...rest } = props || {};
     return rest;
   };
 
@@ -147,6 +198,8 @@ function MarkdownBubble({ children }: { children: string }) {
     <div className="prose prose-slate max-w-none md:prose-lg prose-headings:font-semibold prose-p:my-3 prose-strong:font-semibold prose-a:no-underline prose-a:font-medium prose-li:my-1 prose-blockquote:font-normal">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
+        rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema]]}
+        skipHtml={false}
         components={{
           h1(p: any) {
             const { children, ...rest } = p;
@@ -290,7 +343,7 @@ function MarkdownBubble({ children }: { children: string }) {
           table(p: any) {
             const { children, ...rest } = p;
             return (
-              <motion.div layout {...enter} className="my-5 overflow-hidden rounded-xl ring-1 ring-black/5 bg-white/80">
+              <motion.div layout {...enter} className="my-5 overflow-hidden rounded-xl bg-white/80">
                 <table {...strip(rest)} className="w-full text-[15px]">
                   {children}
                 </table>
@@ -307,7 +360,7 @@ function MarkdownBubble({ children }: { children: string }) {
           },
           td(p: any) {
             const { children, ...rest } = p;
-            return <td {...strip(rest)} className="px-3 py-2 border-t text-slate-800/90">{children}</td>;
+            return <td {...strip(rest)} className="px-3 py-2 border-t border-foreground/15 text-slate-800/90">{children}</td>;
           },
           code(p: any) {
             const { inline, children, ...rest } = p;
@@ -446,7 +499,6 @@ function ChatPageInner() {
   const sendToAPI = useCallback(async (text: string, targetId?: string) => {
     const id = targetId ?? activeId; if (!id) return;
 
-    // 1) Push the user's message to UI immediately
     upsertAndAppendMessage(
       id,
       { role: "user", content: text },
@@ -461,7 +513,7 @@ function ChatPageInner() {
 
     try {
       const convo = sessions.find(s => s.id === id);
-      const priorMessages = (convo?.messages ?? []); // before we added the current user message
+      const priorMessages = (convo?.messages ?? []);
       const history = buildHistory(priorMessages);
       const memoryContext = deriveMemoryContext(priorMessages);
 
