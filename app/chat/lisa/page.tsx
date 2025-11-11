@@ -71,7 +71,6 @@ function normalizeMarkdown(src: string): string {
     let t = text;
 
     // Keep <br> tags (we allow them via rehype-raw + sanitize)
-    // DO NOT convert <br> to \n here.
 
     // Basic HTML list to Markdown
     t = t
@@ -111,6 +110,7 @@ function normalizeMarkdown(src: string): string {
   return s.trim();
 }
 
+// IDs / LS helpers
 const uid = () => Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
 const safeLSGet = (k: string) => { try { return typeof window !== "undefined" ? localStorage.getItem(k) : null; } catch { return null; } };
 const safeLSSet = (k: string, v: string) => { try { if (typeof window !== "undefined") localStorage.setItem(k, v); } catch {} };
@@ -308,37 +308,61 @@ function MarkdownBubble({ children }: { children: string }) {
             );
           },
           blockquote(p: any) {
-            const first = typeof p?.children?.[0] === "string" ? (p.children[0] as string).toLowerCase() : "";
-            const kind = first.includes("[!tip]") ? "Tip"
-              : first.includes("[!note]") ? "Note"
-              : first.includes("[!caution]") ? "Caution"
-              : "Insight";
-            const colors = {
-              Tip:     { ring: "#2EBE8D", bg: "#F0FFF9", text: "#155E54" },
-              Note:    { ring: "#8D55B7", bg: "#F7F2FB", text: "#5D3C80" },
-              Caution: { ring: "#F59E0B", bg: "#FFF7ED", text: "#7C2D12" },
-              Insight: { ring: "#A56BCF", bg: "#F7F2FB", text: "#5D3C80" },
-            }[kind];
+  const first = typeof p?.children?.[0] === "string" ? (p.children[0] as string) : "";
+  const m = first.match(/^\s*\[\!(tip|note|caution)\]\s*/i);
 
-            return (
-              <motion.div layout {...enter}>
-                <blockquote
-                  className="my-4 rounded-xl border-l-4 p-3"
-                  style={{ borderColor: colors.ring, backgroundColor: colors.bg, color: colors.text }}
-                >
-                  <div className="mb-1 flex items-center gap-2 font-medium">
-                    <Quote className="h-4 w-4" /> {kind}
-                  </div>
-                  <div className="text-slate-800/90">
-                    {Array.isArray(p.children)
-                      ? p.children.map((ch: any) =>
-                          typeof ch === "string" ? ch.replace(/\[\!(tip|note|caution)\]\s*/i, "") : ch
-                        )
-                      : p.children}
-                  </div>
-                </blockquote>
-              </motion.div>
-            );
+  // Ako nema callout direktive — običan blockquote (bez Insight)
+  if (!m) {
+    return (
+      <motion.div layout {...enter}>
+        <blockquote className="my-4 rounded-xl border-l-4 border-slate-300 bg-slate-50/60 p-3 text-slate-800/90">
+          {p.children}
+        </blockquote>
+      </motion.div>
+    );
+  }
+
+  // Ako ima direktivu (tip/note/caution)
+  const kind = m[1].toLowerCase() as "tip" | "note" | "caution";
+
+  const colorMap: Record<
+    "tip" | "note" | "caution",
+    { ring: string; bg: string; text: string; title: string }
+  > = {
+    tip: { ring: "#2EBE8D", bg: "#F0FFF9", text: "#155E54", title: "Tip" },
+    note: { ring: "#8D55B7", bg: "#F7F2FB", text: "#5D3C80", title: "Note" },
+    caution: { ring: "#F59E0B", bg: "#FFF7ED", text: "#7C2D12", title: "Caution" },
+  };
+
+  const colors = colorMap[kind] ?? colorMap.note; // fallback, tako TS zna da nije undefined
+
+  // Očisti direktivu iz prvog child-a
+  const cleaned = Array.isArray(p.children)
+    ? p.children.map((ch: any, i: number) =>
+        typeof ch === "string" && i === 0 ? ch.replace(/^\s*\[\!(tip|note|caution)\]\s*/i, "") : ch
+      )
+    : p.children;
+
+  return (
+    <motion.div layout {...enter}>
+      <blockquote
+        className="my-4 rounded-xl border-l-4 p-3"
+        style={{
+          borderColor: colors.ring,
+          backgroundColor: colors.bg,
+          color: colors.text,
+        }}
+      >
+        <div className="mb-1 flex items-center gap-2 font-medium">
+          <Quote className="h-4 w-4" /> {colors.title}
+        </div>
+        <div className="text-slate-800/90">{cleaned}</div>
+      </blockquote>
+    </motion.div>
+  );
+
+
+
           },
           table(p: any) {
             const { children, ...rest } = p;
@@ -442,19 +466,67 @@ function ChatPageInner() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+
+  // ===== Chat list refs (for GPT-like autoscroll) =====
   const listRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const [stickToBottom, setStickToBottom] = useState(true); // true = auto-scroll like GPT
 
   const active = useMemo(
     () => sessions.find(s => s.id === activeId) ?? null,
     [sessions, activeId]
   );
 
-  /* ---- Persist / UX ---- */
-  useEffect(() => { safeLSSet(SESSIONS_KEY, JSON.stringify(sessions)); if (activeId) safeLSSet(ACTIVE_KEY, activeId); }, [sessions, activeId]);
-  useEffect(() => { const el = listRef.current; if (el) el.scrollTop = el.scrollHeight; }, [sessions, activeId, loading]);
-  useEffect(() => { const el = textareaRef.current; if (!el) return; el.style.height = "0px"; el.style.height = Math.min(160, el.scrollHeight) + "px"; }, [input]);
+  /* ---- Persist ---- */
+  useEffect(() => {
+    safeLSSet(SESSIONS_KEY, JSON.stringify(sessions));
+    if (activeId) safeLSSet(ACTIVE_KEY, activeId);
+  }, [sessions, activeId]);
 
+  /* ---- GPT-style auto-scroll behavior ---- */
+  // 1) Track whether the user is near the bottom
+  useEffect(() => {
+    const el = listRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      const threshold = 120; // px
+      const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < threshold;
+      setStickToBottom(nearBottom);
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // 2) If content grows and user is sticking to bottom, keep it pinned (like ChatGPT)
+  useEffect(() => {
+    const el = listRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => {
+      if (stickToBottom) {
+        bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+      }
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [stickToBottom]);
+
+  // 3) On new messages or while streaming (loading), scroll if sticking
+  useEffect(() => {
+    if (stickToBottom) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    }
+  }, [sessions, activeId, loading, stickToBottom]);
+
+  /* ---- Textarea autosize ---- */
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "0px";
+    el.style.height = Math.min(160, el.scrollHeight) + "px";
+  }, [input]);
+
+  /* ---- Helpers ---- */
   const upsertAndAppendMessage = useCallback((convId: string, msg: Msg, makeIfMissing?: () => Conversation) => {
     setSessions(prev => {
       const i = prev.findIndex(c => c.id === convId);
@@ -490,10 +562,12 @@ function ChatPageInner() {
     setActiveId(id);
     setMenuOpen(false);
     setInput("");
+    // ensure we stick to the bottom for a fresh chat
+    setStickToBottom(true);
     return id;
   }, []);
 
-  const openChat = useCallback((id: string) => { setActiveId(id); setMenuOpen(false); }, []);
+  const openChat = useCallback((id: string) => { setActiveId(id); setMenuOpen(false); setStickToBottom(true); }, []);
 
   /* ---- API ---- */
   const sendToAPI = useCallback(async (text: string, targetId?: string) => {
@@ -510,10 +584,11 @@ function ChatPageInner() {
 
     setInput("");
     setLoading(true);
+    setStickToBottom(true); // while sending, keep pinned like GPT
 
     try {
       const convo = sessions.find(s => s.id === id);
-      const priorMessages = (convo?.messages ?? []);
+      const priorMessages = (convo?.messages ?? []); // before we added the current user message
       const history = buildHistory(priorMessages);
       const memoryContext = deriveMemoryContext(priorMessages);
 
@@ -693,7 +768,10 @@ function ChatPageInner() {
         </div>
 
         {/* Chat */}
-        <section ref={listRef} className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 overflow-y-auto px-4 py-6">
+        <section
+          ref={listRef}
+          className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 overflow-y-auto px-4 py-6"
+        >
           <div className="mx-auto flex w-full max-w-3xl flex-col gap-3">
             {(active?.messages ?? []).map((m, i) => {
               const isUser = m.role === "user";
@@ -730,6 +808,8 @@ function ChatPageInner() {
                 Lisa is thinking…
               </div>
             )}
+            {/* Sentinel to scroll into view */}
+            <div ref={bottomRef} />
           </div>
         </section>
 
@@ -795,6 +875,7 @@ function ChatPageInner() {
                   )
                 );
                 setInput("");
+                setStickToBottom(true);
               }}
               title="Clear chat"
               className="hidden md:inline-flex h-12 items-center gap-2 rounded-xl border px-4 py-2 text-sm hover:bg-foreground/5"
