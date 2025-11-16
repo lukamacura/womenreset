@@ -11,7 +11,7 @@ import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import { motion } from "framer-motion";
 import {
   Loader2, Menu, Plus, Send, Trash, Trash2, X, Rocket, User,
-  Copy, Check, Link as LinkIcon, Quote, Heading1,
+  Copy, Check, Link as LinkIcon, Quote
 } from "lucide-react";
 
 /* ===== Theme (warmer + accessible) ===== */
@@ -69,8 +69,6 @@ function normalizeMarkdown(src: string): string {
     if (code) return { code, text };
 
     let t = text;
-
-    // Keep <br> tags (we allow them via rehype-raw + sanitize)
 
     // Basic HTML list to Markdown
     t = t
@@ -170,7 +168,11 @@ function CopyButton({ text }: { text: string }) {
       type="button"
       onClick={async (e) => {
         e.preventDefault();
-        try { await navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 1200); } catch {}
+        try {
+          await navigator.clipboard.writeText(text);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 1200);
+        } catch {}
       }}
       className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-md border bg-white/80 px-2 py-1 text-[11px] shadow-sm backdrop-blur hover:bg-white"
       aria-label="Copy code"
@@ -195,7 +197,7 @@ function MarkdownBubble({ children }: { children: string }) {
   };
 
   return (
-    <div className="prose prose-slate max-w-none md:prose-lg prose-headings:font-semibold prose-p:my-3 prose-strong:font-semibold prose-a:no-underline prose-a:font-medium prose-li:my-1 prose-blockquote:font-normal">
+    <div className="prose prose-slate max-w-none md:prose-lg prose-headings:font-semibold prose-p:my-3 prose-strong:font-semibold prose-a:no-underline prose-a:font-medium prose-li:my-1 prose-blockquote:font-normal prose-img:my-4">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema]]}
@@ -207,12 +209,12 @@ function MarkdownBubble({ children }: { children: string }) {
               <motion.div layout {...enter}>
                 <h1
                   {...strip(rest)}
-                  className="mt-1 mb-3 text-2xl md:text-[26px] font-extrabold tracking-tight text-transparent bg-clip-text bg-linear-to-r from-[#8D55B7] to-[#2EBE8D] flex items-center gap-2"
+                  className="mt-1 mb-3 flex items-center gap-2 bg-linear-to-r from-[#8D55B7] to-[#2EBE8D] bg-clip-text text-2xl font-extrabold tracking-tight text-transparent md:text-[26px]"
                 >
-                  <Heading1 className="h-5 w-5" />
                   {children}
                 </h1>
-                <div className="h-0.5 w-16 rounded-full bg-linear-to-r from-[#CBA7E2] to-[#9EE6D8]" />
+                              <div className="my-6 h-1 border-0 bg-linear-to-r from-transparent via-[#2EBE8D]/60 to-transparent"></div>
+
               </motion.div>
             );
           },
@@ -222,7 +224,7 @@ function MarkdownBubble({ children }: { children: string }) {
               <motion.div layout {...enter}>
                 <h2
                   {...strip(rest)}
-                  className="mt-6 mb-2 text-xl md:text-[20px] font-bold text-slate-800 flex items-center gap-2"
+                  className="mt-6 mb-2 flex items-center gap-2 text-xl font-bold text-slate-800 md:text-[20px]"
                 >
                   <span className="inline-block h-5 w-1 rounded-full bg-linear-to-b from-[#CBA7E2] to-[#2EBE8D]" />
                   {children}
@@ -266,7 +268,7 @@ function MarkdownBubble({ children }: { children: string }) {
               <motion.div layout {...enter}>
                 <a
                   {...strip(rest)}
-                  className="group inline-flex items-center gap-1 underline decoration-2 decoration-dotted underline-offset-[5px] hover:underline-offset-[7px] text-[#5D3C80]"
+                  className="group inline-flex items-center gap-1 underline decoration-2 decoration-dotted underline-offset-[5px] text-[#5D3C80] hover:underline-offset-[7px]"
                   target="_blank"
                   rel="noreferrer noopener"
                 >
@@ -280,7 +282,7 @@ function MarkdownBubble({ children }: { children: string }) {
             const { children, ...rest } = p;
             return (
               <motion.div layout {...enter}>
-                <ul {...strip(rest)} className="my-3 space-y-2 pl-4">
+                <ul {...strip(rest)} className="my-3 space-y-1.5 pl-4">
                   {children}
                 </ul>
               </motion.div>
@@ -290,7 +292,7 @@ function MarkdownBubble({ children }: { children: string }) {
             const { children, ...rest } = p;
             return (
               <motion.div layout {...enter}>
-                <ol {...strip(rest)} className="my-3 space-y-2 pl-5 list-decimal">
+                <ol {...strip(rest)} className="my-3 space-y-1.5 pl-5 list-decimal">
                   {children}
                 </ol>
               </motion.div>
@@ -308,66 +310,68 @@ function MarkdownBubble({ children }: { children: string }) {
             );
           },
           blockquote(p: any) {
-  const first = typeof p?.children?.[0] === "string" ? (p.children[0] as string) : "";
-  const m = first.match(/^\s*\[\!(tip|note|caution)\]\s*/i);
+            const first = typeof p?.children?.[0] === "string" ? (p.children[0] as string) : "";
+            const m = first.match(/^\s*\[\!(tip|note|caution)\]\s*/i);
 
-  // Ako nema callout direktive — običan blockquote (bez Insight)
-  if (!m) {
-    return (
-      <motion.div layout {...enter}>
-        <blockquote className="my-4 rounded-xl border-l-4 border-slate-300 bg-slate-50/60 p-3 text-slate-800/90">
-          {p.children}
-        </blockquote>
-      </motion.div>
-    );
-  }
+            // Simple, classic blockquote
+            if (!m) {
+              return (
+                <motion.div layout {...enter}>
+                  <blockquote className="my-4 rounded-xl border-l-4 border-[#2EBE8D]/60 bg-[#2EBE8D]/10 p-3 text-slate-800/90">
+                    {p.children}
+                  </blockquote>
+                </motion.div>
+              );
+            }
 
-  // Ako ima direktivu (tip/note/caution)
-  const kind = m[1].toLowerCase() as "tip" | "note" | "caution";
+            const kind = m[1].toLowerCase() as "tip" | "note" | "caution";
 
-  const colorMap: Record<
-    "tip" | "note" | "caution",
-    { ring: string; bg: string; text: string; title: string }
-  > = {
-    tip: { ring: "#2EBE8D", bg: "#F0FFF9", text: "#155E54", title: "Tip" },
-    note: { ring: "#8D55B7", bg: "#F7F2FB", text: "#5D3C80", title: "Note" },
-    caution: { ring: "#F59E0B", bg: "#FFF7ED", text: "#7C2D12", title: "Caution" },
-  };
+            const colorMap: Record<
+              "tip" | "note" | "caution",
+              { ring: string; bg: string; text: string; title: string }
+            > = {
+              tip:     { ring: "#2EBE8D", bg: "#F0FFF9", text: "#155E54", title: "Tip" },
+              note:    { ring: "#8D55B7", bg: "#F7F2FB", text: "#5D3C80", title: "Note" },
+              caution: { ring: "#F59E0B", bg: "#FFF7ED", text: "#7C2D12", title: "Caution" },
+            };
 
-  const colors = colorMap[kind] ?? colorMap.note; // fallback, tako TS zna da nije undefined
+            const colors = colorMap[kind] ?? colorMap.note;
 
-  // Očisti direktivu iz prvog child-a
-  const cleaned = Array.isArray(p.children)
-    ? p.children.map((ch: any, i: number) =>
-        typeof ch === "string" && i === 0 ? ch.replace(/^\s*\[\!(tip|note|caution)\]\s*/i, "") : ch
-      )
-    : p.children;
+            // Remove the directive from the first child
+            const cleaned = Array.isArray(p.children)
+              ? p.children.map((ch: any, i: number) =>
+                  typeof ch === "string" && i === 0
+                    ? ch.replace(/^\s*\[\!(tip|note|caution)\]\s*/i, "")
+                    : ch
+                )
+              : p.children;
 
-  return (
-    <motion.div layout {...enter}>
-      <blockquote
-        className="my-4 rounded-xl border-l-4 p-3"
-        style={{
-          borderColor: colors.ring,
-          backgroundColor: colors.bg,
-          color: colors.text,
-        }}
-      >
-        <div className="mb-1 flex items-center gap-2 font-medium">
-          <Quote className="h-4 w-4" /> {colors.title}
-        </div>
-        <div className="text-slate-800/90">{cleaned}</div>
-      </blockquote>
-    </motion.div>
-  );
-
-
-
+            return (
+              <motion.div layout {...enter}>
+                <blockquote
+                  className="my-4 rounded-xl border-l-4 p-3"
+                  style={{
+                    borderColor: colors.ring,
+                    backgroundColor: colors.bg,
+                    color: colors.text,
+                  }}
+                >
+                  <div className="mb-1 flex items-center gap-2 font-medium">
+                    <Quote className="h-4 w-4" /> {colors.title}
+                  </div>
+                  <div className="text-slate-800/90">{cleaned}</div>
+                </blockquote>
+              </motion.div>
+            );
           },
           table(p: any) {
             const { children, ...rest } = p;
             return (
-              <motion.div layout {...enter} className="my-5 overflow-hidden rounded-xl bg-white/80">
+              <motion.div
+                layout
+                {...enter}
+                className="my-5 overflow-hidden rounded-xl border border-slate-200 bg-white/90 shadow-sm"
+              >
                 <table {...strip(rest)} className="w-full text-[15px]">
                   {children}
                 </table>
@@ -376,32 +380,89 @@ function MarkdownBubble({ children }: { children: string }) {
           },
           thead(p: any) {
             const { children, ...rest } = p;
-            return <thead {...strip(rest)} className="bg-slate-50 text-slate-700">{children}</thead>;
+            return (
+              <thead
+                {...strip(rest)}
+                className="bg-slate-50 text-slate-700"
+              >
+                {children}
+              </thead>
+            );
           },
           th(p: any) {
             const { children, ...rest } = p;
-            return <th {...strip(rest)} className="px-3 py-2 text-left font-semibold">{children}</th>;
+            return (
+              <th
+                {...strip(rest)}
+                className="px-3 py-2 text-left text-[13px] font-semibold uppercase tracking-wide text-slate-600"
+              >
+                {children}
+              </th>
+            );
           },
           td(p: any) {
             const { children, ...rest } = p;
-            return <td {...strip(rest)} className="px-3 py-2 border-t border-foreground/15 text-slate-800/90">{children}</td>;
+            return (
+              <td
+                {...strip(rest)}
+                className="border-t border-slate-100 px-3 py-2 text-slate-800/90"
+              >
+                {children}
+              </td>
+            );
+          },
+          img(p: any) {
+            const { alt, ...rest } = p;
+            return (
+              <motion.div layout {...enter} className="my-4 overflow-hidden rounded-xl border border-slate-200 bg-slate-50/60">
+                <Image
+                  {...strip(rest)}
+                  alt={alt ?? ""}
+                  className="mx-auto block h-auto max-h-80 w-full max-w-full object-contain"
+                />
+                {alt && (
+                  <div className="px-3 pb-2 pt-1 text-center text-xs text-slate-500">
+                    {alt}
+                  </div>
+                )}
+              </motion.div>
+            );
           },
           code(p: any) {
-            const { inline, children, ...rest } = p;
+            const { inline, className, children, ...rest } = p;
             const txt = String(children ?? "");
+            const match = /language-([\w-]+)/.exec(className || "");
+            const language = match?.[1];
+
             if (inline) {
               return (
-                <code {...strip(rest)} className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[13px] font-mono">
+                <code
+                  {...strip(rest)}
+                  className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[13px] font-mono"
+                >
                   {txt}
                 </code>
               );
             }
+
             return (
-              <motion.pre layout {...enter} className="relative my-3 overflow-auto rounded-xl border bg-slate-50 p-3">
-                <CopyButton text={txt} />
-                <code {...strip(rest)} className="block min-w-full whitespace-pre font-mono text-[13px] leading-6">
-                  {txt}
-                </code>
+              <motion.pre
+                layout
+                {...enter}
+                className="relative my-3 overflow-hidden rounded-xl border border-slate-200 bg-slate-50/90"
+              >
+                <div className="flex items-center justify-between border-b border-slate-200 bg-slate-100/70 px-3 py-1.5 text-[11px] uppercase tracking-wide text-slate-500">
+                  <span>{language || "code"}</span>
+                </div>
+                <div className="relative">
+                  <CopyButton text={txt} />
+                  <code
+                    {...strip(rest)}
+                    className="block min-w-full whitespace-pre px-3 pb-3 pt-2 font-mono text-[13px] leading-6"
+                  >
+                    {txt}
+                  </code>
+                </div>
               </motion.pre>
             );
           },
@@ -445,7 +506,7 @@ function ChatPageInner() {
       messages: [{
         role: "assistant",
         content: normalizeMarkdown(
-          "# Welcome ✨\n\n— Hi, I’m **Lisa** 🌸 — your companion through menopause. Ask anything and you’ll get a beautiful, structured *Markdown* reply with sections, lists and gentle dividers."
+          "# Welcome ✨\n---\n Hi, I’m **MenoLisa** 🌸 - ask me anything"
         ),
         ts: now,
       }],
@@ -484,7 +545,6 @@ function ChatPageInner() {
   }, [sessions, activeId]);
 
   /* ---- GPT-style auto-scroll behavior ---- */
-  // 1) Track whether the user is near the bottom
   useEffect(() => {
     const el = listRef.current;
     if (!el) return;
@@ -497,7 +557,6 @@ function ChatPageInner() {
     return () => el.removeEventListener("scroll", onScroll);
   }, []);
 
-  // 2) If content grows and user is sticking to bottom, keep it pinned (like ChatGPT)
   useEffect(() => {
     const el = listRef.current;
     if (!el) return;
@@ -510,7 +569,6 @@ function ChatPageInner() {
     return () => ro.disconnect();
   }, [stickToBottom]);
 
-  // 3) On new messages or while streaming (loading), scroll if sticking
   useEffect(() => {
     if (stickToBottom) {
       bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -531,8 +589,18 @@ function ChatPageInner() {
     setSessions(prev => {
       const i = prev.findIndex(c => c.id === convId);
       if (i === -1) {
-        const base = makeIfMissing?.() ?? { id: convId, title: "Menopause Support Chat", createdAt: Date.now(), updatedAt: Date.now(), messages: [] };
-        const created: Conversation = { ...base, messages: [...base.messages, { ...msg, ts: msg.ts ?? Date.now() }], updatedAt: Date.now() };
+        const base = makeIfMissing?.() ?? {
+          id: convId,
+          title: "Menopause Support Chat",
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          messages: [],
+        };
+        const created: Conversation = {
+          ...base,
+          messages: [...base.messages, { ...msg, ts: msg.ts ?? Date.now() }],
+          updatedAt: Date.now(),
+        };
         return [created, ...prev];
       }
       const next = [...prev];
@@ -541,7 +609,12 @@ function ChatPageInner() {
         ...c,
         messages: [...c.messages, { ...msg, ts: msg.ts ?? Date.now() }],
         updatedAt: Date.now(),
-        title: c.title === "Menopause Support Chat" && msg.role === "user" && msg.content ? msg.content.slice(0, 40) : c.title,
+        title:
+          c.title === "Menopause Support Chat" &&
+          msg.role === "user" &&
+          msg.content
+            ? msg.content.slice(0, 40)
+            : c.title,
       };
       return next;
     });
@@ -551,44 +624,58 @@ function ChatPageInner() {
     const id = uid();
     const now = Date.now();
     const conv: Conversation = {
-      id, title: "Menopause Support Chat", createdAt: now, updatedAt: now,
+      id,
+      title: "Menopause Support Chat",
+      createdAt: now,
+      updatedAt: now,
       messages: [{
         role: "assistant",
         content: normalizeMarkdown("# Hello, I’m **Lisa** 🌸\n\nReady for your next question!"),
-        ts: now
+        ts: now,
       }],
     };
     setSessions(prev => [conv, ...prev]);
     setActiveId(id);
     setMenuOpen(false);
     setInput("");
-    // ensure we stick to the bottom for a fresh chat
     setStickToBottom(true);
     return id;
   }, []);
 
-  const openChat = useCallback((id: string) => { setActiveId(id); setMenuOpen(false); setStickToBottom(true); }, []);
+  const openChat = useCallback((id: string) => {
+    setActiveId(id);
+    setMenuOpen(false);
+    setStickToBottom(true);
+  }, []);
 
   /* ---- API ---- */
   const sendToAPI = useCallback(async (text: string, targetId?: string) => {
-    const id = targetId ?? activeId; if (!id) return;
+    const id = targetId ?? activeId;
+    if (!id) return;
 
     upsertAndAppendMessage(
       id,
       { role: "user", content: text },
       () => ({
-        id, title: "Menopause Support Chat", createdAt: Date.now(), updatedAt: Date.now(),
-        messages: [{ role: "assistant", content: normalizeMarkdown("# Hello, I’m **Lisa** 🌸\n\nHow can I help?"), ts: Date.now() }],
+        id,
+        title: "Menopause Support Chat",
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        messages: [{
+          role: "assistant",
+          content: normalizeMarkdown("# Hello, I’m **Lisa** 🌸\n\nHow can I help?"),
+          ts: Date.now(),
+        }],
       })
     );
 
     setInput("");
     setLoading(true);
-    setStickToBottom(true); // while sending, keep pinned like GPT
+    setStickToBottom(true);
 
     try {
       const convo = sessions.find(s => s.id === id);
-      const priorMessages = (convo?.messages ?? []); // before we added the current user message
+      const priorMessages = (convo?.messages ?? []);
       const history = buildHistory(priorMessages);
       const memoryContext = deriveMemoryContext(priorMessages);
 
@@ -613,7 +700,9 @@ function ChatPageInner() {
         data?.outputs?.output_0 ??
         data?.outputs?.output ??
         data?.outputs?.answer ??
-        (data?.outputs ? (Object.values(data.outputs).find((v: any) => typeof v === "string") as string) : "") ??
+        (data?.outputs
+          ? (Object.values(data.outputs).find((v: any) => typeof v === "string") as string)
+          : "") ??
         "⚠️ Empty reply";
 
       const reply = normalizeMarkdown(rawReply);
@@ -628,8 +717,8 @@ function ChatPageInner() {
 
   /* ---- UI ---- */
   const SidebarContent = (
-    <div className="h-full flex flex-col">
-      <div className="flex items-center gap-3 mb-4">
+    <div className="flex h-full flex-col">
+      <div className="mb-4 flex items-center gap-3">
         <div className="mx-auto">
           <Image src="/lisa.png" alt="Lisa" width={112} height={112} className="rounded-full object-cover" />
         </div>
@@ -638,7 +727,7 @@ function ChatPageInner() {
 
       <button
         onClick={newChat}
-        className="cursor-pointer w-full inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 font-medium bg-foreground/5 transition hover:bg-foreground/10"
+        className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-foreground/5 px-3 py-2 font-medium transition hover:bg-foreground/10"
         title="New chat"
         aria-label="Start a new chat"
       >
@@ -646,13 +735,17 @@ function ChatPageInner() {
         New chat
       </button>
 
-      <h4 className="text-xs font-semibold px-2 mt-4 mb-1 opacity-70">History</h4>
-      <nav className="space-y-1 text-sm overflow-auto pr-1">
-        {sessions.length === 0 && <div className="px-3 py-2 text-xs opacity-60">No conversations yet.</div>}
+      <h4 className="mt-4 mb-1 px-2 text-xs font-semibold opacity-70">History</h4>
+      <nav className="space-y-1 overflow-auto pr-1 text-sm">
+        {sessions.length === 0 && (
+          <div className="px-3 py-2 text-xs opacity-60">No conversations yet.</div>
+        )}
         {sessions.map((s) => (
           <div
             key={s.id}
-            className={`group relative flex items-center justify-between rounded-lg px-3 py-2 cursor-pointer hover:bg-foreground/5 ${s.id === activeId ? "bg-foreground/5" : ""}`}
+            className={`group relative flex cursor-pointer items-center justify-between rounded-lg px-3 py-2 hover:bg-foreground/5 ${
+              s.id === activeId ? "bg-foreground/5" : ""
+            }`}
             onClick={() => openChat(s.id)}
             title="Open chat"
             role="button"
@@ -660,19 +753,20 @@ function ChatPageInner() {
           >
             <div className="min-w-0">
               <div className="truncate font-medium">{s.title || "Conversation"}</div>
-              <div className="text-[11px] opacity-60 truncate">
+              <div className="truncate text-[11px] opacity-60">
                 {new Date(s.updatedAt).toLocaleString(DATE_LOCALE)}
               </div>
             </div>
             <button
-              onClick={(e) => { e.stopPropagation();
+              onClick={(e) => {
+                e.stopPropagation();
                 setSessions((prev) => {
                   const rest = prev.filter((x) => x.id !== s.id);
                   setActiveId((curr) => (curr === s.id ? rest[0]?.id ?? null : curr));
                   return rest;
                 });
               }}
-              className="cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity text-foreground/60 hover:text-foreground"
+              className="cursor-pointer opacity-0 transition-opacity group-hover:opacity-100 text-foreground/60 hover:text-foreground"
               title="Delete chat"
               aria-label="Delete chat"
             >
@@ -687,11 +781,17 @@ function ChatPageInner() {
   return (
     <div
       className="flex min-h-dvh w-full text-foreground transition-all duration-500 ease-in-out"
-      style={{ background: `linear-gradient(180deg, ${THEME.mint[100]} 0%, ${THEME.paper[50]} 60%)`, color: THEME.ink[900] }}
+      style={{
+        background: `linear-gradient(180deg, ${THEME.mint[100]} 0%, ${THEME.paper[50]} 60%)`,
+        color: THEME.ink[900],
+      }}
     >
       {/* Sidebar - Desktop */}
-      <aside className="hidden lg:block fixed inset-y-0 left-0 w-72 z-30" aria-label="Sidebar">
-        <div className="h-full rounded-none border-r border-foreground/10 backdrop-blur p-4 shadow-sm" style={{ backgroundColor: `${THEME.lavender[300]}40` }}>
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-72 lg:block" aria-label="Sidebar">
+        <div
+          className="h-full rounded-none border-r border-foreground/10 p-4 shadow-sm backdrop-blur"
+          style={{ backgroundColor: `${THEME.lavender[300]}40` }}
+        >
           {SidebarContent}
         </div>
       </aside>
@@ -701,10 +801,16 @@ function ChatPageInner() {
         role="dialog"
         aria-modal="true"
         aria-label="Mobile menu"
-        className={`fixed inset-y-0 left-0 z-40 w-64 backdrop-blur-md border-r border-foreground/10 p-4 transform transition-transform duration-300 ease-in-out ${menuOpen ? "translate-x-0" : "-translate-x-full"}`}
+        className={`fixed inset-y-0 left-0 z-40 w-64 transform border-r border-foreground/10 p-4 backdrop-blur-md transition-transform duration-300 ease-in-out ${
+          menuOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
         style={{ backgroundColor: `${THEME.mint[300]}E6` }}
       >
-        <button onClick={() => setMenuOpen(false)} className="absolute right-3 top-3 text-foreground/70 hover:text-foreground transition" aria-label="Close menu">
+        <button
+          onClick={() => setMenuOpen(false)}
+          className="absolute right-3 top-3 text-foreground/70 transition hover:text-foreground"
+          aria-label="Close menu"
+        >
           <X className="h-6 w-6" />
         </button>
         {SidebarContent}
@@ -713,13 +819,17 @@ function ChatPageInner() {
       {/* Main */}
       <main className="flex min-w-0 flex-1 flex-col transition-all duration-500 ease-in-out lg:pl-72">
         {/* Top bar (mobile) */}
-        <div className="lg:hidden flex items-center justify-between px-4 py-0 border-b border-foreground/10">
-          <button onClick={() => setMenuOpen(true)} className="text-foreground/70 hover:text-foreground transition" aria-label="Open menu">
+        <div className="flex items-center justify-between border-b border-foreground/10 px-4 py-0 lg:hidden">
+          <button
+            onClick={() => setMenuOpen(true)}
+            className="text-foreground/70 transition hover:text-foreground"
+            aria-label="Open menu"
+          >
             <Menu className="h-6 w-6" />
           </button>
           <div className="flex items-center gap-2">
             <Image src="/lisa.png" alt="Lisa" width={28} height={28} className="rounded-full" />
-            <span className="font-semibold text-sm">Lisa</span>
+            <span className="text-sm font-semibold">Lisa</span>
           </div>
         </div>
 
@@ -733,7 +843,10 @@ function ChatPageInner() {
               }}
             >
               <div className="relative z-10">
-                <p className="text-sm font-medium flex items-center gap-2" style={{ color: THEME.lavender[600] }}>
+                <p
+                  className="flex items-center gap-2 text-sm font-medium"
+                  style={{ color: THEME.lavender[600] }}
+                >
                   <Rocket className="h-4 w-4" />
                   Menopause Support
                 </p>
@@ -742,12 +855,22 @@ function ChatPageInner() {
                   <br />
                   How can I support you today?
                 </h1>
-                <p className="mt-3 max-w-prose text-[15.5px]" style={{ color: THEME.ink[700] }}>
-                  Personalized, kind guidance through menopause — grounded in a curated library of <strong>200+ expert-reviewed resources</strong>.
+                <p
+                  className="mt-3 max-w-prose text-[15.5px]"
+                  style={{ color: THEME.ink[700] }}
+                >
+                  Personalized, kind guidance through menopause — grounded in a curated library of{" "}
+                  <strong>200+ expert-reviewed resources</strong>.
                 </p>
               </div>
-              <div className="pointer-events-none absolute -right-6 -top-6 h-40 w-40 rounded-full" style={{ backgroundColor: `${THEME.lavender[300]}4D` }} />
-              <div className="pointer-events-none absolute -left-10 bottom-0 h-32 w-32 rounded-full" style={{ backgroundColor: `${THEME.mint[400]}33` }} />
+              <div
+                className="pointer-events-none absolute -right-6 -top-6 h-40 w-40 rounded-full"
+                style={{ backgroundColor: `${THEME.lavender[300]}4D` }}
+              />
+              <div
+                className="pointer-events-none absolute -left-10 bottom-0 h-32 w-32 rounded-full"
+                style={{ backgroundColor: `${THEME.mint[400]}33` }}
+              />
             </div>
 
             {/* Suggestions → calm cards */}
@@ -755,8 +878,11 @@ function ChatPageInner() {
               {SUGGESTIONS.map((s, i) => (
                 <button
                   key={s}
-                  onClick={() => { const id = activeId ?? newChat(); void sendToAPI(s, id); }}
-                  className="rounded-xl border border-foreground/10 bg-white/80 px-4 py-3 text-left text-[13.5px] leading-5 text-slate-700 hover:bg-white transition-transform duration-300 hover:scale-[1.015] shadow-sm"
+                  onClick={() => {
+                    const id = activeId ?? newChat();
+                    void sendToAPI(s, id);
+                  }}
+                  className="rounded-xl border border-foreground/10 bg-white/80 px-4 py-3 text-left text-[13.5px] leading-5 text-slate-700 shadow-sm transition-transform duration-300 hover:scale-[1.015] hover:bg-white"
                   style={{ transitionDelay: `${i * 70}ms` }}
                   aria-label={`Use suggestion: ${s}`}
                 >
@@ -784,16 +910,36 @@ function ChatPageInner() {
                   className={`group relative flex items-start gap-2 ${isUser ? "justify-end" : ""}`}
                 >
                   {!isUser && (
-                    <Image src="/profile.png" alt="Lisa avatar" width={40} height={40} className="mt-1 shrink-0 rounded-full ring-foreground/10 object-cover" />
+                    <Image
+                      src="/profile.png"
+                      alt="Lisa avatar"
+                      width={40}
+                      height={40}
+                      className="mt-1 shrink-0 rounded-full object-cover ring-foreground/10"
+                    />
                   )}
                   <div
-                    className={`max-w-[88%] sm:max-w-[78%] rounded-2xl px-5 py-4 text-[15.5px] leading-7 ${isUser ? "ml-auto bg-[#F4ECFB]" : "bg-white/85 backdrop-blur shadow-sm ring-1 ring-black/5"}`}
+                    className={`max-w-[88%] rounded-2xl px-5 py-4 text-[15.5px] leading-7 sm:max-w-[78%] ${
+                      isUser
+                        ? "ml-auto bg-[#F4ECFB]"
+                        : "bg-white/85 ring-1 ring-black/5 backdrop-blur shadow-sm"
+                    }`}
                   >
                     <MarkdownBubble>{m.content}</MarkdownBubble>
-                    {m.ts && <div className="mt-2 text-[10px]  opacity-60">{new Date(m.ts).toLocaleTimeString(DATE_LOCALE, { hour: "2-digit", minute: "2-digit" })}</div>}
+                    {m.ts && (
+                      <div className="mt-2 text-[10px] opacity-60">
+                        {new Date(m.ts).toLocaleTimeString(DATE_LOCALE, {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </div>
+                    )}
                   </div>
                   {isUser && (
-                    <div className="relative mt-1 h-10 w-10 shrink-0 overflow-hidden rounded-full ring-foreground/10" aria-hidden>
+                    <div
+                      className="relative mt-1 h-10 w-10 shrink-0 overflow-hidden rounded-full ring-foreground/10"
+                      aria-hidden
+                    >
                       <div className="flex h-full w-full items-center justify-center bg-foreground/10 text-foreground">
                         <User className="h-4 w-4" />
                       </div>
@@ -805,10 +951,9 @@ function ChatPageInner() {
             {loading && (
               <div className="flex items-center gap-2 pl-1 text-xs text-foreground/70">
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                Lisa is thinking…
+                Crafting a personalized answer for you…
               </div>
             )}
-            {/* Sentinel to scroll into view */}
             <div ref={bottomRef} />
           </div>
         </section>
@@ -818,13 +963,17 @@ function ChatPageInner() {
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              const text = input.trim(); if (!text || loading) return;
-              const id = activeId ?? newChat(); void sendToAPI(text, id);
+              const text = input.trim();
+              if (!text || loading) return;
+              const id = activeId ?? newChat();
+              void sendToAPI(text, id);
             }}
             className="mx-auto flex w-full max-w-3xl items-end gap-2"
           >
-            <div className="relative w-full flex justify-center items-center">
-              <label htmlFor="composer" className="sr-only">Message Lisa</label>
+            <div className="relative flex w-full items-center justify-center">
+              <label htmlFor="composer" className="sr-only">
+                Message Lisa
+              </label>
               <textarea
                 id="composer"
                 ref={textareaRef}
@@ -834,13 +983,15 @@ function ChatPageInner() {
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
-                    const text = input.trim(); if (!text || loading) return;
-                    const id = activeId ?? newChat(); void sendToAPI(text, id);
+                    const text = input.trim();
+                    if (!text || loading) return;
+                    const id = activeId ?? newChat();
+                    void sendToAPI(text, id);
                   }
                 }}
                 aria-label="Type your message"
                 placeholder="Ask anything"
-                className="w-full bg-white/90 backdrop-blur text-foreground placeholder:text-foreground/50 overflow-hidden resize-none rounded-xl border border-foreground/20 px-4 py-3 text-[15px] leading-6 outline-none focus:ring-2 focus:ring-[#9EE6D8]"
+                className="w-full resize-none overflow-hidden rounded-xl border border-foreground/20 bg-white/90 px-4 py-3 text-[15px] leading-6 text-foreground outline-none backdrop-blur placeholder:text-foreground/50 focus:ring-2 focus:ring-[#9EE6D8]"
               />
             </div>
 
@@ -866,10 +1017,12 @@ function ChatPageInner() {
                           ...c,
                           messages: [{
                             role: "assistant",
-                            content: normalizeMarkdown("---\n\n## Chat cleared ✨\n\n> [!note] Ready for your next question.\n\n---"),
-                            ts: Date.now()
+                            content: normalizeMarkdown(
+                              "---\n\n## Chat cleared ✨\n\n> [!note] Ready for your next question.\n\n---"
+                            ),
+                            ts: Date.now(),
                           }],
-                          updatedAt: Date.now()
+                          updatedAt: Date.now(),
                         }
                       : c
                   )
@@ -878,7 +1031,7 @@ function ChatPageInner() {
                 setStickToBottom(true);
               }}
               title="Clear chat"
-              className="hidden md:inline-flex h-12 items-center gap-2 rounded-xl border px-4 py-2 text-sm hover:bg-foreground/5"
+              className="hidden h-12 items-center gap-2 rounded-xl border px-4 py-2 text-sm hover:bg-foreground/5 md:inline-flex"
             >
               <Trash2 className="h-4 w-4" />
             </button>
