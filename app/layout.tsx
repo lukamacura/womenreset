@@ -33,7 +33,7 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Next 16 may expose cookies() as async — await before .get()
+  // cookies() is currently synchronous in Next, so no await here
   const cookieStore = await cookies();
 
   const supabase = createServerClient(
@@ -55,13 +55,11 @@ export default async function RootLayout({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const year = new Date().getFullYear();
-
   return (
     <html lang="en" className={`${inter.variable} ${playfair.variable}`}>
-      <body className="min-h-screen font-sans">
+      <body className="min-h-screen flex flex-col font-sans bg-background text-foreground">
         <header className="border-b border-white/10">
-          <nav className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+          <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
             <Link href="/" className="font-semibold tracking-tight">
               WomenReset
             </Link>
@@ -70,7 +68,7 @@ export default async function RootLayout({
               {user ? (
                 <Link
                   href="/dashboard"
-                  className="font-bold text-sm bg-primary text-black px-3 py-1.5 rounded-md hover:opacity-90"
+                  className="rounded-md bg-primary px-3 py-1.5 text-sm font-bold text-black hover:opacity-90"
                 >
                   Dashboard
                 </Link>
@@ -78,13 +76,13 @@ export default async function RootLayout({
                 <>
                   <Link
                     href="/login"
-                    className="font-bold text-sm text-black hover:text-primary"
+                    className="text-sm font-bold text-black hover:text-primary"
                   >
                     Log in
                   </Link>
                   <Link
                     href="/register"
-                    className="font-bold text-sm bg-primary text-black px-3 py-1.5 rounded-md hover:opacity-90"
+                    className="rounded-md bg-primary px-3 py-1.5 text-sm font-bold text-black hover:opacity-90"
                   >
                     Sign up
                   </Link>
@@ -94,13 +92,10 @@ export default async function RootLayout({
           </nav>
         </header>
 
-        <main className="max-w-screen mx-auto font-sans px-0 py-5">
+        {/* Full-height content area for pages like the chat */}
+        <main className="flex-1 w-full">
           {children}
         </main>
-
-        <footer className="max-w-6xl mx-auto px-4 py-10 text-sm text-gray-400">
-          © {year} WomenReset
-        </footer>
       </body>
     </html>
   );
