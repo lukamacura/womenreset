@@ -5,9 +5,9 @@ export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
   try {
-    const { userInput, memoryContext, history } = (await req.json()) as {
+    const { userInput, user_id, history } = (await req.json()) as {
       userInput?: string;
-      memoryContext?: string;
+      user_id?: string;
       history?: string;
     };
 
@@ -15,10 +15,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing userInput" }, { status: 400 });
     }
 
+    if (!user_id?.trim()) {
+      return NextResponse.json({ error: "Missing user_id" }, { status: 400 });
+    }
+
     const apiKey =
       process.env.VECTORSHIFT_API_KEY ||
       (process.env as any).vectorshift_api_key ||
       "";
+
     const pipelineId =
       process.env.VECTORSHIFT_PIPELINE_ID ||
       (process.env as any).vectorshift_pipeline_id ||
@@ -41,9 +46,10 @@ export async function POST(req: NextRequest) {
       pipelineId
     )}/run`;
 
+    // ✅ IMPORTANT: names here must match your VectorShift flow inputs
     const inputs = {
-      user_input: userInput,
-      memory_context: memoryContext ?? "No prior user profile saved.",
+      user_input: userInput,     // keep this if your VS input is user_input
+      user_id: user_id,          // ✅ send real user_id (uuid string)
       history: history ?? "",
     };
 

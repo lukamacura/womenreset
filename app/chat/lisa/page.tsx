@@ -24,22 +24,23 @@ import {
   Link as LinkIcon,
   Quote,
 } from "lucide-react";
+import { supabase } from "@/lib/supabaseClient";
 
 /* ===== Theme (warmer + softer) ===== */
 const THEME = {
   lavender: {
-    100: "#F7F3FB", // very soft background
-    300: "#DCD1F0", // light accent
-    500: "#B7A3DE", // main accent
-    600: "#927DC7", // brand-ish, but muted
-    800: "#57407F", // dark accent
+    100: "#F7F3FB",
+    300: "#DCD1F0",
+    500: "#B7A3DE",
+    600: "#927DC7",
+    800: "#57407F",
   },
   mint: {
-    100: "#F1FAF8", // super soft minty white
+    100: "#F1FAF8",
     200: "#DCEFED",
     300: "#C5E4E1",
     400: "#A8D4CC",
-    700: "#4E9A92", // deep teal accent (less neon)
+    700: "#4E9A92",
   },
   ink: {
     900: "#111827",
@@ -54,7 +55,13 @@ const THEME = {
 
 /* ===== Types & Keys ===== */
 type Msg = { role: "user" | "assistant"; content: string; ts?: number };
-type Conversation = { id: string; title: string; createdAt: number; updatedAt: number; messages: Msg[] };
+type Conversation = {
+  id: string;
+  title: string;
+  createdAt: number;
+  updatedAt: number;
+  messages: Msg[];
+};
 
 const SESSIONS_KEY = "Lisa-chat-sessions";
 const ACTIVE_KEY = "Lisa-chat-active";
@@ -159,7 +166,9 @@ const safeLSSet = (k: string, v: string) => {
 
 /** Build a compact history of previous turns (NOT including the current user message). */
 function buildHistory(messages: Msg[], maxChars = 4000): string {
-  const lines = messages.map((m) => `${m.role === "user" ? "User" : "Assistant"}: ${m.content.trim()}`);
+  const lines = messages.map(
+    (m) => `${m.role === "user" ? "User" : "Assistant"}: ${m.content.trim()}`,
+  );
   const acc: string[] = [];
   let total = 0;
   for (let i = lines.length - 1; i >= 0; i--) {
@@ -169,44 +178,6 @@ function buildHistory(messages: Msg[], maxChars = 4000): string {
     total += line.length + 1;
   }
   return acc.reverse().join("\n");
-}
-
-/** A tiny heuristic to keep a short memory_context. */
-function deriveMemoryContext(allMessages: Msg[], charCap = 400): string {
-  const lastUserTexts = allMessages
-    .filter((m) => m.role === "user")
-    .slice(-12)
-    .map((m) => m.content)
-    .join("\n");
-  const name = (lastUserTexts.match(/\bmy\s+name\s+is\s+([^\d,.;!?]{2,40})/i)?.[1] ?? "").trim();
-  const age = (lastUserTexts.match(/\b(?:i['’]?\s*am|i['’]m)\s+(\d{2})\b/i)?.[1] ?? "").trim();
-  const pronouns = (
-    lastUserTexts.match(/\bmy\s+pronouns\s+are\s+(she\/her|they\/them|he\/him)\b/i)?.[1] ?? ""
-  )
-    .trim()
-    .toLowerCase();
-
-  const prefs: string[] = [];
-  if (/\bnon[-\s]?hormonal\b/i.test(lastUserTexts)) prefs.push("prefers non-hormonal");
-  if (/\bhormone\s+replacement|(?:\b|\s)HRT\b/i.test(lastUserTexts)) prefs.push("open to HRT");
-  if (/\bsleep\b|\binsomnia\b/i.test(lastUserTexts)) prefs.push("sleep-focused");
-  if (/\bno (?:pills|meds|medications)\b/i.test(lastUserTexts)) prefs.push("avoids medications");
-
-  const parts = [
-    name &&
-      `Name: ${name
-        .replace(/\s+/g, " ")
-        .split(" ")
-        .slice(0, 2)
-        .map((s) => s[0]?.toUpperCase() + s.slice(1))
-        .join(" ")}`,
-    age && `Age: ${age}`,
-    pronouns && `Pronouns: ${pronouns}`,
-    prefs.length ? `Preferences: ${prefs.join(", ")}` : "",
-  ].filter(Boolean);
-
-  const s = parts.join(" · ") || "No prior user profile saved.";
-  return s.length > charCap ? s.slice(0, charCap - 1) + "…" : s;
 }
 
 /* ===================== */
@@ -235,7 +206,11 @@ function CopyButton({ text }: { text: string }) {
       className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-md border bg-white/80 px-2 py-1 text-[11px] shadow-sm backdrop-blur hover:bg-white"
       aria-label="Copy code"
     >
-      {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}{" "}
+      {copied ? (
+        <Check className="h-3.5 w-3.5" />
+      ) : (
+        <Copy className="h-3.5 w-3.5" />
+      )}{" "}
       {copied ? "Copied" : "Copy"}
     </button>
   );
@@ -253,7 +228,6 @@ function MarkdownBubble({ children }: { children: string }) {
     return rest;
   };
 
-  // Bubble-level animation: soft pop-in
   const bubbleMotionProps = prefersReduced
     ? {}
     : {
@@ -366,10 +340,11 @@ function MarkdownBubble({ children }: { children: string }) {
           },
           blockquote(p: any) {
             const first =
-              typeof p?.children?.[0] === "string" ? (p.children[0] as string) : "";
+              typeof p?.children?.[0] === "string"
+                ? (p.children[0] as string)
+                : "";
             const m = first.match(/^\s*\[\!(tip|note|caution)\]\s*/i);
 
-            // Simple classic blockquote
             if (!m) {
               return (
                 <blockquote className="my-4 rounded-xl border-l-4 border-[#4E9A92]/50 bg-[#F1FAF8] p-3 text-slate-800/90">
@@ -384,9 +359,24 @@ function MarkdownBubble({ children }: { children: string }) {
               "tip" | "note" | "caution",
               { ring: string; bg: string; text: string; title: string }
             > = {
-              tip: { ring: "#4E9A92", bg: "#F1FAF8", text: "#155E54", title: "Tip" },
-              note: { ring: "#927DC7", bg: "#F7F3FB", text: "#57407F", title: "Note" },
-              caution: { ring: "#F59E0B", bg: "#FFF7ED", text: "#7C2D12", title: "Caution" },
+              tip: {
+                ring: "#4E9A92",
+                bg: "#F1FAF8",
+                text: "#155E54",
+                title: "Tip",
+              },
+              note: {
+                ring: "#927DC7",
+                bg: "#F7F3FB",
+                text: "#57407F",
+                title: "Note",
+              },
+              caution: {
+                ring: "#F59E0B",
+                bg: "#FFF7ED",
+                text: "#7C2D12",
+                title: "Caution",
+              },
             };
 
             const colors = colorMap[kind] ?? colorMap.note;
@@ -522,7 +512,9 @@ function hydrate(raw: string | null): Conversation[] | null {
     return parsed.map((c) => ({
       ...c,
       messages: c.messages.map((m) =>
-        m.role === "assistant" ? { ...m, content: normalizeMarkdown(m.content) } : m,
+        m.role === "assistant"
+          ? { ...m, content: normalizeMarkdown(m.content) }
+          : m,
       ),
     }));
   } catch {
@@ -575,6 +567,29 @@ function ChatPageInner() {
   const [loading, setLoading] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
+  // ✅ auth user id (no localStorage)
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    supabase.auth.getUser().then(({ data }) => {
+      if (!mounted) return;
+      setUserId(data.user?.id ?? null);
+    });
+
+    const { data: sub } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setUserId(session?.user?.id ?? null);
+      },
+    );
+
+    return () => {
+      mounted = false;
+      sub.subscription.unsubscribe();
+    };
+  }, []);
+
   // Chat list refs (auto-scroll)
   const listRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -597,7 +612,8 @@ function ChatPageInner() {
     if (!el) return;
     const onScroll = () => {
       const threshold = 120;
-      const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < threshold;
+      const nearBottom =
+        el.scrollHeight - el.scrollTop - el.clientHeight < threshold;
       setStickToBottom(nearBottom);
     };
     el.addEventListener("scroll", onScroll, { passive: true });
@@ -609,7 +625,10 @@ function ChatPageInner() {
     if (!el) return;
     const ro = new ResizeObserver(() => {
       if (stickToBottom) {
-        bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+        bottomRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "end",
+        });
       }
     });
     ro.observe(el);
@@ -618,7 +637,10 @@ function ChatPageInner() {
 
   useEffect(() => {
     if (stickToBottom) {
-      bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+      bottomRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "end",
+      });
     }
   }, [sessions, activeId, loading, stickToBottom]);
 
@@ -647,7 +669,10 @@ function ChatPageInner() {
             };
           const created: Conversation = {
             ...base,
-            messages: [...base.messages, { ...msg, ts: msg.ts ?? Date.now() }],
+            messages: [
+              ...base.messages,
+              { ...msg, ts: msg.ts ?? Date.now() },
+            ],
             updatedAt: Date.now(),
           };
           return [created, ...prev];
@@ -659,7 +684,9 @@ function ChatPageInner() {
           messages: [...c.messages, { ...msg, ts: msg.ts ?? Date.now() }],
           updatedAt: Date.now(),
           title:
-            c.title === "Menopause Support Chat" && msg.role === "user" && msg.content
+            c.title === "Menopause Support Chat" &&
+            msg.role === "user" &&
+            msg.content
               ? msg.content.slice(0, 40)
               : c.title,
         };
@@ -680,7 +707,9 @@ function ChatPageInner() {
       messages: [
         {
           role: "assistant",
-          content: normalizeMarkdown("# Hello, I’m **Lisa** 🌸\n\nReady for your next question!"),
+          content: normalizeMarkdown(
+            "# Hello, I’m **Lisa** 🌸\n\nReady for your next question!",
+          ),
           ts: now,
         },
       ],
@@ -716,7 +745,9 @@ function ChatPageInner() {
           messages: [
             {
               role: "assistant",
-              content: normalizeMarkdown("# Hello, I’m **Lisa** 🌸\n\nHow can I help?"),
+              content: normalizeMarkdown(
+                "# Hello, I’m **Lisa** 🌸\n\nHow can I help?",
+              ),
               ts: Date.now(),
             },
           ],
@@ -731,12 +762,23 @@ function ChatPageInner() {
         const convo = sessions.find((s) => s.id === id);
         const priorMessages = convo?.messages ?? [];
         const history = buildHistory(priorMessages);
-        const memoryContext = deriveMemoryContext(priorMessages);
+
+        // ✅ always use Supabase auth id
+        let finalUserId = userId;
+        if (!finalUserId) {
+          const { data } = await supabase.auth.getUser();
+          finalUserId = data.user?.id ?? null;
+        }
+        if (!finalUserId) throw new Error("User not authenticated.");
 
         const res = await fetch("/api/vectorshift", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userInput: text, memoryContext, history }),
+          body: JSON.stringify({
+            user_id: finalUserId,
+            userInput: text,
+            history,
+          }),
           cache: "no-store",
         });
 
@@ -747,7 +789,10 @@ function ChatPageInner() {
         } catch {}
 
         if (!res.ok) {
-          const msg = data?.error || data?.message || `${res.status} ${res.statusText}`;
+          const msg =
+            data?.error ||
+            data?.message ||
+            `${res.status} ${res.statusText}`;
           throw new Error(msg);
         }
 
@@ -757,14 +802,19 @@ function ChatPageInner() {
           data?.outputs?.output ??
           data?.outputs?.answer ??
           (data?.outputs
-            ? (Object.values(data.outputs).find((v: any) => typeof v === "string") as string)
+            ? (Object.values(data.outputs).find(
+                (v: any) => typeof v === "string",
+              ) as string)
             : "") ??
           "⚠️ Empty reply";
 
         const reply = normalizeMarkdown(rawReply);
         upsertAndAppendMessage(id, { role: "assistant", content: reply });
       } catch (e: any) {
-        const safeMsg = String(e?.message || "unknown error").replace(/<[^>]*>/g, "");
+        const safeMsg = String(e?.message || "unknown error").replace(
+          /<[^>]*>/g,
+          "",
+        );
         upsertAndAppendMessage(id, {
           role: "assistant",
           content: `Oops, something went wrong 🧠 - ${safeMsg}`,
@@ -773,7 +823,7 @@ function ChatPageInner() {
         setLoading(false);
       }
     },
-    [activeId, sessions, upsertAndAppendMessage],
+    [activeId, sessions, upsertAndAppendMessage, userId],
   );
 
   /* ---- UI ---- */
@@ -781,7 +831,13 @@ function ChatPageInner() {
     <div className="flex h-full flex-col">
       <div className="mb-4 flex items-center gap-3">
         <div className="mx-auto">
-          <Image src="/lisa.png" alt="Lisa" width={112} height={112} className="rounded-full object-cover" />
+          <Image
+            src="/lisa.png"
+            alt="Lisa"
+            width={112}
+            height={112}
+            className="rounded-full object-cover"
+          />
         </div>
       </div>
 
@@ -795,10 +851,14 @@ function ChatPageInner() {
         New chat
       </button>
 
-      <h4 className="mt-4 mb-1 px-2 text-xs font-semibold opacity-70">History</h4>
+      <h4 className="mt-4 mb-1 px-2 text-xs font-semibold opacity-70">
+        History
+      </h4>
       <nav className="space-y-1 overflow-auto pr-1 text-sm">
         {sessions.length === 0 && (
-          <div className="px-3 py-2 text-xs opacity-60">No conversations yet.</div>
+          <div className="px-3 py-2 text-xs opacity-60">
+            No conversations yet.
+          </div>
         )}
         {sessions.map((s) => (
           <div
@@ -812,7 +872,9 @@ function ChatPageInner() {
             aria-label={`Open chat: ${s.title || "Conversation"}`}
           >
             <div className="min-w-0">
-              <div className="truncate font-medium">{s.title || "Conversation"}</div>
+              <div className="truncate font-medium">
+                {s.title || "Conversation"}
+              </div>
               <div className="truncate text-[11px] opacity-60">
                 {new Date(s.updatedAt).toLocaleString(DATE_LOCALE)}
               </div>
@@ -822,7 +884,9 @@ function ChatPageInner() {
                 e.stopPropagation();
                 setSessions((prev) => {
                   const rest = prev.filter((x) => x.id !== s.id);
-                  setActiveId((curr) => (curr === s.id ? rest[0]?.id ?? null : curr));
+                  setActiveId((curr) =>
+                    curr === s.id ? rest[0]?.id ?? null : curr,
+                  );
                   return rest;
                 });
               }}
@@ -852,7 +916,10 @@ function ChatPageInner() {
       }}
     >
       {/* Sidebar - Desktop */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-72 lg:block" aria-label="Sidebar">
+      <aside
+        className="fixed inset-y-0 left-0 z-30 hidden w-72 lg:block"
+        aria-label="Sidebar"
+      >
         <div
           className="h-full rounded-none border-r border-foreground/10 p-4 shadow-sm backdrop-blur"
           style={{ backgroundColor: `${THEME.lavender[300]}40` }}
@@ -893,7 +960,13 @@ function ChatPageInner() {
             <Menu className="h-6 w-6" />
           </button>
           <div className="flex items-center gap-2">
-            <Image src="/lisa.png" alt="Lisa" width={28} height={28} className="rounded-full" />
+            <Image
+              src="/lisa.png"
+              alt="Lisa"
+              width={28}
+              height={28}
+              className="rounded-full"
+            />
             <span className="text-sm font-semibold">Lisa</span>
           </div>
         </div>
@@ -922,10 +995,7 @@ function ChatPageInner() {
                 </p>
                 <h1 className="mt-2 text-2xl font-bold leading-tight sm:text-3xl">
                   Hi, it’s{" "}
-                  <span style={{ color: THEME.lavender[600] }}>
-                    Lisa
-                  </span>{" "}
-                  👋
+                  <span style={{ color: THEME.lavender[600] }}>Lisa</span> 👋
                   <br />
                   How can I support you today?
                 </h1>
@@ -933,7 +1003,8 @@ function ChatPageInner() {
                   className="mt-3 max-w-prose text-[15.5px]"
                   style={{ color: THEME.ink[700] }}
                 >
-                  Personalized, kind guidance through menopause — grounded in a curated library of{" "}
+                  Personalized, kind guidance through menopause — grounded in a
+                  curated library of{" "}
                   <strong>200+ expert-reviewed resources</strong>.
                 </p>
               </div>
@@ -981,7 +1052,9 @@ function ChatPageInner() {
                   initial={{ opacity: 0, y: 10, scale: 0.98 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   transition={{ type: "spring", stiffness: 100, damping: 12 }}
-                  className={`group relative flex items-start gap-2 ${isUser ? "justify-end" : ""}`}
+                  className={`group relative flex items-start gap-2 ${
+                    isUser ? "justify-end" : ""
+                  }`}
                 >
                   {!isUser && (
                     <Image
@@ -1081,7 +1154,11 @@ function ChatPageInner() {
               style={{ backgroundColor: THEME.lavender[600] }}
               aria-label="Send message"
             >
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
             </button>
 
             <button
