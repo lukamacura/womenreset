@@ -525,30 +525,13 @@ function hydrate(raw: string | null): Conversation[] | null {
 function ChatPageInner() {
   /* ---- State ---- */
   const [sessions, setSessions] = useState<Conversation[]>(() => {
-    const normalized = hydrate(safeLSGet(SESSIONS_KEY));
-    if (normalized) return normalized;
+  const normalized = hydrate(safeLSGet(SESSIONS_KEY));
+  if (normalized) return normalized;
 
-    const id = uid();
-    const now = Date.now();
-    const conv: Conversation = {
-      id,
-      title: "Menopause Support Chat",
-      createdAt: now,
-      updatedAt: now,
-      messages: [
-        {
-          role: "assistant",
-          content: normalizeMarkdown(
-            "# Welcome ✨\n---\n Hi, I’m **MenoLisa** 🌸 - ask me anything",
-          ),
-          ts: now,
-        },
-      ],
-    };
-    safeLSSet(SESSIONS_KEY, JSON.stringify([conv]));
-    safeLSSet(ACTIVE_KEY, id);
-    return [conv];
-  });
+  // start with no sessions; we'll create one on first mount
+  return [];
+});
+
 
   const [activeId, setActiveId] = useState<string | null>(() => {
     const raw = safeLSGet(ACTIVE_KEY);
@@ -592,8 +575,11 @@ function ChatPageInner() {
 
   // Chat list refs (auto-scroll)
   const listRef = useRef<HTMLDivElement>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
-  const [stickToBottom, setStickToBottom] = useState(true);
+const bottomRef = useRef<HTMLDivElement>(null);
+const didInitRef = useRef(false);
+const [stickToBottom, setStickToBottom] = useState(true);
+
+  
 
   const active = useMemo(
     () => sessions.find((s) => s.id === activeId) ?? null,
@@ -727,6 +713,16 @@ function ChatPageInner() {
     setMenuOpen(false);
     setStickToBottom(true);
   }, []);
+    // Always start with a fresh chat when the page is opened
+  useEffect(() => {
+    if (didInitRef.current) return;
+    didInitRef.current = true;
+
+    // Create a new chat and make it active on first mount,
+    // regardless of any existing history.
+    newChat();
+  }, [newChat]);
+
 
   /* ---- API ---- */
   const sendToAPI = useCallback(
@@ -771,7 +767,7 @@ function ChatPageInner() {
         }
         if (!finalUserId) throw new Error("User not authenticated.");
 
-        const res = await fetch("/api/vectorshift", {
+        const res = await fetch("/api/langchain-rag", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -1143,8 +1139,9 @@ function ChatPageInner() {
                 }}
                 aria-label="Type your message"
                 placeholder="Ask anything"
-                className="w-full resize-none overflow-hidden rounded-xl border border-foreground/20 bg-white/90 px-4 py-3 text-[15px] leading-6 text-foreground outline-none backdrop-blur placeholder:text-foreground/50 focus:ring-2 focus:ring-[#C5E4E1]"
+                className="w-full resize-none overflow-hidden rounded-xl border border-foreground/20 bg-white/90 px-4 py-3 text-[17px] leading-7 text-foreground outline-none backdrop-blur placeholder:text-foreground/50 focus:ring-2 focus:ring-[#C5E4E1]"
               />
+
             </div>
 
             <button

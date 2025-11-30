@@ -1,15 +1,17 @@
 @import "tailwindcss";
 
-/* Tailwind v4 tokens (NEMA samoreferenci) */
+/* Tailwind v4 tokeni */
 @theme {
   /* font tokeni koje Tailwind koristi */
-  --font-sans: var(--font-inter), system-ui, sans-serif;
+  --font-sans: var(--font-satoshi), system-ui, sans-serif;
   --font-display: var(--font-playfair), serif;
+  /* poseban token za pisani font */
+  --font-script: var(--font-script), cursive;
 
   /* default (light) boje — ZADAJ IH OVDE, ne preko var(--primary) */
   --color-background: #ffe9ef;
-  --color-foreground: #111;
-  --color-primary: #fc809f; /* <— postojana vrednost u light */
+  --color-foreground: #111111;
+  --color-primary: #fc809f; /* postojana vrednost u light */
 }
 
 /* Globalni rendering tweaks – van dark media upita */
@@ -18,18 +20,25 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  /* fallback vrednosti ako Next/font još nije setovao varijable */
+  --font-satoshi: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  --font-playfair: "Playfair Display", "Times New Roman", serif;
+  /* npr. Dancing Script, ali možeš da promeniš po želji */
+  --font-script: "Dancing Script", "Segoe Script", cursive;
 }
 
 /* Dark tema — PREPIŠI tokene koje želiš u dark */
 @media (prefers-color-scheme: dark) {
   :root {
     --color-background: #ffe9ef;
-    --color-foreground: #111;
+    --color-foreground: #111111;
     --color-primary: #fc809f; /* može ista ili druga */
   }
 }
 
-/* (opciono) zadrži pomoćne CSS varijable ako ih koristiš drugde */
+/* pomoćne CSS varijable ako ih koristiš drugde */
 :root {
   --background: var(--color-background);
   --foreground: var(--color-foreground);
@@ -38,4 +47,11 @@
 body {
   background: var(--color-background);
   color: var(--color-foreground);
+  /* Satoshi kao default font za ceo sajt */
+  font-family: var(--font-satoshi), system-ui, sans-serif;
+}
+
+/* Tailwind v4 utility za pisani font (koristiš: className="font-script") */
+@utility font-script {
+  font-family: var(--font-script);
 }

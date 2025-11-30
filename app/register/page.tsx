@@ -5,38 +5,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
-type YesNo = "yes" | "no" | "";
-type Step =
-  | "name"
-  | "age"
-  | "irregularPeriods"
-  | "hotFlashes"
-  | "sleepTrouble"
-  | "moodChanges"
-  | "nightSweats"
-  | "weightChanges"
-  | "vaginalDryness"
-  | "familyHistory"
-  | "done";
+type Step = "name" | "age" | "profiles" | "done";
 
-const STEPS: Step[] = [
-  "name",
-  "age",
-  "irregularPeriods",
-  "hotFlashes",
-  "sleepTrouble",
-  "moodChanges",
-  "nightSweats",
-  "weightChanges",
-  "vaginalDryness",
-  "familyHistory",
-  "done",
-];
+const STEPS: Step[] = ["name", "age", "profiles", "done"];
 
 export default function RegisterPage() {
   const router = useRouter();
 
-  // phase: register first, then quiz
+  // faza: prvo register, pa onda kratki profil
   const [phase, setPhase] = useState<"register" | "quiz">("register");
   const [stepIndex, setStepIndex] = useState(0);
   const currentStep = STEPS[stepIndex];
@@ -46,30 +22,28 @@ export default function RegisterPage() {
   const [pass, setPass] = useState("");
   const [showPass, setShowPass] = useState(false);
 
-  // store supabase user id here
+  // supabase user id
   const [userId, setUserId] = useState<string | null>(null);
 
-  // quiz inputs
+  // osnovni podaci
   const [fullName, setFullName] = useState("");
   const [age, setAge] = useState<string>("");
 
-  const [irregularPeriods, setIrregularPeriods] = useState<YesNo>("");
-  const [hotFlashes, setHotFlashes] = useState<YesNo>("");
-  const [sleepTrouble, setSleepTrouble] = useState<YesNo>("");
-  const [moodChanges, setMoodChanges] = useState<YesNo>("");
-  const [nightSweats, setNightSweats] = useState<YesNo>("");
-  const [weightChanges, setWeightChanges] = useState<YesNo>("");
-  const [vaginalDryness, setVaginalDryness] = useState<YesNo>("");
-  const [familyHistory, setFamilyHistory] = useState<YesNo>("");
+  // tekstualni profili (sve opciono)
+  const [menopauseText, setMenopauseText] = useState("");
+  const [nutritionText, setNutritionText] = useState("");
+  const [exerciseText, setExerciseText] = useState("");
+  const [emotionalText, setEmotionalText] = useState("");
+  const [lifestyleText, setLifestyleText] = useState("");
 
-  // general UI
+  // UI
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [sessionExistsAfterSignup, setSessionExistsAfterSignup] =
     useState(false);
 
-  // validation
+  // validacija
   const emailValid = useMemo(() => /.+@.+\..+/.test(email), [email]);
   const passValid = useMemo(() => pass.length >= 8, [pass]);
   const canRegister = emailValid && passValid && !loading;
@@ -82,22 +56,7 @@ export default function RegisterPage() {
         return fullName.trim().length > 1;
       case "age":
         return Number.isFinite(ageNum) && ageNum >= 35 && ageNum <= 70;
-      case "irregularPeriods":
-        return irregularPeriods !== "";
-      case "hotFlashes":
-        return hotFlashes !== "";
-      case "sleepTrouble":
-        return sleepTrouble !== "";
-      case "moodChanges":
-        return moodChanges !== "";
-      case "nightSweats":
-        return nightSweats !== "";
-      case "weightChanges":
-        return weightChanges !== "";
-      case "vaginalDryness":
-        return vaginalDryness !== "";
-      case "familyHistory":
-        return familyHistory !== "";
+      // ostali koraci nisu obavezni
       default:
         return true;
     }
@@ -110,41 +69,6 @@ export default function RegisterPage() {
 
   function goBack() {
     setStepIndex((i) => Math.max(i - 1, 0));
-  }
-
-  function YesNoButtons({
-    value,
-    onChange,
-  }: {
-    value: YesNo;
-    onChange: (v: YesNo) => void;
-  }) {
-    return (
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={() => onChange("yes")}
-          className={`px-4 py-2 rounded-xl text-sm border transition ${
-            value === "yes"
-              ? "bg-primary text-primary-foreground border-primary/50"
-              : "border-foreground/15 hover:bg-foreground/5"
-          }`}
-        >
-          Yes
-        </button>
-        <button
-          type="button"
-          onClick={() => onChange("no")}
-          className={`px-4 py-2 rounded-xl text-sm border transition ${
-            value === "no"
-              ? "bg-primary text-primary-foreground border-primary/50"
-              : "border-foreground/15 hover:bg-foreground/5"
-          }`}
-        >
-          No
-        </button>
-      </div>
-    );
   }
 
   async function onRegisterSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -175,13 +99,12 @@ export default function RegisterPage() {
         return;
       }
 
-      // ✅ capture user id even if confirmation is enabled
+      // sačuvaj user id
       setUserId(data?.user?.id ?? null);
 
       const { data: sessionData } = await supabase.auth.getSession();
       setSessionExistsAfterSignup(!!sessionData.session);
 
-      // move to quiz
       setPhase("quiz");
       setStepIndex(0);
     } catch (e) {
@@ -197,26 +120,28 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      // fallback in case userId wasn't set for any reason
-        let finalUserId = userId;
-        if (!finalUserId) {
-          const { data } = await supabase.auth.getUser();
-          finalUserId = data.user?.id ?? null;
-        }
+      // fallback ako iz nekog razloga userId nije setovan iz signUp-a
+      let finalUserId = userId;
+      if (!finalUserId) {
+        const { data } = await supabase.auth.getUser();
+        finalUserId = data.user?.id ?? null;
+      }
 
+      if (!finalUserId) {
+        throw new Error("User id is missing – please log in again.");
+      }
+
+      // tekst polja – trim + ako je prazno, šaljemo null (da se lepo upiše u DB)
       const intakePayload = {
-        user_id: finalUserId, // ✅ required for your VS table
+        user_id: finalUserId,
         name: fullName.trim(),
         age: ageNum,
 
-        irregular_periods: irregularPeriods,
-        hot_flashes: hotFlashes,
-        sleep_trouble: sleepTrouble,
-        mood_changes: moodChanges,
-        night_sweats: nightSweats,
-        weight_changes: weightChanges,
-        vaginal_dryness: vaginalDryness,
-        family_history: familyHistory,
+        menopause_profile: menopauseText.trim() || null,
+        nutrition_profile: nutritionText.trim() || null,
+        exercise_profile: exerciseText.trim() || null,
+        emotional_stress_profile: emotionalText.trim() || null,
+        lifestyle_context: lifestyleText.trim() || null,
       };
 
       const res = await fetch("/api/intake", {
@@ -227,7 +152,7 @@ export default function RegisterPage() {
 
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        throw new Error(body?.error || "Failed to save intake.");
+        throw new Error(body?.error || "Database error while saving profile.");
       }
 
       if (sessionExistsAfterSignup) {
@@ -309,6 +234,7 @@ export default function RegisterPage() {
                   onClick={() => setShowPass((s) => !s)}
                   className="absolute inset-y-0 right-2 my-auto inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-foreground/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                 >
+                  {/* eye icon */}
                   <svg
                     viewBox="0 0 24 24"
                     fill="none"
@@ -383,12 +309,11 @@ export default function RegisterPage() {
       {phase === "quiz" && (
         <section className="space-y-5">
           <div>
-            <h1 className="text-2xl font-bold">Quick menopause quiz</h1>
+            <h1 className="text-2xl font-bold">Your menopause profile</h1>
             <p className="text-xs text-muted-foreground">
               Question {progress + 1} of {progressTotal}
             </p>
 
-            {/* progress bar */}
             <div className="mt-2 h-2 w-full rounded-full bg-foreground/10">
               <div
                 className="h-2 rounded-full bg-primary transition-all"
@@ -434,81 +359,72 @@ export default function RegisterPage() {
               </div>
             )}
 
-            {currentStep === "irregularPeriods" && (
-              <div className="space-y-3">
-                <p className="text-sm font-medium">
-                  Are your periods irregular at the moment?
-                </p>
-                <YesNoButtons
-                  value={irregularPeriods}
-                  onChange={setIrregularPeriods}
-                />
-              </div>
-            )}
+            {currentStep === "profiles" && (
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium">
+                    Menopause profile (symptoms, stage, etc.)
+                  </label>
+                  <textarea
+                    className="w-full rounded-xl border border-foreground/15 bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                    rows={3}
+                    placeholder="Describe your main symptoms, sleep pattern, stage (perimenopause, post-menopause...)"
+                    value={menopauseText}
+                    onChange={(e) => setMenopauseText(e.target.value)}
+                  />
+                </div>
 
-            {currentStep === "hotFlashes" && (
-              <div className="space-y-3">
-                <p className="text-sm font-medium">
-                  Do you experience hot flashes?
-                </p>
-                <YesNoButtons value={hotFlashes} onChange={setHotFlashes} />
-              </div>
-            )}
+                <div>
+                  <label className="text-sm font-medium">
+                    Nutrition profile (foods you like/avoid)
+                  </label>
+                  <textarea
+                    className="w-full rounded-xl border border-foreground/15 bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                    rows={2}
+                    placeholder="Do you have something you can't eat? Any preferences?"
+                    value={nutritionText}
+                    onChange={(e) => setNutritionText(e.target.value)}
+                  />
+                </div>
 
-            {currentStep === "sleepTrouble" && (
-              <div className="space-y-3">
-                <p className="text-sm font-medium">
-                  Do you have trouble sleeping?
-                </p>
-                <YesNoButtons value={sleepTrouble} onChange={setSleepTrouble} />
-              </div>
-            )}
+                <div>
+                  <label className="text-sm font-medium">
+                    Exercise profile
+                  </label>
+                  <textarea
+                    className="w-full rounded-xl border border-foreground/15 bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                    rows={2}
+                    placeholder="What kind of movement do you prefer or avoid?"
+                    value={exerciseText}
+                    onChange={(e) => setExerciseText(e.target.value)}
+                  />
+                </div>
 
-            {currentStep === "moodChanges" && (
-              <div className="space-y-3">
-                <p className="text-sm font-medium">
-                  Have you noticed mood changes or irritability?
-                </p>
-                <YesNoButtons value={moodChanges} onChange={setMoodChanges} />
-              </div>
-            )}
+                <div>
+                  <label className="text-sm font-medium">
+                    Emotional / stress profile
+                  </label>
+                  <textarea
+                    className="w-full rounded-xl border border-foreground/15 bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                    rows={2}
+                    placeholder="Anything important about stress, mood, anxiety..."
+                    value={emotionalText}
+                    onChange={(e) => setEmotionalText(e.target.value)}
+                  />
+                </div>
 
-            {currentStep === "nightSweats" && (
-              <div className="space-y-3">
-                <p className="text-sm font-medium">
-                  Do you experience night sweats?
-                </p>
-                <YesNoButtons value={nightSweats} onChange={setNightSweats} />
-              </div>
-            )}
-
-            {currentStep === "weightChanges" && (
-              <div className="space-y-3">
-                <p className="text-sm font-medium">
-                  Have you noticed weight or metabolism changes?
-                </p>
-                <YesNoButtons value={weightChanges} onChange={setWeightChanges} />
-              </div>
-            )}
-
-            {currentStep === "vaginalDryness" && (
-              <div className="space-y-3">
-                <p className="text-sm font-medium">
-                  Do you have vaginal dryness or discomfort?
-                </p>
-                <YesNoButtons
-                  value={vaginalDryness}
-                  onChange={setVaginalDryness}
-                />
-              </div>
-            )}
-
-            {currentStep === "familyHistory" && (
-              <div className="space-y-3">
-                <p className="text-sm font-medium">
-                  Is there family history of early menopause or hormonal issues?
-                </p>
-                <YesNoButtons value={familyHistory} onChange={setFamilyHistory} />
+                <div>
+                  <label className="text-sm font-medium">
+                    Lifestyle context
+                  </label>
+                  <textarea
+                    className="w-full rounded-xl border border-foreground/15 bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                    rows={2}
+                    placeholder="Job type, schedule, kids, night shifts, etc."
+                    value={lifestyleText}
+                    onChange={(e) => setLifestyleText(e.target.value)}
+                  />
+                </div>
               </div>
             )}
 

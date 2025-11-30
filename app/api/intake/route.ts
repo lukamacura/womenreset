@@ -1,54 +1,60 @@
+// app/api/intake/route.ts
 import { NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 
-export const runtime = "nodejs";
-
-const PIPELINE_ID = process.env.VECTORSHIFT_USERS_PIPELINE_ID!;
-const VECTORSHIFT_API_KEY = process.env.VECTORSHIFT_API_KEY!; 
-// this is the "Bearer JWT" from Vectorshift
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY! // SERVICE ROLE, ne anon key
+);
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
 
-    if (!PIPELINE_ID || !VECTORSHIFT_API_KEY) {
+    const {
+      user_id,
+      name,
+      age,
+      menopause_profile,
+      nutrition_profile,
+      exercise_profile,
+      emotional_stress_profile,
+      lifestyle_context,
+    } = body;
+
+    if (!user_id || !name || typeof age !== "number") {
       return NextResponse.json(
-        { error: "Missing Vectorshift env vars." },
+        { error: "Missing required fields (user_id, name, age)." },
+        { status: 400 }
+      );
+    }
+
+    const { error } = await supabase.from("user_profiles").insert([
+      {
+        user_id,
+        name,
+        age,
+        menopause_profile,
+        nutrition_profile,
+        exercise_profile,
+        emotional_stress_profile,
+        lifestyle_context,
+      },
+    ]);
+
+    if (error) {
+      console.error("Supabase insert error:", error);
+      return NextResponse.json(
+        { error: "Database error while saving profile." },
         { status: 500 }
       );
     }
 
-    // Send everything as ONE JSON string into memory
-    const payload = {
-      inputs: {
-        memory: JSON.stringify(body),
-      },
-    };
-
-    const vsRes = await fetch(
-      `https://api.vectorshift.ai/v1/pipeline/${PIPELINE_ID}/run`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${VECTORSHIFT_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      }
-    );
-
-    const data = await vsRes.json().catch(() => ({}));
-
-    if (!vsRes.ok) {
-      return NextResponse.json(
-        { error: data?.error || "Vectorshift request failed", details: data },
-        { status: vsRes.status }
-      );
-    }
-
-    return NextResponse.json({ ok: true, vectorshift: data });
+    return NextResponse.json({ success: true });
   } catch (e) {
+    console.error(e);
     return NextResponse.json(
-      { error: e instanceof Error ? e.message : "Unknown error" },
+      { error: "Unexpected error while saving profile." },
       { status: 500 }
     );
   }

@@ -9,8 +9,8 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
-        display: ["var(--font-display)", "serif"],
+        sans: ["var(--font-satoshi)", "system-ui", "sans-serif"],
+        script: ["var(--font-script)", "cursive"], // ovo ćemo dole
       },
     },
   },

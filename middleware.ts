@@ -11,7 +11,8 @@ export async function middleware(req: NextRequest) {
   const isProtected =
     pathname.startsWith("/dashboard") ||
     pathname.startsWith("/chat/lisa") ||
-    pathname.startsWith("/api/vectorshift"); // optional but recommended
+    pathname.startsWith("/api/vectorshift") ||
+    pathname.startsWith("/api/langchain-rag");
 
   // allow everything else
   if (!isProtected) return res;
@@ -54,5 +55,6 @@ export const config = {
     "/dashboard/:path*",
     "/chat/lisa/:path*",
     "/api/vectorshift",
+    "/api/langchain-rag",
   ],
 };
