@@ -33,7 +33,8 @@ async function createUserTrialsTable() {
 
     if (!connectionString) {
       // Extract project ref from Supabase URL
-      const projectRef = supabaseUrl.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1];
+      // supabaseUrl is guaranteed to be defined due to check above
+      const projectRef = supabaseUrl!.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1];
       
       if (!projectRef) {
         console.error("❌ Could not extract project reference from Supabase URL");

@@ -15,9 +15,13 @@ if (!supabaseUrl || !supabaseServiceKey) {
 }
 
 async function applyMigration() {
+  // supabaseUrl is guaranteed to be defined due to check above
+  const dbHost = process.env.SUPABASE_DB_HOST || 
+    (supabaseUrl ? 'db.' + supabaseUrl.replace('https://', '').replace('.supabase.co', '') + '.supabase.co' : 'localhost');
+  
   const client = new pg.Client({
     connectionString: process.env.DATABASE_URL || 
-      `postgresql://postgres:${process.env.SUPABASE_DB_PASSWORD}@${process.env.SUPABASE_DB_HOST || 'db.' + supabaseUrl.replace('https://', '').replace('.supabase.co', '') + '.supabase.co'}:5432/postgres`,
+      `postgresql://postgres:${process.env.SUPABASE_DB_PASSWORD}@${dbHost}:5432/postgres`,
   });
 
   try {
