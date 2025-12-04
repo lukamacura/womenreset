@@ -71,7 +71,7 @@ const THEME = {
 } as const;
 
 /* ===== Types & Keys ===== */
-type Msg = { role: "user" | "assistant"; content: string; ts?: number };
+type Msg = { role: "user" | "assistant"; content: string; ts?: number; isGreeting?: boolean };
 type Conversation = {
   id: string;
   title: string;
@@ -84,69 +84,6 @@ const SESSIONS_KEY = "Lisa-chat-sessions";
 const ACTIVE_KEY = "Lisa-chat-active";
 const DATE_LOCALE = "en-US";
 
-const DEFAULT_SUGGESTIONS = [
-  "What are common symptoms across peri-, meno-, and post-menopause?",
-  "Summarize top evidence on sleep interventions from the knowledge base",
-  "Design a 2-week lifestyle plan for hot flashes and mood",
-  "Compare HRT vs. non-hormonal options with pros/cons",
-] as const;
-
-// Helper to get personalized suggestions
-async function getPersonalizedSuggestions(userId: string | null): Promise<string[]> {
-  if (!userId) return [...DEFAULT_SUGGESTIONS];
-  
-  try {
-    const suggestions: string[] = [];
-    
-    // Try to get tracker insights
-    try {
-      const trackerRes = await fetch("/api/tracker-insights?days=7");
-      if (trackerRes.ok) {
-        const trackerData = await trackerRes.json();
-        const summary = trackerData.data;
-        
-        if (summary?.symptoms?.total > 0) {
-          const topSymptom = Object.entries(summary.symptoms.byName || {})
-            .sort(([, a]: any, [, b]: any) => b.count - a.count)[0];
-          if (topSymptom) {
-            suggestions.push(`I've been experiencing ${topSymptom[0]} - what can help?`);
-          }
-        }
-        
-        if (summary?.patterns?.insights?.length > 0) {
-          const insight = summary.patterns.insights[0];
-          if (insight.includes("improved") || insight.includes("decreasing")) {
-            suggestions.push("What's working well for my symptoms?");
-          }
-        }
-      }
-    } catch (e) {
-      // Ignore errors, use defaults
-    }
-
-    // Add time-based suggestions
-    const hour = new Date().getHours();
-    if (hour >= 20 || hour < 6) {
-      suggestions.push("How can I improve my sleep during menopause?");
-    } else if (hour >= 6 && hour < 12) {
-      suggestions.push("What's a good morning routine for managing symptoms?");
-    }
-
-    // Fill remaining slots with defaults
-    const usedDefaults = new Set<string>();
-    for (const defaultSuggestion of DEFAULT_SUGGESTIONS) {
-      if (suggestions.length >= 4) break;
-      if (!suggestions.includes(defaultSuggestion) && !usedDefaults.has(defaultSuggestion)) {
-        suggestions.push(defaultSuggestion);
-        usedDefaults.add(defaultSuggestion);
-      }
-    }
-
-    return suggestions.slice(0, 4);
-  } catch (error) {
-    return [...DEFAULT_SUGGESTIONS];
-  }
-}
 
 /* ===== Utils ===== */
 function splitByFences(src: string) {
@@ -314,7 +251,7 @@ const MarkdownBubble = React.memo(function MarkdownBubble({ children }: { childr
   return (
     <motion.div
       {...bubbleMotionProps}
-      className="prose prose-slate max-w-none prose-lg md:prose-xl prose-headings:font-bold prose-p:my-4 prose-p:text-lg prose-p:leading-relaxed prose-strong:font-bold prose-a:no-underline prose-a:font-semibold prose-li:my-2 prose-li:text-lg prose-blockquote:font-normal prose-img:my-4 prose-h1:text-3xl prose-h2:text-2xl prose-h3:text-xl"
+      className="prose prose-slate max-w-none prose-xl md:prose-2xl prose-headings:font-bold prose-p:my-5 prose-p:text-xl prose-p:leading-loose prose-strong:font-bold prose-a:no-underline prose-a:font-semibold prose-li:my-3 prose-li:text-xl prose-blockquote:font-normal prose-img:my-5 prose-h1:text-4xl md:prose-h1:text-6xl prose-h2:text-3xl prose-h3:text-2xl"
     >
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
@@ -326,7 +263,7 @@ const MarkdownBubble = React.memo(function MarkdownBubble({ children }: { childr
             return (
               <h1
                 {...strip(rest)}
-                className="mt-1 mb-4 flex items-center gap-3 text-4xl font-extrabold tracking-tight md:text-5xl"
+                className="mt-1 mb-5 flex items-center gap-3 text-5xl font-extrabold tracking-tight md:text-6xl"
                 style={{ color: THEME.pink[600] }}
               >
                 {children}
@@ -338,7 +275,7 @@ const MarkdownBubble = React.memo(function MarkdownBubble({ children }: { childr
             return (
               <h2
                 {...strip(rest)}
-                className="mt-6 mb-3 flex items-center gap-3 text-3xl font-bold"
+                className="mt-7 mb-4 flex items-center gap-3 text-4xl font-bold"
                 style={{ color: THEME.text[900] }}
               >
                 <span className="inline-block h-6 w-1.5 rounded-full" style={{ backgroundColor: THEME.pink[400] }} />
@@ -351,7 +288,7 @@ const MarkdownBubble = React.memo(function MarkdownBubble({ children }: { childr
             return (
               <h3
                 {...strip(rest)}
-                className="mt-5 mb-3 text-2xl font-bold"
+                className="mt-6 mb-4 text-3xl font-bold"
                 style={{ color: THEME.text[900] }}
               >
                 {children}
@@ -363,7 +300,7 @@ const MarkdownBubble = React.memo(function MarkdownBubble({ children }: { childr
             return (
               <p
                 {...strip(rest)}
-                className="my-3 text-lg leading-7 text-slate-800/95"
+                className="my-4 text-xl leading-loose text-slate-800/95"
               >
                 {children}
               </p>
@@ -391,7 +328,7 @@ const MarkdownBubble = React.memo(function MarkdownBubble({ children }: { childr
           ul(p: any) {
             const { children, ...rest } = p;
             return (
-              <ul {...strip(rest)} className="my-3 space-y-1.5 pl-4">
+              <ul {...strip(rest)} className="my-4 space-y-2 pl-5">
                 {children}
               </ul>
             );
@@ -401,7 +338,7 @@ const MarkdownBubble = React.memo(function MarkdownBubble({ children }: { childr
             return (
               <ol
                 {...strip(rest)}
-                className="my-3 list-decimal space-y-1.5 pl-5"
+                className="my-4 list-decimal space-y-2 pl-6"
               >
                 {children}
               </ol>
@@ -410,8 +347,8 @@ const MarkdownBubble = React.memo(function MarkdownBubble({ children }: { childr
           li(p: any) {
             const { children, ...rest } = p;
             return (
-              <li {...strip(rest)} className="relative pl-6">
-                <span className="absolute left-0 top-2.5 h-1.5 w-1.5 rounded-full bg-[#927DC7]/60" />
+              <li {...strip(rest)} className="relative pl-7">
+                <span className="absolute left-0 top-3 h-2 w-2 rounded-full bg-[#927DC7]/60" />
                 {children}
               </li>
             );
@@ -425,7 +362,7 @@ const MarkdownBubble = React.memo(function MarkdownBubble({ children }: { childr
 
             if (!m) {
               return (
-                <blockquote className="my-5 rounded-xl border-l-4 p-4 text-lg" style={{ borderColor: THEME.pink[400], backgroundColor: THEME.pink[50], color: THEME.text[800] }}>
+                <blockquote className="my-6 rounded-xl border-l-4 p-5 text-xl" style={{ borderColor: THEME.pink[400], backgroundColor: THEME.pink[50], color: THEME.text[800] }}>
                   {p.children}
                 </blockquote>
               );
@@ -487,7 +424,7 @@ const MarkdownBubble = React.memo(function MarkdownBubble({ children }: { childr
             const { children, ...rest } = p;
             return (
               <div className="my-6 overflow-hidden rounded-xl border-2 bg-white shadow-md" style={{ borderColor: THEME.pink[200] }}>
-                <table {...strip(rest)} className="w-full text-lg">
+                <table {...strip(rest)} className="w-full text-xl">
                   {children}
                 </table>
               </div>
@@ -506,7 +443,7 @@ const MarkdownBubble = React.memo(function MarkdownBubble({ children }: { childr
             return (
               <th
                 {...strip(rest)}
-                className="px-4 py-3 text-left text-base font-bold uppercase tracking-wide"
+                className="px-5 py-4 text-left text-lg font-bold uppercase tracking-wide"
                 style={{ color: THEME.text[700] }}
               >
                 {children}
@@ -518,7 +455,7 @@ const MarkdownBubble = React.memo(function MarkdownBubble({ children }: { childr
             return (
               <td
                 {...strip(rest)}
-                className="border-t px-4 py-3 text-lg"
+                className="border-t px-5 py-4 text-xl"
                 style={{ borderColor: THEME.pink[200], color: THEME.text[900] }}
               >
                 {children}
@@ -633,7 +570,6 @@ function ChatPageInner() {
   const [streamingContent, setStreamingContent] = useState<string>("");
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [suggestions, setSuggestions] = useState<string[]>([...DEFAULT_SUGGESTIONS]);
 
   // ✅ auth user id (no localStorage)
   const [userId, setUserId] = useState<string | null>(null);
@@ -658,14 +594,6 @@ function ChatPageInner() {
     };
   }, []);
 
-  // Load personalized suggestions when userId is available
-  useEffect(() => {
-    if (userId) {
-      getPersonalizedSuggestions(userId).then((sugs) => {
-        setSuggestions(sugs);
-      });
-    }
-  }, [userId]);
 
   // Chat list refs (auto-scroll)
   const listRef = useRef<HTMLDivElement>(null);
@@ -781,7 +709,7 @@ const [stickToBottom, setStickToBottom] = useState(true);
     const now = Date.now();
     
     // Fetch personalized greeting
-    let greeting = "# Hello, I'm **Lisa** 🌸\n\nReady for your next question!";
+    let greeting = "Hey, it's Lisa";
     
     if (userId) {
       try {
@@ -798,7 +726,14 @@ const [stickToBottom, setStickToBottom] = useState(true);
         if (res.ok) {
           const data = await res.json();
           if (data.reply) {
-            greeting = normalizeMarkdown(data.reply);
+            // Strip markdown formatting from personalized greeting
+            let personalizedGreeting = data.reply;
+            // Remove markdown headers, bold, etc.
+            personalizedGreeting = personalizedGreeting.replace(/^#+\s*/gm, '');
+            personalizedGreeting = personalizedGreeting.replace(/\*\*(.*?)\*\*/g, '$1');
+            personalizedGreeting = personalizedGreeting.replace(/\*(.*?)\*/g, '$1');
+            personalizedGreeting = personalizedGreeting.replace(/\n\n+/g, '\n').trim();
+            greeting = personalizedGreeting || "Hey, it's Lisa";
           }
         }
       } catch (error) {
@@ -817,6 +752,7 @@ const [stickToBottom, setStickToBottom] = useState(true);
           role: "assistant",
           content: greeting,
           ts: now,
+          isGreeting: true,
         },
       ],
     };
@@ -861,9 +797,7 @@ const [stickToBottom, setStickToBottom] = useState(true);
           messages: [
             {
               role: "assistant",
-              content: normalizeMarkdown(
-                "# Hello, I'm **Lisa** 🌸\n\nHow can I help?",
-              ),
+              content: "Hey, it's Lisa",
               ts: Date.now(),
             },
           ],
@@ -966,9 +900,13 @@ const [stickToBottom, setStickToBottom] = useState(true);
                     if (data.type === "chunk" && data.content !== undefined) {
                       // Backend sends accumulated content, so use it directly
                       fullResponse = data.content;
-                      setStreamingContent(fullResponse);
                       
-                      // Smooth auto-scroll during streaming (debounced)
+                      // Use requestAnimationFrame for smoother updates
+                      requestAnimationFrame(() => {
+                        setStreamingContent(fullResponse);
+                      });
+                      
+                      // Smooth auto-scroll during streaming (throttled)
                       if (stickToBottom) {
                         requestAnimationFrame(() => {
                           if (bottomRef.current) {
@@ -1118,20 +1056,20 @@ const [stickToBottom, setStickToBottom] = useState(true);
         <span>New Chat</span>
       </button>
 
-      <h4 className="mt-4 sm:mt-6 mb-3 px-2 text-base sm:text-lg font-bold" style={{ color: THEME.text[800] }}>
+      <h4 className="mt-5 sm:mt-7 mb-4 px-3 text-lg sm:text-xl font-bold" style={{ color: THEME.text[800] }}>
         History
       </h4>
-      <nav className="space-y-2 overflow-y-auto overflow-x-hidden flex-1 pr-2 custom-scrollbar" style={{ maxHeight: 'calc(100vh - 200px)' }}>
+      <nav className="space-y-3 overflow-y-auto overflow-x-hidden flex-1 pr-3 custom-scrollbar" style={{ maxHeight: 'calc(100vh - 200px)' }}>
         {sessions.length === 0 && (
-          <div className="px-4 py-6 text-center text-base" style={{ color: THEME.text[600] }}>
+          <div className="px-5 py-7 text-center text-lg" style={{ color: THEME.text[600] }}>
             No conversations yet.
-            <div className="mt-2 text-sm">Start a new chat to begin!</div>
+            <div className="mt-3 text-base">Start a new chat to begin!</div>
           </div>
         )}
         {sessions.map((s) => (
           <div
             key={s.id}
-            className={`group relative flex cursor-pointer items-start gap-3 rounded-xl px-4 py-3 text-base transition-all active:scale-[0.98] touch-manipulation ${
+            className={`group relative flex cursor-pointer items-start gap-4 rounded-xl px-5 py-4 text-lg transition-all active:scale-[0.98] touch-manipulation ${
               s.id === activeId 
                 ? "bg-pink-300 shadow-sm" 
                 : "bg-white/60 active:bg-white/80 hover:bg-white/70"
@@ -1147,10 +1085,10 @@ const [stickToBottom, setStickToBottom] = useState(true);
             aria-label={`Open chat: ${s.title || "Conversation"}`}
           >
             <div className="min-w-0 flex-1">
-              <div className="font-semibold text-base leading-snug mb-1 line-clamp-2" style={{ color: THEME.text[900] }}>
+              <div className="font-semibold text-lg leading-snug mb-2 line-clamp-2" style={{ color: THEME.text[900] }}>
                 {s.title || "Conversation"}
               </div>
-              <div className="text-sm" style={{ color: THEME.text[600] }}>
+              <div className="text-base" style={{ color: THEME.text[600] }}>
                 {new Date(s.updatedAt).toLocaleDateString(DATE_LOCALE, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
               </div>
             </div>
@@ -1165,12 +1103,12 @@ const [stickToBottom, setStickToBottom] = useState(true);
                   return rest;
                 });
               }}
-              className="cursor-pointer p-2 rounded-lg transition-all active:bg-red-100 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-red-300 touch-manipulation shrink-0"
+              className="cursor-pointer p-2.5 rounded-lg transition-all active:bg-red-100 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-red-300 touch-manipulation shrink-0"
               title="Delete chat"
               aria-label="Delete chat"
               style={{ color: THEME.text[700] }}
             >
-              <Trash className="h-5 w-5" />
+              <Trash className="h-6 w-6" />
             </button>
           </div>
         ))}
@@ -1210,6 +1148,22 @@ const [stickToBottom, setStickToBottom] = useState(true);
         }
         .streaming-cursor {
           animation: blink 1s ease-in-out infinite;
+        }
+        .streaming-content {
+          transition: opacity 0.2s ease-in-out;
+        }
+        .streaming-text {
+          animation: fadeIn 0.3s ease-in;
+        }
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(2px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
         }
       `}</style>
       <div
@@ -1260,15 +1214,15 @@ const [stickToBottom, setStickToBottom] = useState(true);
           boxShadow: menuOpen ? "4px 0 24px rgba(0, 0, 0, 0.15)" : "none"
         }}
       >
-        <div className="flex items-center justify-between mb-4 pb-4 border-b-2" style={{ borderColor: THEME.pink[200] }}>
-          <h2 className="text-xl font-bold" style={{ color: THEME.text[900] }}>Chats</h2>
+        <div className="flex items-center justify-between mb-5 pb-5 border-b-2" style={{ borderColor: THEME.pink[200] }}>
+          <h2 className="text-2xl font-bold" style={{ color: THEME.text[900] }}>Chats</h2>
           <button
             onClick={() => setMenuOpen(false)}
-            className="p-2 rounded-lg transition-all hover:bg-pink-100 focus:outline-none focus:ring-2 focus:ring-pink-300"
+            className="p-3 rounded-lg transition-all hover:bg-pink-100 focus:outline-none focus:ring-2 focus:ring-pink-300"
             aria-label="Close menu"
             style={{ color: THEME.text[800] }}
           >
-            <X className="h-6 w-6" />
+            <X className="h-7 w-7" />
           </button>
         </div>
         {SidebarContent}
@@ -1284,72 +1238,26 @@ const [stickToBottom, setStickToBottom] = useState(true);
         }}>
           <button
             onClick={() => setMenuOpen(true)}
-            className="p-2.5 rounded-lg transition-all active:bg-pink-100 focus:outline-none focus:ring-2 focus:ring-pink-300 touch-manipulation"
+            className="p-3 rounded-lg transition-all active:bg-pink-100 focus:outline-none focus:ring-2 focus:ring-pink-300 touch-manipulation"
             aria-label="Open menu"
             style={{ color: THEME.text[800] }}
           >
-            <Menu className="h-6 w-6" />
+            <Menu className="h-7 w-7" />
           </button>
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-3">
             <Image
               src="/lisa.png"
               alt="Lisa"
-              width={36}
-              height={36}
+              width={40}
+              height={40}
               className="rounded-full ring-2"
               style={{ borderColor: THEME.pink[400] }}
             />
-            <span className="text-base font-bold" style={{ color: THEME.text[900] }}>Lisa</span>
+            <span className="text-lg font-bold" style={{ color: THEME.text[900] }}>Lisa</span>
           </div>
           <div className="w-10" /> {/* Spacer for centering */}
         </div>
 
-        {/* Hero - Only show when no messages (ChatGPT-like) */}
-        {(!active || active.messages.length <= 1) && (
-          <div className="bg-transparent transition-all duration-500">
-            <div className="mx-auto w-full max-w-4xl px-4 py-6 sm:py-8">
-              <div className="text-center mb-6 sm:mb-8">
-                <div className="inline-flex items-center justify-center mb-4">
-                  <Image
-                    src="/lisa.png"
-                    alt="Lisa"
-                    width={80}
-                    height={80}
-                    className="rounded-full ring-4"
-                    style={{ borderColor: THEME.pink[300] }}
-                  />
-                </div>
-                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3" style={{ color: THEME.text[900] }}>
-                  Hi, it&apos;s <span style={{ color: THEME.pink[600] }}>Lisa</span> 👋
-                </h1>
-                <p className="text-base sm:text-lg text-center max-w-2xl mx-auto" style={{ color: THEME.text[700] }}>
-                  Your menopause support expert. How can I help you today?
-                </p>
-              </div>
-
-              {/* Suggestions - Simplified for mobile */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-3xl mx-auto">
-                {suggestions.slice(0, 4).map((s, i) => (
-                  <button
-                    key={s}
-                    onClick={async () => {
-                      const id = activeId ?? await newChat();
-                      void sendToAPI(s, id);
-                    }}
-                    className="rounded-xl border-2 bg-white px-4 py-3.5 text-left text-sm sm:text-base leading-relaxed shadow-sm transition-all active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-pink-300 touch-manipulation"
-                    style={{ 
-                      borderColor: THEME.pink[300],
-                      color: THEME.text[800],
-                    }}
-                    aria-label={`Use suggestion: ${s}`}
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Chat */}
         <section
@@ -1360,7 +1268,7 @@ const [stickToBottom, setStickToBottom] = useState(true);
             WebkitOverflowScrolling: 'touch'
           }}
         >
-          <div className="mx-auto w-full max-w-3xl px-3 sm:px-4 py-4 sm:py-6 space-y-4">
+          <div className="mx-auto w-full max-w-3xl px-4 sm:px-6 py-5 sm:py-7 space-y-6">
             {(active?.messages ?? []).filter(m => m.content || (isStreaming && m.role === "assistant")).map((m, i) => {
               const isUser = m.role === "user";
               // Check if this is the streaming message: it's the last assistant message and we're currently streaming
@@ -1374,7 +1282,7 @@ const [stickToBottom, setStickToBottom] = useState(true);
                   }`}
                 >
                   <div
-                    className={`rounded-2xl px-5 py-4 text-lg leading-relaxed sm:px-6 sm:py-5 sm:text-xl transition-all ${
+                    className={`rounded-2xl px-6 py-5 text-xl leading-loose sm:px-8 sm:py-6 sm:text-2xl transition-all ${
                       isUser
                         ? "ml-auto max-w-[90%] sm:max-w-[80%] shadow-md"
                         : "max-w-[90%] sm:max-w-[80%] bg-white ring-1 shadow-md"
@@ -1395,23 +1303,24 @@ const [stickToBottom, setStickToBottom] = useState(true);
                     }
                   >
                     {isStreamingMsg ? (
-                      <div className="relative w-full min-h-[20px]">
+                      <div className="relative w-full min-h-[20px] streaming-content">
                         {streamingContent ? (
-                          <>
+                          <div className="streaming-text">
                             <MarkdownBubble>{streamingContent}</MarkdownBubble>
                             <span 
-                              className="inline-block w-0.5 h-6 ml-2 mb-1 align-middle rounded-sm streaming-cursor" 
+                              className="inline-block w-0.5 h-7 ml-2 mb-1 align-middle rounded-sm streaming-cursor" 
                               style={{ 
                                 backgroundColor: THEME.pink[500],
+                                transition: 'opacity 0.2s ease-in-out',
                               }} 
                             />
-                          </>
+                          </div>
                         ) : (
-                          <div className="flex items-center gap-2 text-base" style={{ color: THEME.text[600] }}>
-                            <div className="flex gap-1">
-                              <div className="w-2 h-2 rounded-full animate-bounce" style={{ backgroundColor: THEME.pink[400], animationDelay: "0ms" }} />
-                              <div className="w-2 h-2 rounded-full animate-bounce" style={{ backgroundColor: THEME.pink[400], animationDelay: "150ms" }} />
-                              <div className="w-2 h-2 rounded-full animate-bounce" style={{ backgroundColor: THEME.pink[400], animationDelay: "300ms" }} />
+                          <div className="flex items-center gap-3 text-lg" style={{ color: THEME.text[600] }}>
+                            <div className="flex gap-2">
+                              <div className="w-3 h-3 rounded-full animate-bounce" style={{ backgroundColor: THEME.pink[400], animationDelay: "0ms" }} />
+                              <div className="w-3 h-3 rounded-full animate-bounce" style={{ backgroundColor: THEME.pink[400], animationDelay: "150ms" }} />
+                              <div className="w-3 h-3 rounded-full animate-bounce" style={{ backgroundColor: THEME.pink[400], animationDelay: "300ms" }} />
                             </div>
                             <span className="italic">Lisa is typing...</span>
                           </div>
@@ -1419,9 +1328,15 @@ const [stickToBottom, setStickToBottom] = useState(true);
                       </div>
                     ) : (
                       <>
-                        <MarkdownBubble>{m.content}</MarkdownBubble>
+                        {m.isGreeting ? (
+                          <div className="text-3xl sm:text-4xl font-bold" style={{ color: THEME.pink[600] }}>
+                            {m.content}
+                          </div>
+                        ) : (
+                          <MarkdownBubble>{m.content}</MarkdownBubble>
+                        )}
                         {m.ts && (
-                          <div className="mt-3 text-sm" style={{ color: THEME.text[600] }}>
+                          <div className="mt-4 text-base" style={{ color: THEME.text[600] }}>
                             {new Date(m.ts).toLocaleTimeString(DATE_LOCALE, {
                               hour: "2-digit",
                               minute: "2-digit",
@@ -1435,11 +1350,11 @@ const [stickToBottom, setStickToBottom] = useState(true);
               );
             })}
             {loading && !isStreaming && (
-              <div className="flex items-center gap-3 pl-12 sm:pl-14 text-base sm:text-lg" style={{ color: THEME.text[700] }}>
-                <div className="flex gap-1.5">
-                  <div className="w-2 h-2 rounded-full animate-bounce" style={{ backgroundColor: THEME.pink[500], animationDelay: "0ms" }} />
-                  <div className="w-2 h-2 rounded-full animate-bounce" style={{ backgroundColor: THEME.pink[500], animationDelay: "150ms" }} />
-                  <div className="w-2 h-2 rounded-full animate-bounce" style={{ backgroundColor: THEME.pink[500], animationDelay: "300ms" }} />
+              <div className="flex items-center gap-4 pl-14 sm:pl-16 text-lg sm:text-xl" style={{ color: THEME.text[700] }}>
+                <div className="flex gap-2">
+                  <div className="w-3 h-3 rounded-full animate-bounce" style={{ backgroundColor: THEME.pink[500], animationDelay: "0ms" }} />
+                  <div className="w-3 h-3 rounded-full animate-bounce" style={{ backgroundColor: THEME.pink[500], animationDelay: "150ms" }} />
+                  <div className="w-3 h-3 rounded-full animate-bounce" style={{ backgroundColor: THEME.pink[500], animationDelay: "300ms" }} />
                 </div>
                 <span className="italic font-medium">Lisa is thinking...</span>
               </div>
@@ -1463,7 +1378,7 @@ const [stickToBottom, setStickToBottom] = useState(true);
               const id = activeId ?? await newChat();
               void sendToAPI(text, id);
             }}
-            className="mx-auto flex w-full max-w-3xl items-end gap-2 sm:gap-3 px-3 sm:px-4 py-3 sm:py-4"
+            className="mx-auto flex w-full max-w-3xl items-end gap-3 sm:gap-4 px-4 sm:px-6 py-4 sm:py-5"
           >
             <div className="relative flex w-full items-center">
               <label htmlFor="composer" className="sr-only">
@@ -1487,13 +1402,13 @@ const [stickToBottom, setStickToBottom] = useState(true);
                   }}
                   aria-label="Type your message"
                   placeholder="Message Lisa..."
-                  className="w-full resize-none overflow-hidden rounded-2xl border-2 px-5 py-4 pr-14 sm:px-6 sm:py-5 sm:pr-16 text-lg sm:text-xl leading-relaxed outline-none transition-all placeholder:text-lg sm:placeholder:text-xl shadow-md focus:shadow-lg focus:ring-2 focus:ring-pink-300 touch-manipulation"
+                  className="w-full resize-none overflow-hidden rounded-2xl border-2 px-6 py-5 pr-16 sm:px-8 sm:py-6 sm:pr-20 text-xl sm:text-2xl leading-loose outline-none transition-all placeholder:text-xl sm:placeholder:text-2xl shadow-md focus:shadow-lg focus:ring-2 focus:ring-pink-300 touch-manipulation"
                   style={{ 
                     borderColor: input.trim() ? THEME.pink[400] : THEME.pink[300],
                     background: THEME.background.white,
                     color: THEME.text[900],
-                    minHeight: '48px',
-                    maxHeight: '200px',
+                    minHeight: '56px',
+                    maxHeight: '240px',
                   }}
                 />
               </div>
@@ -1502,7 +1417,7 @@ const [stickToBottom, setStickToBottom] = useState(true);
             <button
               type="submit"
               disabled={!input.trim() || loading}
-              className="inline-flex h-12 w-12 sm:h-14 sm:w-14 shrink-0 items-center justify-center rounded-2xl text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 shadow-lg focus:outline-none focus:ring-2 focus:ring-pink-300 touch-manipulation"
+              className="inline-flex h-14 w-14 sm:h-16 sm:w-16 shrink-0 items-center justify-center rounded-2xl text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 shadow-lg focus:outline-none focus:ring-2 focus:ring-pink-300 touch-manipulation"
               style={{ 
                 backgroundColor: input.trim() ? THEME.pink[500] : THEME.pink[300],
                 boxShadow: loading || !input.trim() ? "0 2px 8px rgba(236, 72, 153, 0.2)" : "0 4px 16px rgba(236, 72, 153, 0.5)",
@@ -1510,9 +1425,9 @@ const [stickToBottom, setStickToBottom] = useState(true);
               aria-label="Send message"
             >
               {loading ? (
-                <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 animate-spin" />
+                <Loader2 className="h-6 w-6 sm:h-7 sm:w-7 animate-spin" />
               ) : (
-                <Send className="h-5 w-5 sm:h-6 sm:w-6" />
+                <Send className="h-6 w-6 sm:h-7 sm:w-7" />
               )}
             </button>
 
