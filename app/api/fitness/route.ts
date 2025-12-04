@@ -1,14 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
-import { createClient } from "@supabase/supabase-js";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
 export const runtime = "nodejs";
-
-// Initialize Supabase client with service role for server-side operations
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 // Helper: Get authenticated user from request
 async function getAuthenticatedUser(req: NextRequest) {
@@ -99,6 +93,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Insert fitness entry (RLS will ensure user_id matches)
+    const supabaseAdmin = getSupabaseAdmin();
     const { data, error: insertError } = await supabaseAdmin
       .from("fitness")
       .insert([
@@ -147,6 +142,7 @@ export async function GET(req: NextRequest) {
     const endDate = searchParams.get("endDate");
 
     // Build query
+    const supabaseAdmin = getSupabaseAdmin();
     let query = supabaseAdmin
       .from("fitness")
       .select("*")
@@ -257,6 +253,7 @@ export async function PUT(req: NextRequest) {
     if (performed_at !== undefined) updateData.performed_at = performed_at;
 
     // Update fitness entry (RLS will ensure user owns it)
+    const supabaseAdmin = getSupabaseAdmin();
     const { data, error: updateError } = await supabaseAdmin
       .from("fitness")
       .update(updateData)
@@ -306,6 +303,7 @@ export async function DELETE(req: NextRequest) {
     }
 
     // Delete fitness entry (RLS will ensure user owns it)
+    const supabaseAdmin = getSupabaseAdmin();
     const { error: deleteError } = await supabaseAdmin
       .from("fitness")
       .delete()

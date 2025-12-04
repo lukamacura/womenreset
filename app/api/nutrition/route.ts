@@ -1,14 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
-import { createClient } from "@supabase/supabase-js";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
 export const runtime = "nodejs";
-
-// Initialize Supabase client with service role for server-side operations
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 // Helper: Get authenticated user from request
 async function getAuthenticatedUser(req: NextRequest) {
@@ -82,6 +76,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Insert nutrition entry (RLS will ensure user_id matches)
+    const supabaseAdmin = getSupabaseAdmin();
     const { data, error: insertError } = await supabaseAdmin
       .from("nutrition")
       .insert([
@@ -128,6 +123,7 @@ export async function GET(req: NextRequest) {
     const endDate = searchParams.get("endDate");
 
     // Build query
+    const supabaseAdmin = getSupabaseAdmin();
     let query = supabaseAdmin
       .from("nutrition")
       .select("*")
@@ -211,6 +207,7 @@ export async function PUT(req: NextRequest) {
     if (consumed_at !== undefined) updateData.consumed_at = consumed_at;
 
     // Update nutrition entry (RLS will ensure user owns it)
+    const supabaseAdmin = getSupabaseAdmin();
     const { data, error: updateError } = await supabaseAdmin
       .from("nutrition")
       .update(updateData)
@@ -260,6 +257,7 @@ export async function DELETE(req: NextRequest) {
     }
 
     // Delete nutrition entry (RLS will ensure user owns it)
+    const supabaseAdmin = getSupabaseAdmin();
     const { error: deleteError } = await supabaseAdmin
       .from("nutrition")
       .delete()

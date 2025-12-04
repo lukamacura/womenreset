@@ -2,7 +2,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ChatOpenAI } from "@langchain/openai";
 import { SupabaseVectorStore } from "@langchain/community/vectorstores/supabase";
-import { createClient } from "@supabase/supabase-js";
 import { OpenAIEmbeddings } from "@langchain/openai";
 import { formatDocumentsAsString } from "langchain/util/document";
 import { HumanMessage, AIMessage, SystemMessage, ToolMessage } from "@langchain/core/messages";
@@ -12,11 +11,8 @@ import { fetchTrackerData, analyzeTrackerData, formatTrackerSummary } from "@/li
 
 export const runtime = "nodejs";
 
-// Initialize Supabase client (server-side with service role)
-const supabaseClient = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+// Import lazy Supabase admin client
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
 // Initialize embeddings
 const embeddings = new OpenAIEmbeddings({
@@ -127,6 +123,7 @@ Guidelines:
 async function generatePersonalizedGreeting(user_id: string): Promise<string> {
   try {
     // Fetch user profile and tracker data in parallel
+    const supabaseClient = getSupabaseAdmin();
     const [profileResult, trackerData] = await Promise.all([
       supabaseClient
         .from("user_profiles")
@@ -219,6 +216,7 @@ export async function POST(req: NextRequest) {
     const useStreaming = streamParam !== false;
 
     // Parallel data fetching for performance
+    const supabaseClient = getSupabaseAdmin();
     const [profileResult, conversationsResult, trackerData] = await Promise.all([
       supabaseClient
         .from("user_profiles")
@@ -355,6 +353,7 @@ export async function POST(req: NextRequest) {
         }),
         func: async ({ name, severity, notes }) => {
           try {
+            const supabaseClient = getSupabaseAdmin();
             const { error } = await supabaseClient
               .from("symptoms")
               .insert([
@@ -389,6 +388,7 @@ export async function POST(req: NextRequest) {
         }),
         func: async ({ food_item, meal_type, calories, notes }) => {
           try {
+            const supabaseClient = getSupabaseAdmin();
             const { error } = await supabaseClient
               .from("nutrition")
               .insert([
@@ -426,6 +426,7 @@ export async function POST(req: NextRequest) {
         }),
         func: async ({ exercise_name, exercise_type, duration_minutes, calories_burned, intensity, notes }) => {
           try {
+            const supabaseClient = getSupabaseAdmin();
             const { error } = await supabaseClient
               .from("fitness")
               .insert([
@@ -484,6 +485,7 @@ export async function POST(req: NextRequest) {
             }
 
             // Update the user profile
+            const supabaseClient = getSupabaseAdmin();
             const { error } = await supabaseClient
               .from("user_profiles")
               .update(updateData)
@@ -729,6 +731,7 @@ async function storeConversation(
   assistantMessage: string
 ) {
   try {
+    const supabaseClient = getSupabaseAdmin();
     await supabaseClient.from("conversations").insert([
       {
         user_id,
