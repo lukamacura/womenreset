@@ -59,13 +59,13 @@ function TrialStatusCard({
   };
 }) {
   return (
-    <div className="rounded-2xl border border-foreground/10 bg-background/60 p-6 sm:p-8 shadow-sm">
-      <div className="flex items-start justify-between mb-4">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-2">
+    <div className="rounded-xl sm:rounded-2xl border border-foreground/10 bg-background/60 p-4 sm:p-6 lg:p-8 shadow-sm">
+      <div className="flex items-start justify-between mb-3 sm:mb-4">
+        <div className="flex-1 min-w-0">
+          <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground mb-1 sm:mb-2">
             {trial.expired ? "Trial Expired" : "Your Trial"}
           </h2>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-xs sm:text-sm text-muted-foreground">
             {trial.start && !trial.expired && (
               <>
                 Started {trial.start.toLocaleDateString()} · Ends {trial.end?.toLocaleDateString()}
@@ -75,7 +75,7 @@ function TrialStatusCard({
           </p>
         </div>
         <div
-          className={`rounded-full px-3 py-1 text-xs font-semibold ${
+          className={`rounded-full px-2.5 sm:px-3 py-1 text-xs font-semibold shrink-0 ml-2 ${
             trial.expired
               ? "bg-rose-500/20 text-rose-700"
               : "bg-green-500/20 text-green-700"
@@ -85,12 +85,12 @@ function TrialStatusCard({
         </div>
       </div>
 
-      <div className="mb-6">
+      <div className="mb-4 sm:mb-6">
         <div className="flex items-baseline gap-2 mb-2">
-          <span className="text-4xl sm:text-5xl font-bold text-foreground">
+          <span className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground">
             {trial.daysLeft}
           </span>
-          <span className="text-lg text-muted-foreground">days left</span>
+          <span className="text-base sm:text-lg text-muted-foreground">days left</span>
         </div>
         <div className="h-3 w-full overflow-hidden rounded-full bg-foreground/10">
           <div
@@ -107,7 +107,7 @@ function TrialStatusCard({
       </div>
 
       {!trial.expired && (
-        <div className="text-sm text-muted-foreground">
+        <div className="text-xs sm:text-sm text-muted-foreground">
           Ends in {trial.remaining.d}d {trial.remaining.h}h {trial.remaining.m}m
         </div>
       )}
@@ -128,22 +128,22 @@ function QuickChatCard({
   const CardContent = (
     <div
       className={classNames(
-        "group relative h-full rounded-2xl border border-foreground/10 bg-linear-to-br from-pink-200 via-fuchsia-200 to-orange-100 p-6 shadow-sm transition-all hover:shadow-md",
+        "group relative h-full rounded-xl sm:rounded-2xl border border-foreground/10 bg-linear-to-br from-pink-200 via-fuchsia-200 to-orange-100 p-4 sm:p-6 shadow-sm transition-all hover:shadow-md",
         trialLocked && "opacity-60"
       )}
     >
       <div className="flex flex-col items-center text-center">
-        <div className="mb-4 relative">
+        <div className="mb-3 sm:mb-4 relative">
           <Image
             src="/lisa.png"
             alt="Lisa"
-            width={80}
-            height={80}
-            className="rounded-full"
+            width={64}
+            height={64}
+            className="rounded-full sm:w-20 sm:h-20"
           />
         </div>
-        <h3 className="text-lg font-semibold text-foreground mb-1">Chat with Lisa</h3>
-        <p className="text-sm text-muted-foreground mb-4">
+        <h3 className="text-base sm:text-lg font-semibold text-foreground mb-1">Chat with Lisa</h3>
+        <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">
           Your menopause support expert
         </p>
         <div
@@ -159,7 +159,7 @@ function QuickChatCard({
           {!trialLocked && <ArrowRight className="h-4 w-4" />}
         </div>
       </div>
-      {trialLocked && <div className="pointer-events-none absolute inset-0 rounded-2xl" />}
+      {trialLocked && <div className="pointer-events-none absolute inset-0 rounded-xl sm:rounded-2xl" />}
     </div>
   );
 
@@ -183,29 +183,29 @@ function SymptomsOverviewCard({
   return (
     <Link
       href="/dashboard/symptoms"
-      className="group block h-full rounded-2xl border border-foreground/10 bg-background/60 p-6 shadow-sm transition-all hover:shadow-md hover:border-primary/30"
+      className="group block h-full rounded-xl sm:rounded-2xl border border-foreground/10 bg-background/60 p-4 sm:p-6 shadow-sm transition-all hover:shadow-md hover:border-primary/30"
     >
-      <div className="flex items-start justify-between mb-4">
-        <div className="rounded-lg bg-primary/10 p-3">
-          <Activity className="h-6 w-6 text-primary" />
+      <div className="flex items-start justify-between mb-3 sm:mb-4">
+        <div className="rounded-lg bg-primary/10 p-2.5 sm:p-3">
+          <Activity className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
         </div>
-        <ArrowRight className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1" />
+        <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground transition-transform group-hover:translate-x-1" />
       </div>
       <div>
-        <h3 className="text-lg font-semibold text-foreground mb-1">Symptom Tracker</h3>
+        <h3 className="text-base sm:text-lg font-semibold text-foreground mb-1">Symptom Tracker</h3>
         {isLoading ? (
-          <div className="h-8 w-20 bg-foreground/10 rounded animate-pulse" />
+          <div className="h-7 sm:h-8 w-16 sm:w-20 bg-foreground/10 rounded animate-pulse" />
         ) : (
           <div className="flex items-baseline gap-2">
-            <span className="text-3xl sm:text-4xl font-bold text-foreground">
+            <span className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground">
               {totalSymptoms}
             </span>
-            <span className="text-sm text-muted-foreground">
+            <span className="text-xs sm:text-sm text-muted-foreground">
               {totalSymptoms === 1 ? "symptom" : "symptoms"} logged
             </span>
           </div>
         )}
-        <p className="text-sm text-muted-foreground mt-2">View your tracker →</p>
+        <p className="text-xs sm:text-sm text-muted-foreground mt-2">View your tracker →</p>
       </div>
     </Link>
   );
@@ -242,15 +242,15 @@ function RecentSymptomsCard({
   };
 
   return (
-    <div className="rounded-2xl border border-foreground/10 bg-background/60 p-6 shadow-sm">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-foreground">Recent Symptoms</h3>
+    <div className="rounded-xl sm:rounded-2xl border border-foreground/10 bg-background/60 p-4 sm:p-6 shadow-sm">
+      <div className="flex items-center justify-between mb-3 sm:mb-4">
+        <h3 className="text-base sm:text-lg font-semibold text-foreground">Recent Symptoms</h3>
         <Link
           href="/dashboard/symptoms"
-          className="text-sm text-primary hover:underline flex items-center gap-1"
+          className="text-xs sm:text-sm text-primary hover:underline flex items-center gap-1"
         >
           View all
-          <ArrowRight className="h-4 w-4" />
+          <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4" />
         </Link>
       </div>
 
@@ -309,29 +309,29 @@ function NutritionOverviewCard({
   return (
     <Link
       href="/dashboard/nutrition"
-      className="group block h-full rounded-2xl border border-foreground/10 bg-background/60 p-6 shadow-sm transition-all hover:shadow-md hover:border-primary/30"
+      className="group block h-full rounded-xl sm:rounded-2xl border border-foreground/10 bg-background/60 p-4 sm:p-6 shadow-sm transition-all hover:shadow-md hover:border-primary/30"
     >
-      <div className="flex items-start justify-between mb-4">
-        <div className="rounded-lg bg-primary/10 p-3">
-          <UtensilsCrossed className="h-6 w-6 text-primary" />
+      <div className="flex items-start justify-between mb-3 sm:mb-4">
+        <div className="rounded-lg bg-primary/10 p-2.5 sm:p-3">
+          <UtensilsCrossed className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
         </div>
-        <ArrowRight className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1" />
+        <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground transition-transform group-hover:translate-x-1" />
       </div>
       <div>
-        <h3 className="text-lg font-semibold text-foreground mb-1">Nutrition Tracker</h3>
+        <h3 className="text-base sm:text-lg font-semibold text-foreground mb-1">Nutrition Tracker</h3>
         {isLoading ? (
-          <div className="h-8 w-20 bg-foreground/10 rounded animate-pulse" />
+          <div className="h-7 sm:h-8 w-16 sm:w-20 bg-foreground/10 rounded animate-pulse" />
         ) : (
           <div className="flex items-baseline gap-2">
-            <span className="text-3xl sm:text-4xl font-bold text-foreground">
+            <span className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground">
               {totalNutrition}
             </span>
-            <span className="text-sm text-muted-foreground">
+            <span className="text-xs sm:text-sm text-muted-foreground">
               {totalNutrition === 1 ? "entry" : "entries"} logged
             </span>
           </div>
         )}
-        <p className="text-sm text-muted-foreground mt-2">View your tracker →</p>
+        <p className="text-xs sm:text-sm text-muted-foreground mt-2">View your tracker →</p>
       </div>
     </Link>
   );
@@ -375,15 +375,15 @@ function RecentNutritionCard({
   };
 
   return (
-    <div className="rounded-2xl border border-foreground/10 bg-background/60 p-6 shadow-sm">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-foreground">Recent Meals</h3>
+    <div className="rounded-xl sm:rounded-2xl border border-foreground/10 bg-background/60 p-4 sm:p-6 shadow-sm">
+      <div className="flex items-center justify-between mb-3 sm:mb-4">
+        <h3 className="text-base sm:text-lg font-semibold text-foreground">Recent Meals</h3>
         <Link
           href="/dashboard/nutrition"
-          className="text-sm text-primary hover:underline flex items-center gap-1"
+          className="text-xs sm:text-sm text-primary hover:underline flex items-center gap-1"
         >
           View all
-          <ArrowRight className="h-4 w-4" />
+          <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4" />
         </Link>
       </div>
 
@@ -448,29 +448,29 @@ function FitnessOverviewCard({
   return (
     <Link
       href="/dashboard/fitness"
-      className="group block h-full rounded-2xl border border-foreground/10 bg-background/60 p-6 shadow-sm transition-all hover:shadow-md hover:border-primary/30"
+      className="group block h-full rounded-xl sm:rounded-2xl border border-foreground/10 bg-background/60 p-4 sm:p-6 shadow-sm transition-all hover:shadow-md hover:border-primary/30"
     >
-      <div className="flex items-start justify-between mb-4">
-        <div className="rounded-lg bg-primary/10 p-3">
-          <Dumbbell className="h-6 w-6 text-primary" />
+      <div className="flex items-start justify-between mb-3 sm:mb-4">
+        <div className="rounded-lg bg-primary/10 p-2.5 sm:p-3">
+          <Dumbbell className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
         </div>
-        <ArrowRight className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1" />
+        <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground transition-transform group-hover:translate-x-1" />
       </div>
       <div>
-        <h3 className="text-lg font-semibold text-foreground mb-1">Fitness Tracker</h3>
+        <h3 className="text-base sm:text-lg font-semibold text-foreground mb-1">Fitness Tracker</h3>
         {isLoading ? (
-          <div className="h-8 w-20 bg-foreground/10 rounded animate-pulse" />
+          <div className="h-7 sm:h-8 w-16 sm:w-20 bg-foreground/10 rounded animate-pulse" />
         ) : (
           <div className="flex items-baseline gap-2">
-            <span className="text-3xl sm:text-4xl font-bold text-foreground">
+            <span className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground">
               {totalFitness}
             </span>
-            <span className="text-sm text-muted-foreground">
+            <span className="text-xs sm:text-sm text-muted-foreground">
               {totalFitness === 1 ? "workout" : "workouts"} logged
             </span>
           </div>
         )}
-        <p className="text-sm text-muted-foreground mt-2">View your tracker →</p>
+        <p className="text-xs sm:text-sm text-muted-foreground mt-2">View your tracker →</p>
       </div>
     </Link>
   );
@@ -516,15 +516,15 @@ function RecentFitnessCard({
   };
 
   return (
-    <div className="rounded-2xl border border-foreground/10 bg-background/60 p-6 shadow-sm">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-foreground">Recent Workouts</h3>
+    <div className="rounded-xl sm:rounded-2xl border border-foreground/10 bg-background/60 p-4 sm:p-6 shadow-sm">
+      <div className="flex items-center justify-between mb-3 sm:mb-4">
+        <h3 className="text-base sm:text-lg font-semibold text-foreground">Recent Workouts</h3>
         <Link
           href="/dashboard/fitness"
-          className="text-sm text-primary hover:underline flex items-center gap-1"
+          className="text-xs sm:text-sm text-primary hover:underline flex items-center gap-1"
         >
           View all
-          <ArrowRight className="h-4 w-4" />
+          <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4" />
         </Link>
       </div>
 
@@ -955,19 +955,19 @@ export default function DashboardPage() {
   }
 
   return (
-    <main className="mx-auto max-w-7xl p-6 sm:p-8">
+    <main className="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
       {/* Header */}
-      <header className="mb-8">
-        <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground mb-2">
+      <header className="mb-6 sm:mb-8">
+        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-foreground mb-1 sm:mb-2">
           Dashboard
         </h1>
-        <p className="text-base text-muted-foreground">
+        <p className="text-sm sm:text-base text-muted-foreground">
           Welcome{user?.email ? `, ${user.email.split("@")[0]}` : ""}
         </p>
       </header>
 
       {/* Bento Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
         {/* Trial Status Card - 2 columns on desktop */}
         <div className="lg:col-span-2">
           <TrialStatusCard trial={trial} />

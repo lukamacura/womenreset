@@ -42,18 +42,10 @@ export default function DashboardLayout({
   return (
     <div className="min-h-screen flex flex-col">
       {/* Top Navigation */}
-      <nav className="sticky top-0 z-40 border-b border-foreground/10 bg-background/80 backdrop-blur-sm">
+      <nav className="sticky top-0 z-5 border-b border-foreground/10 bg-background/80 backdrop-blur-sm">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
-            {/* Logo/Brand */}
-            <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-pink-300 shadow-md">
-                <div className="h-4 w-4 rounded-full border-2 border-pink-600" />
-              </div>
-              <span className="text-sm font-semibold tracking-wide text-foreground">
-                MenoLisa
-              </span>
-            </div>
+
 
             {/* Navigation Links */}
             <div className="flex items-center gap-1">
@@ -76,7 +68,7 @@ export default function DashboardLayout({
                       }
                     `}
                   >
-                    <Icon className="h-4 w-4" />
+                    <Icon className="h-6 w-6" />
                     <span className="hidden sm:inline">{item.label}</span>
                   </Link>
                 );

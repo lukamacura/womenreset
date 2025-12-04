@@ -1118,23 +1118,23 @@ const [stickToBottom, setStickToBottom] = useState(true);
         <span>New Chat</span>
       </button>
 
-      <h4 className="mt-4 sm:mt-6 mb-3 px-2 text-sm sm:text-base font-bold" style={{ color: THEME.text[800] }}>
+      <h4 className="mt-4 sm:mt-6 mb-3 px-2 text-base sm:text-lg font-bold" style={{ color: THEME.text[800] }}>
         History
       </h4>
-      <nav className="space-y-1.5 sm:space-y-2 overflow-y-auto overflow-x-hidden flex-1 pr-1 sm:pr-2 custom-scrollbar" style={{ maxHeight: 'calc(100vh - 200px)' }}>
+      <nav className="space-y-2 overflow-y-auto overflow-x-hidden flex-1 pr-2 custom-scrollbar" style={{ maxHeight: 'calc(100vh - 200px)' }}>
         {sessions.length === 0 && (
-          <div className="px-3 sm:px-4 py-6 text-center text-sm sm:text-base" style={{ color: THEME.text[600] }}>
+          <div className="px-4 py-6 text-center text-base" style={{ color: THEME.text[600] }}>
             No conversations yet.
-            <div className="mt-2 text-xs sm:text-sm">Start a new chat to begin!</div>
+            <div className="mt-2 text-sm">Start a new chat to begin!</div>
           </div>
         )}
         {sessions.map((s) => (
           <div
             key={s.id}
-            className={`group relative flex cursor-pointer items-center justify-between rounded-lg sm:rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base transition-all active:scale-[0.98] touch-manipulation ${
+            className={`group relative flex cursor-pointer items-start gap-3 rounded-xl px-4 py-3 text-base transition-all active:scale-[0.98] touch-manipulation ${
               s.id === activeId 
                 ? "bg-pink-300 shadow-sm" 
-                : "bg-white/60 active:bg-white/80"
+                : "bg-white/60 active:bg-white/80 hover:bg-white/70"
             }`}
             onClick={() => {
               openChat(s.id);
@@ -1147,11 +1147,11 @@ const [stickToBottom, setStickToBottom] = useState(true);
             aria-label={`Open chat: ${s.title || "Conversation"}`}
           >
             <div className="min-w-0 flex-1">
-              <div className="truncate font-semibold text-sm sm:text-base" style={{ color: THEME.text[900] }}>
+              <div className="font-semibold text-base leading-snug mb-1 line-clamp-2" style={{ color: THEME.text[900] }}>
                 {s.title || "Conversation"}
               </div>
-              <div className="truncate text-xs sm:text-sm mt-0.5" style={{ color: THEME.text[600] }}>
-                {new Date(s.updatedAt).toLocaleDateString(DATE_LOCALE, { month: 'short', day: 'numeric' })}
+              <div className="text-sm" style={{ color: THEME.text[600] }}>
+                {new Date(s.updatedAt).toLocaleDateString(DATE_LOCALE, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
               </div>
             </div>
             <button
@@ -1165,12 +1165,12 @@ const [stickToBottom, setStickToBottom] = useState(true);
                   return rest;
                 });
               }}
-              className="cursor-pointer p-1.5 sm:p-2 rounded-lg transition-all active:bg-red-100 opacity-0 group-hover:opacity-100 group-active:opacity-100 focus:outline-none focus:ring-2 focus:ring-red-300 touch-manipulation"
+              className="cursor-pointer p-2 rounded-lg transition-all active:bg-red-100 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-red-300 touch-manipulation shrink-0"
               title="Delete chat"
               aria-label="Delete chat"
               style={{ color: THEME.text[700] }}
             >
-              <Trash className="h-4 w-4 sm:h-5 sm:w-5" />
+              <Trash className="h-5 w-5" />
             </button>
           </div>
         ))}
@@ -1373,21 +1373,11 @@ const [stickToBottom, setStickToBottom] = useState(true);
                     isUser ? "justify-end" : ""
                   }`}
                 >
-                  {!isUser && (
-                    <Image
-                      src="/profile.png"
-                      alt="Lisa avatar"
-                      width={32}
-                      height={32}
-                      className="mt-1 shrink-0 rounded-full object-cover ring-2 sm:w-10 sm:h-10"
-                      style={{ borderColor: THEME.pink[300] }}
-                    />
-                  )}
                   <div
-                    className={`rounded-2xl px-4 py-3.5 text-base leading-relaxed sm:px-5 sm:py-4 sm:text-lg transition-all ${
+                    className={`rounded-2xl px-5 py-4 text-lg leading-relaxed sm:px-6 sm:py-5 sm:text-xl transition-all ${
                       isUser
-                        ? "ml-auto max-w-[85%] sm:max-w-[75%] shadow-md"
-                        : "max-w-[85%] sm:max-w-[75%] bg-white ring-1 shadow-md"
+                        ? "ml-auto max-w-[90%] sm:max-w-[80%] shadow-md"
+                        : "max-w-[90%] sm:max-w-[80%] bg-white ring-1 shadow-md"
                     }`}
                     style={
                       isUser
@@ -1441,23 +1431,6 @@ const [stickToBottom, setStickToBottom] = useState(true);
                       </>
                     )}
                   </div>
-                  {isUser && (
-                    <div
-                      className="relative mt-1 h-8 w-8 shrink-0 overflow-hidden rounded-full ring-2 sm:h-10 sm:w-10"
-                      style={{ borderColor: THEME.pink[300] }}
-                      aria-hidden
-                    >
-                      <div 
-                        className="flex h-full w-full items-center justify-center"
-                        style={{ 
-                          background: `linear-gradient(135deg, ${THEME.pink[200]}, ${THEME.purple[200]})`,
-                          color: THEME.text[900]
-                        }}
-                      >
-                        <User className="h-4 w-4 sm:h-5 sm:w-5" />
-                      </div>
-                    </div>
-                  )}
                 </div>
               );
             })}
@@ -1514,7 +1487,7 @@ const [stickToBottom, setStickToBottom] = useState(true);
                   }}
                   aria-label="Type your message"
                   placeholder="Message Lisa..."
-                  className="w-full resize-none overflow-hidden rounded-2xl border-2 px-4 py-3.5 pr-12 sm:px-5 sm:py-4 sm:pr-14 text-base sm:text-lg leading-relaxed outline-none transition-all placeholder:text-base sm:placeholder:text-lg shadow-md focus:shadow-lg focus:ring-2 focus:ring-pink-300 touch-manipulation"
+                  className="w-full resize-none overflow-hidden rounded-2xl border-2 px-5 py-4 pr-14 sm:px-6 sm:py-5 sm:pr-16 text-lg sm:text-xl leading-relaxed outline-none transition-all placeholder:text-lg sm:placeholder:text-xl shadow-md focus:shadow-lg focus:ring-2 focus:ring-pink-300 touch-manipulation"
                   style={{ 
                     borderColor: input.trim() ? THEME.pink[400] : THEME.pink[300],
                     background: THEME.background.white,
