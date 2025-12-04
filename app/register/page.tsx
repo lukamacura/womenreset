@@ -182,7 +182,7 @@ export default function RegisterPage() {
 
       {phase === "register" && (
         <>
-          <h1 className="text-3xl sm:text-4xl font-display font-extrabold tracking-tight mb-6 text-balance">
+          <h1 className="text-3xl sm:text-5xl font-script font-extrabold tracking-tight mb-6 text-balance">
             Create your account
           </h1>
 

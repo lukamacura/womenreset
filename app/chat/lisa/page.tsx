@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
@@ -26,30 +27,46 @@ import {
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 
-/* ===== Theme (warmer + softer) ===== */
+/* ===== Theme (matching app pink/purple theme, optimized for 40+ vision) ===== */
 const THEME = {
-  lavender: {
-    100: "#F7F3FB",
-    300: "#DCD1F0",
-    500: "#B7A3DE",
-    600: "#927DC7",
-    800: "#57407F",
+  pink: {
+    50: "#FDF2F8",   // Very light pink
+    100: "#FCE7F3",  // Light pink (matches app background)
+    200: "#FBCFE8",  // Lighter pink
+    300: "#F9A8D4",  // Medium light pink
+    400: "#F472B6",  // Medium pink (matches app primary)
+    500: "#EC4899",  // Standard pink
+    600: "#DB2777",  // Darker pink
+    700: "#BE185D",  // Dark pink
+    800: "#9F1239",  // Very dark pink
   },
-  mint: {
-    100: "#F1FAF8",
-    200: "#DCEFED",
-    300: "#C5E4E1",
-    400: "#A8D4CC",
-    700: "#4E9A92",
+  purple: {
+    100: "#F3E8FF",  // Very light purple
+    200: "#E9D5FF",  // Light purple
+    300: "#D8B4FE",  // Medium light purple
+    400: "#C084FC",  // Medium purple
+    500: "#A855F7",  // Standard purple
+    600: "#9333EA",  // Darker purple
+    700: "#7E22CE",  // Dark purple
   },
-  ink: {
-    900: "#111827",
-    700: "#374151",
-    500: "#6B7280",
+  fuchsia: {
+    100: "#FDF4FF",
+    200: "#FAE8FF",
+    300: "#F5D0FE",
+    400: "#F0ABFC",
+    500: "#E879F9",
+    600: "#D946EF",
   },
-  paper: {
-    50: "#F9FAFB",
-    100: "#FFFFFF",
+  text: {
+    900: "#1F2937",  // High contrast dark text
+    800: "#374151",  // Dark text
+    700: "#4B5563",  // Medium dark text
+    600: "#6B7280",  // Medium text
+    500: "#9CA3AF",  // Light text for placeholders
+  },
+  background: {
+    light: "#FDF2F8",  // Matches app background #ffe9ef
+    white: "#FFFFFF",
   },
 } as const;
 
@@ -67,12 +84,69 @@ const SESSIONS_KEY = "Lisa-chat-sessions";
 const ACTIVE_KEY = "Lisa-chat-active";
 const DATE_LOCALE = "en-US";
 
-const SUGGESTIONS = [
+const DEFAULT_SUGGESTIONS = [
   "What are common symptoms across peri-, meno-, and post-menopause?",
   "Summarize top evidence on sleep interventions from the knowledge base",
   "Design a 2-week lifestyle plan for hot flashes and mood",
   "Compare HRT vs. non-hormonal options with pros/cons",
 ] as const;
+
+// Helper to get personalized suggestions
+async function getPersonalizedSuggestions(userId: string | null): Promise<string[]> {
+  if (!userId) return [...DEFAULT_SUGGESTIONS];
+  
+  try {
+    const suggestions: string[] = [];
+    
+    // Try to get tracker insights
+    try {
+      const trackerRes = await fetch("/api/tracker-insights?days=7");
+      if (trackerRes.ok) {
+        const trackerData = await trackerRes.json();
+        const summary = trackerData.data;
+        
+        if (summary?.symptoms?.total > 0) {
+          const topSymptom = Object.entries(summary.symptoms.byName || {})
+            .sort(([, a]: any, [, b]: any) => b.count - a.count)[0];
+          if (topSymptom) {
+            suggestions.push(`I've been experiencing ${topSymptom[0]} - what can help?`);
+          }
+        }
+        
+        if (summary?.patterns?.insights?.length > 0) {
+          const insight = summary.patterns.insights[0];
+          if (insight.includes("improved") || insight.includes("decreasing")) {
+            suggestions.push("What's working well for my symptoms?");
+          }
+        }
+      }
+    } catch (e) {
+      // Ignore errors, use defaults
+    }
+
+    // Add time-based suggestions
+    const hour = new Date().getHours();
+    if (hour >= 20 || hour < 6) {
+      suggestions.push("How can I improve my sleep during menopause?");
+    } else if (hour >= 6 && hour < 12) {
+      suggestions.push("What's a good morning routine for managing symptoms?");
+    }
+
+    // Fill remaining slots with defaults
+    const usedDefaults = new Set<string>();
+    for (const defaultSuggestion of DEFAULT_SUGGESTIONS) {
+      if (suggestions.length >= 4) break;
+      if (!suggestions.includes(defaultSuggestion) && !usedDefaults.has(defaultSuggestion)) {
+        suggestions.push(defaultSuggestion);
+        usedDefaults.add(defaultSuggestion);
+      }
+    }
+
+    return suggestions.slice(0, 4);
+  } catch (error) {
+    return [...DEFAULT_SUGGESTIONS];
+  }
+}
 
 /* ===== Utils ===== */
 function splitByFences(src: string) {
@@ -121,7 +195,7 @@ function normalizeMarkdown(src: string): string {
 
     // Clean “ | ” separators inside bullet content
     t = t.replace(/^(\s*[-*]\s+.*)$/gm, (line) =>
-      line.replace(/\s*\|\s*\|\s*/g, " — ").replace(/\s\|\s/g, " — "),
+      line.replace(/\s*\|\s*\|\s*/g, " - ").replace(/\s\|\s/g, " - "),
     );
 
     // Normalize ATX headings & ensure blank line before
@@ -203,7 +277,8 @@ function CopyButton({ text }: { text: string }) {
           setTimeout(() => setCopied(false), 1200);
         } catch {}
       }}
-      className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-md border bg-white/80 px-2 py-1 text-[11px] shadow-sm backdrop-blur hover:bg-white"
+      className="absolute right-3 top-3 inline-flex items-center gap-2 rounded-lg border-2 bg-white px-3 py-2 text-sm font-semibold shadow-md transition-all hover:bg-pink-50 focus:outline-none focus:ring-2 focus:ring-pink-300"
+      style={{ borderColor: THEME.pink[300], color: THEME.text[800] }}
       aria-label="Copy code"
     >
       {copied ? (
@@ -216,7 +291,7 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
-function MarkdownBubble({ children }: { children: string }) {
+const MarkdownBubble = React.memo(function MarkdownBubble({ children }: { children: string }) {
   const text = useMemo(() => normalizeMarkdown(children), [children]);
 
   const prefersReduced =
@@ -239,7 +314,7 @@ function MarkdownBubble({ children }: { children: string }) {
   return (
     <motion.div
       {...bubbleMotionProps}
-      className="prose prose-slate max-w-none md:prose-lg prose-headings:font-semibold prose-p:my-3 prose-strong:font-semibold prose-a:no-underline prose-a:font-medium prose-li:my-1 prose-blockquote:font-normal prose-img:my-4"
+      className="prose prose-slate max-w-none prose-lg md:prose-xl prose-headings:font-bold prose-p:my-4 prose-p:text-lg prose-p:leading-relaxed prose-strong:font-bold prose-a:no-underline prose-a:font-semibold prose-li:my-2 prose-li:text-lg prose-blockquote:font-normal prose-img:my-4 prose-h1:text-3xl prose-h2:text-2xl prose-h3:text-xl"
     >
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
@@ -251,7 +326,8 @@ function MarkdownBubble({ children }: { children: string }) {
             return (
               <h1
                 {...strip(rest)}
-                className="mt-1 mb-3 flex items-center gap-2 bg-linear-to-r from-[#927DC7] to-[#4E9A92] bg-clip-text text-3xl font-extrabold tracking-tight text-transparent md:text-4xl"
+                className="mt-1 mb-4 flex items-center gap-3 text-4xl font-extrabold tracking-tight md:text-5xl"
+                style={{ color: THEME.pink[600] }}
               >
                 {children}
               </h1>
@@ -262,9 +338,10 @@ function MarkdownBubble({ children }: { children: string }) {
             return (
               <h2
                 {...strip(rest)}
-                className="mt-6 mb-2 flex items-center gap-2 text-2xl font-bold text-slate-800"
+                className="mt-6 mb-3 flex items-center gap-3 text-3xl font-bold"
+                style={{ color: THEME.text[900] }}
               >
-                <span className="inline-block h-5 w-1 rounded-full bg-linear-to-b from-[#DCD1F0] to-[#A8D4CC]" />
+                <span className="inline-block h-6 w-1.5 rounded-full" style={{ backgroundColor: THEME.pink[400] }} />
                 {children}
               </h2>
             );
@@ -274,7 +351,8 @@ function MarkdownBubble({ children }: { children: string }) {
             return (
               <h3
                 {...strip(rest)}
-                className="mt-5 mb-2 text-xl font-semibold text-slate-800"
+                className="mt-5 mb-3 text-2xl font-bold"
+                style={{ color: THEME.text[900] }}
               >
                 {children}
               </h3>
@@ -332,8 +410,8 @@ function MarkdownBubble({ children }: { children: string }) {
           li(p: any) {
             const { children, ...rest } = p;
             return (
-              <li {...strip(rest)} className="relative pl-5 ">
-                <span className="absolute left-0 top-2 h-2 w-2 rounded-full bg-transparent text-md" />
+              <li {...strip(rest)} className="relative pl-6">
+                <span className="absolute left-0 top-2.5 h-1.5 w-1.5 rounded-full bg-[#927DC7]/60" />
                 {children}
               </li>
             );
@@ -347,7 +425,7 @@ function MarkdownBubble({ children }: { children: string }) {
 
             if (!m) {
               return (
-                <blockquote className="my-4 rounded-xl border-l-4 border-[#4E9A92]/50 bg-[#F1FAF8] p-3 text-slate-800/90">
+                <blockquote className="my-5 rounded-xl border-l-4 p-4 text-lg" style={{ borderColor: THEME.pink[400], backgroundColor: THEME.pink[50], color: THEME.text[800] }}>
                   {p.children}
                 </blockquote>
               );
@@ -408,8 +486,8 @@ function MarkdownBubble({ children }: { children: string }) {
           table(p: any) {
             const { children, ...rest } = p;
             return (
-              <div className="my-5 overflow-hidden rounded-xl border border-slate-200 bg-white/90 shadow-sm">
-                <table {...strip(rest)} className="w-full text-[15px]">
+              <div className="my-6 overflow-hidden rounded-xl border-2 bg-white shadow-md" style={{ borderColor: THEME.pink[200] }}>
+                <table {...strip(rest)} className="w-full text-lg">
                   {children}
                 </table>
               </div>
@@ -418,7 +496,7 @@ function MarkdownBubble({ children }: { children: string }) {
           thead(p: any) {
             const { children, ...rest } = p;
             return (
-              <thead {...strip(rest)} className="bg-slate-50 text-slate-700">
+              <thead {...strip(rest)} className="font-semibold" style={{ backgroundColor: THEME.pink[100], color: THEME.text[800] }}>
                 {children}
               </thead>
             );
@@ -428,7 +506,8 @@ function MarkdownBubble({ children }: { children: string }) {
             return (
               <th
                 {...strip(rest)}
-                className="px-3 py-2 text-left text-[13px] font-semibold uppercase tracking-wide text-slate-600"
+                className="px-4 py-3 text-left text-base font-bold uppercase tracking-wide"
+                style={{ color: THEME.text[700] }}
               >
                 {children}
               </th>
@@ -439,7 +518,8 @@ function MarkdownBubble({ children }: { children: string }) {
             return (
               <td
                 {...strip(rest)}
-                className="border-t border-slate-100 px-3 py-2 text-slate-800/90"
+                className="border-t px-4 py-3 text-lg"
+                style={{ borderColor: THEME.pink[200], color: THEME.text[900] }}
               >
                 {children}
               </td>
@@ -448,14 +528,14 @@ function MarkdownBubble({ children }: { children: string }) {
           img(p: any) {
             const { alt, ...rest } = p;
             return (
-              <div className="my-4 overflow-hidden rounded-xl border border-slate-200 bg-slate-50/60">
+              <div className="my-5 overflow-hidden rounded-xl border-2 bg-white" style={{ borderColor: THEME.pink[200] }}>
                 <Image
                   {...strip(rest)}
                   alt={alt ?? ""}
                   className="mx-auto block h-auto max-h-80 w-full max-w-full object-contain"
                 />
                 {alt && (
-                  <div className="px-3 pb-2 pt-1 text-center text-xs text-slate-500">
+                  <div className="px-4 pb-3 pt-2 text-center text-sm font-semibold" style={{ color: THEME.text[600] }}>
                     {alt}
                   </div>
                 )}
@@ -472,7 +552,8 @@ function MarkdownBubble({ children }: { children: string }) {
               return (
                 <code
                   {...strip(rest)}
-                  className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[13px] font-mono"
+                  className="rounded-md px-2 py-1 text-base font-mono"
+                  style={{ backgroundColor: THEME.pink[100], color: THEME.text[900] }}
                 >
                   {txt}
                 </code>
@@ -480,8 +561,8 @@ function MarkdownBubble({ children }: { children: string }) {
             }
 
             return (
-              <pre className="relative my-3 overflow-hidden rounded-xl border border-slate-200 bg-slate-50/90">
-                <div className="flex items-center justify-between border-b border-slate-200 bg-slate-100/70 px-3 py-1.5 text-[11px] uppercase tracking-wide text-slate-500">
+              <pre className="relative my-4 overflow-hidden rounded-xl border-2 bg-white" style={{ borderColor: THEME.pink[200] }}>
+                <div className="flex items-center justify-between border-b-2 px-4 py-2 text-sm uppercase tracking-wide font-semibold" style={{ borderColor: THEME.pink[200], backgroundColor: THEME.pink[100], color: THEME.text[700] }}>
                   <span>{language || "code"}</span>
                 </div>
                 <div className="relative">
@@ -502,7 +583,7 @@ function MarkdownBubble({ children }: { children: string }) {
       </ReactMarkdown>
     </motion.div>
   );
-}
+});
 
 /* ===== LocalStorage hydration with normalization ===== */
 function hydrate(raw: string | null): Conversation[] | null {
@@ -548,7 +629,11 @@ function ChatPageInner() {
 
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [streamingContent, setStreamingContent] = useState<string>("");
+  const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [suggestions, setSuggestions] = useState<string[]>([...DEFAULT_SUGGESTIONS]);
 
   // ✅ auth user id (no localStorage)
   const [userId, setUserId] = useState<string | null>(null);
@@ -572,6 +657,15 @@ function ChatPageInner() {
       sub.subscription.unsubscribe();
     };
   }, []);
+
+  // Load personalized suggestions when userId is available
+  useEffect(() => {
+    if (userId) {
+      getPersonalizedSuggestions(userId).then((sugs) => {
+        setSuggestions(sugs);
+      });
+    }
+  }, [userId]);
 
   // Chat list refs (auto-scroll)
   const listRef = useRef<HTMLDivElement>(null);
@@ -682,9 +776,37 @@ const [stickToBottom, setStickToBottom] = useState(true);
     [],
   );
 
-  const newChat = useCallback((): string => {
+  const newChat = useCallback(async (): Promise<string> => {
     const id = uid();
     const now = Date.now();
+    
+    // Fetch personalized greeting
+    let greeting = "# Hello, I'm **Lisa** 🌸\n\nReady for your next question!";
+    
+    if (userId) {
+      try {
+        const res = await fetch("/api/langchain-rag", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            user_id: userId,
+            userInput: "",
+            stream: false,
+          }),
+        });
+        
+        if (res.ok) {
+          const data = await res.json();
+          if (data.reply) {
+            greeting = normalizeMarkdown(data.reply);
+          }
+        }
+      } catch (error) {
+        // Use default greeting on error
+        console.error("Error fetching personalized greeting:", error);
+      }
+    }
+    
     const conv: Conversation = {
       id,
       title: "Menopause Support Chat",
@@ -693,9 +815,7 @@ const [stickToBottom, setStickToBottom] = useState(true);
       messages: [
         {
           role: "assistant",
-          content: normalizeMarkdown(
-            "# Hello, I’m **Lisa** 🌸\n\nReady for your next question!",
-          ),
+          content: greeting,
           ts: now,
         },
       ],
@@ -706,7 +826,7 @@ const [stickToBottom, setStickToBottom] = useState(true);
     setInput("");
     setStickToBottom(true);
     return id;
-  }, []);
+  }, [userId]);
 
   const openChat = useCallback((id: string) => {
     setActiveId(id);
@@ -720,7 +840,7 @@ const [stickToBottom, setStickToBottom] = useState(true);
 
     // Create a new chat and make it active on first mount,
     // regardless of any existing history.
-    newChat();
+    void newChat();
   }, [newChat]);
 
 
@@ -742,7 +862,7 @@ const [stickToBottom, setStickToBottom] = useState(true);
             {
               role: "assistant",
               content: normalizeMarkdown(
-                "# Hello, I’m **Lisa** 🌸\n\nHow can I help?",
+                "# Hello, I'm **Lisa** 🌸\n\nHow can I help?",
               ),
               ts: Date.now(),
             },
@@ -752,6 +872,9 @@ const [stickToBottom, setStickToBottom] = useState(true);
 
       setInput("");
       setLoading(true);
+      setIsStreaming(true);
+      setStreamingContent("");
+      setStreamingMessageId(id);
       setStickToBottom(true);
 
       try {
@@ -774,38 +897,181 @@ const [stickToBottom, setStickToBottom] = useState(true);
             user_id: finalUserId,
             userInput: text,
             history,
+            stream: true, // Enable streaming
           }),
           cache: "no-store",
         });
 
-        const raw = await res.text();
-        let data: any = null;
-        try {
-          data = JSON.parse(raw);
-        } catch {}
-
         if (!res.ok) {
+          const errorText = await res.text();
+          let errorData: any = null;
+          try {
+            errorData = JSON.parse(errorText);
+          } catch {}
           const msg =
-            data?.error ||
-            data?.message ||
+            errorData?.error ||
+            errorData?.message ||
             `${res.status} ${res.statusText}`;
           throw new Error(msg);
         }
 
-        const rawReply: string =
-          data?.reply ??
-          data?.outputs?.output_0 ??
-          data?.outputs?.output ??
-          data?.outputs?.answer ??
-          (data?.outputs
-            ? (Object.values(data.outputs).find(
-                (v: any) => typeof v === "string",
-              ) as string)
-            : "") ??
-          "⚠️ Empty reply";
+        // Check if response is streaming (text/event-stream) or JSON
+        const contentType = res.headers.get("content-type");
+        
+        if (contentType?.includes("text/event-stream")) {
+          // Handle streaming response
+          const reader = res.body?.getReader();
+          const decoder = new TextDecoder();
+          
+          if (!reader) {
+            throw new Error("No response body");
+          }
 
-        const reply = normalizeMarkdown(rawReply);
-        upsertAndAppendMessage(id, { role: "assistant", content: reply });
+          // Create a placeholder message for streaming if it doesn't exist
+          setStreamingMessageId(id);
+          setStreamingContent("");
+          
+          // Ensure there's a placeholder assistant message
+          const convo = sessions.find((s) => s.id === id);
+          const lastMsg = convo?.messages[convo.messages.length - 1];
+          if (!lastMsg || lastMsg.role !== "assistant" || lastMsg.content) {
+            upsertAndAppendMessage(id, { 
+              role: "assistant", 
+              content: "",
+              ts: Date.now(),
+            });
+          }
+
+          let buffer = "";
+          let fullResponse = "";
+
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              
+              if (done) break;
+
+              buffer += decoder.decode(value, { stream: true });
+              const lines = buffer.split("\n\n");
+              buffer = lines.pop() || "";
+
+              for (const line of lines) {
+                if (line.trim() && line.startsWith("data: ")) {
+                  try {
+                    const jsonStr = line.slice(6).trim();
+                    if (!jsonStr) continue;
+                    
+                    const data = JSON.parse(jsonStr);
+                    
+                    if (data.type === "chunk" && data.content !== undefined) {
+                      // Backend sends accumulated content, so use it directly
+                      fullResponse = data.content;
+                      setStreamingContent(fullResponse);
+                      
+                      // Smooth auto-scroll during streaming (debounced)
+                      if (stickToBottom) {
+                        requestAnimationFrame(() => {
+                          if (bottomRef.current) {
+                            bottomRef.current.scrollIntoView({
+                              behavior: "smooth",
+                              block: "end",
+                            });
+                          }
+                        });
+                      }
+                    } else if (data.type === "done") {
+                      // Streaming complete
+                      const reply = normalizeMarkdown(fullResponse);
+                      setSessions((prev) => {
+                        const updated = prev.map((s) => {
+                          if (s.id === id) {
+                            const msgs = [...s.messages];
+                            const lastMsg = msgs[msgs.length - 1];
+                            if (lastMsg && lastMsg.role === "assistant" && !lastMsg.content) {
+                              msgs[msgs.length - 1] = { ...lastMsg, content: reply };
+                            } else {
+                              msgs.push({ role: "assistant", content: reply, ts: Date.now() });
+                            }
+                            return { ...s, messages: msgs, updatedAt: Date.now() };
+                          }
+                          return s;
+                        });
+                        return updated;
+                      });
+                      setStreamingContent("");
+                      setStreamingMessageId(null);
+                      setIsStreaming(false);
+                      setLoading(false);
+                      return;
+                    } else if (data.type === "error") {
+                      throw new Error(data.error || "Streaming error");
+                    }
+                  } catch (e) {
+                    // Skip malformed JSON, but log for debugging
+                    if (line.trim() !== "data: [DONE]" && !line.trim().startsWith(":")) {
+                      console.warn("Error parsing SSE data:", e, "Line:", line);
+                    }
+                  }
+                }
+              }
+            }
+
+            // Fallback: if we didn't get a "done" message, save what we have
+            if (fullResponse) {
+              const reply = normalizeMarkdown(fullResponse);
+              setSessions((prev) => {
+                const updated = prev.map((s) => {
+                  if (s.id === id) {
+                    const msgs = [...s.messages];
+                    const lastMsg = msgs[msgs.length - 1];
+                    if (lastMsg && lastMsg.role === "assistant" && !lastMsg.content) {
+                      msgs[msgs.length - 1] = { ...lastMsg, content: reply };
+                    } else {
+                      msgs.push({ role: "assistant", content: reply, ts: Date.now() });
+                    }
+                    return { ...s, messages: msgs, updatedAt: Date.now() };
+                  }
+                  return s;
+                });
+                return updated;
+              });
+            }
+          } catch (streamError: any) {
+            console.error("Streaming error:", streamError);
+            throw streamError;
+          } finally {
+            setStreamingContent("");
+            setStreamingMessageId(null);
+            setIsStreaming(false);
+            setLoading(false);
+          }
+        } else {
+          // Non-streaming response (fallback)
+          const raw = await res.text();
+          let data: any = null;
+          try {
+            data = JSON.parse(raw);
+          } catch {}
+
+          const rawReply: string =
+            data?.reply ??
+            data?.outputs?.output_0 ??
+            data?.outputs?.output ??
+            data?.outputs?.answer ??
+            (data?.outputs
+              ? (Object.values(data.outputs).find(
+                  (v: any) => typeof v === "string",
+                ) as string)
+              : "") ??
+            "⚠️ Empty reply";
+
+          const reply = normalizeMarkdown(rawReply);
+          upsertAndAppendMessage(id, { role: "assistant", content: reply });
+          setStreamingContent("");
+          setStreamingMessageId(null);
+          setIsStreaming(false);
+          setLoading(false);
+        }
       } catch (e: any) {
         const safeMsg = String(e?.message || "unknown error").replace(
           /<[^>]*>/g,
@@ -815,64 +1081,77 @@ const [stickToBottom, setStickToBottom] = useState(true);
           role: "assistant",
           content: `Oops, something went wrong 🧠 - ${safeMsg}`,
         });
-      } finally {
+        setStreamingContent("");
+        setStreamingMessageId(null);
+        setIsStreaming(false);
         setLoading(false);
       }
     },
-    [activeId, sessions, upsertAndAppendMessage, userId],
+    [activeId, sessions, upsertAndAppendMessage, userId, stickToBottom],
   );
 
   /* ---- UI ---- */
   const SidebarContent = (
     <div className="flex h-full flex-col">
-      <div className="mb-4 flex items-center gap-3">
-        <div className="mx-auto">
-          <Image
-            src="/lisa.png"
-            alt="Lisa"
-            width={112}
-            height={112}
-            className="rounded-full object-cover"
-          />
-        </div>
+      <div className="mb-4 sm:mb-6 flex items-center justify-center">
+        <Image
+          src="/lisa.png"
+          alt="Lisa"
+          width={80}
+          height={80}
+          className="rounded-full object-cover sm:w-28 sm:h-28"
+        />
       </div>
 
       <button
-        onClick={newChat}
-        className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-foreground/5 px-3 py-2 font-medium transition hover:bg-foreground/10"
+        onClick={() => {
+          void newChat();
+          if (window.innerWidth < 1024) {
+            setMenuOpen(false);
+          }
+        }}
+        className="inline-flex w-full cursor-pointer items-center justify-center gap-2 sm:gap-3 rounded-lg sm:rounded-xl bg-pink-400 text-white px-4 sm:px-5 py-3 sm:py-4 text-sm sm:text-base font-semibold transition-all active:bg-pink-500 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-pink-300 touch-manipulation shadow-md"
         title="New chat"
         aria-label="Start a new chat"
       >
-        <Plus className="h-4 w-4" />
-        New chat
+        <Plus className="h-4 w-4 sm:h-5 sm:w-5" />
+        <span>New Chat</span>
       </button>
 
-      <h4 className="mt-4 mb-1 px-2 text-xs font-semibold opacity-70">
+      <h4 className="mt-4 sm:mt-6 mb-3 px-2 text-sm sm:text-base font-bold" style={{ color: THEME.text[800] }}>
         History
       </h4>
-      <nav className="space-y-1 overflow-auto pr-1 text-sm">
+      <nav className="space-y-1.5 sm:space-y-2 overflow-y-auto overflow-x-hidden flex-1 pr-1 sm:pr-2 custom-scrollbar" style={{ maxHeight: 'calc(100vh - 200px)' }}>
         {sessions.length === 0 && (
-          <div className="px-3 py-2 text-xs opacity-60">
+          <div className="px-3 sm:px-4 py-6 text-center text-sm sm:text-base" style={{ color: THEME.text[600] }}>
             No conversations yet.
+            <div className="mt-2 text-xs sm:text-sm">Start a new chat to begin!</div>
           </div>
         )}
         {sessions.map((s) => (
           <div
             key={s.id}
-            className={`group relative flex cursor-pointer items-center justify-between rounded-lg px-3 py-2 hover:bg-foreground/5 ${
-              s.id === activeId ? "bg-foreground/5" : ""
+            className={`group relative flex cursor-pointer items-center justify-between rounded-lg sm:rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base transition-all active:scale-[0.98] touch-manipulation ${
+              s.id === activeId 
+                ? "bg-pink-300 shadow-sm" 
+                : "bg-white/60 active:bg-white/80"
             }`}
-            onClick={() => openChat(s.id)}
+            onClick={() => {
+              openChat(s.id);
+              if (window.innerWidth < 1024) {
+                setMenuOpen(false);
+              }
+            }}
             title="Open chat"
             role="button"
             aria-label={`Open chat: ${s.title || "Conversation"}`}
           >
-            <div className="min-w-0">
-              <div className="truncate font-medium">
+            <div className="min-w-0 flex-1">
+              <div className="truncate font-semibold text-sm sm:text-base" style={{ color: THEME.text[900] }}>
                 {s.title || "Conversation"}
               </div>
-              <div className="truncate text-[11px] opacity-60">
-                {new Date(s.updatedAt).toLocaleString(DATE_LOCALE)}
+              <div className="truncate text-xs sm:text-sm mt-0.5" style={{ color: THEME.text[600] }}>
+                {new Date(s.updatedAt).toLocaleDateString(DATE_LOCALE, { month: 'short', day: 'numeric' })}
               </div>
             </div>
             <button
@@ -886,11 +1165,12 @@ const [stickToBottom, setStickToBottom] = useState(true);
                   return rest;
                 });
               }}
-              className="cursor-pointer text-foreground/60 opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
+              className="cursor-pointer p-1.5 sm:p-2 rounded-lg transition-all active:bg-red-100 opacity-0 group-hover:opacity-100 group-active:opacity-100 focus:outline-none focus:ring-2 focus:ring-red-300 touch-manipulation"
               title="Delete chat"
               aria-label="Delete chat"
+              style={{ color: THEME.text[700] }}
             >
-              <Trash className="h-4 w-4" />
+              <Trash className="h-4 w-4 sm:h-5 sm:w-5" />
             </button>
           </div>
         ))}
@@ -899,156 +1179,197 @@ const [stickToBottom, setStickToBottom] = useState(true);
   );
 
   return (
-    <div
-      className="flex min-h-dvh w-full text-foreground transition-all duration-500 ease-in-out"
-      style={{
-        background: `linear-gradient(
-          180deg,
-          ${THEME.paper[50]} 0%,
-          ${THEME.mint[100]} 28%,
-          ${THEME.paper[50]} 100%
-        )`,
-        color: THEME.ink[900],
-      }}
-    >
-      {/* Sidebar - Desktop */}
+    <>
+      {/* Custom Scrollbar Styles */}
+      <style jsx global>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: ${THEME.pink[100]};
+          border-radius: 10px;
+          margin: 8px 0;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: linear-gradient(180deg, ${THEME.pink[400]}, ${THEME.pink[500]});
+          border-radius: 10px;
+          border: 2px solid ${THEME.pink[100]};
+          transition: all 0.2s ease;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: linear-gradient(180deg, ${THEME.pink[500]}, ${THEME.pink[600]});
+        }
+        /* Firefox */
+        .custom-scrollbar {
+          scrollbar-width: thin;
+          scrollbar-color: ${THEME.pink[400]} ${THEME.pink[100]};
+        }
+        @keyframes blink {
+          0%, 49% { opacity: 1; }
+          50%, 100% { opacity: 0.2; }
+        }
+        .streaming-cursor {
+          animation: blink 1s ease-in-out infinite;
+        }
+      `}</style>
+      <div
+        className="flex min-h-dvh w-full text-foreground transition-all duration-500 ease-in-out"
+        style={{
+          background: `linear-gradient(
+            180deg,
+            ${THEME.background.light} 0%,
+            ${THEME.pink[100]} 50%,
+            ${THEME.purple[100]} 100%
+          )`,
+          color: THEME.text[900],
+        }}
+      >
+        {/* Sidebar - Desktop */}
       <aside
         className="fixed inset-y-0 left-0 z-30 hidden w-72 lg:block"
         aria-label="Sidebar"
       >
         <div
-          className="h-full rounded-none border-r border-foreground/10 p-4 shadow-sm backdrop-blur"
-          style={{ backgroundColor: `${THEME.lavender[300]}40` }}
+          className="h-full rounded-none border-r border-foreground/10 p-6 shadow-sm backdrop-blur"
+          style={{ backgroundColor: `${THEME.pink[200]}CC` }}
         >
           {SidebarContent}
         </div>
       </aside>
+
+      {/* Mobile Sidebar Backdrop */}
+      {menuOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/50 backdrop-blur-sm lg:hidden"
+          onClick={() => setMenuOpen(false)}
+          aria-hidden="true"
+        />
+      )}
 
       {/* Sidebar - Mobile Drawer */}
       <div
         role="dialog"
         aria-modal="true"
         aria-label="Mobile menu"
-        className={`fixed inset-y-0 left-0 z-40 w-64 transform border-r border-foreground/10 p-4 backdrop-blur-md transition-transform duration-300 ease-in-out ${
+        className={`fixed inset-y-0 left-0 z-40 w-80 max-w-[85vw] transform border-r-2 p-4 sm:p-6 backdrop-blur-md transition-transform duration-300 ease-in-out lg:hidden ${
           menuOpen ? "translate-x-0" : "-translate-x-full"
         }`}
-        style={{ backgroundColor: `${THEME.mint[300]}E6` }}
+        style={{ 
+          backgroundColor: THEME.background.white,
+          borderColor: THEME.pink[300],
+          boxShadow: menuOpen ? "4px 0 24px rgba(0, 0, 0, 0.15)" : "none"
+        }}
       >
-        <button
-          onClick={() => setMenuOpen(false)}
-          className="absolute right-3 top-3 text-foreground/70 transition hover:text-foreground"
-          aria-label="Close menu"
-        >
-          <X className="h-6 w-6" />
-        </button>
+        <div className="flex items-center justify-between mb-4 pb-4 border-b-2" style={{ borderColor: THEME.pink[200] }}>
+          <h2 className="text-xl font-bold" style={{ color: THEME.text[900] }}>Chats</h2>
+          <button
+            onClick={() => setMenuOpen(false)}
+            className="p-2 rounded-lg transition-all hover:bg-pink-100 focus:outline-none focus:ring-2 focus:ring-pink-300"
+            aria-label="Close menu"
+            style={{ color: THEME.text[800] }}
+          >
+            <X className="h-6 w-6" />
+          </button>
+        </div>
         {SidebarContent}
       </div>
 
       {/* Main */}
       <main className="flex min-w-0 flex-1 flex-col transition-all duration-500 ease-in-out lg:pl-72">
         {/* Top bar (mobile) */}
-        <div className="flex items-center justify-between border-b border-foreground/10 px-4 py-0 lg:hidden">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b-2 px-4 py-3 lg:hidden" style={{ 
+          borderColor: THEME.pink[300], 
+          backgroundColor: THEME.background.white,
+          boxShadow: "0 2px 8px rgba(0, 0, 0, 0.05)"
+        }}>
           <button
             onClick={() => setMenuOpen(true)}
-            className="text-foreground/70 transition hover:text-foreground"
+            className="p-2.5 rounded-lg transition-all active:bg-pink-100 focus:outline-none focus:ring-2 focus:ring-pink-300 touch-manipulation"
             aria-label="Open menu"
+            style={{ color: THEME.text[800] }}
           >
             <Menu className="h-6 w-6" />
           </button>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             <Image
               src="/lisa.png"
               alt="Lisa"
-              width={28}
-              height={28}
-              className="rounded-full"
+              width={36}
+              height={36}
+              className="rounded-full ring-2"
+              style={{ borderColor: THEME.pink[400] }}
             />
-            <span className="text-sm font-semibold">Lisa</span>
+            <span className="text-base font-bold" style={{ color: THEME.text[900] }}>Lisa</span>
           </div>
+          <div className="w-10" /> {/* Spacer for centering */}
         </div>
 
-        {/* Hero */}
-        <div className="bg-transparent transition-all duration-500">
-          <div className="mx-auto grid w-full max-w-6xl gap-4 px-4 py-6 md:grid-cols-[1.2fr_1fr]">
-            <div
-              className="relative overflow-hidden rounded-2xl p-6 transition-all duration-700 hover:scale-[1.01]"
-              style={{
-                background: `linear-gradient(
-                  135deg,
-                  ${THEME.paper[100]} 0%,
-                  ${THEME.mint[100]} 40%,
-                  ${THEME.lavender[100]} 100%
-                )`,
-              }}
-            >
-              <div className="relative z-10">
-                <p
-                  className="flex items-center gap-2 text-sm font-medium"
-                  style={{ color: THEME.lavender[600] }}
-                >
-                  <Rocket className="h-4 w-4" />
-                  Menopause Support
-                </p>
-                <h1 className="mt-2 text-2xl font-bold leading-tight sm:text-3xl">
-                  Hi, it’s{" "}
-                  <span style={{ color: THEME.lavender[600] }}>Lisa</span> 👋
-                  <br />
-                  How can I support you today?
+        {/* Hero - Only show when no messages (ChatGPT-like) */}
+        {(!active || active.messages.length <= 1) && (
+          <div className="bg-transparent transition-all duration-500">
+            <div className="mx-auto w-full max-w-4xl px-4 py-6 sm:py-8">
+              <div className="text-center mb-6 sm:mb-8">
+                <div className="inline-flex items-center justify-center mb-4">
+                  <Image
+                    src="/lisa.png"
+                    alt="Lisa"
+                    width={80}
+                    height={80}
+                    className="rounded-full ring-4"
+                    style={{ borderColor: THEME.pink[300] }}
+                  />
+                </div>
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3" style={{ color: THEME.text[900] }}>
+                  Hi, it&apos;s <span style={{ color: THEME.pink[600] }}>Lisa</span> 👋
                 </h1>
-                <p
-                  className="mt-3 max-w-prose text-[15.5px]"
-                  style={{ color: THEME.ink[700] }}
-                >
-                  Personalized, kind guidance through menopause — grounded in a
-                  curated library of{" "}
-                  <strong>200+ expert-reviewed resources</strong>.
+                <p className="text-base sm:text-lg text-center max-w-2xl mx-auto" style={{ color: THEME.text[700] }}>
+                  Your menopause support expert. How can I help you today?
                 </p>
               </div>
-              <div
-                className="pointer-events-none absolute -right-6 -top-6 h-40 w-40 rounded-full"
-                style={{ backgroundColor: `${THEME.lavender[300]}40` }}
-              />
-              <div
-                className="pointer-events-none absolute -left-10 bottom-0 h-32 w-32 rounded-full"
-                style={{ backgroundColor: `${THEME.mint[300]}40` }}
-              />
-            </div>
 
-            {/* Suggestions */}
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              {SUGGESTIONS.map((s, i) => (
-                <button
-                  key={s}
-                  onClick={() => {
-                    const id = activeId ?? newChat();
-                    void sendToAPI(s, id);
-                  }}
-                  className="rounded-xl border border-foreground/10 bg-white/80 px-4 py-3 text-left text-[13.5px] leading-5 text-slate-700 shadow-sm transition-transform duration-300 hover:scale-[1.015] hover:bg-white"
-                  style={{ transitionDelay: `${i * 70}ms` }}
-                  aria-label={`Use suggestion: ${s}`}
-                >
-                  {s}
-                </button>
-              ))}
+              {/* Suggestions - Simplified for mobile */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-3xl mx-auto">
+                {suggestions.slice(0, 4).map((s, i) => (
+                  <button
+                    key={s}
+                    onClick={async () => {
+                      const id = activeId ?? await newChat();
+                      void sendToAPI(s, id);
+                    }}
+                    className="rounded-xl border-2 bg-white px-4 py-3.5 text-left text-sm sm:text-base leading-relaxed shadow-sm transition-all active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-pink-300 touch-manipulation"
+                    style={{ 
+                      borderColor: THEME.pink[300],
+                      color: THEME.text[800],
+                    }}
+                    aria-label={`Use suggestion: ${s}`}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Chat */}
         <section
           ref={listRef}
-          className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 overflow-y-auto px-4 py-6"
+          className="flex-1 overflow-y-auto"
+          style={{ 
+            scrollBehavior: 'smooth',
+            WebkitOverflowScrolling: 'touch'
+          }}
         >
-          <div className="mx-auto flex w-full max-w-3xl flex-col gap-3">
-            {(active?.messages ?? []).map((m, i) => {
+          <div className="mx-auto w-full max-w-3xl px-3 sm:px-4 py-4 sm:py-6 space-y-4">
+            {(active?.messages ?? []).filter(m => m.content || (isStreaming && m.role === "assistant")).map((m, i) => {
               const isUser = m.role === "user";
+              // Check if this is the streaming message: it's the last assistant message and we're currently streaming
+              const isLastMessage = i === (active?.messages ?? []).length - 1;
+              const isStreamingMsg = isStreaming && !isUser && streamingMessageId === activeId && isLastMessage && (streamingContent || m.content === "");
               return (
-                <motion.div
+                <div
                   key={`${m.ts ?? i}-${i}`}
-                  initial={{ opacity: 0, y: 10, scale: 0.98 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  transition={{ type: "spring", stiffness: 100, damping: 12 }}
-                  className={`group relative flex items-start gap-2 ${
+                  className={`flex items-start gap-2 sm:gap-3 ${
                     isUser ? "justify-end" : ""
                   }`}
                 >
@@ -1056,50 +1377,98 @@ const [stickToBottom, setStickToBottom] = useState(true);
                     <Image
                       src="/profile.png"
                       alt="Lisa avatar"
-                      width={40}
-                      height={40}
-                      className="mt-1 shrink-0 rounded-full object-cover ring-foreground/10"
+                      width={32}
+                      height={32}
+                      className="mt-1 shrink-0 rounded-full object-cover ring-2 sm:w-10 sm:h-10"
+                      style={{ borderColor: THEME.pink[300] }}
                     />
                   )}
                   <div
-                    className={`max-w-[88%] rounded-2xl px-5 py-4 text-[15.5px] leading-7 sm:max-w-[78%] ${
+                    className={`rounded-2xl px-4 py-3.5 text-base leading-relaxed sm:px-5 sm:py-4 sm:text-lg transition-all ${
                       isUser
-                        ? "ml-auto"
-                        : "bg-white/90 ring-1 ring-black/5 backdrop-blur shadow-sm"
+                        ? "ml-auto max-w-[85%] sm:max-w-[75%] shadow-md"
+                        : "max-w-[85%] sm:max-w-[75%] bg-white ring-1 shadow-md"
                     }`}
                     style={
                       isUser
-                        ? { backgroundColor: THEME.lavender[100] }
-                        : undefined
+                        ? { 
+                            backgroundColor: THEME.pink[200],
+                            color: THEME.text[900],
+                            boxShadow: "0 2px 8px rgba(236, 72, 153, 0.15)",
+                          }
+                        : {
+                            backgroundColor: THEME.background.white,
+                            color: THEME.text[900],
+                            borderColor: THEME.pink[200],
+                            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.08)",
+                          }
                     }
                   >
-                    <MarkdownBubble>{m.content}</MarkdownBubble>
-                    {m.ts && (
-                      <div className="mt-2 text-[10px] opacity-60">
-                        {new Date(m.ts).toLocaleTimeString(DATE_LOCALE, {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                    {isStreamingMsg ? (
+                      <div className="relative w-full min-h-[20px]">
+                        {streamingContent ? (
+                          <>
+                            <MarkdownBubble>{streamingContent}</MarkdownBubble>
+                            <span 
+                              className="inline-block w-0.5 h-6 ml-2 mb-1 align-middle rounded-sm streaming-cursor" 
+                              style={{ 
+                                backgroundColor: THEME.pink[500],
+                              }} 
+                            />
+                          </>
+                        ) : (
+                          <div className="flex items-center gap-2 text-base" style={{ color: THEME.text[600] }}>
+                            <div className="flex gap-1">
+                              <div className="w-2 h-2 rounded-full animate-bounce" style={{ backgroundColor: THEME.pink[400], animationDelay: "0ms" }} />
+                              <div className="w-2 h-2 rounded-full animate-bounce" style={{ backgroundColor: THEME.pink[400], animationDelay: "150ms" }} />
+                              <div className="w-2 h-2 rounded-full animate-bounce" style={{ backgroundColor: THEME.pink[400], animationDelay: "300ms" }} />
+                            </div>
+                            <span className="italic">Lisa is typing...</span>
+                          </div>
+                        )}
                       </div>
+                    ) : (
+                      <>
+                        <MarkdownBubble>{m.content}</MarkdownBubble>
+                        {m.ts && (
+                          <div className="mt-3 text-sm" style={{ color: THEME.text[600] }}>
+                            {new Date(m.ts).toLocaleTimeString(DATE_LOCALE, {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                   {isUser && (
                     <div
-                      className="relative mt-1 h-10 w-10 shrink-0 overflow-hidden rounded-full ring-foreground/10"
+                      className="relative mt-1 h-8 w-8 shrink-0 overflow-hidden rounded-full ring-2 sm:h-10 sm:w-10"
+                      style={{ borderColor: THEME.pink[300] }}
                       aria-hidden
                     >
-                      <div className="flex h-full w-full items-center justify-center bg-foreground/10 text-foreground">
-                        <User className="h-4 w-4" />
+                      <div 
+                        className="flex h-full w-full items-center justify-center"
+                        style={{ 
+                          background: `linear-gradient(135deg, ${THEME.pink[200]}, ${THEME.purple[200]})`,
+                          color: THEME.text[900]
+                        }}
+                      >
+                        <User className="h-4 w-4 sm:h-5 sm:w-5" />
                       </div>
                     </div>
                   )}
-                </motion.div>
+                </div>
               );
             })}
-            {loading && (
-              <div className="flex items-center gap-2 pl-1 text-xs text-foreground/70">
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                Crafting a personalized answer for you…
+            {loading && !isStreaming && (
+              <div className="flex items-center gap-3 pl-12 sm:pl-14 text-base sm:text-lg" style={{ color: THEME.text[700] }}>
+                <div className="flex gap-1.5">
+                  <div className="w-2 h-2 rounded-full animate-bounce" style={{ backgroundColor: THEME.pink[500], animationDelay: "0ms" }} />
+                  <div className="w-2 h-2 rounded-full animate-bounce" style={{ backgroundColor: THEME.pink[500], animationDelay: "150ms" }} />
+                  <div className="w-2 h-2 rounded-full animate-bounce" style={{ backgroundColor: THEME.pink[500], animationDelay: "300ms" }} />
+                </div>
+                <span className="italic font-medium">Lisa is thinking...</span>
               </div>
             )}
             <div ref={bottomRef} />
@@ -1107,93 +1476,78 @@ const [stickToBottom, setStickToBottom] = useState(true);
         </section>
 
         {/* Composer */}
-        <footer className="sticky bottom-0 z-20 px-3 py-3 sm:px-4">
+        <footer className="sticky bottom-0 z-20 border-t-2 backdrop-blur-md safe-area-inset-bottom" style={{ 
+          background: `linear-gradient(to top, ${THEME.pink[50]} 0%, ${THEME.purple[100]} 100%)`,
+          borderColor: THEME.pink[300],
+          boxShadow: "0 -4px 24px rgba(236, 72, 153, 0.15)",
+          paddingBottom: 'env(safe-area-inset-bottom, 0)'
+        }}>
           <form
-            onSubmit={(e) => {
+            onSubmit={async (e) => {
               e.preventDefault();
               const text = input.trim();
               if (!text || loading) return;
-              const id = activeId ?? newChat();
+              const id = activeId ?? await newChat();
               void sendToAPI(text, id);
             }}
-            className="mx-auto flex w-full max-w-3xl items-end gap-2"
+            className="mx-auto flex w-full max-w-3xl items-end gap-2 sm:gap-3 px-3 sm:px-4 py-3 sm:py-4"
           >
-            <div className="relative flex w-full items-center justify-center">
+            <div className="relative flex w-full items-center">
               <label htmlFor="composer" className="sr-only">
                 Message Lisa
               </label>
-              <textarea
-                id="composer"
-                ref={textareaRef}
-                rows={1}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    const text = input.trim();
-                    if (!text || loading) return;
-                    const id = activeId ?? newChat();
-                    void sendToAPI(text, id);
-                  }
-                }}
-                aria-label="Type your message"
-                placeholder="Ask anything"
-                className="w-full resize-none overflow-hidden rounded-xl border border-foreground/20 bg-white/90 px-4 py-3 text-[17px] leading-7 text-foreground outline-none backdrop-blur placeholder:text-foreground/50 focus:ring-2 focus:ring-[#C5E4E1]"
-              />
-
+              <div className="relative w-full">
+                <textarea
+                  id="composer"
+                  ref={textareaRef}
+                  rows={1}
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={async (e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      const text = input.trim();
+                      if (!text || loading) return;
+                      const id = activeId ?? await newChat();
+                      void sendToAPI(text, id);
+                    }
+                  }}
+                  aria-label="Type your message"
+                  placeholder="Message Lisa..."
+                  className="w-full resize-none overflow-hidden rounded-2xl border-2 px-4 py-3.5 pr-12 sm:px-5 sm:py-4 sm:pr-14 text-base sm:text-lg leading-relaxed outline-none transition-all placeholder:text-base sm:placeholder:text-lg shadow-md focus:shadow-lg focus:ring-2 focus:ring-pink-300 touch-manipulation"
+                  style={{ 
+                    borderColor: input.trim() ? THEME.pink[400] : THEME.pink[300],
+                    background: THEME.background.white,
+                    color: THEME.text[900],
+                    minHeight: '48px',
+                    maxHeight: '200px',
+                  }}
+                />
+              </div>
             </div>
 
             <button
               type="submit"
               disabled={!input.trim() || loading}
-              className="inline-flex h-12 items-center justify-center rounded-xl px-4 text-white transition-all disabled:opacity-50"
-              style={{ backgroundColor: THEME.lavender[600] }}
+              className="inline-flex h-12 w-12 sm:h-14 sm:w-14 shrink-0 items-center justify-center rounded-2xl text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 shadow-lg focus:outline-none focus:ring-2 focus:ring-pink-300 touch-manipulation"
+              style={{ 
+                backgroundColor: input.trim() ? THEME.pink[500] : THEME.pink[300],
+                boxShadow: loading || !input.trim() ? "0 2px 8px rgba(236, 72, 153, 0.2)" : "0 4px 16px rgba(236, 72, 153, 0.5)",
+              }}
               aria-label="Send message"
             >
               {loading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 animate-spin" />
               ) : (
-                <Send className="h-4 w-4" />
+                <Send className="h-5 w-5 sm:h-6 sm:w-6" />
               )}
             </button>
 
-            <button
-              type="button"
-              onClick={() => {
-                const id = activeId;
-                if (!id) return;
-                setSessions((all) =>
-                  all.map((c) =>
-                    c.id === id
-                      ? {
-                          ...c,
-                          messages: [
-                            {
-                              role: "assistant",
-                              content: normalizeMarkdown(
-                                "---\n\n## Chat cleared ✨\n\n> Ready for your next question.\n\n---",
-                              ),
-                              ts: Date.now(),
-                            },
-                          ],
-                          updatedAt: Date.now(),
-                        }
-                      : c,
-                  ),
-                );
-                setInput("");
-                setStickToBottom(true);
-              }}
-              title="Clear chat"
-              className="hidden h-12 items-center gap-2 rounded-xl border px-4 py-2 text-sm hover:bg-foreground/5 md:inline-flex"
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
           </form>
         </footer>
       </main>
-    </div>
+      </div>
+    </>
   );
 }
 

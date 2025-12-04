@@ -60,13 +60,13 @@ export default async function RootLayout({
 
   return (
     <html lang="en" className={`${satoshi.variable}  ${dancingScript.variable}`}>
-      <body className="min-h-screen flex flex-col font-sans bg-background text-foreground">
+      <body className="min-h-screen flex flex-col font-sans bg-pink-100 text-foreground">
         <header className="border-b border-white/10">
           {/* New blurred navbar */}
           <Navbar isAuthenticated={!!user} />
         </header>
 
-        <main className="flex-1 w-full">{children}</main>
+        <main className="flex-1 w-full pt-20">{children}</main>
       </body>
     </html>
   );

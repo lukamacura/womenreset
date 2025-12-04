@@ -82,7 +82,7 @@ export default function LoginPage() {
         <div className="absolute -bottom-24 -right-24 h-56 w-56 rounded-full bg-primary/10 blur-3xl" />
       </div>
 
-      <h1 className="font-display text-3xl sm:text-4xl font-extrabold tracking-tight mb-6 text-balance">
+      <h1 className="text-3xl sm:text-5xl font-script font-extrabold tracking-tight mb-6 text-balance">
         Log in
       </h1>
 

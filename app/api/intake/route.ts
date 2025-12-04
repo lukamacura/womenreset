@@ -29,6 +29,7 @@ export async function POST(req: Request) {
       );
     }
 
+    // Insert user profile (trial info is handled by trigger on auth.users)
     const { error } = await supabase.from("user_profiles").insert([
       {
         user_id,

@@ -17,7 +17,7 @@
     "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.76.1",
     "@vercel/analytics": "^1.5.0",
-    "dotenv": "^17.2.3",
+    "dotenv": "^16.4.5",
     "framer-motion": "^12.23.24",
     "gsap": "^3.13.0",
     "langchain": "^0.3.36",
@@ -27,9 +27,11 @@
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "react-markdown": "^9.x",
+    "recharts": "^2.15.4",
     "rehype-raw": "^7.x",
     "rehype-sanitize": "^6.x",
-    "remark-gfm": "^4.x"
+    "remark-gfm": "^4.x",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
