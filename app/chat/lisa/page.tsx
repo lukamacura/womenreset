@@ -27,6 +27,7 @@ import {
   MessageSquare,
   History,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
 /* ===== Theme (matching app pink/purple theme, optimized for 40+ vision) ===== */
@@ -254,8 +255,8 @@ function renderMarkdownText(text: string) {
       return;
     }
     
-    // Check for headings
-    const headingMatch = trimmed.match(/^(#{1,3})\s+(.+)$/);
+    // Check for headings (h1-h5)
+    const headingMatch = trimmed.match(/^(#{1,5})\s+(.+)$/);
     if (headingMatch) {
       if (currentBlock) {
         blocks.push(currentBlock);
@@ -344,18 +345,18 @@ function renderMarkdownText(text: string) {
         
         if (block.type.startsWith('h')) {
           const level = parseInt(block.type[1]);
-          const sizes = { 1: '2.5rem', 2: '2rem', 3: '1.5rem' };
-          const weights = { 1: 800, 2: 700, 3: 600 };
-          const margins = { 1: '2rem 0 1rem', 2: '1.5rem 0 0.75rem', 3: '1.25rem 0 0.5rem' };
+          const sizes = { 1: '2.5rem', 2: '2rem', 3: '1.5rem', 4: '1.25rem', 5: '1.1rem' };
+          const weights = { 1: 800, 2: 700, 3: 600, 4: 600, 5: 600 };
+          const margins = { 1: '1.5rem 0 0.75rem', 2: '1.25rem 0 0.5rem', 3: '1rem 0 0.5rem', 4: '0.75rem 0 0.5rem', 5: '0.75rem 0 0.25rem' };
           
           return (
             <div
               key={`${block.type}-${blockIdx}`}
               style={{
-                fontSize: sizes[level as keyof typeof sizes],
-                fontWeight: weights[level as keyof typeof weights],
+                fontSize: sizes[level as keyof typeof sizes] || '1rem',
+                fontWeight: weights[level as keyof typeof weights] || 600,
                 color: THEME.pink[600],
-                margin: margins[level as keyof typeof margins],
+                margin: margins[level as keyof typeof margins] || '0.5rem 0',
                 lineHeight: '1.2',
                 letterSpacing: '-0.02em',
               }}
@@ -371,12 +372,12 @@ function renderMarkdownText(text: string) {
               key={`blockquote-${blockIdx}`}
               style={{
                 borderLeft: `4px solid ${THEME.pink[400]}`,
-                paddingLeft: '1.5rem',
-                margin: '1.5rem 0',
+                paddingLeft: '1rem',
+                margin: '1rem 0',
                 fontStyle: 'italic',
                 color: THEME.text[700],
                 backgroundColor: THEME.pink[50],
-                padding: '1rem 1.5rem',
+                padding: '0.75rem 1rem',
                 borderRadius: '0.5rem',
               }}
             >
@@ -400,7 +401,7 @@ function renderMarkdownText(text: string) {
             <div
               key={`table-${blockIdx}`}
               style={{
-                margin: '1.5rem 0',
+                margin: '1rem 0',
                 overflowX: 'auto',
                 borderRadius: '0.75rem',
                 border: `1px solid ${THEME.pink[200]}`,
@@ -459,9 +460,9 @@ function renderMarkdownText(text: string) {
           <p
             key={`para-${blockIdx}`}
             style={{
-              marginBottom: blockIdx < blocks.length - 1 ? '1.5rem' : '0',
-              fontSize: '1.25rem',
-              lineHeight: '1.8',
+              marginBottom: blockIdx < blocks.length - 1 ? '1rem' : '0',
+              fontSize: '1.125rem',
+              lineHeight: '1.4',
               color: THEME.text[900],
               fontWeight: 500,
               letterSpacing: '0.01em',
@@ -486,13 +487,21 @@ function renderInlineMarkdown(text: string) {
   let currentIndex = 0;
   let keyCounter = 0;
   
-  // Match **bold** and *italic* (but not if it's part of **)
+  // Match **bold**, *italic*, and ~~strikethrough~~
   // First collect all bold matches to exclude them from italic matching
   const boldMatches: Array<{ start: number; end: number }> = [];
   const boldRegex = /\*\*(.+?)\*\*/g;
   let boldMatch;
   while ((boldMatch = boldRegex.exec(text)) !== null) {
     boldMatches.push({ start: boldMatch.index, end: boldMatch.index + boldMatch[0].length });
+  }
+  
+  // Collect strikethrough matches
+  const strikethroughMatches: Array<{ start: number; end: number }> = [];
+  const strikethroughRegex = /~~(.+?)~~/g;
+  let strikethroughMatch;
+  while ((strikethroughMatch = strikethroughRegex.exec(text)) !== null) {
+    strikethroughMatches.push({ start: strikethroughMatch.index, end: strikethroughMatch.index + strikethroughMatch[0].length });
   }
   
   const matches: Array<{ start: number; end: number; content: string; type: string }> = [];
@@ -503,17 +512,27 @@ function renderInlineMarkdown(text: string) {
     matches.push({ start, end, content, type: 'bold' });
   });
   
-  // Add italic matches, but exclude those that overlap with bold
+  // Add strikethrough matches
+  strikethroughMatches.forEach(({ start, end }) => {
+    const content = text.slice(start + 2, end - 2);
+    matches.push({ start, end, content, type: 'strikethrough' });
+  });
+  
+  // Add italic matches, but exclude those that overlap with bold or strikethrough
   const italicRegex = /\*([^*]+?)\*/g;
   let italicMatch;
   while ((italicMatch = italicRegex.exec(text)) !== null) {
     const start = italicMatch.index;
     const end = start + italicMatch[0].length;
-    // Check if this italic match overlaps with any bold match
+    // Check if this italic match overlaps with any bold or strikethrough match
     const overlaps = boldMatches.some(bm => 
       (start >= bm.start && start < bm.end) || 
       (end > bm.start && end <= bm.end) ||
       (start <= bm.start && end >= bm.end)
+    ) || strikethroughMatches.some(sm =>
+      (start >= sm.start && start < sm.end) ||
+      (end > sm.start && end <= sm.end) ||
+      (start <= sm.start && end >= sm.end)
     );
     if (!overlaps) {
       matches.push({ start, end, content: italicMatch[1], type: 'italic' });
@@ -541,6 +560,12 @@ function renderInlineMarkdown(text: string) {
         <em key={`italic-${keyCounter++}`} style={{ fontStyle: 'italic' }}>
           {match.content}
         </em>
+      );
+    } else if (match.type === 'strikethrough') {
+      parts.push(
+        <del key={`strikethrough-${keyCounter++}`} style={{ textDecoration: 'line-through', opacity: 0.7 }}>
+          {match.content}
+        </del>
       );
     }
     
@@ -618,11 +643,35 @@ const MarkdownBubble = React.memo(function MarkdownBubble({ children }: { childr
             return (
               <h3
                 {...strip(rest)}
-                className="mt-6 mb-4 text-3xl font-bold"
+                className="mt-4 mb-3 text-2xl font-bold"
                 style={{ color: THEME.text[900] }}
               >
                 {children}
               </h3>
+            );
+          },
+          h4(p: any) {
+            const { children, ...rest } = p;
+            return (
+              <h4
+                {...strip(rest)}
+                className="mt-3 mb-2 text-xl font-semibold"
+                style={{ color: THEME.text[900] }}
+              >
+                {children}
+              </h4>
+            );
+          },
+          h5(p: any) {
+            const { children, ...rest } = p;
+            return (
+              <h5
+                {...strip(rest)}
+                className="mt-3 mb-2 text-lg font-semibold"
+                style={{ color: THEME.text[800] }}
+              >
+                {children}
+              </h5>
             );
           },
           p(p: any) {
@@ -630,7 +679,8 @@ const MarkdownBubble = React.memo(function MarkdownBubble({ children }: { childr
             return (
               <p
                 {...strip(rest)}
-                className="my-4 text-xl leading-loose text-slate-800/95"
+                className="my-2 text-base leading-relaxed text-slate-800/95"
+                style={{ lineHeight: '1.4' }}
               >
                 {children}
               </p>
@@ -638,7 +688,7 @@ const MarkdownBubble = React.memo(function MarkdownBubble({ children }: { childr
           },
           hr() {
             return (
-              <hr className="my-6 h-0.5 border-0 bg-linear-to-r from-transparent via-[#B7A3DE]/60 to-transparent" />
+              <hr className="my-4 h-0.5 border-0 bg-linear-to-r from-transparent via-[#B7A3DE]/60 to-transparent" />
             );
           },
           a(p: any) {
@@ -692,7 +742,7 @@ const MarkdownBubble = React.memo(function MarkdownBubble({ children }: { childr
 
             if (!m) {
               return (
-                <blockquote className="my-6 rounded-xl border-l-4 p-5 text-xl" style={{ borderColor: THEME.pink[400], backgroundColor: THEME.pink[50], color: THEME.text[800] }}>
+                <blockquote className="my-4 rounded-xl border-l-4 p-3 text-base" style={{ borderColor: THEME.pink[400], backgroundColor: THEME.pink[50], color: THEME.text[800], lineHeight: '1.4' }}>
                   {p.children}
                 </blockquote>
               );
@@ -736,25 +786,26 @@ const MarkdownBubble = React.memo(function MarkdownBubble({ children }: { childr
 
             return (
               <blockquote
-                className="my-4 rounded-xl border-l-4 p-3"
+                className="my-3 rounded-xl border-l-4 p-3"
                 style={{
                   borderColor: colors.ring,
                   backgroundColor: colors.bg,
                   color: colors.text,
+                  lineHeight: '1.4',
                 }}
               >
-                <div className="mb-1 flex items-center gap-2 font-medium">
+                <div className="mb-1 flex items-center gap-2 font-medium text-sm">
                   <Quote className="h-4 w-4" /> {colors.title}
                 </div>
-                <div className="text-slate-800/90">{cleaned}</div>
+                <div className="text-slate-800/90 text-base">{cleaned}</div>
               </blockquote>
             );
           },
           table(p: any) {
             const { children, ...rest } = p;
             return (
-              <div className="my-6 overflow-hidden rounded-xl border-2 bg-white shadow-md" style={{ borderColor: THEME.pink[200] }}>
-                <table {...strip(rest)} className="w-full text-xl">
+              <div className="my-4 overflow-hidden rounded-xl border-2 bg-white shadow-md" style={{ borderColor: THEME.pink[200] }}>
+                <table {...strip(rest)} className="w-full text-base">
                   {children}
                 </table>
               </div>
@@ -773,7 +824,7 @@ const MarkdownBubble = React.memo(function MarkdownBubble({ children }: { childr
             return (
               <th
                 {...strip(rest)}
-                className="px-5 py-4 text-left text-lg font-bold uppercase tracking-wide"
+                className="px-4 py-2 text-left text-sm font-bold uppercase tracking-wide"
                 style={{ color: THEME.text[700] }}
               >
                 {children}
@@ -785,7 +836,7 @@ const MarkdownBubble = React.memo(function MarkdownBubble({ children }: { childr
             return (
               <td
                 {...strip(rest)}
-                className="border-t px-5 py-4 text-xl"
+                className="border-t px-4 py-2 text-base"
                 style={{ borderColor: THEME.pink[200], color: THEME.text[900] }}
               >
                 {children}
@@ -795,14 +846,14 @@ const MarkdownBubble = React.memo(function MarkdownBubble({ children }: { childr
           img(p: any) {
             const { alt, ...rest } = p;
             return (
-              <div className="my-5 overflow-hidden rounded-xl border-2 bg-white" style={{ borderColor: THEME.pink[200] }}>
+              <div className="my-3 overflow-hidden rounded-xl border-2 bg-white" style={{ borderColor: THEME.pink[200] }}>
                 <Image
                   {...strip(rest)}
                   alt={alt ?? ""}
                   className="mx-auto block h-auto max-h-80 w-full max-w-full object-contain"
                 />
                 {alt && (
-                  <div className="px-4 pb-3 pt-2 text-center text-sm font-semibold" style={{ color: THEME.text[600] }}>
+                  <div className="px-3 pb-2 pt-1.5 text-center text-sm font-semibold" style={{ color: THEME.text[600] }}>
                     {alt}
                   </div>
                 )}
@@ -819,7 +870,7 @@ const MarkdownBubble = React.memo(function MarkdownBubble({ children }: { childr
               return (
                 <code
                   {...strip(rest)}
-                  className="rounded-md px-2 py-1 text-base font-mono"
+                  className="rounded-md px-2 py-1 text-sm font-mono"
                   style={{ backgroundColor: THEME.pink[100], color: THEME.text[900] }}
                 >
                   {txt}
@@ -828,8 +879,8 @@ const MarkdownBubble = React.memo(function MarkdownBubble({ children }: { childr
             }
 
             return (
-              <pre className="relative my-4 overflow-hidden rounded-xl border-2 bg-white" style={{ borderColor: THEME.pink[200] }}>
-                <div className="flex items-center justify-between border-b-2 px-4 py-2 text-sm uppercase tracking-wide font-semibold" style={{ borderColor: THEME.pink[200], backgroundColor: THEME.pink[100], color: THEME.text[700] }}>
+              <pre className="relative my-3 overflow-hidden rounded-xl border-2 bg-white" style={{ borderColor: THEME.pink[200] }}>
+                <div className="flex items-center justify-between border-b-2 px-3 py-2 text-xs uppercase tracking-wide font-semibold" style={{ borderColor: THEME.pink[200], backgroundColor: THEME.pink[100], color: THEME.text[700] }}>
                   <span>{language || "code"}</span>
                 </div>
                 <div className="relative">
@@ -842,6 +893,17 @@ const MarkdownBubble = React.memo(function MarkdownBubble({ children }: { childr
                   </code>
                 </div>
               </pre>
+            );
+          },
+          del(p: any) {
+            const { children, ...rest } = p;
+            return (
+              <del
+                {...strip(rest)}
+                style={{ textDecoration: 'line-through', opacity: 0.7 }}
+              >
+                {children}
+              </del>
             );
           },
         }}
@@ -873,6 +935,8 @@ function hydrate(raw: string | null): Conversation[] | null {
 const lisaImages = ["/lisa.png", "/lisa2.png", "/lisa3.png", "/lisa4.png", "/lisa5.png"];
 
 function ChatPageInner() {
+  const router = useRouter();
+  
   /* ---- State ---- */
   const [sessions, setSessions] = useState<Conversation[]>(() => {
   const normalized = hydrate(safeLSGet(SESSIONS_KEY));
@@ -1013,8 +1077,13 @@ const [stickToBottom, setStickToBottom] = useState(true);
   useEffect(() => {
     const el = textareaRef.current;
     if (!el) return;
-    el.style.height = "0px";
-    el.style.height = Math.min(160, el.scrollHeight) + "px";
+    if (!input || input.trim() === "") {
+      // Reset to normal height when input is empty
+      el.style.height = "44px";
+    } else {
+      el.style.height = "0px";
+      el.style.height = Math.min(200, el.scrollHeight) + "px";
+    }
   }, [input]);
 
   /* ---- Helpers ---- */
@@ -1258,17 +1327,19 @@ const [stickToBottom, setStickToBottom] = useState(true);
                       // Backend sends accumulated content, so use it directly
                       fullResponse = data.content;
                       
-                      // Use requestAnimationFrame for smoother updates
-                      requestAnimationFrame(() => {
-                        setStreamingContent(fullResponse);
-                      });
-                      
-                      // Smooth auto-scroll during streaming (throttled)
-                      if (stickToBottom) {
+                      // Use requestAnimationFrame for smoother updates with debouncing
+                      if (typeof window !== 'undefined') {
                         requestAnimationFrame(() => {
-                          const el = listRef.current;
-                          if (el) {
-                            el.scrollTop = el.scrollHeight;
+                          setStreamingContent(fullResponse);
+                          
+                          // Smooth auto-scroll during streaming
+                          if (stickToBottom) {
+                            requestAnimationFrame(() => {
+                              const el = listRef.current;
+                              if (el) {
+                                el.scrollTop = el.scrollHeight;
+                              }
+                            });
                           }
                         });
                       }
@@ -1398,15 +1469,15 @@ const [stickToBottom, setStickToBottom] = useState(true);
             setMenuOpen(false);
           }
         }}
-        className="inline-flex w-full cursor-pointer items-center justify-center gap-2 sm:gap-3 rounded-lg sm:rounded-xl bg-pink-400 text-white px-4 sm:px-5 py-3 sm:py-4 text-sm sm:text-base font-semibold transition-all active:bg-pink-500 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-pink-300 touch-manipulation shadow-md"
+        className="inline-flex mb-4 w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-pink-400 text-white px-3 py-2 text-sm font-semibold transition-all active:bg-pink-500 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-pink-300 touch-manipulation shadow-md"
         title="New chat"
         aria-label="Start a new chat"
       >
-        <Plus className="h-4 w-4 sm:h-5 sm:w-5" />
+        <Plus className="h-4 w-4" />
         <span>New Chat</span>
       </button>
 
-      <h4 className="hidden lg:block mt-5 sm:mt-7 mb-3 px-3 text-base font-bold" style={{ color: THEME.text[800] }}>
+      <h4 className="hidden lg:block mt-4 mb-2 px-3 text-sm font-bold" style={{ color: THEME.text[800] }}>
         History
       </h4>
       <nav className="space-y-2 overflow-y-auto overflow-x-hidden flex-1 pr-3 custom-scrollbar" style={{ maxHeight: 'calc(100vh - 200px)' }}>
@@ -1435,7 +1506,7 @@ const [stickToBottom, setStickToBottom] = useState(true);
             aria-label={`Open chat: ${s.title || "Conversation"}`}
           >
             <div className="min-w-0 flex-1">
-              <div className="font-semibold text-sm leading-snug mb-1 line-clamp-2" style={{ color: THEME.text[900] }}>
+              <div className="font-semibold text-sm leading-snug mb-0.5 line-clamp-2" style={{ color: THEME.text[900] }}>
                 {s.title || "Conversation"}
               </div>
               <div className="text-xs" style={{ color: THEME.text[600] }}>
@@ -1500,10 +1571,10 @@ const [stickToBottom, setStickToBottom] = useState(true);
           animation: blink 1s ease-in-out infinite;
         }
         .streaming-content {
-          transition: opacity 0.2s ease-in-out;
+          transition: opacity 0.15s ease-in-out;
         }
         .streaming-text {
-          animation: fadeIn 0.3s ease-in;
+          animation: fadeIn 0.2s ease-in;
         }
         @keyframes fadeIn {
           from {
@@ -1583,7 +1654,7 @@ const [stickToBottom, setStickToBottom] = useState(true);
         aria-label="Sidebar"
       >
         <div
-          className="h-full rounded-none border-r border-foreground/10 p-6 shadow-sm backdrop-blur-md"
+          className="h-full rounded-none border-r border-foreground/10 p-4 shadow-sm backdrop-blur-md"
           style={{ 
             backgroundColor: `rgba(252, 231, 243, 0.85)`,
             backdropFilter: 'blur(10px)',
@@ -1610,7 +1681,7 @@ const [stickToBottom, setStickToBottom] = useState(true);
         aria-label="Mobile Sidebar"
       >
         <div
-          className="h-full border-r-2 p-4 sm:p-6 backdrop-blur-md"
+          className="h-full border-r-2 p-3 sm:p-4 backdrop-blur-md"
           style={{ 
             backgroundColor: `rgba(255, 255, 255, 0.95)`,
             backdropFilter: 'blur(10px)',
@@ -1618,7 +1689,7 @@ const [stickToBottom, setStickToBottom] = useState(true);
             boxShadow: menuOpen ? "4px 0 24px rgba(0, 0, 0, 0.15)" : "none"
           }}
         >
-          <div className="flex items-center justify-between mb-5 pb-5 border-b-2" style={{ borderColor: THEME.pink[200] }}>
+          <div className="flex items-center justify-between mb-3 pb-3 border-b-2" style={{ borderColor: THEME.pink[200] }}>
             <h2 className="text-2xl font-bold" style={{ color: THEME.text[900] }}>History</h2>
             <button
               onClick={() => setMenuOpen(false)}
@@ -1636,7 +1707,7 @@ const [stickToBottom, setStickToBottom] = useState(true);
       {/* Main */}
       <main className="flex min-w-0 flex-1 flex-col transition-all duration-500 ease-in-out lg:pl-72">
         {/* Top bar (mobile) */}
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b-2 px-4 py-3 lg:hidden backdrop-blur-md" style={{ 
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b-2 px-4 py-2 lg:hidden backdrop-blur-md" style={{ 
           borderColor: THEME.pink[300], 
           backgroundColor: `rgba(255, 255, 255, 0.9)`,
           backdropFilter: 'blur(10px)',
@@ -1644,16 +1715,23 @@ const [stickToBottom, setStickToBottom] = useState(true);
         }}>
           <button
             onClick={() => setMenuOpen(true)}
-            className="p-3 rounded-lg transition-all active:bg-pink-100 focus:outline-none focus:ring-2 focus:ring-pink-300 touch-manipulation"
+            className="p-2 rounded-lg transition-all active:bg-pink-100 focus:outline-none focus:ring-2 focus:ring-pink-300 touch-manipulation"
             aria-label="Open history"
             style={{ color: THEME.text[800] }}
           >
-            <History className="h-7 w-7" />
+            <History className="h-6 w-6" />
           </button>
           <div className="flex items-center justify-center flex-1">
-            <span className="text-lg font-bold" style={{ color: THEME.text[900] }}>Lisa</span>
+            <span className="text-base font-bold" style={{ color: THEME.text[900] }}>Lisa</span>
           </div>
-          <div className="w-10" /> {/* Spacer for centering */}
+          <button
+            onClick={() => router.push('/dashboard')}
+            className="p-2 rounded-lg transition-all active:bg-pink-100 focus:outline-none focus:ring-2 focus:ring-pink-300 touch-manipulation"
+            aria-label="Close chat"
+            style={{ color: THEME.text[800] }}
+          >
+            <X className="h-6 w-6" />
+          </button>
         </div>
 
 
@@ -1685,7 +1763,7 @@ const [stickToBottom, setStickToBottom] = useState(true);
             </div>
           </div>
           
-          <div className="relative z-10 mx-auto w-full max-w-3xl px-4 sm:px-6 py-5 sm:py-7 space-y-5">
+          <div className="relative z-10 mx-auto w-full max-w-3xl px-4 sm:px-6 py-3 sm:py-4 space-y-3">
             {(active?.messages ?? []).filter(m => m.content || (isStreaming && m.role === "assistant")).map((m, i) => {
               const isUser = m.role === "user";
               // Check if this is the streaming message: it's the last assistant message and we're currently streaming
@@ -1699,13 +1777,14 @@ const [stickToBottom, setStickToBottom] = useState(true);
                   }`}
                 >
                   <div
-                    className={`rounded-2xl px-6 py-5 text-xl leading-loose sm:px-8 sm:py-6 sm:text-2xl transition-all backdrop-blur-sm ${
+                    className={`rounded-2xl px-4 py-3 text-base leading-relaxed sm:px-5 sm:py-4 sm:text-lg transition-all backdrop-blur-sm ${
                       isUser
                         ? "ml-auto max-w-[90%] sm:max-w-[80%] shadow-lg"
                         : "max-w-[90%] sm:max-w-[80%] bg-white/95 ring-1 shadow-lg"
                     }`}
-                    style={
-                      isUser
+                    style={{
+                      lineHeight: '1.4',
+                      ...(isUser
                         ? { 
                             backgroundColor: `rgba(251, 207, 232, 0.9)`,
                             backdropFilter: 'blur(10px)',
@@ -1718,15 +1797,15 @@ const [stickToBottom, setStickToBottom] = useState(true);
                             color: THEME.text[900],
                             borderColor: THEME.pink[200],
                             boxShadow: "0 4px 16px rgba(0, 0, 0, 0.12)",
-                          }
-                    }
+                          })
+                    }}
                   >
                     {isStreamingMsg ? (
                       <div className="relative w-full min-h-[20px] streaming-content">
                         {streamingContent ? (
                           <div className="streaming-text wrap-break-words" style={{ 
-                            fontSize: '1.25rem',
-                            lineHeight: '1.8',
+                            fontSize: '1rem',
+                            lineHeight: '1.4',
                             color: THEME.text[900],
                             fontWeight: 500,
                             letterSpacing: '0.01em',
@@ -1736,7 +1815,7 @@ const [stickToBottom, setStickToBottom] = useState(true);
                           }}>
                             {renderMarkdownText(streamingContent)}
                             <span 
-                              className="inline-block w-0.5 h-7 ml-2 mb-1 align-middle rounded-sm streaming-cursor" 
+                              className="inline-block w-0.5 h-5 ml-1 mb-0.5 align-middle rounded-sm streaming-cursor" 
                               style={{ 
                                 backgroundColor: THEME.pink[500],
                                 transition: 'opacity 0.2s ease-in-out',
@@ -1757,13 +1836,13 @@ const [stickToBottom, setStickToBottom] = useState(true);
                     ) : (
                       <>
                         {m.isGreeting ? (
-                          <div className="text-3xl sm:text-4xl font-bold" style={{ color: THEME.pink[600] }}>
+                          <div className="text-xl sm:text-2xl font-bold" style={{ color: THEME.pink[600], lineHeight: '1.4' }}>
                             {m.content}
                           </div>
                         ) : (
                           <div className="wrap-break-words" style={{ 
-                            fontSize: '1.25rem',
-                            lineHeight: '1.8',
+                            fontSize: '1rem',
+                            lineHeight: '1.4',
                             color: THEME.text[900],
                             fontWeight: 500,
                             letterSpacing: '0.01em',
@@ -1774,14 +1853,6 @@ const [stickToBottom, setStickToBottom] = useState(true);
                             {renderMarkdownText(m.content)}
                           </div>
                         )}
-                        {m.ts && (
-                          <div className="mt-4 text-base" style={{ color: THEME.text[600] }}>
-                            {new Date(m.ts).toLocaleTimeString(DATE_LOCALE, {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </div>
-                        )}
                       </>
                     )}
                   </div>
@@ -1789,16 +1860,16 @@ const [stickToBottom, setStickToBottom] = useState(true);
               );
             })}
             {loading && !isStreaming && (
-              <div className="flex items-center gap-4 pl-14 sm:pl-16 text-lg sm:text-xl" style={{ color: THEME.text[700] }}>
+              <div className="flex items-center gap-3 pl-10 sm:pl-12 text-base sm:text-lg" style={{ color: THEME.text[700] }}>
                 <div className="flex gap-2">
-                  <div className="w-3 h-3 rounded-full animate-bounce" style={{ backgroundColor: THEME.pink[500], animationDelay: "0ms" }} />
-                  <div className="w-3 h-3 rounded-full animate-bounce" style={{ backgroundColor: THEME.pink[500], animationDelay: "150ms" }} />
-                  <div className="w-3 h-3 rounded-full animate-bounce" style={{ backgroundColor: THEME.pink[500], animationDelay: "300ms" }} />
+                  <div className="w-2.5 h-2.5 rounded-full animate-bounce" style={{ backgroundColor: THEME.pink[500], animationDelay: "0ms" }} />
+                  <div className="w-2.5 h-2.5 rounded-full animate-bounce" style={{ backgroundColor: THEME.pink[500], animationDelay: "150ms" }} />
+                  <div className="w-2.5 h-2.5 rounded-full animate-bounce" style={{ backgroundColor: THEME.pink[500], animationDelay: "300ms" }} />
                 </div>
                 <span className="italic font-medium">Lisa is thinking...</span>
               </div>
             )}
-            <div ref={bottomRef} style={{ height: '1px', marginTop: '2rem' }} />
+            <div ref={bottomRef} style={{ height: '1px', marginTop: '1rem' }} />
           </div>
         </section>
 
@@ -1816,9 +1887,13 @@ const [stickToBottom, setStickToBottom] = useState(true);
               const text = input.trim();
               if (!text || loading) return;
               const id = activeId ?? await newChat();
+              // Reset textarea height immediately
+              if (textareaRef.current) {
+                textareaRef.current.style.height = "44px";
+              }
               void sendToAPI(text, id);
             }}
-            className="mx-auto flex w-full max-w-3xl items-end gap-3 sm:gap-4 px-4 sm:px-6 py-4 sm:py-5"
+            className="mx-auto flex w-full max-w-3xl items-end gap-2 sm:gap-3 px-4 sm:px-6 py-3 sm:py-4"
           >
             <div className="relative flex w-full items-center">
               <label htmlFor="composer" className="sr-only">
@@ -1842,16 +1917,16 @@ const [stickToBottom, setStickToBottom] = useState(true);
                   }}
                   aria-label="Type your message"
                   placeholder="Ask anything..."
-                  className="w-full resize-none overflow-hidden rounded-full border-0 px-6 py-5 pr-16 sm:px-8 sm:py-6 sm:pr-20 outline-none transition-all touch-manipulation"
+                  className="w-full resize-none overflow-hidden rounded-full border-0 px-4 py-3 pr-14 sm:px-5 sm:py-4 sm:pr-16 outline-none transition-all touch-manipulation"
                   style={{ 
                     background: '#FFFFFF',
                     color: THEME.text[900],
-                    minHeight: '56px',
-                    maxHeight: '240px',
-                    fontSize: '1.25rem',
-                    lineHeight: '1.5',
-                    paddingTop: '1.25rem',
-                    paddingBottom: '1.25rem',
+                    minHeight: '44px',
+                    maxHeight: '200px',
+                    fontSize: '1rem',
+                    lineHeight: '1.4',
+                    paddingTop: '0.75rem',
+                    paddingBottom: '0.75rem',
                   }}
                 />
               </div>
@@ -1860,7 +1935,7 @@ const [stickToBottom, setStickToBottom] = useState(true);
             <button
               type="submit"
               disabled={!input.trim() || loading}
-              className="inline-flex h-14 w-14 sm:h-18 sm:w-18 shrink-0 items-center justify-center rounded-full text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 focus:outline-none touch-manipulation shadow-lg"
+              className="inline-flex h-11 w-11 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-full text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 focus:outline-none touch-manipulation shadow-lg"
               style={{ 
                 backgroundColor: input.trim() ? '#3B82F6' : '#E5E7EB',
                 color: input.trim() ? '#FFFFFF' : '#9CA3AF',
@@ -1868,9 +1943,9 @@ const [stickToBottom, setStickToBottom] = useState(true);
               aria-label="Send message"
             >
               {loading ? (
-                <Loader2 className="h-6 w-6 sm:h-7 sm:w-7 animate-spin" />
+                <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 animate-spin" />
               ) : (
-                <Send className="h-6 w-6 sm:h-7 sm:w-7" />
+                <Send className="h-5 w-5 sm:h-6 sm:w-6" />
               )}
             </button>
 

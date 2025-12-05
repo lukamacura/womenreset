@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Plus } from "lucide-react";
+import { Activity } from "lucide-react";
 import AddSymptomModal from "@/components/symptoms/AddSymptomModal";
 import SymptomList, { type Symptom } from "@/components/symptoms/SymptomList";
 import SymptomStats from "@/components/symptoms/SymptomStats";
@@ -112,14 +112,14 @@ export default function SymptomsPage() {
             Symptom Tracker
           </h1>
           <p className="text-base text-muted-foreground mt-1">
-            Track how you're feeling over time.
+            Track how you are feeling over time.
           </p>
         </div>
         <button
           onClick={() => setIsModalOpen(true)}
-          className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-base font-semibold text-white shadow-md transition-all hover:bg-primary/90 hover:translate-y-px"
+          className="inline-flex justify-center items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-lg font-bold text-white shadow-md transition-all hover:bg-primary/90 hover:translate-y-px"
         >
-          <Plus className="h-5 w-5" />
+          <Activity className="h-5 w-5" />
           Add symptom
         </button>
       </header>

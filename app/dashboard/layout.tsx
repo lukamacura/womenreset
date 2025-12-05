@@ -1,10 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { MessageSquare, LayoutDashboard, Activity, UtensilsCrossed, Dumbbell, LogOut } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
-import { useState } from "react";
 
 export default function DashboardLayout({
   children,

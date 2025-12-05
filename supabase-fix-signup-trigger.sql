@@ -77,3 +77,4 @@ FOR EACH ROW
 EXECUTE FUNCTION update_trial_end();
 
 
+

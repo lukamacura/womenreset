@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Plus } from "lucide-react";
+import { ForkKnifeCrossed } from "lucide-react";
 import AddNutritionModal from "@/components/nutrition/AddNutritionModal";
 import NutritionList, { type Nutrition } from "@/components/nutrition/NutritionList";
 import NutritionStats from "@/components/nutrition/NutritionStats";
@@ -147,9 +147,9 @@ export default function NutritionPage() {
         </div>
         <button
           onClick={() => setIsModalOpen(true)}
-          className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-base font-semibold text-white shadow-md transition-all hover:bg-primary/90 hover:translate-y-px"
+          className="inline-flex font-bold text-lg justify-center items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-white shadow-md transition-all hover:bg-primary/90 hover:translate-y-px"
         >
-          <Plus className="h-5 w-5" />
+          <ForkKnifeCrossed className="h-5 w-5" />
           Add meal
         </button>
       </header>

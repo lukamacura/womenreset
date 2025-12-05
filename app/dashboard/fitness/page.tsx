@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Plus } from "lucide-react";
+import { Dumbbell } from "lucide-react";
 import AddFitnessModal from "@/components/fitness/AddFitnessModal";
 import FitnessList, { type Fitness } from "@/components/fitness/FitnessList";
 import FitnessStats from "@/components/fitness/FitnessStats";
@@ -147,9 +147,9 @@ export default function FitnessPage() {
         </div>
         <button
           onClick={() => setIsModalOpen(true)}
-          className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-base font-semibold text-white shadow-md transition-all hover:bg-primary/90 hover:translate-y-px"
+          className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-lg justify-center  font-bold text-white shadow-md transition-all hover:bg-primary/90 hover:translate-y-px"
         >
-          <Plus className="h-5 w-5" />
+          <Dumbbell className="h-5 w-5" />
           Add workout
         </button>
       </header>
