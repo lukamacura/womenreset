@@ -137,8 +137,8 @@ function QuickChatCard({
           <Image
             src="/profile.webp"
             alt="Lisa"
-            width={64}
-            height={64}
+            width={200}
+            height={200}
             className="rounded-full sm:w-20 sm:h-20"
           />
         </div>

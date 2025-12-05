@@ -87,10 +87,10 @@ export default function DashboardLayout({
             {/* Logout Button */}
             <button
               onClick={handleLogout}
-              className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-foreground/5 hover:text-foreground transition-colors duration-200"
+              className="flex items-center cursor-pointer gap-2 rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-foreground/5 hover:text-foreground transition-colors duration-200"
             >
               <LogOut className="h-5 w-5" />
-              <span className="hidden sm:inline">Logout</span>
+              <span className="hidden sm:inline">Sign out</span>
             </button>
           </div>
         </div>
