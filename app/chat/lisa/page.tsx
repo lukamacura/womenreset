@@ -24,6 +24,8 @@ import {
   Check,
   Link as LinkIcon,
   Quote,
+  MessageSquare,
+  History,
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -226,6 +228,334 @@ function CopyButton({ text }: { text: string }) {
       {copied ? "Copied" : "Copy"}
     </button>
   );
+}
+
+// Enhanced markdown renderer with support for headings, dividers, blockquotes, tables, bold, italic
+function renderMarkdownText(text: string) {
+  if (!text) return null;
+  
+  // Split text into blocks (paragraphs, headings, dividers, blockquotes, tables)
+  const blocks: Array<{ type: string; content: string }> = [];
+  const lines = text.split('\n');
+  let currentBlock: { type: string; content: string } | null = null;
+  let inTable = false;
+  let tableRows: string[] = [];
+  
+  lines.forEach((line, idx) => {
+    const trimmed = line.trim();
+    
+    // Check for horizontal rule
+    if (/^[-*_]{3,}$/.test(trimmed)) {
+      if (currentBlock) {
+        blocks.push(currentBlock);
+        currentBlock = null;
+      }
+      blocks.push({ type: 'hr', content: '' });
+      return;
+    }
+    
+    // Check for headings
+    const headingMatch = trimmed.match(/^(#{1,3})\s+(.+)$/);
+    if (headingMatch) {
+      if (currentBlock) {
+        blocks.push(currentBlock);
+        currentBlock = null;
+      }
+      blocks.push({ type: `h${headingMatch[1].length}`, content: headingMatch[2] });
+      return;
+    }
+    
+    // Check for blockquote
+    if (trimmed.startsWith('> ')) {
+      if (currentBlock?.type !== 'blockquote') {
+        if (currentBlock) blocks.push(currentBlock);
+        currentBlock = { type: 'blockquote', content: trimmed.slice(2) };
+      } else {
+        currentBlock.content += '\n' + trimmed.slice(2);
+      }
+      return;
+    }
+    
+    // Check for table
+    if (trimmed.includes('|') && trimmed.split('|').length >= 3) {
+      if (!inTable) {
+        if (currentBlock) {
+          blocks.push(currentBlock);
+          currentBlock = null;
+        }
+        inTable = true;
+        tableRows = [];
+      }
+      // Skip separator row (|---|---|)
+      if (!/^[\s|:\-]+$/.test(trimmed)) {
+        tableRows.push(trimmed);
+      }
+      return;
+    } else {
+      if (inTable && tableRows.length > 0) {
+        blocks.push({ type: 'table', content: tableRows.join('\n') });
+        tableRows = [];
+        inTable = false;
+      }
+    }
+    
+    // Regular paragraph
+    if (trimmed) {
+      if (currentBlock?.type !== 'paragraph') {
+        if (currentBlock) blocks.push(currentBlock);
+        currentBlock = { type: 'paragraph', content: trimmed };
+      } else {
+        currentBlock.content += '\n' + trimmed;
+      }
+    } else {
+      if (currentBlock) {
+        blocks.push(currentBlock);
+        currentBlock = null;
+      }
+    }
+  });
+  
+  // Add remaining blocks
+  if (inTable && tableRows.length > 0) {
+    blocks.push({ type: 'table', content: tableRows.join('\n') });
+  }
+  if (currentBlock) {
+    blocks.push(currentBlock);
+  }
+  
+  // Render blocks
+  return (
+    <>
+      {blocks.map((block, blockIdx) => {
+        if (block.type === 'hr') {
+          return (
+            <hr
+              key={`hr-${blockIdx}`}
+              style={{
+                border: 'none',
+                borderTop: `2px solid ${THEME.pink[200]}`,
+                margin: '2rem 0',
+                background: `linear-gradient(to right, transparent, ${THEME.pink[300]}, transparent)`,
+                height: '1px',
+              }}
+            />
+          );
+        }
+        
+        if (block.type.startsWith('h')) {
+          const level = parseInt(block.type[1]);
+          const sizes = { 1: '2.5rem', 2: '2rem', 3: '1.5rem' };
+          const weights = { 1: 800, 2: 700, 3: 600 };
+          const margins = { 1: '2rem 0 1rem', 2: '1.5rem 0 0.75rem', 3: '1.25rem 0 0.5rem' };
+          
+          return (
+            <div
+              key={`${block.type}-${blockIdx}`}
+              style={{
+                fontSize: sizes[level as keyof typeof sizes],
+                fontWeight: weights[level as keyof typeof weights],
+                color: THEME.pink[600],
+                margin: margins[level as keyof typeof margins],
+                lineHeight: '1.2',
+                letterSpacing: '-0.02em',
+              }}
+            >
+              {renderInlineMarkdown(block.content)}
+            </div>
+          );
+        }
+        
+        if (block.type === 'blockquote') {
+          return (
+            <blockquote
+              key={`blockquote-${blockIdx}`}
+              style={{
+                borderLeft: `4px solid ${THEME.pink[400]}`,
+                paddingLeft: '1.5rem',
+                margin: '1.5rem 0',
+                fontStyle: 'italic',
+                color: THEME.text[700],
+                backgroundColor: THEME.pink[50],
+                padding: '1rem 1.5rem',
+                borderRadius: '0.5rem',
+              }}
+            >
+              {block.content.split('\n').map((line, lineIdx) => (
+                <div key={lineIdx}>{renderInlineMarkdown(line)}</div>
+              ))}
+            </blockquote>
+          );
+        }
+        
+        if (block.type === 'table') {
+          const rows = block.content.split('\n').filter(r => r.trim());
+          if (rows.length === 0) return null;
+          
+          const headerRow = rows[0].split('|').map(c => c.trim()).filter(c => c);
+          const dataRows = rows.slice(1).map(row => 
+            row.split('|').map(c => c.trim()).filter(c => c)
+          );
+          
+          return (
+            <div
+              key={`table-${blockIdx}`}
+              style={{
+                margin: '1.5rem 0',
+                overflowX: 'auto',
+                borderRadius: '0.75rem',
+                border: `1px solid ${THEME.pink[200]}`,
+                overflow: 'hidden',
+              }}
+            >
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ backgroundColor: THEME.pink[100] }}>
+                    {headerRow.map((cell, cellIdx) => (
+                      <th
+                        key={cellIdx}
+                        style={{
+                          padding: '0.75rem 1rem',
+                          textAlign: 'left',
+                          fontWeight: 700,
+                          color: THEME.text[900],
+                          borderBottom: `2px solid ${THEME.pink[300]}`,
+                        }}
+                      >
+                        {renderInlineMarkdown(cell)}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {dataRows.map((row, rowIdx) => (
+                    <tr
+                      key={rowIdx}
+                      style={{
+                        backgroundColor: rowIdx % 2 === 0 ? 'white' : THEME.pink[50],
+                      }}
+                    >
+                      {row.map((cell, cellIdx) => (
+                        <td
+                          key={cellIdx}
+                          style={{
+                            padding: '0.75rem 1rem',
+                            borderBottom: `1px solid ${THEME.pink[200]}`,
+                            color: THEME.text[800],
+                          }}
+                        >
+                          {renderInlineMarkdown(cell)}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          );
+        }
+        
+        // Regular paragraph
+        return (
+          <p
+            key={`para-${blockIdx}`}
+            style={{
+              marginBottom: blockIdx < blocks.length - 1 ? '1.5rem' : '0',
+              fontSize: '1.25rem',
+              lineHeight: '1.8',
+              color: THEME.text[900],
+              fontWeight: 500,
+              letterSpacing: '0.01em',
+              textShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+              WebkitFontSmoothing: 'antialiased',
+              MozOsxFontSmoothing: 'grayscale',
+            }}
+          >
+            {renderInlineMarkdown(block.content)}
+          </p>
+        );
+      })}
+    </>
+  );
+}
+
+// Helper function to render inline markdown (bold, italic) within text
+function renderInlineMarkdown(text: string) {
+  if (!text) return null;
+  
+  const parts: (string | React.ReactElement)[] = [];
+  let currentIndex = 0;
+  let keyCounter = 0;
+  
+  // Match **bold** and *italic* (but not if it's part of **)
+  // First collect all bold matches to exclude them from italic matching
+  const boldMatches: Array<{ start: number; end: number }> = [];
+  const boldRegex = /\*\*(.+?)\*\*/g;
+  let boldMatch;
+  while ((boldMatch = boldRegex.exec(text)) !== null) {
+    boldMatches.push({ start: boldMatch.index, end: boldMatch.index + boldMatch[0].length });
+  }
+  
+  const matches: Array<{ start: number; end: number; content: string; type: string }> = [];
+  
+  // Add bold matches
+  boldMatches.forEach(({ start, end }) => {
+    const content = text.slice(start + 2, end - 2);
+    matches.push({ start, end, content, type: 'bold' });
+  });
+  
+  // Add italic matches, but exclude those that overlap with bold
+  const italicRegex = /\*([^*]+?)\*/g;
+  let italicMatch;
+  while ((italicMatch = italicRegex.exec(text)) !== null) {
+    const start = italicMatch.index;
+    const end = start + italicMatch[0].length;
+    // Check if this italic match overlaps with any bold match
+    const overlaps = boldMatches.some(bm => 
+      (start >= bm.start && start < bm.end) || 
+      (end > bm.start && end <= bm.end) ||
+      (start <= bm.start && end >= bm.end)
+    );
+    if (!overlaps) {
+      matches.push({ start, end, content: italicMatch[1], type: 'italic' });
+    }
+  }
+  
+  matches.sort((a, b) => a.start - b.start);
+  
+  matches.forEach((match) => {
+    if (match.start > currentIndex) {
+      const beforeText = text.slice(currentIndex, match.start);
+      if (beforeText) {
+        parts.push(beforeText);
+      }
+    }
+    
+    if (match.type === 'bold') {
+      parts.push(
+        <strong key={`bold-${keyCounter++}`} style={{ fontWeight: 700, color: THEME.text[900] }}>
+          {match.content}
+        </strong>
+      );
+    } else if (match.type === 'italic') {
+      parts.push(
+        <em key={`italic-${keyCounter++}`} style={{ fontStyle: 'italic' }}>
+          {match.content}
+        </em>
+      );
+    }
+    
+    currentIndex = match.end;
+  });
+  
+  if (currentIndex < text.length) {
+    parts.push(text.slice(currentIndex));
+  }
+  
+  if (parts.length === 0) {
+    return text;
+  }
+  
+  return <>{parts}</>;
 }
 
 const MarkdownBubble = React.memo(function MarkdownBubble({ children }: { children: string }) {
@@ -540,6 +870,8 @@ function hydrate(raw: string | null): Conversation[] | null {
   }
 }
 
+const lisaImages = ["/lisa.png", "/lisa2.png", "/lisa3.png", "/lisa4.png", "/lisa5.png"];
+
 function ChatPageInner() {
   /* ---- State ---- */
   const [sessions, setSessions] = useState<Conversation[]>(() => {
@@ -570,6 +902,8 @@ function ChatPageInner() {
   const [streamingContent, setStreamingContent] = useState<string>("");
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [isLisaThinking, setIsLisaThinking] = useState(false);
+  const [lisaImageIndex, setLisaImageIndex] = useState(0);
 
   // ✅ auth user id (no localStorage)
   const [userId, setUserId] = useState<string | null>(null);
@@ -593,6 +927,24 @@ function ChatPageInner() {
       sub.subscription.unsubscribe();
     };
   }, []);
+
+  // Animate through Lisa images when sending/thinking
+  useEffect(() => {
+    if (!isLisaThinking) {
+      // Reset to first image when not thinking
+      setLisaImageIndex(0);
+      return;
+    }
+
+    // Start animation when thinking
+    let currentIndex = 0;
+    const interval = setInterval(() => {
+      currentIndex = (currentIndex + 1) % lisaImages.length;
+      setLisaImageIndex(currentIndex);
+    }, 500); // Change image every 500ms for fast animation (2s total for 4 images)
+
+    return () => clearInterval(interval);
+  }, [isLisaThinking]);
 
 
   // Chat list refs (auto-scroll)
@@ -633,9 +985,9 @@ const [stickToBottom, setStickToBottom] = useState(true);
     if (!el) return;
     const ro = new ResizeObserver(() => {
       if (stickToBottom) {
-        bottomRef.current?.scrollIntoView({
-          behavior: "smooth",
-          block: "end",
+        // Scroll to bottom to ensure full visibility
+        requestAnimationFrame(() => {
+          el.scrollTop = el.scrollHeight;
         });
       }
     });
@@ -645,12 +997,16 @@ const [stickToBottom, setStickToBottom] = useState(true);
 
   useEffect(() => {
     if (stickToBottom) {
-      bottomRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "end",
-      });
+      // Use setTimeout to ensure DOM is updated
+      setTimeout(() => {
+        const el = listRef.current;
+        if (el) {
+          // Scroll to absolute bottom to ensure full visibility
+          el.scrollTop = el.scrollHeight;
+        }
+      }, 100);
     }
-  }, [sessions, activeId, loading, stickToBottom]);
+  }, [sessions, activeId, loading, stickToBottom, streamingContent]);
 
   /* ---- Textarea autosize ---- */
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -807,6 +1163,7 @@ const [stickToBottom, setStickToBottom] = useState(true);
       setInput("");
       setLoading(true);
       setIsStreaming(true);
+      setIsLisaThinking(true);
       setStreamingContent("");
       setStreamingMessageId(id);
       setStickToBottom(true);
@@ -909,11 +1266,9 @@ const [stickToBottom, setStickToBottom] = useState(true);
                       // Smooth auto-scroll during streaming (throttled)
                       if (stickToBottom) {
                         requestAnimationFrame(() => {
-                          if (bottomRef.current) {
-                            bottomRef.current.scrollIntoView({
-                              behavior: "smooth",
-                              block: "end",
-                            });
+                          const el = listRef.current;
+                          if (el) {
+                            el.scrollTop = el.scrollHeight;
                           }
                         });
                       }
@@ -940,6 +1295,7 @@ const [stickToBottom, setStickToBottom] = useState(true);
                       setStreamingMessageId(null);
                       setIsStreaming(false);
                       setLoading(false);
+                      setIsLisaThinking(false);
                       return;
                     } else if (data.type === "error") {
                       throw new Error(data.error || "Streaming error");
@@ -982,6 +1338,7 @@ const [stickToBottom, setStickToBottom] = useState(true);
             setStreamingMessageId(null);
             setIsStreaming(false);
             setLoading(false);
+            setIsLisaThinking(false);
           }
         } else {
           // Non-streaming response (fallback)
@@ -1009,6 +1366,7 @@ const [stickToBottom, setStickToBottom] = useState(true);
           setStreamingMessageId(null);
           setIsStreaming(false);
           setLoading(false);
+          setIsLisaThinking(false);
         }
       } catch (e: any) {
         const safeMsg = String(e?.message || "unknown error").replace(
@@ -1023,6 +1381,7 @@ const [stickToBottom, setStickToBottom] = useState(true);
         setStreamingMessageId(null);
         setIsStreaming(false);
         setLoading(false);
+        setIsLisaThinking(false);
       }
     },
     [activeId, sessions, upsertAndAppendMessage, userId, stickToBottom],
@@ -1031,15 +1390,6 @@ const [stickToBottom, setStickToBottom] = useState(true);
   /* ---- UI ---- */
   const SidebarContent = (
     <div className="flex h-full flex-col">
-      <div className="mb-4 sm:mb-6 flex items-center justify-center">
-        <Image
-          src="/lisa.png"
-          alt="Lisa"
-          width={80}
-          height={80}
-          className="rounded-full object-cover sm:w-28 sm:h-28"
-        />
-      </div>
 
       <button
         onClick={() => {
@@ -1056,10 +1406,10 @@ const [stickToBottom, setStickToBottom] = useState(true);
         <span>New Chat</span>
       </button>
 
-      <h4 className="mt-5 sm:mt-7 mb-4 px-3 text-lg sm:text-xl font-bold" style={{ color: THEME.text[800] }}>
+      <h4 className="hidden lg:block mt-5 sm:mt-7 mb-3 px-3 text-base font-bold" style={{ color: THEME.text[800] }}>
         History
       </h4>
-      <nav className="space-y-3 overflow-y-auto overflow-x-hidden flex-1 pr-3 custom-scrollbar" style={{ maxHeight: 'calc(100vh - 200px)' }}>
+      <nav className="space-y-2 overflow-y-auto overflow-x-hidden flex-1 pr-3 custom-scrollbar" style={{ maxHeight: 'calc(100vh - 200px)' }}>
         {sessions.length === 0 && (
           <div className="px-5 py-7 text-center text-lg" style={{ color: THEME.text[600] }}>
             No conversations yet.
@@ -1069,7 +1419,7 @@ const [stickToBottom, setStickToBottom] = useState(true);
         {sessions.map((s) => (
           <div
             key={s.id}
-            className={`group relative flex cursor-pointer items-start gap-4 rounded-xl px-5 py-4 text-lg transition-all active:scale-[0.98] touch-manipulation ${
+            className={`group relative flex cursor-pointer items-start gap-2 rounded-lg px-3 py-2 text-sm transition-all active:scale-[0.98] touch-manipulation ${
               s.id === activeId 
                 ? "bg-pink-300 shadow-sm" 
                 : "bg-white/60 active:bg-white/80 hover:bg-white/70"
@@ -1085,10 +1435,10 @@ const [stickToBottom, setStickToBottom] = useState(true);
             aria-label={`Open chat: ${s.title || "Conversation"}`}
           >
             <div className="min-w-0 flex-1">
-              <div className="font-semibold text-lg leading-snug mb-2 line-clamp-2" style={{ color: THEME.text[900] }}>
+              <div className="font-semibold text-sm leading-snug mb-1 line-clamp-2" style={{ color: THEME.text[900] }}>
                 {s.title || "Conversation"}
               </div>
-              <div className="text-base" style={{ color: THEME.text[600] }}>
+              <div className="text-xs" style={{ color: THEME.text[600] }}>
                 {new Date(s.updatedAt).toLocaleDateString(DATE_LOCALE, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
               </div>
             </div>
@@ -1103,12 +1453,12 @@ const [stickToBottom, setStickToBottom] = useState(true);
                   return rest;
                 });
               }}
-              className="cursor-pointer p-2.5 rounded-lg transition-all active:bg-red-100 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-red-300 touch-manipulation shrink-0"
+              className="cursor-pointer p-1.5 rounded-lg transition-all active:bg-red-100 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-red-300 touch-manipulation shrink-0"
               title="Delete chat"
               aria-label="Delete chat"
               style={{ color: THEME.text[700] }}
             >
-              <Trash className="h-6 w-6" />
+              <Trash className="h-4 w-4" />
             </button>
           </div>
         ))}
@@ -1165,27 +1515,79 @@ const [stickToBottom, setStickToBottom] = useState(true);
             transform: translateY(0);
           }
         }
+        #composer::placeholder {
+          color: #6B7280;
+          opacity: 1;
+          line-height: 1.5;
+          vertical-align: middle;
+        }
+        #composer {
+          display: flex;
+          align-items: center;
+        }
       `}</style>
       <div
-        className="flex min-h-dvh w-full text-foreground transition-all duration-500 ease-in-out"
+        className="flex h-screen w-full text-foreground transition-all duration-500 ease-in-out relative overflow-hidden"
         style={{
-          background: `linear-gradient(
-            180deg,
-            ${THEME.background.light} 0%,
-            ${THEME.pink[100]} 50%,
-            ${THEME.purple[100]} 100%
-          )`,
           color: THEME.text[900],
         }}
       >
+        {/* Nature-inspired gradient background with texture */}
+        <div 
+          className="absolute inset-0"
+          style={{
+            background: `
+              radial-gradient(ellipse 120% 80% at 20% 20%, rgba(255, 182, 193, 0.5) 0%, transparent 60%),
+              radial-gradient(ellipse 100% 70% at 80% 60%, rgba(221, 160, 221, 0.4) 0%, transparent 60%),
+              radial-gradient(ellipse 90% 60% at 50% 80%, rgba(255, 228, 225, 0.35) 0%, transparent 60%),
+              radial-gradient(ellipse 70% 50% at 10% 50%, rgba(255, 192, 203, 0.3) 0%, transparent 50%),
+              linear-gradient(135deg, 
+                #FDF2F8 0%, 
+                #FCE7F3 20%, 
+                #F9E8FF 40%,
+                #F3E8FF 60%, 
+                #E9D5FF 80%, 
+                #FDF4FF 100%
+              )
+            `,
+          }}
+        >
+          {/* Subtle texture overlay */}
+          <div 
+            className="absolute inset-0 opacity-30"
+            style={{
+              backgroundImage: `
+                radial-gradient(circle at 2px 2px, rgba(236, 72, 153, 0.15) 1px, transparent 0),
+                radial-gradient(circle at 8px 8px, rgba(168, 85, 247, 0.1) 1px, transparent 0)
+              `,
+              backgroundSize: '20px 20px, 16px 16px',
+            }}
+          />
+          {/* Soft cloud-like shapes */}
+          <div 
+            className="absolute top-0 left-0 w-full h-full opacity-25"
+            style={{
+              background: `
+                radial-gradient(ellipse 900px 500px at 15% 15%, rgba(255, 182, 193, 0.45), transparent),
+                radial-gradient(ellipse 700px 600px at 85% 35%, rgba(221, 160, 221, 0.35), transparent),
+                radial-gradient(ellipse 800px 450px at 45% 75%, rgba(255, 228, 225, 0.35), transparent),
+                radial-gradient(ellipse 600px 400px at 5% 50%, rgba(255, 192, 203, 0.3), transparent)
+              `,
+            }}
+          />
+        </div>
+        <div className="relative z-10 flex h-full w-full">
         {/* Sidebar - Desktop */}
       <aside
         className="fixed inset-y-0 left-0 z-30 hidden w-72 lg:block"
         aria-label="Sidebar"
       >
         <div
-          className="h-full rounded-none border-r border-foreground/10 p-6 shadow-sm backdrop-blur"
-          style={{ backgroundColor: `${THEME.pink[200]}CC` }}
+          className="h-full rounded-none border-r border-foreground/10 p-6 shadow-sm backdrop-blur-md"
+          style={{ 
+            backgroundColor: `rgba(252, 231, 243, 0.85)`,
+            backdropFilter: 'blur(10px)',
+          }}
         >
           {SidebarContent}
         </div>
@@ -1200,59 +1602,55 @@ const [stickToBottom, setStickToBottom] = useState(true);
         />
       )}
 
-      {/* Sidebar - Mobile Drawer */}
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label="Mobile menu"
-        className={`fixed inset-y-0 left-0 z-40 w-80 max-w-[85vw] transform border-r-2 p-4 sm:p-6 backdrop-blur-md transition-transform duration-300 ease-in-out lg:hidden ${
+        {/* Sidebar - Mobile (Toggleable) */}
+      <aside
+        className={`fixed inset-y-0 left-0 z-40 w-72 max-w-[85vw] lg:hidden transform transition-transform duration-300 ease-in-out ${
           menuOpen ? "translate-x-0" : "-translate-x-full"
         }`}
-        style={{ 
-          backgroundColor: THEME.background.white,
-          borderColor: THEME.pink[300],
-          boxShadow: menuOpen ? "4px 0 24px rgba(0, 0, 0, 0.15)" : "none"
-        }}
+        aria-label="Mobile Sidebar"
       >
-        <div className="flex items-center justify-between mb-5 pb-5 border-b-2" style={{ borderColor: THEME.pink[200] }}>
-          <h2 className="text-2xl font-bold" style={{ color: THEME.text[900] }}>Chats</h2>
-          <button
-            onClick={() => setMenuOpen(false)}
-            className="p-3 rounded-lg transition-all hover:bg-pink-100 focus:outline-none focus:ring-2 focus:ring-pink-300"
-            aria-label="Close menu"
-            style={{ color: THEME.text[800] }}
-          >
-            <X className="h-7 w-7" />
-          </button>
+        <div
+          className="h-full border-r-2 p-4 sm:p-6 backdrop-blur-md"
+          style={{ 
+            backgroundColor: `rgba(255, 255, 255, 0.95)`,
+            backdropFilter: 'blur(10px)',
+            borderColor: THEME.pink[300],
+            boxShadow: menuOpen ? "4px 0 24px rgba(0, 0, 0, 0.15)" : "none"
+          }}
+        >
+          <div className="flex items-center justify-between mb-5 pb-5 border-b-2" style={{ borderColor: THEME.pink[200] }}>
+            <h2 className="text-2xl font-bold" style={{ color: THEME.text[900] }}>History</h2>
+            <button
+              onClick={() => setMenuOpen(false)}
+              className="p-3 rounded-lg transition-all hover:bg-pink-100 focus:outline-none focus:ring-2 focus:ring-pink-300"
+              aria-label="Close menu"
+              style={{ color: THEME.text[800] }}
+            >
+              <X className="h-7 w-7" />
+            </button>
+          </div>
+          {SidebarContent}
         </div>
-        {SidebarContent}
-      </div>
+      </aside>
 
       {/* Main */}
       <main className="flex min-w-0 flex-1 flex-col transition-all duration-500 ease-in-out lg:pl-72">
         {/* Top bar (mobile) */}
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b-2 px-4 py-3 lg:hidden" style={{ 
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b-2 px-4 py-3 lg:hidden backdrop-blur-md" style={{ 
           borderColor: THEME.pink[300], 
-          backgroundColor: THEME.background.white,
+          backgroundColor: `rgba(255, 255, 255, 0.9)`,
+          backdropFilter: 'blur(10px)',
           boxShadow: "0 2px 8px rgba(0, 0, 0, 0.05)"
         }}>
           <button
             onClick={() => setMenuOpen(true)}
             className="p-3 rounded-lg transition-all active:bg-pink-100 focus:outline-none focus:ring-2 focus:ring-pink-300 touch-manipulation"
-            aria-label="Open menu"
+            aria-label="Open history"
             style={{ color: THEME.text[800] }}
           >
-            <Menu className="h-7 w-7" />
+            <History className="h-7 w-7" />
           </button>
-          <div className="flex items-center gap-3">
-            <Image
-              src="/lisa.png"
-              alt="Lisa"
-              width={40}
-              height={40}
-              className="rounded-full ring-2"
-              style={{ borderColor: THEME.pink[400] }}
-            />
+          <div className="flex items-center justify-center flex-1">
             <span className="text-lg font-bold" style={{ color: THEME.text[900] }}>Lisa</span>
           </div>
           <div className="w-10" /> {/* Spacer for centering */}
@@ -1262,13 +1660,32 @@ const [stickToBottom, setStickToBottom] = useState(true);
         {/* Chat */}
         <section
           ref={listRef}
-          className="flex-1 overflow-y-auto"
+          className="flex-1 overflow-y-auto relative"
           style={{ 
             scrollBehavior: 'smooth',
-            WebkitOverflowScrolling: 'touch'
+            WebkitOverflowScrolling: 'touch',
+            paddingBottom: '120px',
           }}
         >
-          <div className="mx-auto w-full max-w-3xl px-4 sm:px-6 py-5 sm:py-7 space-y-6">
+          {/* Fixed background character image positioned at bottom-right */}
+          <div className="fixed right-0 bottom-0 pointer-events-none z-0" style={{ right: '5%', bottom: '140px' }}>
+            <div className="relative w-[180px] h-[180px] sm:w-[240px] sm:h-[240px] md:w-[300px] md:h-[300px] opacity-15">
+              {lisaImages.map((src, index) => (
+                <Image
+                  key={src}
+                  src={src}
+                  alt={`Lisa ${index + 1}`}
+                  width={300}
+                  height={300}
+                  className={`absolute inset-0 w-full h-full object-contain transition-opacity duration-500 ease-in-out ${
+                    index === lisaImageIndex ? "opacity-100" : "opacity-0"
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
+          
+          <div className="relative z-10 mx-auto w-full max-w-3xl px-4 sm:px-6 py-5 sm:py-7 space-y-5">
             {(active?.messages ?? []).filter(m => m.content || (isStreaming && m.role === "assistant")).map((m, i) => {
               const isUser = m.role === "user";
               // Check if this is the streaming message: it's the last assistant message and we're currently streaming
@@ -1282,31 +1699,42 @@ const [stickToBottom, setStickToBottom] = useState(true);
                   }`}
                 >
                   <div
-                    className={`rounded-2xl px-6 py-5 text-xl leading-loose sm:px-8 sm:py-6 sm:text-2xl transition-all ${
+                    className={`rounded-2xl px-6 py-5 text-xl leading-loose sm:px-8 sm:py-6 sm:text-2xl transition-all backdrop-blur-sm ${
                       isUser
-                        ? "ml-auto max-w-[90%] sm:max-w-[80%] shadow-md"
-                        : "max-w-[90%] sm:max-w-[80%] bg-white ring-1 shadow-md"
+                        ? "ml-auto max-w-[90%] sm:max-w-[80%] shadow-lg"
+                        : "max-w-[90%] sm:max-w-[80%] bg-white/95 ring-1 shadow-lg"
                     }`}
                     style={
                       isUser
                         ? { 
-                            backgroundColor: THEME.pink[200],
+                            backgroundColor: `rgba(251, 207, 232, 0.9)`,
+                            backdropFilter: 'blur(10px)',
                             color: THEME.text[900],
-                            boxShadow: "0 2px 8px rgba(236, 72, 153, 0.15)",
+                            boxShadow: "0 4px 16px rgba(236, 72, 153, 0.25)",
                           }
                         : {
-                            backgroundColor: THEME.background.white,
+                            backgroundColor: `rgba(255, 255, 255, 0.95)`,
+                            backdropFilter: 'blur(10px)',
                             color: THEME.text[900],
                             borderColor: THEME.pink[200],
-                            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.08)",
+                            boxShadow: "0 4px 16px rgba(0, 0, 0, 0.12)",
                           }
                     }
                   >
                     {isStreamingMsg ? (
                       <div className="relative w-full min-h-[20px] streaming-content">
                         {streamingContent ? (
-                          <div className="streaming-text">
-                            <MarkdownBubble>{streamingContent}</MarkdownBubble>
+                          <div className="streaming-text wrap-break-words" style={{ 
+                            fontSize: '1.25rem',
+                            lineHeight: '1.8',
+                            color: THEME.text[900],
+                            fontWeight: 500,
+                            letterSpacing: '0.01em',
+                            textShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+                            WebkitFontSmoothing: 'antialiased',
+                            MozOsxFontSmoothing: 'grayscale',
+                          }}>
+                            {renderMarkdownText(streamingContent)}
                             <span 
                               className="inline-block w-0.5 h-7 ml-2 mb-1 align-middle rounded-sm streaming-cursor" 
                               style={{ 
@@ -1333,7 +1761,18 @@ const [stickToBottom, setStickToBottom] = useState(true);
                             {m.content}
                           </div>
                         ) : (
-                          <MarkdownBubble>{m.content}</MarkdownBubble>
+                          <div className="wrap-break-words" style={{ 
+                            fontSize: '1.25rem',
+                            lineHeight: '1.8',
+                            color: THEME.text[900],
+                            fontWeight: 500,
+                            letterSpacing: '0.01em',
+                            textShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+                            WebkitFontSmoothing: 'antialiased',
+                            MozOsxFontSmoothing: 'grayscale',
+                          }}>
+                            {renderMarkdownText(m.content)}
+                          </div>
                         )}
                         {m.ts && (
                           <div className="mt-4 text-base" style={{ color: THEME.text[600] }}>
@@ -1359,16 +1798,17 @@ const [stickToBottom, setStickToBottom] = useState(true);
                 <span className="italic font-medium">Lisa is thinking...</span>
               </div>
             )}
-            <div ref={bottomRef} />
+            <div ref={bottomRef} style={{ height: '1px', marginTop: '2rem' }} />
           </div>
         </section>
 
         {/* Composer */}
-        <footer className="sticky bottom-0 z-20 border-t-2 backdrop-blur-md safe-area-inset-bottom" style={{ 
-          background: `linear-gradient(to top, ${THEME.pink[50]} 0%, ${THEME.purple[100]} 100%)`,
+        <footer className="fixed bottom-0 left-0 right-0 z-20 backdrop-blur-md safe-area-inset-bottom lg:left-72" style={{ 
+          backdropFilter: 'blur(10px)',
           borderColor: THEME.pink[300],
           boxShadow: "0 -4px 24px rgba(236, 72, 153, 0.15)",
-          paddingBottom: 'env(safe-area-inset-bottom, 0)'
+          paddingBottom: 'env(safe-area-inset-bottom, 0)',
+          backgroundColor: 'transparent',
         }}>
           <form
             onSubmit={async (e) => {
@@ -1401,14 +1841,17 @@ const [stickToBottom, setStickToBottom] = useState(true);
                     }
                   }}
                   aria-label="Type your message"
-                  placeholder="Message Lisa..."
-                  className="w-full resize-none overflow-hidden rounded-2xl border-2 px-6 py-5 pr-16 sm:px-8 sm:py-6 sm:pr-20 text-xl sm:text-2xl leading-loose outline-none transition-all placeholder:text-xl sm:placeholder:text-2xl shadow-md focus:shadow-lg focus:ring-2 focus:ring-pink-300 touch-manipulation"
+                  placeholder="Ask anything..."
+                  className="w-full resize-none overflow-hidden rounded-full border-0 px-6 py-5 pr-16 sm:px-8 sm:py-6 sm:pr-20 outline-none transition-all touch-manipulation"
                   style={{ 
-                    borderColor: input.trim() ? THEME.pink[400] : THEME.pink[300],
-                    background: THEME.background.white,
+                    background: '#FFFFFF',
                     color: THEME.text[900],
                     minHeight: '56px',
                     maxHeight: '240px',
+                    fontSize: '1.25rem',
+                    lineHeight: '1.5',
+                    paddingTop: '1.25rem',
+                    paddingBottom: '1.25rem',
                   }}
                 />
               </div>
@@ -1417,10 +1860,10 @@ const [stickToBottom, setStickToBottom] = useState(true);
             <button
               type="submit"
               disabled={!input.trim() || loading}
-              className="inline-flex h-14 w-14 sm:h-16 sm:w-16 shrink-0 items-center justify-center rounded-2xl text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 shadow-lg focus:outline-none focus:ring-2 focus:ring-pink-300 touch-manipulation"
+              className="inline-flex h-14 w-14 sm:h-18 sm:w-18 shrink-0 items-center justify-center rounded-full text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 focus:outline-none touch-manipulation shadow-lg"
               style={{ 
-                backgroundColor: input.trim() ? THEME.pink[500] : THEME.pink[300],
-                boxShadow: loading || !input.trim() ? "0 2px 8px rgba(236, 72, 153, 0.2)" : "0 4px 16px rgba(236, 72, 153, 0.5)",
+                backgroundColor: input.trim() ? '#3B82F6' : '#E5E7EB',
+                color: input.trim() ? '#FFFFFF' : '#9CA3AF',
               }}
               aria-label="Send message"
             >
@@ -1434,6 +1877,7 @@ const [stickToBottom, setStickToBottom] = useState(true);
           </form>
         </footer>
       </main>
+        </div>
       </div>
     </>
   );

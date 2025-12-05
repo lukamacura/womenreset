@@ -1,8 +1,18 @@
-import React, { FormEvent, useState } from "react";
+import React, { FormEvent, useState, useEffect } from "react";
 import { Lock, FileText, Gift, ArrowUpRight } from "lucide-react";
 import Image from 'next/image';
+
+const heroImages = [
+  "/hero1.svg",
+  "/hero2.svg",
+  "/hero3.svg",
+  "/hero4.svg",
+];
+
 const MenoLisaHero: React.FC = () => {
   const [query, setQuery] = useState("I ate chocolate cake. 😨 I feel soo gulity!!!");
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
   const handleSubmit = (e?: FormEvent) => {
     if (e) e.preventDefault();
@@ -11,6 +21,32 @@ const MenoLisaHero: React.FC = () => {
       window.location.href = "/register";
     }
   };
+
+  // Rotate images with smooth transitions
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setIsTransitioning(true);
+      
+      // After fade out, change image
+      setTimeout(() => {
+        setCurrentImageIndex((prevIndex) => (prevIndex + 1) % heroImages.length);
+        setIsTransitioning(false);
+      }, 500); // Half of transition duration for smooth fade
+    }, 10000); // Change image every 4 seconds
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Preload all images for smooth transitions
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      heroImages.forEach((src) => {
+        const img = new window.Image(); // ✅ use window.Image here
+        img.src = src;
+      });
+    }
+  }, []);
+  
 
   return (
     <div className="min-h-screen w-full bg-linear-to-b from-pink-100 via-pink-200 to-pink-400 text-slate-900">
@@ -38,16 +74,32 @@ const MenoLisaHero: React.FC = () => {
 
         {/* Chat card */}
         <section className="mt-0 w-full max-w-6xl">
-          {/* Hero illustration */}
+          {/* Hero illustration with rotating images */}
           <div className="mb-8 flex justify-center">
-            <Image
-              src="/hero.svg"
-              alt="Lisa illustration"
-              className="w-full max-w-6xl h-auto"
-              width={1000}
-              height={1000}
-            />
+            <div className="relative w-[70%] max-w-6xl aspect-square sm:aspect-4/3 md:aspect-video">
+              {heroImages.map((src, index) => (
+                <div
+                  key={src}
+                  className={`absolute h-auto w-full mx-auto left-0 right-0 top-0 transition-opacity duration-1000 ease-in-out ${
+                    index === currentImageIndex && !isTransitioning
+                      ? "opacity-100"
+                      : "opacity-0"
+                  }`}
+                >
+                  <Image
+                    src={src}
+                    alt={`Lisa illustration ${index + 1}`}
+                    className="w-full h-auto object-contain"
+                    width={1000}
+                    height={1000}
+                    priority={index === 0}
+                    loading={index === 0 ? "eager" : "lazy"}
+                  />
+                </div>
+              ))}
+            </div>
           </div>
+
 
           <form
             onSubmit={handleSubmit}
