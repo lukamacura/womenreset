@@ -63,31 +63,31 @@ const MenoLisaHero: React.FC = () => {
           <section className="mt-8 w-full max-w-6xl flex flex-col items-center flex-1">
             {/* Hero illustration with rotating images, always fully visible */}
             <div className="mb-8 flex justify-center w-full">
-            <div
-  className="relative w-full max-w-2xl md:max-w-3xl lg:max-w-2xl xl:max-w-xl aspect-7/4 max-h-[60vh]"
->
+              <div
+                className="relative w-full max-w-2xl md:max-w-3xl lg:max-w-2xl xl:max-w-xl aspect-7/4 max-h-[60vh]"
+              >
 
-    {heroImages.map((src, index) => (
-      <div
-        key={src}
-        className={`
+                {heroImages.map((src, index) => (
+                  <div
+                    key={src}
+                    className={`
           absolute inset-0
           transition-opacity duration-700 ease-in-out
           ${index === currentImageIndex ? "opacity-100" : "opacity-0"}
         `}
-      >
-        <Image
-          src={src}
-          alt={`Lisa illustration ${index + 1}`}
-          fill
-          className="object-contain"
-          priority={index === 0}
-          loading={index === 0 ? "eager" : "lazy"}
-        />
-      </div>
-    ))}
-  </div>
-</div>
+                  >
+                    <Image
+                      src={src}
+                      alt={`Lisa illustration ${index + 1}`}
+                      fill
+                      className="object-contain"
+                      priority={index === 0}
+                      loading={index === 0 ? "eager" : "lazy"}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
 
             <form
               onSubmit={handleSubmit}

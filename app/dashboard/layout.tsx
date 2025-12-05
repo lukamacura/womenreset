@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { MessageSquare, LayoutDashboard, Activity, UtensilsCrossed, Dumbbell } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { MessageSquare, LayoutDashboard, Activity, UtensilsCrossed, Dumbbell, LogOut } from "lucide-react";
+import { supabase } from "@/lib/supabaseClient";
+import { useState } from "react";
 
 export default function DashboardLayout({
   children,
@@ -10,6 +12,8 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const [loggingOut, setLoggingOut] = useState(false);
 
   const navItems = [
     {
@@ -39,14 +43,24 @@ export default function DashboardLayout({
     },
   ];
 
+  async function handleLogout() {
+    try {
+      setLoggingOut(true);
+      await supabase.auth.signOut();
+      router.replace("/login");
+      router.refresh();
+    } catch (error) {
+      console.error("Logout error:", error);
+      setLoggingOut(false);
+    }
+  }
+
   return (
     <div className="min-h-screen flex flex-col">
       {/* Top Navigation */}
       <nav className="sticky top-0 z-5 border-b border-foreground/10 bg-background/80 backdrop-blur-sm">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
-
-
             {/* Navigation Links */}
             <div className="flex items-center gap-1">
               {navItems.map((item) => {
@@ -74,6 +88,16 @@ export default function DashboardLayout({
                 );
               })}
             </div>
+
+            {/* Logout Button */}
+            <button
+              onClick={handleLogout}
+              disabled={loggingOut}
+              className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-foreground/5 hover:text-foreground transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <LogOut className="h-5 w-5" />
+              <span className="hidden sm:inline">{loggingOut ? "Logging out..." : "Logout"}</span>
+            </button>
           </div>
         </div>
       </nav>

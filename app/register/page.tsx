@@ -95,14 +95,20 @@ export default function RegisterPage() {
       });
 
       if (error) {
-        const friendly =
-          error.message.includes("email")
-            ? "That email looks unavailable or invalid."
-            : error.message.includes("rate limit")
-            ? "Too many attempts — please wait a moment and try again."
-            : error.message.includes("already registered")
-            ? "An account with this email already exists. Please log in instead."
-            : error.message;
+        console.error("Signup error:", error);
+        let friendly = error.message;
+        
+        if (error.message.includes("email")) {
+          friendly = "That email looks unavailable or invalid.";
+        } else if (error.message.includes("rate limit")) {
+          friendly = "Too many attempts — please wait a moment and try again.";
+        } else if (error.message.includes("already registered")) {
+          friendly = "An account with this email already exists. Please log in instead.";
+        } else if (error.status === 500) {
+          friendly = "Server error during signup. This might be a database configuration issue. Please contact support or try again later.";
+          console.error("500 error details:", error);
+        }
+        
         setErr(friendly);
         setLoading(false);
         return;
@@ -186,7 +192,9 @@ export default function RegisterPage() {
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         const errorMessage = body?.error || "Failed to save your profile. Please try again.";
-        throw new Error(errorMessage);
+        const details = body?.details;
+        // Include details in error message if available (for debugging)
+        throw new Error(details ? `${errorMessage} (${details})` : errorMessage);
       }
 
       // If user has a session, redirect to dashboard
