@@ -207,19 +207,20 @@ function extractObject(content: string): KnowledgeBaseDoc | null {
   if (subtopicMatch) doc.subtopic = subtopicMatch[1];
   
   // Extract answer (handle multiline strings)
-  const answerMatch = content.match(/"answer":\s*"((?:[^"\\]|\\.|\\n)*)"/s);
+  // Removed 's' flag for ES2017 compatibility - pattern already handles newlines via \\n
+  const answerMatch = content.match(/"answer":\s*"((?:[^"\\]|\\.|\\n)*)"/);
   if (answerMatch) {
     doc.answer = answerMatch[1].replace(/\\n/g, '\n').replace(/\\"/g, '"');
   }
   
   // Extract mechanism_summary
-  const mechanismMatch = content.match(/"mechanism_summary":\s*"((?:[^"\\]|\\.|\\n)*)"/s);
+  const mechanismMatch = content.match(/"mechanism_summary":\s*"((?:[^"\\]|\\.|\\n)*)"/);
   if (mechanismMatch) {
     doc.mechanism_summary = mechanismMatch[1].replace(/\\n/g, '\n').replace(/\\"/g, '"');
   }
   
   // Extract action_tips array
-  const actionTipsMatch = content.match(/"action_tips":\s*\[([^\]]+)\]/s);
+  const actionTipsMatch = content.match(/"action_tips":\s*\[([^\]]+)\]/);
   if (actionTipsMatch) {
     const tipsContent = actionTipsMatch[1];
     const tips = tipsContent.match(/"((?:[^"\\]|\\.|\\n)*)"/g);
@@ -231,13 +232,13 @@ function extractObject(content: string): KnowledgeBaseDoc | null {
   }
   
   // Extract motivation_nudge
-  const motivationMatch = content.match(/"motivation_nudge":\s*"((?:[^"\\]|\\.|\\n)*)"/s);
+  const motivationMatch = content.match(/"motivation_nudge":\s*"((?:[^"\\]|\\.|\\n)*)"/);
   if (motivationMatch) {
     doc.motivation_nudge = motivationMatch[1].replace(/\\n/g, '\n').replace(/\\"/g, '"');
   }
   
   // Extract habit_strategy
-  const habitStrategyMatch = content.match(/"habit_strategy":\s*\{([^}]+)\}/s);
+  const habitStrategyMatch = content.match(/"habit_strategy":\s*\{([^}]+)\}/);
   if (habitStrategyMatch) {
     const strategyContent = habitStrategyMatch[1];
     doc.habit_strategy = {};
@@ -245,24 +246,24 @@ function extractObject(content: string): KnowledgeBaseDoc | null {
     const strategyMatch = strategyContent.match(/"strategy":\s*"([^"]+)"/);
     if (strategyMatch) doc.habit_strategy.strategy = strategyMatch[1];
     
-    const explanationMatch = strategyContent.match(/"explanation":\s*"((?:[^"\\]|\\.|\\n)*)"/s);
+    const explanationMatch = strategyContent.match(/"explanation":\s*"((?:[^"\\]|\\.|\\n)*)"/);
     if (explanationMatch) {
       doc.habit_strategy.explanation = explanationMatch[1].replace(/\\n/g, '\n').replace(/\\"/g, '"');
     }
     
-    const exampleMatch = strategyContent.match(/"example":\s*"((?:[^"\\]|\\.|\\n)*)"/s);
+    const exampleMatch = strategyContent.match(/"example":\s*"((?:[^"\\]|\\.|\\n)*)"/);
     if (exampleMatch) {
       doc.habit_strategy.example = exampleMatch[1].replace(/\\n/g, '\n').replace(/\\"/g, '"');
     }
     
-    const habitTipMatch = strategyContent.match(/"habit_tip":\s*"((?:[^"\\]|\\.|\\n)*)"/s);
+    const habitTipMatch = strategyContent.match(/"habit_tip":\s*"((?:[^"\\]|\\.|\\n)*)"/);
     if (habitTipMatch) {
       doc.habit_strategy.habit_tip = habitTipMatch[1].replace(/\\n/g, '\n').replace(/\\"/g, '"');
     }
   }
   
   // Extract follow_up (can be string or array)
-  const followUpArrayMatch = content.match(/"follow_up":\s*\[([^\]]+)\]/s);
+  const followUpArrayMatch = content.match(/"follow_up":\s*\[([^\]]+)\]/);
   if (followUpArrayMatch) {
     const followUpContent = followUpArrayMatch[1];
     const followUps = followUpContent.match(/"((?:[^"\\]|\\.|\\n)*)"/g);
@@ -272,26 +273,26 @@ function extractObject(content: string): KnowledgeBaseDoc | null {
       );
     }
   } else {
-    const followUpStringMatch = content.match(/"follow_up":\s*"((?:[^"\\]|\\.|\\n)*)"/s);
+    const followUpStringMatch = content.match(/"follow_up":\s*"((?:[^"\\]|\\.|\\n)*)"/);
     if (followUpStringMatch) {
       doc.follow_up = followUpStringMatch[1].replace(/\\n/g, '\n').replace(/\\"/g, '"');
     }
   }
   
   // Extract fallback
-  const fallbackMatch = content.match(/"fallback":\s*"((?:[^"\\]|\\.|\\n)*)"/s);
+  const fallbackMatch = content.match(/"fallback":\s*"((?:[^"\\]|\\.|\\n)*)"/);
   if (fallbackMatch) {
     doc.fallback = fallbackMatch[1].replace(/\\n/g, '\n').replace(/\\"/g, '"');
   }
   
   // Extract empathy_fallback
-  const empathyFallbackMatch = content.match(/"empathy_fallback":\s*"((?:[^"\\]|\\.|\\n)*)"/s);
+  const empathyFallbackMatch = content.match(/"empathy_fallback":\s*"((?:[^"\\]|\\.|\\n)*)"/);
   if (empathyFallbackMatch) {
     doc.empathy_fallback = empathyFallbackMatch[1].replace(/\\n/g, '\n').replace(/\\"/g, '"');
   }
   
   // Extract disclaimer
-  const disclaimerMatch = content.match(/"disclaimer":\s*"((?:[^"\\]|\\.|\\n)*)"/s);
+  const disclaimerMatch = content.match(/"disclaimer":\s*"((?:[^"\\]|\\.|\\n)*)"/);
   if (disclaimerMatch) {
     doc.disclaimer = disclaimerMatch[1].replace(/\\n/g, '\n').replace(/\\"/g, '"');
   }
