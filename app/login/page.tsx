@@ -23,6 +23,12 @@ export default function LoginPage() {
         // jednostavna sanitizacija protiv open-redirecta
         redirectTarget.current = r;
       }
+      
+      // Handle error query parameter from auth callback
+      const errorParam = sp.get("error");
+      if (errorParam === "auth_callback_error") {
+        setErr("Email confirmation failed. Please try again or contact support.");
+      }
     } catch {
       /* ignore */
     }

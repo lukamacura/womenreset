@@ -22,58 +22,27 @@ export type MenopauseResetProps = {
 };
 
 const defaults: Required<Omit<MenopauseResetProps, "onPrimaryClick" | "onSecondaryClick">> = {
-  eyebrow: "What if you had a whole team - just for you?",
-  problemTitle: "Your Menopause Support Team, powered by AI.",
+  eyebrow: "Everything you need to feel like yourself again",
+  problemTitle: "Your Complete Menopause Support System",
   problemIntro:
-    "Each expert specializes in one area women struggle with during menopause - and together, they work like your personal reset system.",
+    "Beyond Lisa, your personal AI coach, you get a full ecosystem designed to help you track, understand, and manage every aspect of your menopause journey.",
   problemBullets: [
-    "Personalized answers to your symptoms",
-    "Daily steps in plain English",
-    "Evidence-based guidance you can trust",
+    "Track symptoms, nutrition, and fitness in one place",
+    "Get personalized insights from your data patterns",
+    "Access evidence-based guidance anytime, anywhere",
   ],
-  solutionTitle: "Meet Your AI Team",
+  solutionTitle: "Your Complete Support Ecosystem",
   solutionIntro:
-    "Four intelligent helpers designed for women in menopause - working together to rebalance your body and mind.",
-  ctaPrimaryText: "Meet Your Menoteam Free for 3 Days",
-  ctaSecondaryText: "How it works",
+    "From daily tracking to expert guidance, everything you need to navigate menopause with confidence and clarity.",
+  ctaPrimaryText: "Start Your Free 3-Day Trial",
+  ctaSecondaryText: "Learn more",
 };
 
-const experts = [
-  {
-    name: "Mina",
-    role: "Menopause Expert",
-    desc: "Understands your phase, symptoms, and hormones. Helps you finally make sense of what’s happening and how to manage it.",
-    emoji: "🧠",
-    image: "/mina.png",
-  },
-  {
-    name: "Nutrina",
-    role: "Nutrition Coach",
-    desc: "Creates simple food ideas that actually balance energy and hormones - no diets, no deprivation.",
-    emoji: "🍎",
-    image: "/nutrina.png",
-  },
-  {
-    name: "Fitina",
-    role: "Movement Coach",
-    desc: "Designs light, hormone-friendly exercise tips to boost metabolism without burnout.",
-    emoji: "💪",
-    image: "/fitina.png",
-  },
-  {
-    name: "Ema",
-    role: "Psychology & Mindset Coach",
-    desc: "Guides you through stress, sleep, and emotional balance so you feel calm, centered, and confident again.",
-    emoji: "💗",
-    image: "/ema.png",
-  },
-];
-
 const pills = [
-  { Icon: Bot, label: "4 AI Experts" },
-  { Icon: BookOpenCheck, label: "Evidence-informed" },
+  { Icon: Bot, label: "AI-Powered Coaching" },
+  { Icon: BookOpenCheck, label: "Evidence-based" },
   { Icon: ShieldCheck, label: "Private & secure" },
-  { Icon: CalendarRange, label: "Track progress daily" },
+  { Icon: CalendarRange, label: "Track & analyze patterns" },
 ];
 
 export default function MenopauseResetHero(props: MenopauseResetProps) {
@@ -82,7 +51,7 @@ export default function MenopauseResetHero(props: MenopauseResetProps) {
   return (
     <section className="relative overflow-hidden">
       {/* Background */}
-      <div aria-hidden className="absolute inset-0 -z-10 bg-linear-to-b from-background via-white to-pink-50" />
+      <div aria-hidden className="absolute inset-0 -z-10 bg-linear-to-b from-pink-400 via-pink-200 to-pink-100" />
 
       <div className="mx-auto max-w-6xl px-6 py-16 lg:py-24 text-center">
         {/* Eyebrow + Title */}
@@ -108,33 +77,19 @@ export default function MenopauseResetHero(props: MenopauseResetProps) {
           ))}
         </ul>
 
-        {/* 4 Experts */}
-        <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {experts.map((ex) => (
-            <div
-              key={ex.name}
-              className="rounded-3xl border border-pink-100 bg-white p-6 text-left shadow-md transition hover:-translate-y-1 hover:shadow-lg"
-            >
-              <div className="flex items-center gap-3 mb-4">
-                  <Image
-                    src={ex.image}
-                    alt={ex.name}
-                    width={300}
-                    height={300}
-                    className="h-26 w-auto object-cover"
-                  />
-                <div>
-                  <h3 className="font-semibold text-zinc-900">{ex.name}</h3>
-                  <p className="text-sm text-primary">{ex.role}</p>
-                </div>
-              </div>
-              <p className="text-sm text-zinc-700 leading-relaxed">{ex.desc}</p>
-            </div>
-          ))}
+        {/* Services Image */}
+        <div className="mt-14 flex justify-center">
+          <Image
+            src="/services.svg"
+            alt="Services"
+            width={1200}
+            height={800}
+            className="w-full max-w-5xl h-auto object-contain"
+          />
         </div>
 
         {/* CTA */}
-        <div className="mt-12">
+        <div className="mt-2">
           <a
           href="/register"
             className="cursor-pointer inline-flex items-center gap-2 rounded-2xl bg-rose-600 px-6 py-3 text-base font-medium text-white shadow-lg transition hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-300"

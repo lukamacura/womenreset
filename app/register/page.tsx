@@ -81,11 +81,17 @@ export default function RegisterPage() {
 
     try {
       const nowIso = new Date().toISOString();
+      const redirectTo = typeof window !== "undefined" 
+        ? `${window.location.origin}/auth/callback?next=/register`
+        : undefined;
 
       const { data, error } = await supabase.auth.signUp({
         email,
         password: pass,
-        options: { data: { trial_start: nowIso } },
+        options: { 
+          data: { trial_start: nowIso },
+          emailRedirectTo: redirectTo,
+        },
       });
 
       if (error) {
@@ -94,21 +100,39 @@ export default function RegisterPage() {
             ? "That email looks unavailable or invalid."
             : error.message.includes("rate limit")
             ? "Too many attempts — please wait a moment and try again."
+            : error.message.includes("already registered")
+            ? "An account with this email already exists. Please log in instead."
             : error.message;
         setErr(friendly);
+        setLoading(false);
+        return;
+      }
+
+      // Check if user was created
+      if (!data?.user) {
+        setErr("Failed to create account. Please try again.");
+        setLoading(false);
         return;
       }
 
       // sačuvaj user id
-      setUserId(data?.user?.id ?? null);
+      setUserId(data.user.id);
 
+      // Check if session exists (email confirmation might not be required)
       const { data: sessionData } = await supabase.auth.getSession();
-      setSessionExistsAfterSignup(!!sessionData.session);
+      const hasSession = !!sessionData.session;
+      setSessionExistsAfterSignup(hasSession);
+
+      // If no session, user needs to confirm email first
+      if (!hasSession) {
+        setInfo("Please check your email to confirm your account, then you can complete your profile.");
+        // Still allow them to proceed to quiz, but they'll need to confirm email to finish
+      }
 
       setPhase("quiz");
       setStepIndex(0);
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "Unknown error");
+      setErr(e instanceof Error ? e.message : "Unknown error occurred. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -128,7 +152,16 @@ export default function RegisterPage() {
       }
 
       if (!finalUserId) {
-        throw new Error("User id is missing – please log in again.");
+        throw new Error("User ID is missing. Please try registering again or log in if you already have an account.");
+      }
+
+      // Validate required fields
+      if (!fullName.trim()) {
+        throw new Error("Please enter your name.");
+      }
+
+      if (!Number.isFinite(ageNum) || ageNum < 35 || ageNum > 70) {
+        throw new Error("Please enter a valid age between 35 and 70.");
       }
 
       // tekst polja – trim + ako je prazno, šaljemo null (da se lepo upiše u DB)
@@ -152,18 +185,21 @@ export default function RegisterPage() {
 
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        throw new Error(body?.error || "Database error while saving profile.");
+        const errorMessage = body?.error || "Failed to save your profile. Please try again.";
+        throw new Error(errorMessage);
       }
 
+      // If user has a session, redirect to dashboard
       if (sessionExistsAfterSignup) {
         router.replace("/dashboard");
         router.refresh();
         return;
       }
 
-      setInfo("Check your inbox to confirm your email, then log in.");
+      // If no session, user needs to confirm email first
+      setInfo("Profile saved! Please check your email to confirm your account, then log in to access your dashboard.");
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "Unknown error");
+      setErr(e instanceof Error ? e.message : "An error occurred while saving your profile. Please try again.");
     } finally {
       setLoading(false);
     }
