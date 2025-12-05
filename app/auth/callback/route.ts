@@ -46,14 +46,39 @@ export async function GET(request: NextRequest) {
       }
     );
 
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    const { error, data } = await supabase.auth.exchangeCodeForSession(code);
 
-    if (!error) {
+    if (!error && data.session) {
+      // Check if user has completed profile
+      const { data: profile, error: profileError } = await supabase
+        .from("user_profiles")
+        .select("user_id")
+        .eq("user_id", data.session.user.id)
+        .maybeSingle();
+
+      // If profile doesn't exist and next is /register, redirect to /register
+      // Otherwise, if profile doesn't exist, redirect to /register to complete quiz
+      if (!profile && profileError?.code !== "42P01") {
+        // Table exists but no profile found
+        const redirectUrl = next === "/register" 
+          ? `${requestUrl.origin}/register`
+          : `${requestUrl.origin}/register`;
+        return NextResponse.redirect(redirectUrl);
+      }
+
+      // If profile exists or table doesn't exist (fallback), use the original next URL
+      // But if next is /register and profile exists, redirect to dashboard
+      if (profile && next === "/register") {
+        return NextResponse.redirect(`${requestUrl.origin}/dashboard`);
+      }
+
       return response;
     }
   }
 
-  // return the user to an error page with instructions
-  return NextResponse.redirect(`${requestUrl.origin}/login?error=auth_callback_error`);
+  // return the user to login page with error message
+  return NextResponse.redirect(
+    `${requestUrl.origin}/login?error=auth_callback_error&message=${encodeURIComponent("Email confirmation failed. Please try again or contact support.")}`
+  );
 }
 

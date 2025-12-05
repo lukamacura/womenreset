@@ -37,17 +37,17 @@ export default function MagicLinkClient() {
       if (error) {
         const friendly =
           /rate/i.test(error.message)
-            ? "Previše pokušaja — sačekaj malo pa probaj ponovo."
+            ? "Too many attempts — please wait a moment and try again."
             : /email/i.test(error.message)
-            ? "Proveri adresu e-pošte."
+            ? "Please check your email address."
             : error.message;
         setErr(friendly);
         return;
       }
 
-      setInfo("We sent you magic link. Check your inbox.");
+      setInfo("We sent you a magic link. Check your inbox.");
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "Nepoznata greška");
+      setErr(e instanceof Error ? e.message : "Unknown error occurred. Please try again.");
     } finally {
       setLoading(false);
     }

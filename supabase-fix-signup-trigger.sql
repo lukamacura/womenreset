@@ -76,3 +76,4 @@ BEFORE INSERT OR UPDATE OF trial_start, trial_days ON user_trials
 FOR EACH ROW
 EXECUTE FUNCTION update_trial_end();
 
+

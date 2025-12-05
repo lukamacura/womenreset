@@ -900,13 +900,13 @@ export default function DashboardPage() {
   // ---------------------------
   // Event handlers
   // ---------------------------
-  async function handleLogout() {
-    try {
-      await supabase.auth.signOut();
-      router.replace("/login");
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : "Unknown error");
-    }
+  function handleLogout() {
+    // Navigate immediately - no waiting
+    window.location.href = "/login";
+    // Sign out in background (don't await, don't block)
+    supabase.auth.signOut().catch(() => {
+      // Silently fail - we're already navigating away
+    });
   }
 
   // ---------------------------

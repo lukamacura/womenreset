@@ -1,45 +1,37 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState, Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
 // (opciono, ali bezbedno): spreči statički prerender
 export const dynamic = "force-dynamic";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
-
-  // default destinacija dok se ne pročita query iz URL-a na klijentu
-  const redirectTarget = useRef("/dashboard");
-
-  // PROČITAJ QUERY POSLE MOUNT-A (bez useSearchParams)
-  useEffect(() => {
-    try {
-      const sp = new URLSearchParams(window.location.search);
-      const r = sp.get("redirectedFrom");
-      if (r && r.startsWith("/")) {
-        // jednostavna sanitizacija protiv open-redirecta
-        redirectTarget.current = r;
-      }
-      
-      // Handle error query parameter from auth callback
-      const errorParam = sp.get("error");
-      if (errorParam === "auth_callback_error") {
-        setErr("Email confirmation failed. Please try again or contact support.");
-      }
-    } catch {
-      /* ignore */
-    }
-  }, []);
-
+  const searchParams = useSearchParams();
+  
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
   const [showPass, setShowPass] = useState(false);
-
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Get redirect target from URL params
+  const redirectTarget = searchParams.get("redirectedFrom") || "/dashboard";
+  
+  // Handle error query parameter from auth callback
+  useEffect(() => {
+    const errorParam = searchParams.get("error");
+    const errorMessage = searchParams.get("message");
+    
+    if (errorParam === "auth_callback_error") {
+      setErr(errorMessage 
+        ? decodeURIComponent(errorMessage) 
+        : "Email confirmation failed. Please try again or contact support.");
+    }
+  }, [searchParams]);
 
   const emailValid = useMemo(() => /.+@.+\..+/.test(email), [email]);
   const passValid = useMemo(() => pass.length >= 1, [pass]);
@@ -59,23 +51,31 @@ export default function LoginPage() {
       });
 
       if (error) {
-        const friendly =
-          /invalid login/i.test(error.message)
-            ? "Invalid email or password. Please try again."
-            : /email/i.test(error.message)
-            ? "We couldn't find an account with that email."
-            : /rate/i.test(error.message)
-            ? "Too many attempts — please wait a moment and try again."
-            : error.message;
+        let friendly = "An error occurred during login. Please try again.";
+        
+        if (/invalid login/i.test(error.message) || /invalid.*credentials/i.test(error.message)) {
+          friendly = "Invalid email or password. Please check your credentials and try again.";
+        } else if (/email.*not.*found/i.test(error.message) || /user.*not.*found/i.test(error.message)) {
+          friendly = "We couldn't find an account with that email. Please check your email or sign up.";
+        } else if (/rate/i.test(error.message) || /too many/i.test(error.message)) {
+          friendly = "Too many attempts — please wait a moment and try again.";
+        } else if (/email.*not.*confirmed/i.test(error.message)) {
+          friendly = "Please confirm your email address before logging in. Check your inbox for the confirmation link.";
+        } else if (error.message) {
+          friendly = error.message;
+        }
+        
         setErr(friendly);
+        setLoading(false);
         return;
       }
 
-      router.replace(redirectTarget.current);
+      // Sanitize redirect target to prevent open redirects
+      const sanitizedTarget = redirectTarget.startsWith("/") ? redirectTarget : "/dashboard";
+      router.replace(sanitizedTarget);
       router.refresh();
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "Unknown error");
-    } finally {
+      setErr(e instanceof Error ? e.message : "An unexpected error occurred. Please try again.");
       setLoading(false);
     }
   }
@@ -210,5 +210,22 @@ export default function LoginPage() {
         </Link>
       </p>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <main className="relative mx-auto max-w-md p-6 sm:p-8">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent mb-4"></div>
+            <p className="text-sm text-muted-foreground">Loading...</p>
+          </div>
+        </div>
+      </main>
+    }>
+      <LoginForm />
+    </Suspense>
   );
 }

@@ -12,8 +12,6 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const router = useRouter();
-  const [loggingOut, setLoggingOut] = useState(false);
 
   const navItems = [
     {
@@ -43,16 +41,13 @@ export default function DashboardLayout({
     },
   ];
 
-  async function handleLogout() {
-    try {
-      setLoggingOut(true);
-      await supabase.auth.signOut();
-      router.replace("/login");
-      router.refresh();
-    } catch (error) {
-      console.error("Logout error:", error);
-      setLoggingOut(false);
-    }
+  function handleLogout() {
+    // Navigate immediately - no waiting
+    window.location.href = "/login";
+    // Sign out in background (don't await, don't block)
+    supabase.auth.signOut().catch(() => {
+      // Silently fail - we're already navigating away
+    });
   }
 
   return (
@@ -92,11 +87,10 @@ export default function DashboardLayout({
             {/* Logout Button */}
             <button
               onClick={handleLogout}
-              disabled={loggingOut}
-              className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-foreground/5 hover:text-foreground transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-foreground/5 hover:text-foreground transition-colors duration-200"
             >
               <LogOut className="h-5 w-5" />
-              <span className="hidden sm:inline">{loggingOut ? "Logging out..." : "Logout"}</span>
+              <span className="hidden sm:inline">Logout</span>
             </button>
           </div>
         </div>
