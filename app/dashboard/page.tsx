@@ -135,7 +135,7 @@ function QuickChatCard({
       <div className="flex flex-col items-center text-center">
         <div className="mb-3 sm:mb-4 relative">
           <Image
-            src="/lisa.png"
+            src="/profile.webp"
             alt="Lisa"
             width={64}
             height={64}
