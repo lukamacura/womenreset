@@ -1707,7 +1707,7 @@ const [stickToBottom, setStickToBottom] = useState(true);
       {/* Main */}
       <main className="flex min-w-0 flex-1 flex-col transition-all duration-500 ease-in-out lg:pl-72">
         {/* Top bar (mobile) */}
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b-2 px-4 py-2 lg:hidden backdrop-blur-md" style={{ 
+        <div className="fixed w-full z-100 top-0 flex items-center justify-between border-b-2 px-4 py-2 lg:hidden backdrop-blur-md" style={{ 
           borderColor: THEME.pink[300], 
           backgroundColor: `rgba(255, 255, 255, 0.9)`,
           backdropFilter: 'blur(10px)',
@@ -1721,9 +1721,7 @@ const [stickToBottom, setStickToBottom] = useState(true);
           >
             <History className="h-6 w-6" />
           </button>
-          <div className="flex items-center justify-center flex-1">
-            <span className="text-base font-bold" style={{ color: THEME.text[900] }}>Lisa</span>
-          </div>
+
           <button
             onClick={() => router.push('/dashboard')}
             className="p-2 rounded-lg transition-all active:bg-pink-100 focus:outline-none focus:ring-2 focus:ring-pink-300 touch-manipulation"
@@ -1738,7 +1736,7 @@ const [stickToBottom, setStickToBottom] = useState(true);
         {/* Chat */}
         <section
           ref={listRef}
-          className="flex-1 overflow-y-auto relative"
+          className="flex-1 pt-12 overflow-y-auto relative"
           style={{ 
             scrollBehavior: 'smooth',
             WebkitOverflowScrolling: 'touch',
@@ -1747,7 +1745,7 @@ const [stickToBottom, setStickToBottom] = useState(true);
         >
           {/* Fixed background character image positioned at bottom-right */}
           <div className="fixed right-0 bottom-0 pointer-events-none z-0" style={{ right: '5%', bottom: '140px' }}>
-            <div className="relative w-[180px] h-[180px] sm:w-[240px] sm:h-[240px] md:w-[300px] md:h-[300px] opacity-15">
+            <div className="relative w-[180px] h-[180px] sm:w-60 sm:h-60 md:w-[300px] md:h-[300px] opacity-15">
               {lisaImages.map((src, index) => (
                 <Image
                   key={src}
@@ -1801,7 +1799,7 @@ const [stickToBottom, setStickToBottom] = useState(true);
                     }}
                   >
                     {isStreamingMsg ? (
-                      <div className="relative w-full min-h-[20px] streaming-content">
+                      <div className="relative w-full min-h-5 streaming-content">
                         {streamingContent ? (
                           <div className="streaming-text wrap-break-words" style={{ 
                             fontSize: '1rem',
