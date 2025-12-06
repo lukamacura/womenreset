@@ -92,7 +92,7 @@ export default function MenopauseResetHero(props: MenopauseResetProps) {
         <div className="mt-2">
           <a
           href="/register"
-            className="cursor-pointer inline-flex items-center gap-2 rounded-2xl bg-rose-600 px-6 py-3 text-base font-medium text-white shadow-lg transition hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-300"
+            className="cursor-pointer inline-flex items-center gap-2 rounded-2xl bg-rose-600 px-6 py-3 text-base font-bold text-white shadow-lg transition hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-300"
           >
             <Sparkles className="h-4 w-4" /> {copy.ctaPrimaryText}
           </a>

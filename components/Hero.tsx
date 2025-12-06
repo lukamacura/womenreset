@@ -1,6 +1,6 @@
 
 import React, { FormEvent, useState, useEffect } from "react";
-import { Lock, FileText, Gift, ArrowUpRight } from "lucide-react";
+import { Lock, FileText, Gift, Sparkles } from "lucide-react";
 import Image from 'next/image';
 
 const heroImages = [
@@ -11,7 +11,6 @@ const heroImages = [
 ];
 
 const MenoLisaHero: React.FC = () => {
-  const [query, setQuery] = useState("I ate chocolate cake. 😨 I feel soo gulity!!!");
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [, setIsTransitioning] = useState(false);
 
@@ -93,24 +92,14 @@ const MenoLisaHero: React.FC = () => {
               onSubmit={handleSubmit}
               className="rounded-4xl bg-linear-to-br from-pink-200 via-pink-200/90 to-purple-100/90 p-4 text-foreground shadow-2xl backdrop-blur w-full max-w-2xl"
             >
-              {/* Input */}
-              <div className="flex items-center rounded-full bg-pink-400/30 px-4 py-3 shadow-inner transition-all duration-300 ">
-                <input
-                  type="text"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  className="mr-3 w-full bg-transparent font-bold text-xs md:text-lg text-foreground placeholder:text-purple-200/80 focus:outline-none"
-                  placeholder="Ask me anything about your symptoms…"
-                />
-                <button
-                  type="submit"
-                  onClick={() => handleSubmit()}
-                  className="flex h-9 w-9 items-center justify-center rounded-full bg-pink-400 text-foreground shadow-md transition-all duration-300 hover:scale-110 hover:bg-pink-500"
-                  aria-label="Send question"
-                >
-                  <ArrowUpRight className="h-5 w-5" />
-                </button>
-              </div>
+                <div className="mt-2">
+                  <a
+                    href="/register"
+                    className="cursor-pointer inline-flex items-center gap-2 rounded-2xl bg-rose-600 px-6 py-3 text-3xl font-bold text-white shadow-lg transition hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-300"
+                  >
+                    <Sparkles className="h-4 w-4" /> Try for free
+                  </a>
+                </div>
 
               {/* Trust copy */}
               <p className="mt-4 text-center text-md leading-relaxed text-foreground-100">
