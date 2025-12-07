@@ -136,7 +136,7 @@ export default function AddNutritionModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
@@ -144,28 +144,28 @@ export default function AddNutritionModal({
       />
 
       {/* Modal */}
-      <div className="relative z-10 w-full max-w-md rounded-2xl border border-foreground/10 bg-background p-6 shadow-xl">
-        {/* Header */}
-        <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-2xl font-semibold">
+      <div className="relative z-10 w-full h-full sm:h-auto sm:max-h-[90vh] sm:max-w-md sm:rounded-2xl border-t sm:border border-foreground/10 bg-background flex flex-col shadow-xl">
+        {/* Header - Sticky on mobile */}
+        <div className="flex-shrink-0 flex items-center justify-between p-4 sm:p-6 border-b border-foreground/10">
+          <h2 className="text-xl sm:text-2xl font-semibold">
             {editingEntry ? "Edit Nutrition Entry" : "Add Nutrition Entry"}
           </h2>
           <button
             onClick={onClose}
-            className="rounded-lg p-1 text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground"
+            className="rounded-lg p-2 text-muted-foreground transition-colors active:bg-foreground/10 hover:bg-foreground/10 hover:text-foreground touch-manipulation"
             aria-label="Close"
           >
-            <X className="h-5 w-5" />
+            <X className="h-5 w-5 sm:h-6 sm:w-6" />
           </button>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-5">
+        {/* Form - Scrollable */}
+        <form id="nutrition-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-5">
           {/* Food Item */}
           <div>
             <label
               htmlFor="foodItem"
-              className="mb-2 block text-sm font-medium text-foreground"
+              className="mb-1.5 sm:mb-2 block text-sm font-medium text-foreground"
             >
               Food Item <span className="text-rose-500">*</span>
             </label>
@@ -176,43 +176,36 @@ export default function AddNutritionModal({
               onChange={(e) => setFoodItem(e.target.value)}
               required
               placeholder="e.g., Grilled chicken salad, Oatmeal with berries"
-              className="w-full rounded-lg border border-foreground/15 bg-background px-4 py-2.5 text-base focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="w-full rounded-lg border border-foreground/15 bg-background px-3 sm:px-4 py-2.5 sm:py-3 text-base focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 touch-manipulation"
             />
           </div>
 
           {/* Meal Type */}
           <div>
-            <label className="mb-3 block text-sm font-medium text-foreground">
+            <label className="mb-2 sm:mb-3 block text-sm font-medium text-foreground">
               Meal Type <span className="text-rose-500">*</span>
             </label>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2 sm:gap-3">
               {/* Breakfast */}
               <button
                 type="button"
                 onClick={() => setMealType("breakfast")}
                 className={`
-                  group relative flex flex-col items-center gap-2 rounded-xl border-2 p-4 transition-all duration-200
+                  group relative flex flex-col items-center gap-1.5 sm:gap-2 rounded-lg sm:rounded-xl border-2 p-2.5 sm:p-4 transition-all duration-200 touch-manipulation
                   ${
                     mealType === "breakfast"
-                      ? "border-orange-500 bg-orange-50 shadow-md scale-105"
-                      : "border-foreground/15 bg-background/60 hover:border-orange-300 hover:bg-orange-50/50"
+                      ? "border-orange-500 bg-orange-50 shadow-md"
+                      : "border-foreground/15 bg-background/60 active:border-orange-300 active:bg-orange-50/50"
                   }
                 `}
               >
-                <div
-                  className={`
-                    transition-transform duration-300
-                    ${mealType === "breakfast" ? "animate-pulse scale-110" : "group-hover:scale-110"}
-                  `}
-                >
-                  <Sunrise
-                    className={`h-8 w-8 ${
-                      mealType === "breakfast" ? "text-orange-600" : "text-orange-500"
-                    }`}
-                  />
-                </div>
+                <Sunrise
+                  className={`h-6 w-6 sm:h-8 sm:w-8 ${
+                    mealType === "breakfast" ? "text-orange-600" : "text-orange-500"
+                  }`}
+                />
                 <span
-                  className={`text-sm font-semibold ${
+                  className={`text-xs sm:text-sm font-semibold ${
                     mealType === "breakfast" ? "text-orange-700" : "text-foreground/70"
                   }`}
                 >
@@ -225,28 +218,21 @@ export default function AddNutritionModal({
                 type="button"
                 onClick={() => setMealType("lunch")}
                 className={`
-                  group relative flex flex-col items-center gap-2 rounded-xl border-2 p-4 transition-all duration-200
+                  group relative flex flex-col items-center gap-1.5 sm:gap-2 rounded-lg sm:rounded-xl border-2 p-2.5 sm:p-4 transition-all duration-200 touch-manipulation
                   ${
                     mealType === "lunch"
-                      ? "border-blue-500 bg-blue-50 shadow-md scale-105"
-                      : "border-foreground/15 bg-background/60 hover:border-blue-300 hover:bg-blue-50/50"
+                      ? "border-blue-500 bg-blue-50 shadow-md"
+                      : "border-foreground/15 bg-background/60 active:border-blue-300 active:bg-blue-50/50"
                   }
                 `}
               >
-                <div
-                  className={`
-                    transition-transform duration-300
-                    ${mealType === "lunch" ? "animate-pulse scale-110" : "group-hover:scale-110"}
-                  `}
-                >
-                  <Sun
-                    className={`h-8 w-8 ${
-                      mealType === "lunch" ? "text-blue-600" : "text-blue-500"
-                    }`}
-                  />
-                </div>
+                <Sun
+                  className={`h-6 w-6 sm:h-8 sm:w-8 ${
+                    mealType === "lunch" ? "text-blue-600" : "text-blue-500"
+                  }`}
+                />
                 <span
-                  className={`text-sm font-semibold ${
+                  className={`text-xs sm:text-sm font-semibold ${
                     mealType === "lunch" ? "text-blue-700" : "text-foreground/70"
                   }`}
                 >
@@ -259,28 +245,21 @@ export default function AddNutritionModal({
                 type="button"
                 onClick={() => setMealType("dinner")}
                 className={`
-                  group relative flex flex-col items-center gap-2 rounded-xl border-2 p-4 transition-all duration-200
+                  group relative flex flex-col items-center gap-1.5 sm:gap-2 rounded-lg sm:rounded-xl border-2 p-2.5 sm:p-4 transition-all duration-200 touch-manipulation
                   ${
                     mealType === "dinner"
-                      ? "border-purple-500 bg-purple-50 shadow-md scale-105"
-                      : "border-foreground/15 bg-background/60 hover:border-purple-300 hover:bg-purple-50/50"
+                      ? "border-purple-500 bg-purple-50 shadow-md"
+                      : "border-foreground/15 bg-background/60 active:border-purple-300 active:bg-purple-50/50"
                   }
                 `}
               >
-                <div
-                  className={`
-                    transition-transform duration-300
-                    ${mealType === "dinner" ? "animate-pulse scale-110" : "group-hover:scale-110"}
-                  `}
-                >
-                  <Moon
-                    className={`h-8 w-8 ${
-                      mealType === "dinner" ? "text-purple-600" : "text-purple-500"
-                    }`}
-                  />
-                </div>
+                <Moon
+                  className={`h-6 w-6 sm:h-8 sm:w-8 ${
+                    mealType === "dinner" ? "text-purple-600" : "text-purple-500"
+                  }`}
+                />
                 <span
-                  className={`text-sm font-semibold ${
+                  className={`text-xs sm:text-sm font-semibold ${
                     mealType === "dinner" ? "text-purple-700" : "text-foreground/70"
                   }`}
                 >
@@ -293,28 +272,21 @@ export default function AddNutritionModal({
                 type="button"
                 onClick={() => setMealType("snack")}
                 className={`
-                  group relative flex flex-col items-center gap-2 rounded-xl border-2 p-4 transition-all duration-200
+                  group relative flex flex-col items-center gap-1.5 sm:gap-2 rounded-lg sm:rounded-xl border-2 p-2.5 sm:p-4 transition-all duration-200 touch-manipulation
                   ${
                     mealType === "snack"
-                      ? "border-green-500 bg-green-50 shadow-md scale-105"
-                      : "border-foreground/15 bg-background/60 hover:border-green-300 hover:bg-green-50/50"
+                      ? "border-green-500 bg-green-50 shadow-md"
+                      : "border-foreground/15 bg-background/60 active:border-green-300 active:bg-green-50/50"
                   }
                 `}
               >
-                <div
-                  className={`
-                    transition-transform duration-300
-                    ${mealType === "snack" ? "animate-pulse scale-110" : "group-hover:scale-110"}
-                  `}
-                >
-                  <Cookie
-                    className={`h-8 w-8 ${
-                      mealType === "snack" ? "text-green-600" : "text-green-500"
-                    }`}
-                  />
-                </div>
+                <Cookie
+                  className={`h-6 w-6 sm:h-8 sm:w-8 ${
+                    mealType === "snack" ? "text-green-600" : "text-green-500"
+                  }`}
+                />
                 <span
-                  className={`text-sm font-semibold ${
+                  className={`text-xs sm:text-sm font-semibold ${
                     mealType === "snack" ? "text-green-700" : "text-foreground/70"
                   }`}
                 >
@@ -328,9 +300,9 @@ export default function AddNutritionModal({
           <div>
             <label
               htmlFor="calories"
-              className="mb-2 block text-sm font-medium text-foreground"
+              className="mb-1.5 sm:mb-2 block text-sm font-medium text-foreground"
             >
-              Calories <span className="text-sm font-normal text-muted-foreground">(optional)</span>
+              Calories <span className="text-xs sm:text-sm font-normal text-muted-foreground">(optional)</span>
             </label>
             <input
               id="calories"
@@ -340,7 +312,7 @@ export default function AddNutritionModal({
               min="0"
               step="1"
               placeholder="e.g., 350"
-              className="w-full rounded-lg border border-foreground/15 bg-background px-4 py-2.5 text-base focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="w-full rounded-lg border border-foreground/15 bg-background px-3 sm:px-4 py-2.5 sm:py-3 text-base focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 touch-manipulation"
             />
           </div>
 
@@ -348,7 +320,7 @@ export default function AddNutritionModal({
           <div>
             <label
               htmlFor="consumedAt"
-              className="mb-2 block text-sm font-medium text-foreground"
+              className="mb-1.5 sm:mb-2 block text-sm font-medium text-foreground"
             >
               Date & Time <span className="text-rose-500">*</span>
             </label>
@@ -358,7 +330,7 @@ export default function AddNutritionModal({
               value={consumedAt}
               onChange={(e) => setConsumedAt(e.target.value)}
               required
-              className="w-full rounded-lg border border-foreground/15 bg-background px-4 py-2.5 text-base focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="w-full rounded-lg border border-foreground/15 bg-background px-3 sm:px-4 py-2.5 sm:py-3 text-base focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 touch-manipulation"
             />
           </div>
 
@@ -366,52 +338,53 @@ export default function AddNutritionModal({
           <div>
             <label
               htmlFor="notes"
-              className="mb-2 block text-sm font-medium text-foreground"
+              className="mb-1.5 sm:mb-2 block text-sm font-medium text-foreground"
             >
-              Notes <span className="text-sm font-normal text-muted-foreground">(optional)</span>
+              Notes <span className="text-xs sm:text-sm font-normal text-muted-foreground">(optional)</span>
             </label>
             <textarea
               id="notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              rows={3}
+              rows={2}
               placeholder="Any additional details..."
-              className="w-full rounded-lg border border-foreground/15 bg-background px-4 py-2.5 text-base focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none"
+              className="w-full rounded-lg border border-foreground/15 bg-background px-3 sm:px-4 py-2 sm:py-2.5 text-base focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none touch-manipulation"
             />
           </div>
 
           {/* Error Message */}
           {error && (
-            <div className="rounded-lg border border-rose-400/30 bg-rose-500/10 p-3 text-sm text-rose-300">
+            <div className="rounded-lg border border-rose-400/30 bg-rose-500/10 p-2.5 sm:p-3 text-sm text-rose-300">
               {error}
             </div>
           )}
-
-          {/* Actions */}
-          <div className="flex gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={isSubmitting}
-              className="flex-1 rounded-lg border border-foreground/15 px-4 py-2.5 text-base font-medium transition-colors hover:bg-foreground/5 disabled:opacity-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting || !foodItem.trim()}
-              className="flex-1 rounded-lg bg-primary px-4 py-2.5 text-base font-medium text-white transition-colors hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isSubmitting
-                ? editingEntry
-                  ? "Updating..."
-                  : "Saving..."
-                : editingEntry
-                ? "Update Entry"
-                : "Save Entry"}
-            </button>
-          </div>
         </form>
+
+        {/* Actions - Sticky footer on mobile */}
+        <div className="flex-shrink-0 flex gap-2 sm:gap-3 p-4 sm:p-6 pt-3 sm:pt-2 border-t border-foreground/10 bg-background">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isSubmitting}
+            className="flex-1 rounded-lg border border-foreground/15 px-4 py-3 sm:py-2.5 text-base font-medium transition-colors active:bg-foreground/5 hover:bg-foreground/5 disabled:opacity-50 touch-manipulation"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            form="nutrition-form"
+            disabled={isSubmitting || !foodItem.trim()}
+            className="flex-1 rounded-lg bg-primary px-4 py-3 sm:py-2.5 text-base font-medium text-white transition-colors active:bg-primary/80 hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
+          >
+            {isSubmitting
+              ? editingEntry
+                ? "Updating..."
+                : "Saving..."
+              : editingEntry
+              ? "Update Entry"
+              : "Save Entry"}
+          </button>
+        </div>
       </div>
     </div>
   );

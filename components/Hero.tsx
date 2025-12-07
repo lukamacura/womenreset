@@ -1,45 +1,15 @@
 
-import React, { FormEvent, useState, useEffect } from "react";
+import React, { FormEvent } from "react";
 import { Lock, FileText, Gift, Sparkles } from "lucide-react";
 import Image from 'next/image';
 
-const heroImages = [
-  "/hero1.svg",
-  "/hero2.svg",
-  "/hero3.svg",
-  "/hero4.svg",
-];
-
 const MenoLisaHero: React.FC = () => {
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [, setIsTransitioning] = useState(false);
-
   const handleSubmit = (e?: FormEvent) => {
     if (e) e.preventDefault();
     if (typeof window !== "undefined") {
       window.location.href = "/register";
     }
   };
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setIsTransitioning(true);
-      setTimeout(() => {
-        setCurrentImageIndex((prevIndex) => (prevIndex + 1) % heroImages.length);
-        setIsTransitioning(false);
-      }, 500);
-    }, 5000);
-    return () => clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      heroImages.forEach((src) => {
-        const img = new window.Image();
-        img.src = src;
-      });
-    }
-  }, []);
 
   return (
     <div className="min-h-screen w-full bg-linear-to-b from-pink-100 via-pink-200 to-pink-400 text-slate-900 flex flex-col">
@@ -55,36 +25,24 @@ const MenoLisaHero: React.FC = () => {
           <h1 className="mx-auto max-w-4xl text-5xl sm:text-6xl md:text-7xl font-extrabold leading-tight tracking-tight bg-linear-to-r from-pink-700 via-fuchsia-700 to-orange-500 bg-clip-text text-transparent drop-shadow-xl">
             Smart AI Coach for Women in Menopause
           </h1>
-          <p className="mx-auto mt-6 max-w-2xl font-script text-lg sm:text-2xl md:text-3xl font-medium text-foreground-600">
+          <p className="mx-auto mt-4 max-w-2xl font-script text-lg sm:text-2xl md:text-3xl font-medium text-foreground-600">
             Feel like yourself again
           </p>
           {/* Chat card */}
-          <section className="mt-8 w-full max-w-6xl flex flex-col items-center flex-1">
-            {/* Hero illustration with rotating images, always fully visible */}
-            <div className="mb-8 flex justify-center w-full">
+          <section className="mt-4 w-full max-w-6xl flex flex-col items-center flex-1">
+            {/* Hero illustration - single large image */}
+            <div className="mb-3 mt-1 flex justify-center w-full">
               <div
-                className="relative w-full max-w-2xl md:max-w-3xl lg:max-w-2xl xl:max-w-xl aspect-7/4 max-h-[60vh]"
+                className="relative w-full max-w-5xl md:max-w-7xl lg:max-w-[90vw] aspect-25/9 max-h-[50vh]"
               >
-
-                {heroImages.map((src, index) => (
-                  <div
-                    key={src}
-                    className={`
-          absolute inset-0
-          transition-opacity duration-700 ease-in-out
-          ${index === currentImageIndex ? "opacity-100" : "opacity-0"}
-        `}
-                  >
-                    <Image
-                      src={src}
-                      alt={`Lisa illustration ${index + 1}`}
-                      fill
-                      className="object-contain"
-                      priority={index === 0}
-                      loading={index === 0 ? "eager" : "lazy"}
-                    />
-                  </div>
-                ))}
+                <Image
+                  src="/hero1.svg"
+                  alt="Lisa illustration"
+                  fill
+                  className="object-contain"
+                  priority
+                  loading="eager"
+                />
               </div>
             </div>
 

@@ -151,7 +151,7 @@ export default function AddFitnessModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
@@ -159,28 +159,28 @@ export default function AddFitnessModal({
       />
 
       {/* Modal */}
-      <div className="relative z-10 w-full max-w-md rounded-2xl border border-foreground/10 bg-background p-6 shadow-xl max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-2xl font-semibold">
+      <div className="relative z-10 w-full h-full sm:h-auto sm:max-h-[90vh] sm:max-w-md sm:rounded-2xl border-t sm:border border-foreground/10 bg-background flex flex-col shadow-xl">
+        {/* Header - Sticky on mobile */}
+        <div className="flex-shrink-0 flex items-center justify-between p-4 sm:p-6 border-b border-foreground/10">
+          <h2 className="text-xl sm:text-2xl font-semibold">
             {editingEntry ? "Edit Workout" : "Add Workout"}
           </h2>
           <button
             onClick={onClose}
-            className="rounded-lg p-1 text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground"
+            className="rounded-lg p-2 text-muted-foreground transition-colors active:bg-foreground/10 hover:bg-foreground/10 hover:text-foreground touch-manipulation"
             aria-label="Close"
           >
-            <X className="h-5 w-5" />
+            <X className="h-5 w-5 sm:h-6 sm:w-6" />
           </button>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-5">
+        {/* Form - Scrollable */}
+        <form id="fitness-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-5">
           {/* Exercise Name */}
           <div>
             <label
               htmlFor="exerciseName"
-              className="mb-2 block text-sm font-medium text-foreground"
+              className="mb-1.5 sm:mb-2 block text-sm font-medium text-foreground"
             >
               Exercise Name <span className="text-rose-500">*</span>
             </label>
@@ -191,31 +191,31 @@ export default function AddFitnessModal({
               onChange={(e) => setExerciseName(e.target.value)}
               required
               placeholder="e.g., Running, Weight lifting, Yoga"
-              className="w-full rounded-lg border border-foreground/15 bg-background px-4 py-2.5 text-base focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="w-full rounded-lg border border-foreground/15 bg-background px-3 sm:px-4 py-2.5 sm:py-3 text-base focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 touch-manipulation"
             />
           </div>
 
           {/* Exercise Type */}
           <div>
-            <label className="mb-3 block text-sm font-medium text-foreground">
+            <label className="mb-2 sm:mb-3 block text-sm font-medium text-foreground">
               Exercise Type <span className="text-rose-500">*</span>
             </label>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
               {/* Cardio */}
               <button
                 type="button"
                 onClick={() => setExerciseType("cardio")}
                 className={`
-                  group relative flex flex-col items-center gap-2 rounded-xl border-2 p-3 transition-all duration-200
+                  group relative flex flex-col items-center gap-1 sm:gap-2 rounded-lg sm:rounded-xl border-2 p-2 sm:p-3 transition-all duration-200 touch-manipulation
                   ${
                     exerciseType === "cardio"
-                      ? "border-red-500 bg-red-50 shadow-md scale-105"
-                      : "border-foreground/15 bg-background/60 hover:border-red-300 hover:bg-red-50/50"
+                      ? "border-red-500 bg-red-50 shadow-md"
+                      : "border-foreground/15 bg-background/60 active:border-red-300 active:bg-red-50/50"
                   }
                 `}
               >
                 <Heart
-                  className={`h-6 w-6 ${
+                  className={`h-5 w-5 sm:h-6 sm:w-6 ${
                     exerciseType === "cardio" ? "text-red-600" : "text-red-500"
                   }`}
                 />
@@ -233,16 +233,16 @@ export default function AddFitnessModal({
                 type="button"
                 onClick={() => setExerciseType("strength")}
                 className={`
-                  group relative flex flex-col items-center gap-2 rounded-xl border-2 p-3 transition-all duration-200
+                  group relative flex flex-col items-center gap-1 sm:gap-2 rounded-lg sm:rounded-xl border-2 p-2 sm:p-3 transition-all duration-200 touch-manipulation
                   ${
                     exerciseType === "strength"
-                      ? "border-blue-500 bg-blue-50 shadow-md scale-105"
-                      : "border-foreground/15 bg-background/60 hover:border-blue-300 hover:bg-blue-50/50"
+                      ? "border-blue-500 bg-blue-50 shadow-md"
+                      : "border-foreground/15 bg-background/60 active:border-blue-300 active:bg-blue-50/50"
                   }
                 `}
               >
                 <Dumbbell
-                  className={`h-6 w-6 ${
+                  className={`h-5 w-5 sm:h-6 sm:w-6 ${
                     exerciseType === "strength" ? "text-blue-600" : "text-blue-500"
                   }`}
                 />
@@ -260,16 +260,16 @@ export default function AddFitnessModal({
                 type="button"
                 onClick={() => setExerciseType("flexibility")}
                 className={`
-                  group relative flex flex-col items-center gap-2 rounded-xl border-2 p-3 transition-all duration-200
+                  group relative flex flex-col items-center gap-1 sm:gap-2 rounded-lg sm:rounded-xl border-2 p-2 sm:p-3 transition-all duration-200 touch-manipulation
                   ${
                     exerciseType === "flexibility"
-                      ? "border-purple-500 bg-purple-50 shadow-md scale-105"
-                      : "border-foreground/15 bg-background/60 hover:border-purple-300 hover:bg-purple-50/50"
+                      ? "border-purple-500 bg-purple-50 shadow-md"
+                      : "border-foreground/15 bg-background/60 active:border-purple-300 active:bg-purple-50/50"
                   }
                 `}
               >
                 <StretchHorizontal
-                  className={`h-6 w-6 ${
+                  className={`h-5 w-5 sm:h-6 sm:w-6 ${
                     exerciseType === "flexibility" ? "text-purple-600" : "text-purple-500"
                   }`}
                 />
@@ -287,16 +287,16 @@ export default function AddFitnessModal({
                 type="button"
                 onClick={() => setExerciseType("sports")}
                 className={`
-                  group relative flex flex-col items-center gap-2 rounded-xl border-2 p-3 transition-all duration-200
+                  group relative flex flex-col items-center gap-1 sm:gap-2 rounded-lg sm:rounded-xl border-2 p-2 sm:p-3 transition-all duration-200 touch-manipulation
                   ${
                     exerciseType === "sports"
-                      ? "border-green-500 bg-green-50 shadow-md scale-105"
-                      : "border-foreground/15 bg-background/60 hover:border-green-300 hover:bg-green-50/50"
+                      ? "border-green-500 bg-green-50 shadow-md"
+                      : "border-foreground/15 bg-background/60 active:border-green-300 active:bg-green-50/50"
                   }
                 `}
               >
                 <Trophy
-                  className={`h-6 w-6 ${
+                  className={`h-5 w-5 sm:h-6 sm:w-6 ${
                     exerciseType === "sports" ? "text-green-600" : "text-green-500"
                   }`}
                 />
@@ -314,16 +314,16 @@ export default function AddFitnessModal({
                 type="button"
                 onClick={() => setExerciseType("other")}
                 className={`
-                  group relative flex flex-col items-center gap-2 rounded-xl border-2 p-3 transition-all duration-200
+                  group relative flex flex-col items-center gap-1 sm:gap-2 rounded-lg sm:rounded-xl border-2 p-2 sm:p-3 transition-all duration-200 touch-manipulation
                   ${
                     exerciseType === "other"
-                      ? "border-gray-500 bg-gray-50 shadow-md scale-105"
-                      : "border-foreground/15 bg-background/60 hover:border-gray-300 hover:bg-gray-50/50"
+                      ? "border-gray-500 bg-gray-50 shadow-md"
+                      : "border-foreground/15 bg-background/60 active:border-gray-300 active:bg-gray-50/50"
                   }
                 `}
               >
                 <Activity
-                  className={`h-6 w-6 ${
+                  className={`h-5 w-5 sm:h-6 sm:w-6 ${
                     exerciseType === "other" ? "text-gray-600" : "text-gray-500"
                   }`}
                 />
@@ -340,25 +340,25 @@ export default function AddFitnessModal({
 
           {/* Intensity */}
           <div>
-            <label className="mb-3 block text-sm font-medium text-foreground">
-              Intensity <span className="text-sm font-normal text-muted-foreground">(optional)</span>
+            <label className="mb-2 sm:mb-3 block text-sm font-medium text-foreground">
+              Intensity <span className="text-xs sm:text-sm font-normal text-muted-foreground">(optional)</span>
             </label>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-3 gap-2 sm:gap-3">
               {/* Low */}
               <button
                 type="button"
                 onClick={() => setIntensity(intensity === "low" ? null : "low")}
                 className={`
-                  group relative flex flex-col items-center gap-2 rounded-xl border-2 p-3 transition-all duration-200
+                  group relative flex flex-col items-center gap-1 sm:gap-2 rounded-lg sm:rounded-xl border-2 p-2 sm:p-3 transition-all duration-200 touch-manipulation
                   ${
                     intensity === "low"
-                      ? "border-green-500 bg-green-50 shadow-md scale-105"
-                      : "border-foreground/15 bg-background/60 hover:border-green-300 hover:bg-green-50/50"
+                      ? "border-green-500 bg-green-50 shadow-md"
+                      : "border-foreground/15 bg-background/60 active:border-green-300 active:bg-green-50/50"
                   }
                 `}
               >
                 <TrendingDown
-                  className={`h-6 w-6 ${
+                  className={`h-5 w-5 sm:h-6 sm:w-6 ${
                     intensity === "low" ? "text-green-600" : "text-green-500"
                   }`}
                 />
@@ -376,16 +376,16 @@ export default function AddFitnessModal({
                 type="button"
                 onClick={() => setIntensity(intensity === "medium" ? null : "medium")}
                 className={`
-                  group relative flex flex-col items-center gap-2 rounded-xl border-2 p-3 transition-all duration-200
+                  group relative flex flex-col items-center gap-1 sm:gap-2 rounded-lg sm:rounded-xl border-2 p-2 sm:p-3 transition-all duration-200 touch-manipulation
                   ${
                     intensity === "medium"
-                      ? "border-yellow-500 bg-yellow-50 shadow-md scale-105"
-                      : "border-foreground/15 bg-background/60 hover:border-yellow-300 hover:bg-yellow-50/50"
+                      ? "border-yellow-500 bg-yellow-50 shadow-md"
+                      : "border-foreground/15 bg-background/60 active:border-yellow-300 active:bg-yellow-50/50"
                   }
                 `}
               >
                 <Minus
-                  className={`h-6 w-6 ${
+                  className={`h-5 w-5 sm:h-6 sm:w-6 ${
                     intensity === "medium" ? "text-yellow-600" : "text-yellow-500"
                   }`}
                 />
@@ -403,16 +403,16 @@ export default function AddFitnessModal({
                 type="button"
                 onClick={() => setIntensity(intensity === "high" ? null : "high")}
                 className={`
-                  group relative flex flex-col items-center gap-2 rounded-xl border-2 p-3 transition-all duration-200
+                  group relative flex flex-col items-center gap-1 sm:gap-2 rounded-lg sm:rounded-xl border-2 p-2 sm:p-3 transition-all duration-200 touch-manipulation
                   ${
                     intensity === "high"
-                      ? "border-red-500 bg-red-50 shadow-md scale-105"
-                      : "border-foreground/15 bg-background/60 hover:border-red-300 hover:bg-red-50/50"
+                      ? "border-red-500 bg-red-50 shadow-md"
+                      : "border-foreground/15 bg-background/60 active:border-red-300 active:bg-red-50/50"
                   }
                 `}
               >
                 <TrendingUp
-                  className={`h-6 w-6 ${
+                  className={`h-5 w-5 sm:h-6 sm:w-6 ${
                     intensity === "high" ? "text-red-600" : "text-red-500"
                   }`}
                 />
@@ -428,14 +428,14 @@ export default function AddFitnessModal({
           </div>
 
           {/* Duration & Calories Row */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2 sm:gap-3">
             {/* Duration */}
             <div>
               <label
                 htmlFor="durationMinutes"
-                className="mb-2 block text-sm font-medium text-foreground"
+                className="mb-1.5 sm:mb-2 block text-sm font-medium text-foreground"
               >
-                Duration (min) <span className="text-sm font-normal text-muted-foreground">(optional)</span>
+                Duration (min) <span className="text-xs sm:text-sm font-normal text-muted-foreground">(optional)</span>
               </label>
               <input
                 id="durationMinutes"
@@ -445,7 +445,7 @@ export default function AddFitnessModal({
                 min="0"
                 step="1"
                 placeholder="e.g., 30"
-                className="w-full rounded-lg border border-foreground/15 bg-background px-4 py-2.5 text-base focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                className="w-full rounded-lg border border-foreground/15 bg-background px-3 sm:px-4 py-2.5 sm:py-3 text-base focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 touch-manipulation"
               />
             </div>
 
@@ -453,9 +453,9 @@ export default function AddFitnessModal({
             <div>
               <label
                 htmlFor="caloriesBurned"
-                className="mb-2 block text-sm font-medium text-foreground"
+                className="mb-1.5 sm:mb-2 block text-sm font-medium text-foreground"
               >
-                Calories <span className="text-sm font-normal text-muted-foreground">(optional)</span>
+                Calories <span className="text-xs sm:text-sm font-normal text-muted-foreground">(optional)</span>
               </label>
               <input
                 id="caloriesBurned"
@@ -465,7 +465,7 @@ export default function AddFitnessModal({
                 min="0"
                 step="1"
                 placeholder="e.g., 300"
-                className="w-full rounded-lg border border-foreground/15 bg-background px-4 py-2.5 text-base focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                className="w-full rounded-lg border border-foreground/15 bg-background px-3 sm:px-4 py-2.5 sm:py-3 text-base focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 touch-manipulation"
               />
             </div>
           </div>
@@ -474,7 +474,7 @@ export default function AddFitnessModal({
           <div>
             <label
               htmlFor="performedAt"
-              className="mb-2 block text-sm font-medium text-foreground"
+              className="mb-1.5 sm:mb-2 block text-sm font-medium text-foreground"
             >
               Date & Time <span className="text-rose-500">*</span>
             </label>
@@ -484,7 +484,7 @@ export default function AddFitnessModal({
               value={performedAt}
               onChange={(e) => setPerformedAt(e.target.value)}
               required
-              className="w-full rounded-lg border border-foreground/15 bg-background px-4 py-2.5 text-base focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="w-full rounded-lg border border-foreground/15 bg-background px-3 sm:px-4 py-2.5 sm:py-3 text-base focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 touch-manipulation"
             />
           </div>
 
@@ -492,52 +492,53 @@ export default function AddFitnessModal({
           <div>
             <label
               htmlFor="notes"
-              className="mb-2 block text-sm font-medium text-foreground"
+              className="mb-1.5 sm:mb-2 block text-sm font-medium text-foreground"
             >
-              Notes <span className="text-sm font-normal text-muted-foreground">(optional)</span>
+              Notes <span className="text-xs sm:text-sm font-normal text-muted-foreground">(optional)</span>
             </label>
             <textarea
               id="notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              rows={3}
+              rows={2}
               placeholder="Any additional details..."
-              className="w-full rounded-lg border border-foreground/15 bg-background px-4 py-2.5 text-base focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none"
+              className="w-full rounded-lg border border-foreground/15 bg-background px-3 sm:px-4 py-2 sm:py-2.5 text-base focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none touch-manipulation"
             />
           </div>
 
           {/* Error Message */}
           {error && (
-            <div className="rounded-lg border border-rose-400/30 bg-rose-500/10 p-3 text-sm text-rose-300">
+            <div className="rounded-lg border border-rose-400/30 bg-rose-500/10 p-2.5 sm:p-3 text-sm text-rose-300">
               {error}
             </div>
           )}
-
-          {/* Actions */}
-          <div className="flex gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={isSubmitting}
-              className="flex-1 rounded-lg border border-foreground/15 px-4 py-2.5 text-base font-medium transition-colors hover:bg-foreground/5 disabled:opacity-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting || !exerciseName.trim()}
-              className="flex-1 rounded-lg bg-primary px-4 py-2.5 text-base font-medium text-white transition-colors hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isSubmitting
-                ? editingEntry
-                  ? "Updating..."
-                  : "Saving..."
-                : editingEntry
-                ? "Update Workout"
-                : "Save Workout"}
-            </button>
-          </div>
         </form>
+
+        {/* Actions - Sticky footer on mobile */}
+        <div className="flex-shrink-0 flex gap-2 sm:gap-3 p-4 sm:p-6 pt-3 sm:pt-2 border-t border-foreground/10 bg-background">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isSubmitting}
+            className="flex-1 rounded-lg border border-foreground/15 px-4 py-3 sm:py-2.5 text-base font-medium transition-colors active:bg-foreground/5 hover:bg-foreground/5 disabled:opacity-50 touch-manipulation"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            form="fitness-form"
+            disabled={isSubmitting || !exerciseName.trim()}
+            className="flex-1 rounded-lg bg-primary px-4 py-3 sm:py-2.5 text-base font-medium text-white transition-colors active:bg-primary/80 hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
+          >
+            {isSubmitting
+              ? editingEntry
+                ? "Updating..."
+                : "Saving..."
+              : editingEntry
+              ? "Update Workout"
+              : "Save Workout"}
+          </button>
+        </div>
       </div>
     </div>
   );

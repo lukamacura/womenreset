@@ -175,7 +175,7 @@ const safeLSGet = (k: string) => {
 const safeLSSet = (k: string, v: string) => {
   try {
     if (typeof window !== "undefined") localStorage.setItem(k, v);
-  } catch {}
+  } catch { }
 };
 
 /** Build a compact history of previous turns (NOT including the current user message). */
@@ -215,7 +215,7 @@ function CopyButton({ text }: { text: string }) {
           await navigator.clipboard.writeText(text);
           setCopied(true);
           setTimeout(() => setCopied(false), 1200);
-        } catch {}
+        } catch { }
       }}
       className="absolute right-3 top-3 inline-flex items-center gap-2 rounded-lg border-2 bg-white px-3 py-2 text-sm font-semibold shadow-md transition-all hover:bg-pink-50 focus:outline-none focus:ring-2 focus:ring-pink-300"
       style={{ borderColor: THEME.pink[300], color: THEME.text[800] }}
@@ -234,17 +234,17 @@ function CopyButton({ text }: { text: string }) {
 // Enhanced markdown renderer with support for headings, dividers, blockquotes, tables, bold, italic
 function renderMarkdownText(text: string) {
   if (!text) return null;
-  
+
   // Split text into blocks (paragraphs, headings, dividers, blockquotes, tables)
   const blocks: Array<{ type: string; content: string }> = [];
   const lines = text.split('\n');
   let currentBlock: { type: string; content: string } | null = null;
   let inTable = false;
   let tableRows: string[] = [];
-  
+
   lines.forEach((line, idx) => {
     const trimmed = line.trim();
-    
+
     // Check for horizontal rule
     if (/^[-*_]{3,}$/.test(trimmed)) {
       if (currentBlock) {
@@ -254,7 +254,7 @@ function renderMarkdownText(text: string) {
       blocks.push({ type: 'hr', content: '' });
       return;
     }
-    
+
     // Check for headings (h1-h5)
     const headingMatch = trimmed.match(/^(#{1,5})\s+(.+)$/);
     if (headingMatch) {
@@ -265,7 +265,7 @@ function renderMarkdownText(text: string) {
       blocks.push({ type: `h${headingMatch[1].length}`, content: headingMatch[2] });
       return;
     }
-    
+
     // Check for blockquote
     if (trimmed.startsWith('> ')) {
       if (currentBlock?.type !== 'blockquote') {
@@ -276,7 +276,7 @@ function renderMarkdownText(text: string) {
       }
       return;
     }
-    
+
     // Check for table
     if (trimmed.includes('|') && trimmed.split('|').length >= 3) {
       if (!inTable) {
@@ -299,7 +299,7 @@ function renderMarkdownText(text: string) {
         inTable = false;
       }
     }
-    
+
     // Regular paragraph
     if (trimmed) {
       if (currentBlock?.type !== 'paragraph') {
@@ -315,7 +315,7 @@ function renderMarkdownText(text: string) {
       }
     }
   });
-  
+
   // Add remaining blocks
   if (inTable && tableRows.length > 0) {
     blocks.push({ type: 'table', content: tableRows.join('\n') });
@@ -323,7 +323,7 @@ function renderMarkdownText(text: string) {
   if (currentBlock) {
     blocks.push(currentBlock);
   }
-  
+
   // Render blocks
   return (
     <>
@@ -342,13 +342,13 @@ function renderMarkdownText(text: string) {
             />
           );
         }
-        
+
         if (block.type.startsWith('h')) {
           const level = parseInt(block.type[1]);
           const sizes = { 1: '2.5rem', 2: '2rem', 3: '1.5rem', 4: '1.25rem', 5: '1.1rem' };
           const weights = { 1: 800, 2: 700, 3: 600, 4: 600, 5: 600 };
           const margins = { 1: '1.5rem 0 0.75rem', 2: '1.25rem 0 0.5rem', 3: '1rem 0 0.5rem', 4: '0.75rem 0 0.5rem', 5: '0.75rem 0 0.25rem' };
-          
+
           return (
             <div
               key={`${block.type}-${blockIdx}`}
@@ -365,7 +365,7 @@ function renderMarkdownText(text: string) {
             </div>
           );
         }
-        
+
         if (block.type === 'blockquote') {
           return (
             <blockquote
@@ -387,16 +387,16 @@ function renderMarkdownText(text: string) {
             </blockquote>
           );
         }
-        
+
         if (block.type === 'table') {
           const rows = block.content.split('\n').filter(r => r.trim());
           if (rows.length === 0) return null;
-          
+
           const headerRow = rows[0].split('|').map(c => c.trim()).filter(c => c);
-          const dataRows = rows.slice(1).map(row => 
+          const dataRows = rows.slice(1).map(row =>
             row.split('|').map(c => c.trim()).filter(c => c)
           );
-          
+
           return (
             <div
               key={`table-${blockIdx}`}
@@ -454,7 +454,7 @@ function renderMarkdownText(text: string) {
             </div>
           );
         }
-        
+
         // Regular paragraph
         return (
           <p
@@ -482,11 +482,11 @@ function renderMarkdownText(text: string) {
 // Helper function to render inline markdown (bold, italic) within text
 function renderInlineMarkdown(text: string) {
   if (!text) return null;
-  
+
   const parts: (string | React.ReactElement)[] = [];
   let currentIndex = 0;
   let keyCounter = 0;
-  
+
   // Match **bold**, *italic*, and ~~strikethrough~~
   // First collect all bold matches to exclude them from italic matching
   const boldMatches: Array<{ start: number; end: number }> = [];
@@ -495,7 +495,7 @@ function renderInlineMarkdown(text: string) {
   while ((boldMatch = boldRegex.exec(text)) !== null) {
     boldMatches.push({ start: boldMatch.index, end: boldMatch.index + boldMatch[0].length });
   }
-  
+
   // Collect strikethrough matches
   const strikethroughMatches: Array<{ start: number; end: number }> = [];
   const strikethroughRegex = /~~(.+?)~~/g;
@@ -503,21 +503,21 @@ function renderInlineMarkdown(text: string) {
   while ((strikethroughMatch = strikethroughRegex.exec(text)) !== null) {
     strikethroughMatches.push({ start: strikethroughMatch.index, end: strikethroughMatch.index + strikethroughMatch[0].length });
   }
-  
+
   const matches: Array<{ start: number; end: number; content: string; type: string }> = [];
-  
+
   // Add bold matches
   boldMatches.forEach(({ start, end }) => {
     const content = text.slice(start + 2, end - 2);
     matches.push({ start, end, content, type: 'bold' });
   });
-  
+
   // Add strikethrough matches
   strikethroughMatches.forEach(({ start, end }) => {
     const content = text.slice(start + 2, end - 2);
     matches.push({ start, end, content, type: 'strikethrough' });
   });
-  
+
   // Add italic matches, but exclude those that overlap with bold or strikethrough
   const italicRegex = /\*([^*]+?)\*/g;
   let italicMatch;
@@ -525,8 +525,8 @@ function renderInlineMarkdown(text: string) {
     const start = italicMatch.index;
     const end = start + italicMatch[0].length;
     // Check if this italic match overlaps with any bold or strikethrough match
-    const overlaps = boldMatches.some(bm => 
-      (start >= bm.start && start < bm.end) || 
+    const overlaps = boldMatches.some(bm =>
+      (start >= bm.start && start < bm.end) ||
       (end > bm.start && end <= bm.end) ||
       (start <= bm.start && end >= bm.end)
     ) || strikethroughMatches.some(sm =>
@@ -538,9 +538,9 @@ function renderInlineMarkdown(text: string) {
       matches.push({ start, end, content: italicMatch[1], type: 'italic' });
     }
   }
-  
+
   matches.sort((a, b) => a.start - b.start);
-  
+
   matches.forEach((match) => {
     if (match.start > currentIndex) {
       const beforeText = text.slice(currentIndex, match.start);
@@ -548,7 +548,7 @@ function renderInlineMarkdown(text: string) {
         parts.push(beforeText);
       }
     }
-    
+
     if (match.type === 'bold') {
       parts.push(
         <strong key={`bold-${keyCounter++}`} style={{ fontWeight: 700, color: THEME.text[900] }}>
@@ -568,18 +568,18 @@ function renderInlineMarkdown(text: string) {
         </del>
       );
     }
-    
+
     currentIndex = match.end;
   });
-  
+
   if (currentIndex < text.length) {
     parts.push(text.slice(currentIndex));
   }
-  
+
   if (parts.length === 0) {
     return text;
   }
-  
+
   return <>{parts}</>;
 }
 
@@ -598,10 +598,10 @@ const MarkdownBubble = React.memo(function MarkdownBubble({ children }: { childr
   const bubbleMotionProps = prefersReduced
     ? {}
     : {
-        initial: { opacity: 0, y: 10, scale: 0.98 },
-        animate: { opacity: 1, y: 0, scale: 1 },
-        transition: { duration: 0.7 },
-      };
+      initial: { opacity: 0, y: 10, scale: 0.98 },
+      animate: { opacity: 1, y: 0, scale: 1 },
+      transition: { duration: 0.7 },
+    };
 
   return (
     <motion.div
@@ -778,10 +778,10 @@ const MarkdownBubble = React.memo(function MarkdownBubble({ children }: { childr
 
             const cleaned = Array.isArray(p.children)
               ? p.children.map((ch: any, i: number) =>
-                  typeof ch === "string" && i === 0
-                    ? ch.replace(/^\s*\[\!(tip|note|caution)\]\s*/i, "")
-                    : ch,
-                )
+                typeof ch === "string" && i === 0
+                  ? ch.replace(/^\s*\[\!(tip|note|caution)\]\s*/i, "")
+                  : ch,
+              )
               : p.children;
 
             return (
@@ -936,15 +936,15 @@ const lisaImages = ["/lisa.png", "/lisa2.png", "/lisa3.png", "/lisa4.png", "/lis
 
 function ChatPageInner() {
   const router = useRouter();
-  
+
   /* ---- State ---- */
   const [sessions, setSessions] = useState<Conversation[]>(() => {
-  const normalized = hydrate(safeLSGet(SESSIONS_KEY));
-  if (normalized) return normalized;
+    const normalized = hydrate(safeLSGet(SESSIONS_KEY));
+    if (normalized) return normalized;
 
-  // start with no sessions; we'll create one on first mount
-  return [];
-});
+    // start with no sessions; we'll create one on first mount
+    return [];
+  });
 
 
   const [activeId, setActiveId] = useState<string | null>(() => {
@@ -955,7 +955,7 @@ function ChatPageInner() {
       try {
         const parsed: Conversation[] = JSON.parse(rawS);
         return parsed[0]?.id ?? null;
-      } catch {}
+      } catch { }
     }
     return null;
   });
@@ -1013,11 +1013,11 @@ function ChatPageInner() {
 
   // Chat list refs (auto-scroll)
   const listRef = useRef<HTMLDivElement>(null);
-const bottomRef = useRef<HTMLDivElement>(null);
-const didInitRef = useRef(false);
-const [stickToBottom, setStickToBottom] = useState(true);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const didInitRef = useRef(false);
+  const [stickToBottom, setStickToBottom] = useState(true);
 
-  
+
 
   const active = useMemo(
     () => sessions.find((s) => s.id === activeId) ?? null,
@@ -1118,8 +1118,8 @@ const [stickToBottom, setStickToBottom] = useState(true);
           updatedAt: Date.now(),
           title:
             c.title === "Menopause Support Chat" &&
-            msg.role === "user" &&
-            msg.content
+              msg.role === "user" &&
+              msg.content
               ? msg.content.slice(0, 40)
               : c.title,
         };
@@ -1132,10 +1132,10 @@ const [stickToBottom, setStickToBottom] = useState(true);
   const newChat = useCallback(async (): Promise<string> => {
     const id = uid();
     const now = Date.now();
-    
+
     // Fetch personalized greeting
-    let greeting = "Hey, it's Lisa";
-    
+    let greeting = "Hey, it's Lisa 🌸🌸🌸";
+
     if (userId) {
       try {
         const res = await fetch("/api/langchain-rag", {
@@ -1147,7 +1147,7 @@ const [stickToBottom, setStickToBottom] = useState(true);
             stream: false,
           }),
         });
-        
+
         if (res.ok) {
           const data = await res.json();
           if (data.reply) {
@@ -1166,7 +1166,7 @@ const [stickToBottom, setStickToBottom] = useState(true);
         console.error("Error fetching personalized greeting:", error);
       }
     }
-    
+
     const conv: Conversation = {
       id,
       title: "Menopause Support Chat",
@@ -1194,7 +1194,7 @@ const [stickToBottom, setStickToBottom] = useState(true);
     setMenuOpen(false);
     setStickToBottom(true);
   }, []);
-    // Always start with a fresh chat when the page is opened
+  // Always start with a fresh chat when the page is opened
   useEffect(() => {
     if (didInitRef.current) return;
     didInitRef.current = true;
@@ -1267,7 +1267,7 @@ const [stickToBottom, setStickToBottom] = useState(true);
           let errorData: any = null;
           try {
             errorData = JSON.parse(errorText);
-          } catch {}
+          } catch { }
           const msg =
             errorData?.error ||
             errorData?.message ||
@@ -1277,12 +1277,12 @@ const [stickToBottom, setStickToBottom] = useState(true);
 
         // Check if response is streaming (text/event-stream) or JSON
         const contentType = res.headers.get("content-type");
-        
+
         if (contentType?.includes("text/event-stream")) {
           // Handle streaming response
           const reader = res.body?.getReader();
           const decoder = new TextDecoder();
-          
+
           if (!reader) {
             throw new Error("No response body");
           }
@@ -1290,13 +1290,13 @@ const [stickToBottom, setStickToBottom] = useState(true);
           // Create a placeholder message for streaming if it doesn't exist
           setStreamingMessageId(id);
           setStreamingContent("");
-          
+
           // Ensure there's a placeholder assistant message
           const convo = sessions.find((s) => s.id === id);
           const lastMsg = convo?.messages[convo.messages.length - 1];
           if (!lastMsg || lastMsg.role !== "assistant" || lastMsg.content) {
-            upsertAndAppendMessage(id, { 
-              role: "assistant", 
+            upsertAndAppendMessage(id, {
+              role: "assistant",
               content: "",
               ts: Date.now(),
             });
@@ -1308,7 +1308,7 @@ const [stickToBottom, setStickToBottom] = useState(true);
           try {
             while (true) {
               const { done, value } = await reader.read();
-              
+
               if (done) break;
 
               buffer += decoder.decode(value, { stream: true });
@@ -1320,18 +1320,18 @@ const [stickToBottom, setStickToBottom] = useState(true);
                   try {
                     const jsonStr = line.slice(6).trim();
                     if (!jsonStr) continue;
-                    
+
                     const data = JSON.parse(jsonStr);
-                    
+
                     if (data.type === "chunk" && data.content !== undefined) {
                       // Backend sends accumulated content, so use it directly
                       fullResponse = data.content;
-                      
+
                       // Use requestAnimationFrame for smoother updates with debouncing
                       if (typeof window !== 'undefined') {
                         requestAnimationFrame(() => {
                           setStreamingContent(fullResponse);
-                          
+
                           // Smooth auto-scroll during streaming
                           if (stickToBottom) {
                             requestAnimationFrame(() => {
@@ -1417,7 +1417,7 @@ const [stickToBottom, setStickToBottom] = useState(true);
           let data: any = null;
           try {
             data = JSON.parse(raw);
-          } catch {}
+          } catch { }
 
           const rawReply: string =
             data?.reply ??
@@ -1426,8 +1426,8 @@ const [stickToBottom, setStickToBottom] = useState(true);
             data?.outputs?.answer ??
             (data?.outputs
               ? (Object.values(data.outputs).find(
-                  (v: any) => typeof v === "string",
-                ) as string)
+                (v: any) => typeof v === "string",
+              ) as string)
               : "") ??
             "⚠️ Empty reply";
 
@@ -1490,11 +1490,10 @@ const [stickToBottom, setStickToBottom] = useState(true);
         {sessions.map((s) => (
           <div
             key={s.id}
-            className={`group relative flex cursor-pointer items-start gap-2 rounded-lg px-3 py-2 text-sm transition-all active:scale-[0.98] touch-manipulation ${
-              s.id === activeId 
-                ? "bg-pink-300 shadow-sm" 
+            className={`group relative flex cursor-pointer items-start gap-2 rounded-lg px-3 py-2 text-sm transition-all active:scale-[0.98] touch-manipulation ${s.id === activeId
+                ? "bg-pink-300 shadow-sm"
                 : "bg-white/60 active:bg-white/80 hover:bg-white/70"
-            }`}
+              }`}
             onClick={() => {
               openChat(s.id);
               if (window.innerWidth < 1024) {
@@ -1604,7 +1603,7 @@ const [stickToBottom, setStickToBottom] = useState(true);
         }}
       >
         {/* Nature-inspired gradient background with texture */}
-        <div 
+        <div
           className="absolute inset-0"
           style={{
             background: `
@@ -1624,7 +1623,7 @@ const [stickToBottom, setStickToBottom] = useState(true);
           }}
         >
           {/* Subtle texture overlay */}
-          <div 
+          <div
             className="absolute inset-0 opacity-30"
             style={{
               backgroundImage: `
@@ -1635,7 +1634,7 @@ const [stickToBottom, setStickToBottom] = useState(true);
             }}
           />
           {/* Soft cloud-like shapes */}
-          <div 
+          <div
             className="absolute top-0 left-0 w-full h-full opacity-25"
             style={{
               background: `
@@ -1648,308 +1647,302 @@ const [stickToBottom, setStickToBottom] = useState(true);
           />
         </div>
         <div className="relative z-10 flex h-full w-full">
-        {/* Sidebar - Desktop */}
-      <aside
-        className="fixed inset-y-0 left-0 z-30 hidden w-72 lg:block"
-        aria-label="Sidebar"
-      >
-        <div
-          className="h-full rounded-none border-r border-foreground/10 p-4 shadow-sm backdrop-blur-md"
-          style={{ 
-            backgroundColor: `rgba(252, 231, 243, 0.85)`,
-            backdropFilter: 'blur(10px)',
-          }}
-        >
-          {SidebarContent}
-        </div>
-      </aside>
-
-      {/* Mobile Sidebar Backdrop */}
-      {menuOpen && (
-        <div
-          className="fixed inset-0 z-30 bg-black/50 backdrop-blur-sm lg:hidden"
-          onClick={() => setMenuOpen(false)}
-          aria-hidden="true"
-        />
-      )}
-
-        {/* Sidebar - Mobile (Toggleable) */}
-      <aside
-        className={`fixed inset-y-0 left-0 z-40 w-72 max-w-[85vw] lg:hidden transform transition-transform duration-300 ease-in-out ${
-          menuOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
-        aria-label="Mobile Sidebar"
-      >
-        <div
-          className="h-full border-r-2 p-3 sm:p-4 backdrop-blur-md"
-          style={{ 
-            backgroundColor: `rgba(255, 255, 255, 0.95)`,
-            backdropFilter: 'blur(10px)',
-            borderColor: THEME.pink[300],
-            boxShadow: menuOpen ? "4px 0 24px rgba(0, 0, 0, 0.15)" : "none"
-          }}
-        >
-          <div className="flex items-center justify-between mb-3 pb-3 border-b-2" style={{ borderColor: THEME.pink[200] }}>
-            <h2 className="text-2xl font-bold" style={{ color: THEME.text[900] }}>History</h2>
-            <button
-              onClick={() => setMenuOpen(false)}
-              className="p-3 rounded-lg transition-all hover:bg-pink-100 focus:outline-none focus:ring-2 focus:ring-pink-300"
-              aria-label="Close menu"
-              style={{ color: THEME.text[800] }}
+          {/* Sidebar - Desktop */}
+          <aside
+            className="fixed inset-y-0 left-0 z-30 hidden w-72 lg:block"
+            aria-label="Sidebar"
+          >
+            <div
+              className="h-full rounded-none border-r border-foreground/10 p-4 shadow-sm backdrop-blur-md"
+              style={{
+                backgroundColor: `rgba(252, 231, 243, 0.85)`,
+                backdropFilter: 'blur(10px)',
+              }}
             >
-              <X className="h-7 w-7" />
-            </button>
-          </div>
-          {SidebarContent}
-        </div>
-      </aside>
-
-      {/* Main */}
-      <main className="flex min-w-0 flex-1 flex-col transition-all duration-500 ease-in-out lg:pl-72">
-        {/* Top bar (mobile) */}
-        <div className="fixed w-full z-100 top-0 flex items-center justify-between border-b-2 px-4 py-2 lg:hidden backdrop-blur-md" style={{ 
-          borderColor: THEME.pink[300], 
-          backgroundColor: `rgba(255, 255, 255, 0.9)`,
-          backdropFilter: 'blur(10px)',
-          boxShadow: "0 2px 8px rgba(0, 0, 0, 0.05)"
-        }}>
-          <button
-            onClick={() => setMenuOpen(true)}
-            className="p-2 rounded-lg transition-all active:bg-pink-100 focus:outline-none focus:ring-2 focus:ring-pink-300 touch-manipulation"
-            aria-label="Open history"
-            style={{ color: THEME.text[800] }}
-          >
-            <History className="h-6 w-6" />
-          </button>
-
-          <button
-            onClick={() => router.push('/dashboard')}
-            className="p-2 rounded-lg transition-all active:bg-pink-100 focus:outline-none focus:ring-2 focus:ring-pink-300 touch-manipulation"
-            aria-label="Close chat"
-            style={{ color: THEME.text[800] }}
-          >
-            <X className="h-6 w-6" />
-          </button>
-        </div>
-
-
-        {/* Chat */}
-        <section
-          ref={listRef}
-          className="flex-1 pt-12 overflow-y-auto relative"
-          style={{ 
-            scrollBehavior: 'smooth',
-            WebkitOverflowScrolling: 'touch',
-            paddingBottom: '120px',
-          }}
-        >
-          {/* Fixed background character image positioned at bottom-right */}
-          <div className="fixed right-0 bottom-0 pointer-events-none z-0" style={{ right: '5%', bottom: '140px' }}>
-            <div className="relative w-[180px] h-[180px] sm:w-60 sm:h-60 md:w-[300px] md:h-[300px] opacity-15">
-              {lisaImages.map((src, index) => (
-                <Image
-                  key={src}
-                  src={src}
-                  alt={`Lisa ${index + 1}`}
-                  width={300}
-                  height={300}
-                  className={`absolute inset-0 w-full h-full object-contain transition-opacity duration-500 ease-in-out ${
-                    index === lisaImageIndex ? "opacity-100" : "opacity-0"
-                  }`}
-                />
-              ))}
+              {SidebarContent}
             </div>
-          </div>
-          
-          <div className="relative z-10 mx-auto w-full max-w-3xl px-4 sm:px-6 py-3 sm:py-4 space-y-3">
-            {(active?.messages ?? []).filter(m => m.content || (isStreaming && m.role === "assistant")).map((m, i) => {
-              const isUser = m.role === "user";
-              // Check if this is the streaming message: it's the last assistant message and we're currently streaming
-              const isLastMessage = i === (active?.messages ?? []).length - 1;
-              const isStreamingMsg = isStreaming && !isUser && streamingMessageId === activeId && isLastMessage && (streamingContent || m.content === "");
-              return (
-                <div
-                  key={`${m.ts ?? i}-${i}`}
-                  className={`flex items-start gap-2 sm:gap-3 ${
-                    isUser ? "justify-end" : ""
-                  }`}
+          </aside>
+
+          {/* Mobile Sidebar Backdrop */}
+          {menuOpen && (
+            <div
+              className="fixed inset-0 z-30 bg-black/50 backdrop-blur-sm lg:hidden"
+              onClick={() => setMenuOpen(false)}
+              aria-hidden="true"
+            />
+          )}
+
+          {/* Sidebar - Mobile (Toggleable) */}
+          <aside
+            className={`fixed inset-y-0 left-0 z-40 w-72 max-w-[85vw] lg:hidden transform transition-transform duration-300 ease-in-out ${menuOpen ? "translate-x-0" : "-translate-x-full"
+              }`}
+            aria-label="Mobile Sidebar"
+          >
+            <div
+              className="h-full border-r-2 p-3 sm:p-4 backdrop-blur-md"
+              style={{
+                backgroundColor: `rgba(255, 255, 255, 0.95)`,
+                backdropFilter: 'blur(10px)',
+                borderColor: THEME.pink[300],
+                boxShadow: menuOpen ? "4px 0 24px rgba(0, 0, 0, 0.15)" : "none"
+              }}
+            >
+              <div className="flex items-center justify-between mb-3 pb-3 border-b-2" style={{ borderColor: THEME.pink[200] }}>
+                <h2 className="text-2xl font-bold" style={{ color: THEME.text[900] }}>History</h2>
+                <button
+                  onClick={() => setMenuOpen(false)}
+                  className="p-3 rounded-lg transition-all hover:bg-pink-100 focus:outline-none focus:ring-2 focus:ring-pink-300"
+                  aria-label="Close menu"
+                  style={{ color: THEME.text[800] }}
                 >
-                  <div
-                    className={`rounded-2xl px-4 py-3 text-base leading-relaxed sm:px-5 sm:py-4 sm:text-lg transition-all backdrop-blur-sm ${
-                      isUser
-                        ? "ml-auto max-w-[90%] sm:max-w-[80%] shadow-lg"
-                        : "max-w-[90%] sm:max-w-[80%] bg-white/95 ring-1 shadow-lg"
-                    }`}
-                    style={{
-                      lineHeight: '1.4',
-                      ...(isUser
-                        ? { 
-                            backgroundColor: `rgba(251, 207, 232, 0.9)`,
-                            backdropFilter: 'blur(10px)',
-                            color: THEME.text[900],
-                            boxShadow: "0 4px 16px rgba(236, 72, 153, 0.25)",
-                          }
-                        : {
-                            backgroundColor: `rgba(255, 255, 255, 0.95)`,
-                            backdropFilter: 'blur(10px)',
-                            color: THEME.text[900],
-                            borderColor: THEME.pink[200],
-                            boxShadow: "0 4px 16px rgba(0, 0, 0, 0.12)",
-                          })
-                    }}
-                  >
-                    {isStreamingMsg ? (
-                      <div className="relative w-full min-h-5 streaming-content">
-                        {streamingContent ? (
-                          <div className="streaming-text wrap-break-words" style={{ 
-                            fontSize: '1rem',
-                            lineHeight: '1.4',
-                            color: THEME.text[900],
-                            fontWeight: 500,
-                            letterSpacing: '0.01em',
-                            textShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
-                            WebkitFontSmoothing: 'antialiased',
-                            MozOsxFontSmoothing: 'grayscale',
-                          }}>
-                            {renderMarkdownText(streamingContent)}
-                            <span 
-                              className="inline-block w-0.5 h-5 ml-1 mb-0.5 align-middle rounded-sm streaming-cursor" 
-                              style={{ 
-                                backgroundColor: THEME.pink[500],
-                                transition: 'opacity 0.2s ease-in-out',
-                              }} 
-                            />
+                  <X className="h-7 w-7" />
+                </button>
+              </div>
+              {SidebarContent}
+            </div>
+          </aside>
+
+          {/* Main */}
+          <main className="flex min-w-0 flex-1 flex-col transition-all duration-500 ease-in-out lg:pl-72">
+            {/* Top bar (mobile) */}
+            <div className="fixed w-full z-100 top-0 flex items-center justify-between  px-4 py-2 lg:hidden bg-pink-200/30 backdrop-blur-lg " style={{
+            }}>
+              <button
+                onClick={() => setMenuOpen(true)}
+                className="p-2 rounded-lg transition-all active:bg-pink-100 focus:outline-none focus:ring-2 focus:ring-pink-300 touch-manipulation"
+                aria-label="Open history"
+                style={{ color: THEME.text[800] }}
+              >
+                <History className="h-6 w-6" />
+              </button>
+
+              <button
+                onClick={() => router.push('/dashboard')}
+                className="p-2 rounded-lg transition-all active:bg-pink-100 focus:outline-none focus:ring-2 focus:ring-pink-300 touch-manipulation"
+                aria-label="Close chat"
+                style={{ color: THEME.text[800] }}
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            {/* Top bar (desktop) - Close button */}
+            <div className="hidden lg:flex fixed top-0 right-0 z-50 items-center justify-end p-4">
+              <button
+                onClick={() => router.push('/dashboard')}
+                className="p-2 rounded-lg transition-all hover:bg-pink-100 active:bg-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-300"
+                aria-label="Close chat"
+                style={{ color: THEME.text[800] }}
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+
+            {/* Chat */}
+            <section
+              ref={listRef}
+              className="flex-1 pt-12 overflow-y-auto relative"
+              style={{
+                scrollBehavior: 'smooth',
+                WebkitOverflowScrolling: 'touch',
+                paddingBottom: '120px',
+              }}
+            >
+              {/* Fixed background character image positioned at bottom-right */}
+              <div className="fixed right-0 bottom-0 pointer-events-none z-0" style={{ right: '5%', bottom: '140px' }}>
+                <div className="relative w-[180px] h-[180px] sm:w-60 sm:h-60 md:w-[300px] md:h-[300px] opacity-15">
+                  {lisaImages.map((src, index) => (
+                    <Image
+                      key={src}
+                      src={src}
+                      alt={`Lisa ${index + 1}`}
+                      width={300}
+                      height={300}
+                      className={`absolute inset-0 w-full h-full object-contain transition-opacity duration-500 ease-in-out ${index === lisaImageIndex ? "opacity-100" : "opacity-0"
+                        }`}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div className="relative z-10 mx-auto w-full max-w-3xl px-4 sm:px-6 py-3 sm:py-4 space-y-3">
+                {(active?.messages ?? []).filter(m => m.content || (isStreaming && m.role === "assistant")).map((m, i) => {
+                  const isUser = m.role === "user";
+                  // Check if this is the streaming message: it's the last assistant message and we're currently streaming
+                  const isLastMessage = i === (active?.messages ?? []).length - 1;
+                  const isStreamingMsg = isStreaming && !isUser && streamingMessageId === activeId && isLastMessage && (streamingContent || m.content === "");
+                  return (
+                    <div
+                      key={`${m.ts ?? i}-${i}`}
+                      className={`flex items-start gap-2 sm:gap-3 ${isUser ? "justify-end" : ""
+                        }`}
+                    >
+                      <div
+                        className={`rounded-2xl px-4 py-3 text-base leading-relaxed sm:px-5 sm:py-4 sm:text-lg transition-all backdrop-blur-sm ${isUser
+                            ? "ml-auto max-w-[90%] sm:max-w-[80%] shadow-lg"
+                            : "max-w-[90%] sm:max-w-[80%] bg-white/95 ring-1 shadow-lg"
+                          }`}
+                        style={{
+                          lineHeight: '1.4',
+                          ...(isUser
+                            ? {
+                              backgroundColor: `rgba(251, 207, 232, 0.9)`,
+                              backdropFilter: 'blur(10px)',
+                              color: THEME.text[900],
+                              boxShadow: "0 4px 16px rgba(236, 72, 153, 0.25)",
+                            }
+                            : {
+                              backgroundColor: `rgba(255, 255, 255, 0.95)`,
+                              backdropFilter: 'blur(10px)',
+                              color: THEME.text[900],
+                              borderColor: THEME.pink[200],
+                              boxShadow: "0 4px 16px rgba(0, 0, 0, 0.12)",
+                            })
+                        }}
+                      >
+                        {isStreamingMsg ? (
+                          <div className="relative w-full min-h-5 streaming-content">
+                            {streamingContent ? (
+                              <div className="streaming-text wrap-break-words" style={{
+                                fontSize: '1rem',
+                                lineHeight: '1.4',
+                                color: THEME.text[900],
+                                fontWeight: 500,
+                                letterSpacing: '0.01em',
+                                textShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+                                WebkitFontSmoothing: 'antialiased',
+                                MozOsxFontSmoothing: 'grayscale',
+                              }}>
+                                {renderMarkdownText(streamingContent)}
+                                <span
+                                  className="inline-block w-0.5 h-5 ml-1 mb-0.5 align-middle rounded-sm streaming-cursor"
+                                  style={{
+                                    backgroundColor: THEME.pink[500],
+                                    transition: 'opacity 0.2s ease-in-out',
+                                  }}
+                                />
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-3 text-lg" style={{ color: THEME.text[600] }}>
+                                <div className="flex gap-2">
+                                  <div className="w-3 h-3 rounded-full animate-bounce" style={{ backgroundColor: THEME.pink[400], animationDelay: "0ms" }} />
+                                  <div className="w-3 h-3 rounded-full animate-bounce" style={{ backgroundColor: THEME.pink[400], animationDelay: "150ms" }} />
+                                  <div className="w-3 h-3 rounded-full animate-bounce" style={{ backgroundColor: THEME.pink[400], animationDelay: "300ms" }} />
+                                </div>
+                                <span className="italic">Lisa is typing...</span>
+                              </div>
+                            )}
                           </div>
                         ) : (
-                          <div className="flex items-center gap-3 text-lg" style={{ color: THEME.text[600] }}>
-                            <div className="flex gap-2">
-                              <div className="w-3 h-3 rounded-full animate-bounce" style={{ backgroundColor: THEME.pink[400], animationDelay: "0ms" }} />
-                              <div className="w-3 h-3 rounded-full animate-bounce" style={{ backgroundColor: THEME.pink[400], animationDelay: "150ms" }} />
-                              <div className="w-3 h-3 rounded-full animate-bounce" style={{ backgroundColor: THEME.pink[400], animationDelay: "300ms" }} />
-                            </div>
-                            <span className="italic">Lisa is typing...</span>
-                          </div>
+                          <>
+                            {m.isGreeting ? (
+                              <div className="text-xl sm:text-2xl font-bold" style={{ color: THEME.pink[600], lineHeight: '1.4' }}>
+                                {m.content}
+                              </div>
+                            ) : (
+                              <div className="wrap-break-words" style={{
+                                fontSize: '1rem',
+                                lineHeight: '1.4',
+                                color: THEME.text[900],
+                                fontWeight: 500,
+                                letterSpacing: '0.01em',
+                                textShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+                                WebkitFontSmoothing: 'antialiased',
+                                MozOsxFontSmoothing: 'grayscale',
+                              }}>
+                                {renderMarkdownText(m.content)}
+                              </div>
+                            )}
+                          </>
                         )}
                       </div>
-                    ) : (
-                      <>
-                        {m.isGreeting ? (
-                          <div className="text-xl sm:text-2xl font-bold" style={{ color: THEME.pink[600], lineHeight: '1.4' }}>
-                            {m.content}
-                          </div>
-                        ) : (
-                          <div className="wrap-break-words" style={{ 
-                            fontSize: '1rem',
-                            lineHeight: '1.4',
-                            color: THEME.text[900],
-                            fontWeight: 500,
-                            letterSpacing: '0.01em',
-                            textShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
-                            WebkitFontSmoothing: 'antialiased',
-                            MozOsxFontSmoothing: 'grayscale',
-                          }}>
-                            {renderMarkdownText(m.content)}
-                          </div>
-                        )}
-                      </>
-                    )}
+                    </div>
+                  );
+                })}
+                {loading && !isStreaming && (
+                  <div className="flex items-center gap-3 pl-10 sm:pl-12 text-base sm:text-lg" style={{ color: THEME.text[700] }}>
+                    <div className="flex gap-2">
+                      <div className="w-2.5 h-2.5 rounded-full animate-bounce" style={{ backgroundColor: THEME.pink[500], animationDelay: "0ms" }} />
+                      <div className="w-2.5 h-2.5 rounded-full animate-bounce" style={{ backgroundColor: THEME.pink[500], animationDelay: "150ms" }} />
+                      <div className="w-2.5 h-2.5 rounded-full animate-bounce" style={{ backgroundColor: THEME.pink[500], animationDelay: "300ms" }} />
+                    </div>
+                    <span className="italic font-medium">Lisa is thinking...</span>
+                  </div>
+                )}
+                <div ref={bottomRef} style={{ height: '1px', marginTop: '1rem' }} />
+              </div>
+            </section>
+
+            {/* Composer */}
+            <footer className="fixed bottom-0 left-0 right-0 z-20 backdrop-blur-md safe-area-inset-bottom lg:left-72" style={{
+              backdropFilter: 'blur(10px)',
+              borderColor: THEME.pink[300],
+              paddingBottom: 'env(safe-area-inset-bottom, 0)',
+              backgroundColor: 'transparent',
+            }}>
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  const text = input.trim();
+                  if (!text || loading) return;
+                  const id = activeId ?? await newChat();
+                  // Reset textarea height immediately
+                  if (textareaRef.current) {
+                    textareaRef.current.style.height = "44px";
+                  }
+                  void sendToAPI(text, id);
+                }}
+                className="mx-auto flex w-full max-w-4xl items-end gap-2 sm:gap-3 px-2 py-3 sm:px-0 sm:py-2"
+              >
+                <div className="relative flex w-full items-center">
+                  <label htmlFor="composer" className="sr-only">
+                    Message Lisa
+                  </label>
+                  <div className="relative w-full">
+                    <textarea
+                      id="composer"
+                      ref={textareaRef}
+                      rows={1}
+                      value={input}
+                      onChange={(e) => setInput(e.target.value)}
+                      onKeyDown={async (e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          const text = input.trim();
+                          if (!text || loading) return;
+                          const id = activeId ?? await newChat();
+                          void sendToAPI(text, id);
+                        }
+                      }}
+                      aria-label="Type your message"
+                      placeholder="Ask anything..."
+                      className="w-full bg-pink-400/10 backdrop-blur-lg resize-none overflow-hidden text-md font-bold rounded-2xl border-0 px-4 py-3 pr-14 sm:px-5 sm:py-auto sm:pr-16 outline-none transition-all touch-manipulation"
+                    />
+
                   </div>
                 </div>
-              );
-            })}
-            {loading && !isStreaming && (
-              <div className="flex items-center gap-3 pl-10 sm:pl-12 text-base sm:text-lg" style={{ color: THEME.text[700] }}>
-                <div className="flex gap-2">
-                  <div className="w-2.5 h-2.5 rounded-full animate-bounce" style={{ backgroundColor: THEME.pink[500], animationDelay: "0ms" }} />
-                  <div className="w-2.5 h-2.5 rounded-full animate-bounce" style={{ backgroundColor: THEME.pink[500], animationDelay: "150ms" }} />
-                  <div className="w-2.5 h-2.5 rounded-full animate-bounce" style={{ backgroundColor: THEME.pink[500], animationDelay: "300ms" }} />
-                </div>
-                <span className="italic font-medium">Lisa is thinking...</span>
-              </div>
-            )}
-            <div ref={bottomRef} style={{ height: '1px', marginTop: '1rem' }} />
-          </div>
-        </section>
 
-        {/* Composer */}
-        <footer className="fixed bottom-0 left-0 right-0 z-20 backdrop-blur-md safe-area-inset-bottom lg:left-72" style={{ 
-          backdropFilter: 'blur(10px)',
-          borderColor: THEME.pink[300],
-          boxShadow: "0 -4px 24px rgba(236, 72, 153, 0.15)",
-          paddingBottom: 'env(safe-area-inset-bottom, 0)',
-          backgroundColor: 'transparent',
-        }}>
-          <form
-            onSubmit={async (e) => {
-              e.preventDefault();
-              const text = input.trim();
-              if (!text || loading) return;
-              const id = activeId ?? await newChat();
-              // Reset textarea height immediately
-              if (textareaRef.current) {
-                textareaRef.current.style.height = "44px";
-              }
-              void sendToAPI(text, id);
-            }}
-            className="mx-auto flex w-full max-w-3xl items-end gap-2 sm:gap-3 px-4 sm:px-6 py-3 sm:py-4"
-          >
-            <div className="relative flex w-full items-center">
-              <label htmlFor="composer" className="sr-only">
-                Message Lisa
-              </label>
-              <div className="relative w-full">
-                <textarea
-                  id="composer"
-                  ref={textareaRef}
-                  rows={1}
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={async (e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      const text = input.trim();
-                      if (!text || loading) return;
-                      const id = activeId ?? await newChat();
-                      void sendToAPI(text, id);
-                    }
+                <button
+                  type="submit"
+                  disabled={!input.trim() || loading}
+                  className="inline-flex h-11 w-11 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-full text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 focus:outline-none touch-manipulation shadow-lg"
+                  style={{
+                    backgroundColor: input.trim() ? '#ff637e' : '#E5E7EB',
+                    color: input.trim() ? '#FFFFFF' : '#9CA3AF',
                   }}
-                  aria-label="Type your message"
-                  placeholder="Ask anything..."
-                  className="w-full resize-none overflow-hidden rounded-full border-0 px-4 py-3 pr-14 sm:px-5 sm:py-4 sm:pr-16 outline-none transition-all touch-manipulation"
-                  style={{ 
-                    background: '#FFFFFF',
-                    color: THEME.text[900],
-                    minHeight: '44px',
-                    maxHeight: '200px',
-                    fontSize: '1rem',
-                    lineHeight: '1.4',
-                    paddingTop: '0.75rem',
-                    paddingBottom: '0.75rem',
-                  }}
-                />
-              </div>
-            </div>
+                  aria-label="Send message"
+                >
+                  {loading ? (
+                    <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 animate-spin" />
+                  ) : (
+                    <Send className="h-5 w-5 sm:h-6 sm:w-6" />
+                  )}
+                </button>
 
-            <button
-              type="submit"
-              disabled={!input.trim() || loading}
-              className="inline-flex h-11 w-11 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-full text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 focus:outline-none touch-manipulation shadow-lg"
-              style={{ 
-                backgroundColor: input.trim() ? '#3B82F6' : '#E5E7EB',
-                color: input.trim() ? '#FFFFFF' : '#9CA3AF',
-              }}
-              aria-label="Send message"
-            >
-              {loading ? (
-                <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 animate-spin" />
-              ) : (
-                <Send className="h-5 w-5 sm:h-6 sm:w-6" />
-              )}
-            </button>
-
-          </form>
-        </footer>
-      </main>
+              </form>
+            </footer>
+          </main>
         </div>
       </div>
     </>
