@@ -8,11 +8,116 @@ import { HumanMessage, AIMessage, SystemMessage, ToolMessage } from "@langchain/
 import { DynamicStructuredTool } from "@langchain/core/tools";
 import { z } from "zod";
 import { fetchTrackerData, analyzeTrackerData, formatTrackerSummary } from "@/lib/trackerAnalysis";
+import type { Document } from "@langchain/core/documents";
 
 export const runtime = "nodejs";
 
 // Import lazy Supabase admin client
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+
+/**
+ * Parse date/time references from user input and convert to ISO timestamp
+ * Handles: "yesterday", "2 days ago", "last week", "this morning", "3 hours ago", etc.
+ */
+function parseDateTimeReference(dateReference: string, defaultDate: Date = new Date()): string {
+  if (!dateReference || !dateReference.trim()) {
+    return defaultDate.toISOString();
+  }
+
+  const input = dateReference.toLowerCase().trim();
+  const now = defaultDate;
+  const result = new Date(now);
+
+  // Handle "yesterday"
+  if (input.includes("yesterday")) {
+    result.setDate(result.getDate() - 1);
+    // Try to extract time if mentioned (e.g., "yesterday at 3pm", "yesterday morning")
+    if (input.includes("morning")) {
+      result.setHours(9, 0, 0, 0);
+    } else if (input.includes("afternoon")) {
+      result.setHours(14, 0, 0, 0);
+    } else if (input.includes("evening") || input.includes("night")) {
+      result.setHours(20, 0, 0, 0);
+    } else {
+      const timeMatch = input.match(/(\d{1,2})\s*(am|pm|:)/i);
+      if (timeMatch) {
+        let hours = parseInt(timeMatch[1]);
+        const isPM = /pm/i.test(input);
+        if (isPM && hours !== 12) hours += 12;
+        if (!isPM && hours === 12) hours = 0;
+        result.setHours(hours, 0, 0, 0);
+      } else {
+        // Default to noon for yesterday if no time specified
+        result.setHours(12, 0, 0, 0);
+      }
+    }
+    return result.toISOString();
+  }
+
+  // Handle "X days ago"
+  const daysAgoMatch = input.match(/(\d+)\s*days?\s*ago/i);
+  if (daysAgoMatch) {
+    const days = parseInt(daysAgoMatch[1]);
+    result.setDate(result.getDate() - days);
+    result.setHours(12, 0, 0, 0);
+    return result.toISOString();
+  }
+
+  // Handle "last week"
+  if (input.includes("last week")) {
+    result.setDate(result.getDate() - 7);
+    result.setHours(12, 0, 0, 0);
+    return result.toISOString();
+  }
+
+  // Handle "X hours ago"
+  const hoursAgoMatch = input.match(/(\d+)\s*hours?\s*ago/i);
+  if (hoursAgoMatch) {
+    const hours = parseInt(hoursAgoMatch[1]);
+    result.setHours(result.getHours() - hours);
+    return result.toISOString();
+  }
+
+  // Handle "this morning" (today, morning hours)
+  if (input.includes("this morning")) {
+    result.setHours(9, 0, 0, 0);
+    return result.toISOString();
+  }
+
+  // Handle "this afternoon" (today, afternoon hours)
+  if (input.includes("this afternoon")) {
+    result.setHours(14, 0, 0, 0);
+    return result.toISOString();
+  }
+
+  // Handle "this evening" or "tonight" (today, evening hours)
+  if (input.includes("this evening") || input.includes("tonight")) {
+    result.setHours(19, 0, 0, 0);
+    return result.toISOString();
+  }
+
+  // Handle "last night" (yesterday evening)
+  if (input.includes("last night")) {
+    result.setDate(result.getDate() - 1);
+    result.setHours(20, 0, 0, 0);
+    return result.toISOString();
+  }
+
+  // Handle "today" with time references
+  if (input.includes("today")) {
+    if (input.includes("morning")) {
+      result.setHours(9, 0, 0, 0);
+    } else if (input.includes("afternoon")) {
+      result.setHours(14, 0, 0, 0);
+    } else if (input.includes("evening") || input.includes("night")) {
+      result.setHours(19, 0, 0, 0);
+    }
+    return result.toISOString();
+  }
+
+  // Default to current time if no date reference found
+  return now.toISOString();
+}
 
 // Initialize embeddings
 const embeddings = new OpenAIEmbeddings({
@@ -26,6 +131,95 @@ const llm = new ChatOpenAI({
   temperature: 0.7,
   openAIApiKey: process.env.OPENAI_API_KEY,
 });
+
+/**
+ * Extract keywords from user query for hybrid search
+ */
+function extractQueryKeywords(query: string): string[] {
+  // Simple keyword extraction: remove common stop words and split
+  const stopWords = new Set([
+    'a', 'an', 'and', 'are', 'as', 'at', 'be', 'by', 'for', 'from',
+    'has', 'he', 'in', 'is', 'it', 'its', 'of', 'on', 'that', 'the',
+    'to', 'was', 'were', 'will', 'with', 'the', 'this', 'i', 'you',
+    'how', 'why', 'what', 'when', 'where', 'can', 'could', 'should',
+    'would', 'do', 'does', 'did', 'am', 'my', 'me', 'we', 'our'
+  ]);
+  
+  // Tokenize and filter
+  const words = query
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, ' ') // Remove punctuation
+    .split(/\s+/)
+    .filter(word => word.length > 2 && !stopWords.has(word));
+  
+  // Return unique keywords
+  return [...new Set(words)];
+}
+
+/**
+ * Apply hybrid search: combine semantic similarity with keyword matching
+ * Boosts results that match keywords from user query
+ */
+function applyHybridSearch(
+  documents: Document[],
+  userQuery: string
+): Document[] {
+  const queryKeywords = extractQueryKeywords(userQuery);
+  
+  if (queryKeywords.length === 0) {
+    // No keywords to match, return original order
+    return documents;
+  }
+  
+  // Score each document
+  const scoredDocs = documents.map((doc, index) => {
+    // Base semantic similarity score (higher is better, typically 0-1)
+    // Since documents are already sorted by similarity, use reverse index as base score
+    const baseScore = 1 - (index / documents.length) * 0.5; // Normalize to 0.5-1.0 range
+    
+    // Get keywords from document metadata
+    const docKeywords = (doc.metadata?.keywords as string[]) || [];
+    const docIntentPatterns = (doc.metadata?.intent_patterns as string[]) || [];
+    
+    // Calculate keyword match score
+    let keywordMatches = 0;
+    const totalKeywords = queryKeywords.length;
+    
+    for (const queryKeyword of queryKeywords) {
+      // Check if keyword appears in document keywords (case-insensitive)
+      const keywordMatch = docKeywords.some(kw => 
+        kw.toLowerCase().includes(queryKeyword) || 
+        queryKeyword.includes(kw.toLowerCase())
+      );
+      
+      // Check if keyword appears in intent patterns (case-insensitive)
+      const patternMatch = docIntentPatterns.some(pattern =>
+        pattern.toLowerCase().includes(queryKeyword)
+      );
+      
+      if (keywordMatch || patternMatch) {
+        keywordMatches++;
+      }
+    }
+    
+    // Keyword boost: up to 0.2 points for perfect keyword match
+    const keywordBoost = (keywordMatches / totalKeywords) * 0.2;
+    
+    // Combined score
+    const finalScore = baseScore + keywordBoost;
+    
+    return {
+      doc,
+      score: finalScore,
+      keywordMatches,
+    };
+  });
+  
+  // Sort by score (highest first) and return documents
+  scoredDocs.sort((a, b) => b.score - a.score);
+  
+  return scoredDocs.map(item => item.doc);
+}
 
 // Base system prompt for menopause support
 const BASE_SYSTEM_PROMPT = `You are Lisa, a compassionate menopause support expert who feels like a trusted friend. You've been helping women navigate menopause for years, and you understand that this journey is deeply personal and often emotional.
@@ -78,6 +272,14 @@ FOLLOW-UP STRATEGY:
 IMPORTANT: Always personalize your responses based on the user's profile, tracker data, and previous conversations. 
 Use their specific information (age, menopause stage, symptoms, lifestyle, preferences, tracked data) to provide tailored advice.
 
+KNOWLEDGE BASE OUTPUT REQUIREMENTS:
+- When knowledge base context is provided in the "=== KNOWLEDGE BASE CONTEXT ===" section, you MUST output it EXACTLY as written
+- Do NOT summarize, paraphrase, or modify the knowledge base content
+- Do NOT add commentary, introduction, or additional text before or after the knowledge base content
+- Output the knowledge base content verbatim, word-for-word, exactly as it appears
+- Only use the knowledge base content when it directly answers the user's question
+- If knowledge base content is provided, prioritize it over generating your own response
+
 FORMATTING REQUIREMENTS:
 - ALWAYS use markdown formatting for better readability and visual appeal
 - Use **bold** for emphasis on important points, key terms, or action items
@@ -104,10 +306,10 @@ CAPABILITIES:
    - Track progress toward goals
    - Alert about concerning patterns
 
-3. CONVERSATIONAL LOGGING: When users mention symptoms, meals, or workouts naturally, you can log them using the available tools:
-   - log_symptom: Log a symptom with name, severity (1-10), optional notes, and timestamp
-   - log_nutrition: Log a food item with meal type, optional calories and notes
-   - log_fitness: Log a workout with exercise name, type, optional duration, calories, and intensity
+3. AUTOMATIC CONVERSATIONAL LOGGING: When users mention symptoms, meals, or workouts naturally, AUTOMATICALLY log them using the available tools WITHOUT asking for permission. Do NOT ask "Would you like me to log this?" - just log it immediately. IMPORTANT: Always extract date/time references from the user's message (e.g., "yesterday", "2 days ago", "this morning", "last night") and include them in the date_reference field. If the user says "I ate pancakes yesterday", log it with yesterday's date, not today's:
+   - log_symptom: Automatically log a symptom with name, severity (1-10), optional notes, and date_reference if mentioned
+   - log_nutrition: Automatically log a food item with meal type, optional calories, notes, and date_reference if mentioned
+   - log_fitness: Automatically log a workout with exercise name, type, optional duration, calories, intensity, and date_reference if mentioned
 
 4. LONG-TERM MEMORY: When users explicitly mention wanting to save something to their long-term memory, profile, or want you to remember something important, use the update_long_term_memory tool:
    - update_long_term_memory: Save important information to the user's profile (name, age, menopause_profile, nutrition_profile, exercise_profile, emotional_stress_profile, lifestyle_context)
@@ -124,7 +326,7 @@ CAPABILITIES:
 Guidelines:
 - Be empathetic, warm, and supportive
 - ALWAYS reference the user's specific profile and tracker data when relevant
-- Proactively suggest logging when users mention trackable information
+- Automatically log trackable information when users mention symptoms, meals, or workouts (do NOT ask for permission)
 - Provide evidence-based information from the knowledge base
 - Reference previous conversations when relevant to show continuity
 - Use tracker data to provide concrete, data-driven insights
@@ -255,22 +457,41 @@ export async function POST(req: NextRequest) {
     );
     const trackerContext = formatTrackerSummary(trackerSummary);
 
-    // 3. Initialize vector store and retrieve documents
-    const vectorStore = new SupabaseVectorStore(embeddings, {
-      client: supabaseClient,
-      tableName: "documents",
-      queryName: "match_documents",
-    });
+    // 3. Check if documents exist before initializing vector store (early exit)
+    const { count } = await supabaseClient
+      .from('documents')
+      .select('*', { count: 'exact', head: true });
 
-    const retriever = vectorStore.asRetriever({
-      k: 5,
-      searchType: "similarity",
-    });
+    let context = "";
+    
+    if (count && count > 0) {
+      // Initialize vector store and retrieve documents
+      const vectorStore = new SupabaseVectorStore(embeddings, {
+        client: supabaseClient,
+        tableName: "documents",
+        queryName: "match_documents",
+      });
 
-    const relevantDocs = await retriever.getRelevantDocuments(userInput);
-    const context = relevantDocs.length > 0 
-      ? formatDocumentsAsString(relevantDocs) 
-      : "";
+      // Hybrid search: Get more results initially for re-ranking
+      const retriever = vectorStore.asRetriever({
+        k: 15, // Get more results for hybrid search re-ranking
+        searchType: "similarity",
+      });
+
+      const relevantDocs = await retriever.getRelevantDocuments(userInput);
+      
+      if (relevantDocs.length > 0) {
+        // Apply hybrid search: combine semantic similarity with keyword matching
+        const rankedDocs = applyHybridSearch(relevantDocs, userInput);
+        
+        // Take top 5 after hybrid ranking
+        const topDocs = rankedDocs.slice(0, 5);
+        context = formatDocumentsAsString(topDocs);
+      }
+    } else {
+      // No documents in database, skip RAG retrieval
+      console.log("No documents in database, skipping RAG retrieval");
+    }
 
     // 4. Build comprehensive user profile context for personalization
     let userContext = "";
@@ -331,7 +552,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (context && context.trim()) {
-      systemParts.push(`\n\n=== KNOWLEDGE BASE CONTEXT ===\n${context.trim()}\n=== END KNOWLEDGE BASE ===\n`);
+      systemParts.push(`\n\n=== KNOWLEDGE BASE CONTEXT (OUTPUT VERBATIM - DO NOT MODIFY) ===\nCRITICAL: The content below must be output EXACTLY as written, word-for-word, without any modification, summarization, or additional commentary.\n\n${context.trim()}\n\n=== END KNOWLEDGE BASE ===\nREMEMBER: Output the knowledge base content above EXACTLY as written, without any changes.\n`);
     }
 
     if (allHistoryMessages.length > 0) {
@@ -358,14 +579,19 @@ export async function POST(req: NextRequest) {
     const tools = [
       new DynamicStructuredTool({
         name: "log_symptom",
-        description: "Log a symptom entry for the user. Use this when the user mentions experiencing a symptom, even casually. Extract the symptom name, severity (1-10), optional notes, and use current timestamp.",
+        description: "Automatically log a symptom entry for the user WITHOUT asking for permission. Use this immediately when the user mentions experiencing a symptom, even casually. Extract the symptom name, severity (1-10), optional notes, and date/time reference from the user's message (e.g., 'yesterday', '2 days ago', 'this morning'). If no date is mentioned, use current time. Do NOT ask the user if they want to log it - just log it automatically.",
         schema: z.object({
           name: z.string().describe("The name of the symptom (e.g., 'hot flashes', 'sleep disturbance', 'mood swings')"),
           severity: z.number().min(1).max(10).describe("Severity level from 1 (mild) to 10 (severe)"),
           notes: z.string().optional().describe("Optional additional notes about the symptom"),
+          date_reference: z.string().optional().describe("Date/time reference from user's message (e.g., 'yesterday', '2 days ago', 'this morning', 'last night'). Use the exact phrase from the user's message if present, otherwise omit."),
         }),
-        func: async ({ name, severity, notes }) => {
+        func: async ({ name, severity, notes, date_reference }) => {
           try {
+            const occurredAt = date_reference 
+              ? parseDateTimeReference(date_reference, new Date())
+              : new Date().toISOString();
+
             const supabaseClient = getSupabaseAdmin();
             const { error } = await supabaseClient
               .from("symptoms")
@@ -375,7 +601,7 @@ export async function POST(req: NextRequest) {
                   name: name.trim(),
                   severity,
                   notes: notes?.trim() || null,
-                  occurred_at: new Date().toISOString(),
+                  occurred_at: occurredAt,
                 },
               ])
               .select()
@@ -392,15 +618,20 @@ export async function POST(req: NextRequest) {
       }),
       new DynamicStructuredTool({
         name: "log_nutrition",
-        description: "Log a nutrition/food entry for the user. Use this when the user mentions eating something or having a meal. Extract food item, meal type, optional calories, and use current timestamp.",
+        description: "Automatically log a nutrition/food entry for the user WITHOUT asking for permission. Use this immediately when the user mentions eating something or having a meal. Extract food item, meal type, optional calories, and date/time reference from the user's message (e.g., 'yesterday', '2 days ago', 'this morning', 'last night'). If no date is mentioned, use current time. Do NOT ask the user if they want to log it - just log it automatically.",
         schema: z.object({
           food_item: z.string().describe("The name of the food or meal (e.g., 'salmon with vegetables', 'oatmeal', 'chicken salad')"),
           meal_type: z.enum(["breakfast", "lunch", "dinner", "snack"]).describe("Type of meal"),
           calories: z.number().optional().describe("Optional calorie count if mentioned"),
           notes: z.string().optional().describe("Optional additional notes about the meal"),
+          date_reference: z.string().optional().describe("Date/time reference from user's message (e.g., 'yesterday', '2 days ago', 'this morning', 'last night'). Use the exact phrase from the user's message if present, otherwise omit."),
         }),
-        func: async ({ food_item, meal_type, calories, notes }) => {
+        func: async ({ food_item, meal_type, calories, notes, date_reference }) => {
           try {
+            const consumedAt = date_reference 
+              ? parseDateTimeReference(date_reference, new Date())
+              : new Date().toISOString();
+
             const supabaseClient = getSupabaseAdmin();
             const { error } = await supabaseClient
               .from("nutrition")
@@ -411,7 +642,7 @@ export async function POST(req: NextRequest) {
                   meal_type,
                   calories: calories || null,
                   notes: notes?.trim() || null,
-                  consumed_at: new Date().toISOString(),
+                  consumed_at: consumedAt,
                 },
               ])
               .select()
@@ -428,7 +659,7 @@ export async function POST(req: NextRequest) {
       }),
       new DynamicStructuredTool({
         name: "log_fitness",
-        description: "Log a fitness/workout entry for the user. Use this when the user mentions exercising, working out, or any physical activity. Extract exercise name, type, optional duration, calories, intensity, and use current timestamp.",
+        description: "Automatically log a fitness/workout entry for the user WITHOUT asking for permission. Use this immediately when the user mentions exercising, working out, or any physical activity. Extract exercise name, type, optional duration, calories, intensity, and date/time reference from the user's message (e.g., 'yesterday', '2 days ago', 'this morning', 'last night'). If no date is mentioned, use current time. Do NOT ask the user if they want to log it - just log it automatically.",
         schema: z.object({
           exercise_name: z.string().describe("The name of the exercise or activity (e.g., 'yoga', 'walking', 'weight lifting', 'swimming')"),
           exercise_type: z.enum(["cardio", "strength", "flexibility", "sports", "other"]).describe("Type of exercise"),
@@ -436,9 +667,14 @@ export async function POST(req: NextRequest) {
           calories_burned: z.number().optional().describe("Optional calories burned if mentioned"),
           intensity: z.enum(["low", "medium", "high"]).optional().describe("Optional intensity level if mentioned"),
           notes: z.string().optional().describe("Optional additional notes about the workout"),
+          date_reference: z.string().optional().describe("Date/time reference from user's message (e.g., 'yesterday', '2 days ago', 'this morning', 'last night'). Use the exact phrase from the user's message if present, otherwise omit."),
         }),
-        func: async ({ exercise_name, exercise_type, duration_minutes, calories_burned, intensity, notes }) => {
+        func: async ({ exercise_name, exercise_type, duration_minutes, calories_burned, intensity, notes, date_reference }) => {
           try {
+            const performedAt = date_reference 
+              ? parseDateTimeReference(date_reference, new Date())
+              : new Date().toISOString();
+
             const supabaseClient = getSupabaseAdmin();
             const { error } = await supabaseClient
               .from("fitness")
@@ -451,7 +687,7 @@ export async function POST(req: NextRequest) {
                   calories_burned: calories_burned || null,
                   intensity: intensity || null,
                   notes: notes?.trim() || null,
-                  performed_at: new Date().toISOString(),
+                  performed_at: performedAt,
                 },
               ])
               .select()
@@ -539,34 +775,68 @@ export async function POST(req: NextRequest) {
                 
                 // Check for tool calls
                 if (response.tool_calls && response.tool_calls.length > 0) {
-                  // Execute tools
-                  const toolResults = [];
-                  
+                  // Emit tool_call events for each tool
                   for (const toolCall of response.tool_calls) {
-                    const tool = tools.find((t) => t.name === toolCall.name);
-                    if (tool && toolCall.id) {
-                      try {
-                        const result = await (tool as any).invoke(toolCall.args);
-                        toolResults.push(
-                          new ToolMessage({
+                    controller.enqueue(
+                      new TextEncoder().encode(`data: ${JSON.stringify({ 
+                        type: "tool_call", 
+                        tool_name: toolCall.name,
+                        tool_args: toolCall.args 
+                      })}\n\n`)
+                    );
+                  }
+                  
+                  // Execute tools in parallel for better performance
+                  const toolResults = await Promise.all(
+                    response.tool_calls.map(async (toolCall: any) => {
+                      const tool = tools.find((t) => t.name === toolCall.name);
+                      if (tool && toolCall.id) {
+                        try {
+                          const result = await (tool as any).invoke(toolCall.args);
+                          
+                          // Emit tool_result event
+                          controller.enqueue(
+                            new TextEncoder().encode(`data: ${JSON.stringify({ 
+                              type: "tool_result", 
+                              tool_name: toolCall.name,
+                              tool_args: toolCall.args,
+                              result: result,
+                              success: true
+                            })}\n\n`)
+                          );
+                          
+                          return new ToolMessage({
                             content: result,
                             tool_call_id: toolCall.id,
-                          })
-                        );
-                      } catch (e: any) {
-                        toolResults.push(
-                          new ToolMessage({
+                          });
+                        } catch (e: any) {
+                          // Emit tool_result event with error
+                          controller.enqueue(
+                            new TextEncoder().encode(`data: ${JSON.stringify({ 
+                              type: "tool_result", 
+                              tool_name: toolCall.name,
+                              tool_args: toolCall.args,
+                              result: `Error: ${e.message}`,
+                              success: false
+                            })}\n\n`)
+                          );
+                          
+                          return new ToolMessage({
                             content: `Error: ${e.message}`,
                             tool_call_id: toolCall.id,
-                          })
-                        );
+                          });
+                        }
                       }
-                    }
-                  }
+                      return null;
+                    })
+                  );
+                  
+                  // Filter out null results
+                  const validToolResults = toolResults.filter((r) => r !== null) as ToolMessage[];
                   
                   // Add tool results to messages and continue
                   currentMessages.push(response);
-                  currentMessages.push(...toolResults);
+                  currentMessages.push(...validToolResults);
                   
                   // Continue loop to get final response
                   continue;
@@ -606,8 +876,8 @@ export async function POST(req: NextRequest) {
                       new TextEncoder().encode(`data: ${JSON.stringify({ type: "chunk", content: accumulated })}\n\n`)
                     );
                     
-                    // Small delay for smooth streaming (reduced for faster response)
-                    await new Promise(resolve => setTimeout(resolve, 10));
+                    // Minimal delay for smooth streaming (reduced from 10ms to 2ms for faster response)
+                    await new Promise(resolve => setTimeout(resolve, 2));
                   }
                 }
                 
@@ -650,32 +920,31 @@ export async function POST(req: NextRequest) {
       
       if (response.tool_calls && response.tool_calls.length > 0) {
         toolCallsMade = true;
-        const toolResults = [];
-        
-        for (const toolCall of response.tool_calls) {
-          const tool = tools.find((t) => t.name === toolCall.name);
-          if (tool && toolCall.id) {
-            try {
-              const result = await (tool as any).invoke(toolCall.args);
-              toolResults.push(
-                new ToolMessage({
+        // Execute tools in parallel for better performance
+        const toolResults = await Promise.all(
+          response.tool_calls.map(async (toolCall: any) => {
+            const tool = tools.find((t) => t.name === toolCall.name);
+            if (tool && toolCall.id) {
+              try {
+                const result = await (tool as any).invoke(toolCall.args);
+                return new ToolMessage({
                   content: result,
                   tool_call_id: toolCall.id,
-                })
-              );
-            } catch (e: any) {
-              toolResults.push(
-                new ToolMessage({
+                });
+              } catch (e: any) {
+                return new ToolMessage({
                   content: `Error: ${e.message}`,
                   tool_call_id: toolCall.id,
-                })
-              );
+                });
+              }
             }
-          }
-        }
+            return null;
+          })
+        );
         
+        const validToolResults = toolResults.filter((r) => r !== null) as ToolMessage[];
         messages.push(response);
-        messages.push(...toolResults);
+        messages.push(...validToolResults);
         const finalResponse = await llmWithTools.invoke(messages);
         responseText = typeof finalResponse.content === 'string' 
           ? finalResponse.content 

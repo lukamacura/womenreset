@@ -26,6 +26,7 @@ import {
   Quote,
   MessageSquare,
   History,
+  Sparkles,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
@@ -81,6 +82,13 @@ type Conversation = {
   createdAt: number;
   updatedAt: number;
   messages: Msg[];
+};
+
+type ToastNotification = {
+  id: string;
+  title: string;
+  message: string;
+  timestamp: number;
 };
 
 const SESSIONS_KEY = "Lisa-chat-sessions";
@@ -934,6 +942,57 @@ function hydrate(raw: string | null): Conversation[] | null {
 
 const lisaImages = ["/lisa.png", "/lisa2.png", "/lisa3.png", "/lisa4.png", "/lisa5.png"];
 
+/* ===== Toast Notification Component ===== */
+function ToastNotificationComponent({ notification, onDismiss }: { notification: ToastNotification; onDismiss: () => void }) {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      onDismiss();
+    }, 4000); // Auto-dismiss after 4 seconds
+
+    return () => clearTimeout(timer);
+  }, [onDismiss]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -20, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -20, scale: 0.95 }}
+      transition={{ duration: 0.3 }}
+      className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-md sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl px-2 sm:px-4"
+      style={{ pointerEvents: 'auto' }}
+    >
+      <div
+        className="rounded-xl shadow-xl border-2 px-3 py-3 sm:px-4 sm:py-4 bg-white/90 border-fuchsia-200 backdrop-blur-lg flex flex-col"
+        style={{
+          background: "rgba(253, 244, 255, 0.95)",
+          borderColor: THEME.fuchsia[200],
+        }}
+      >
+        <div className="flex items-center gap-3">
+          <div className="shrink-0 flex items-center justify-center h-9 w-9 rounded-full bg-fuchsia-100 ring-2 ring-fuchsia-200">
+            <Sparkles className="h-5 w-5 text-fuchsia-500" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="font-semibold text-base sm:text-sm text-fuchsia-900" style={{ color: THEME.text[900] }}>
+              {notification.title}
+            </div>
+            <div className="text-sm mt-1 text-fuchsia-800" style={{ color: THEME.text[700] }}>
+              {notification.message}
+            </div>
+          </div>
+          <button
+            onClick={onDismiss}
+            className="shrink-0 p-2 sm:p-1 rounded-full hover:bg-fuchsia-100 transition-all focus:outline-none focus:ring-2 focus:ring-fuchsia-200"
+            aria-label="Dismiss notification"
+          >
+            <X className="h-5 w-5 text-fuchsia-500" />
+          </button>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
 function ChatPageInner() {
   const router = useRouter();
 
@@ -968,6 +1027,7 @@ function ChatPageInner() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [isLisaThinking, setIsLisaThinking] = useState(false);
   const [lisaImageIndex, setLisaImageIndex] = useState(0);
+  const [notifications, setNotifications] = useState<ToastNotification[]>([]);
 
   // ✅ auth user id (no localStorage)
   const [userId, setUserId] = useState<string | null>(null);
@@ -1048,7 +1108,8 @@ function ChatPageInner() {
     const el = listRef.current;
     if (!el) return;
     const ro = new ResizeObserver(() => {
-      if (stickToBottom) {
+      // Don't auto-scroll during streaming - keep view at top of message
+      if (stickToBottom && !isStreaming) {
         // Scroll to bottom to ensure full visibility
         requestAnimationFrame(() => {
           el.scrollTop = el.scrollHeight;
@@ -1057,10 +1118,11 @@ function ChatPageInner() {
     });
     ro.observe(el);
     return () => ro.disconnect();
-  }, [stickToBottom]);
+  }, [stickToBottom, isStreaming]);
 
   useEffect(() => {
-    if (stickToBottom) {
+    // Don't auto-scroll during streaming - keep view at top of message
+    if (stickToBottom && !isStreaming) {
       // Use setTimeout to ensure DOM is updated
       setTimeout(() => {
         const el = listRef.current;
@@ -1070,7 +1132,7 @@ function ChatPageInner() {
         }
       }, 100);
     }
-  }, [sessions, activeId, loading, stickToBottom, streamingContent]);
+  }, [sessions, activeId, loading, stickToBottom, isStreaming]);
 
   /* ---- Textarea autosize ---- */
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -1194,16 +1256,46 @@ function ChatPageInner() {
     setMenuOpen(false);
     setStickToBottom(true);
   }, []);
-  // Always start with a fresh chat when the page is opened
+  
+  // Initialize with existing chat or create new one if none exists
+  // Only run once after sessions are loaded
   useEffect(() => {
     if (didInitRef.current) return;
-    didInitRef.current = true;
+    
+    // Check if there are existing sessions
+    if (sessions.length > 0 && activeId) {
+      // Use existing active chat
+      didInitRef.current = true;
+      return;
+    } else if (sessions.length > 0) {
+      // Activate the first existing chat
+      didInitRef.current = true;
+      setActiveId(sessions[0].id);
+    } else if (sessions.length === 0) {
+      // Only create new chat if no sessions exist and we've confirmed sessions are loaded
+      // This prevents creating a chat before localStorage is read
+      didInitRef.current = true;
+      void newChat();
+    }
+    // If sessions.length is still being determined, wait for next render
+  }, [sessions, activeId, newChat]);
 
-    // Create a new chat and make it active on first mount,
-    // regardless of any existing history.
-    void newChat();
-  }, [newChat]);
 
+  // Helper function to add notification
+  const addNotification = useCallback((title: string, message: string) => {
+    const notification: ToastNotification = {
+      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+      title,
+      message,
+      timestamp: Date.now(),
+    };
+    setNotifications((prev) => [...prev, notification]);
+  }, []);
+
+  // Helper function to remove notification
+  const removeNotification = useCallback((id: string) => {
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+  }, []);
 
   /* ---- API ---- */
   const sendToAPI = useCallback(
@@ -1323,7 +1415,37 @@ function ChatPageInner() {
 
                     const data = JSON.parse(jsonStr);
 
-                    if (data.type === "chunk" && data.content !== undefined) {
+                    // Handle tool_call events
+                    if (data.type === "tool_call") {
+                      // Tool call initiated - we can show a loading state if needed
+                      // For now, we'll wait for tool_result to show notification
+                    } 
+                    // Handle tool_result events
+                    else if (data.type === "tool_result" && data.success) {
+                      // Show notification when tool execution succeeds
+                      const toolName = data.tool_name;
+                      const toolArgs = data.tool_args;
+                      
+                      let title = "";
+                      let message = "";
+                      
+                      if (toolName === "log_symptom") {
+                        title = "Symptom Logged";
+                        message = `${toolArgs.name} (severity ${toolArgs.severity}/10)`;
+                      } else if (toolName === "log_nutrition") {
+                        title = "Meal Logged";
+                        message = `${toolArgs.food_item} (${toolArgs.meal_type})`;
+                      } else if (toolName === "log_fitness") {
+                        title = "Workout Logged";
+                        message = `${toolArgs.exercise_name} (${toolArgs.exercise_type})`;
+                      }
+                      
+                      if (title && message) {
+                        addNotification(title, message);
+                      }
+                    }
+                    // Handle chunk events
+                    else if (data.type === "chunk" && data.content !== undefined) {
                       // Backend sends accumulated content, so use it directly
                       fullResponse = data.content;
 
@@ -1331,16 +1453,7 @@ function ChatPageInner() {
                       if (typeof window !== 'undefined') {
                         requestAnimationFrame(() => {
                           setStreamingContent(fullResponse);
-
-                          // Smooth auto-scroll during streaming
-                          if (stickToBottom) {
-                            requestAnimationFrame(() => {
-                              const el = listRef.current;
-                              if (el) {
-                                el.scrollTop = el.scrollHeight;
-                              }
-                            });
-                          }
+                          // Don't auto-scroll during streaming - keep view at top of message
                         });
                       }
                     } else if (data.type === "done") {
@@ -1455,7 +1568,7 @@ function ChatPageInner() {
         setIsLisaThinking(false);
       }
     },
-    [activeId, sessions, upsertAndAppendMessage, userId, stickToBottom],
+    [activeId, sessions, upsertAndAppendMessage, userId, addNotification],
   );
 
   /* ---- UI ---- */
@@ -1538,6 +1651,17 @@ function ChatPageInner() {
 
   return (
     <>
+      {/* Toast Notifications */}
+      <div className="fixed top-0 left-0 right-0 z-50 pointer-events-none" style={{ paddingTop: '1rem' }}>
+        {notifications.map((notification) => (
+          <ToastNotificationComponent
+            key={notification.id}
+            notification={notification}
+            onDismiss={() => removeNotification(notification.id)}
+          />
+        ))}
+      </div>
+
       {/* Custom Scrollbar Styles */}
       <style jsx global>{`
         .custom-scrollbar::-webkit-scrollbar {
@@ -1691,7 +1815,7 @@ function ChatPageInner() {
                 <h2 className="text-2xl font-bold" style={{ color: THEME.text[900] }}>History</h2>
                 <button
                   onClick={() => setMenuOpen(false)}
-                  className="p-3 rounded-lg transition-all hover:bg-pink-100 focus:outline-none focus:ring-2 focus:ring-pink-300"
+                  className="cursor-pointer p-3 rounded-lg transition-all hover:bg-pink-100 focus:outline-none focus:ring-2 focus:ring-pink-300"
                   aria-label="Close menu"
                   style={{ color: THEME.text[800] }}
                 >
@@ -1718,7 +1842,7 @@ function ChatPageInner() {
 
               <button
                 onClick={() => router.push('/dashboard')}
-                className="p-2 rounded-lg transition-all active:bg-pink-100 focus:outline-none focus:ring-2 focus:ring-pink-300 touch-manipulation"
+                className="cursor-pointer p-2 rounded-lg transition-all active:bg-pink-100 focus:outline-none focus:ring-2 focus:ring-pink-300 touch-manipulation"
                 aria-label="Close chat"
                 style={{ color: THEME.text[800] }}
               >
@@ -1727,10 +1851,10 @@ function ChatPageInner() {
             </div>
 
             {/* Top bar (desktop) - Close button */}
-            <div className="hidden lg:flex fixed top-0 right-0 z-50 items-center justify-end p-4">
+            <div className="hidden lg:flex fixed top-0 right-0 z-50 items-center justify-end p-6">
               <button
                 onClick={() => router.push('/dashboard')}
-                className="p-2 rounded-lg transition-all hover:bg-pink-100 active:bg-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-300"
+                className="cursor-pointer p-2 rounded-lg transition-all hover:bg-pink-100 active:bg-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-300"
                 aria-label="Close chat"
                 style={{ color: THEME.text[800] }}
               >
