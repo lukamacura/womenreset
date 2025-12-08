@@ -16,8 +16,8 @@ export default function LisaSwipeButton() {
   const handleTouchStart = (e: React.TouchEvent) => {
     e.preventDefault();
     setIsDragging(true);
-    const startY = e.touches[0].clientY;
-    dragStartRef.current = startY;
+    const startX = e.touches[0].clientX;
+    dragStartRef.current = startX;
     setDragOffset(0);
     dragOffsetRef.current = 0;
   };
@@ -25,10 +25,10 @@ export default function LisaSwipeButton() {
   const handleTouchMove = (e: React.TouchEvent) => {
     if (!isDragging) return;
     e.preventDefault();
-    const currentY = e.touches[0].clientY;
-    const diff = dragStartRef.current - currentY; // Positive when swiping up
+    const currentX = e.touches[0].clientX;
+    const diff = currentX - dragStartRef.current; // Positive when swiping right
     
-    // Only allow swiping up (positive diff)
+    // Only allow swiping right (positive diff)
     if (diff > 0) {
       const newOffset = Math.min(diff, 200); // Cap at 200px
       setDragOffset(newOffset);
@@ -51,8 +51,8 @@ export default function LisaSwipeButton() {
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
     setIsDragging(true);
-    const startY = e.clientY;
-    dragStartRef.current = startY;
+    const startX = e.clientX;
+    dragStartRef.current = startX;
     setDragOffset(0);
     dragOffsetRef.current = 0;
   };
@@ -63,8 +63,8 @@ export default function LisaSwipeButton() {
     
     const handleMouseMoveWrapper = (e: MouseEvent) => {
       e.preventDefault();
-      const currentY = e.clientY;
-      const diff = dragStartRef.current - currentY; // Positive when swiping up
+      const currentX = e.clientX;
+      const diff = currentX - dragStartRef.current; // Positive when swiping right
       
       if (diff > 0) {
         const newOffset = Math.min(diff, 200);
@@ -103,56 +103,58 @@ export default function LisaSwipeButton() {
   // Calculate progress for color transition (0 to 1)
   const swipeProgress = Math.min(dragOffset / SWIPE_THRESHOLD, 1);
   
-  // Interpolate between pink-500 and pink-700 based on swipe progress
+  // Interpolate between rose-500 and rose-700 based on swipe progress
   const getBackgroundColor = () => {
-    if (swipeProgress === 0) return "bg-pink-500";
-    if (swipeProgress < 0.5) return "bg-pink-600";
-    return "bg-pink-700";
+    if (swipeProgress === 0) return "bg-rose-500";
+    if (swipeProgress < 0.5) return "bg-rose-600";
+    return "bg-rose-700";
   };
 
   return (
-    <button
-      ref={buttonRef}
-      onClick={handleClick}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-      onMouseDown={handleMouseDown}
-      className="fixed bottom-0 left-1/2 z-50 flex items-center group mb-4 sm:mb-6 select-none"
-      style={{ 
-        transform: `translateX(-50%) translateY(${-dragOffset}px)`,
-        WebkitTransform: `translateX(-50%) translateY(${-dragOffset}px)`,
-        transition: isDragging ? 'none' : 'transform 0.3s ease-out'
-      }}
-      aria-label="Swipe to open Lisa"
-    >
-      {/* Button Container */}
-      <div className="flex items-center bg-gray-900 rounded-full shadow-lg overflow-hidden min-w-[280px] sm:min-w-[320px]">
-        {/* Circular Button */}
-        <div 
-          className={`flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 transition-all duration-200 ${getBackgroundColor()} ${swipeProgress > 0.5 ? 'scale-110' : ''}`}
-          style={{
-            backgroundColor: swipeProgress > 0 
-              ? `rgb(${236 - Math.floor(swipeProgress * 20)}, ${72 - Math.floor(swipeProgress * 10)}, ${153 - Math.floor(swipeProgress * 20)})`
-              : undefined
+    <div className="fixed bottom-0 left-1/2 -translate-x-1/2 z-50 mb-4 sm:mb-6 select-none">
+      {/* Outer Container - Fixed and Centered */}
+      <div className="flex items-center justify-center bg-gray-900 rounded-full shadow-lg overflow-hidden min-w-[280px] sm:min-w-[320px] px-5 pr-7 py-4 gap-4">
+        {/* Swipeable Circular Button */}
+        <button
+          ref={buttonRef}
+          onClick={handleClick}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onMouseDown={handleMouseDown}
+          className="flex items-center justify-center focus:outline-none"
+          style={{ 
+            transform: `translateX(${dragOffset}px)`,
+            WebkitTransform: `translateX(${dragOffset}px)`,
+            transition: isDragging ? 'none' : 'transform 0.3s ease-out'
           }}
+          aria-label="Swipe to open Lisa chat"
         >
-          <ArrowBigRight 
-            className="h-6 w-6 sm:h-7 sm:w-7 text-white transition-transform duration-200"
+          <div 
+            className={`flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full transition-all duration-200 ${getBackgroundColor()} ${swipeProgress > 0.5 ? 'scale-110' : ''}`}
             style={{
-              transform: `translateX(${swipeProgress * 10}px)`,
+              backgroundColor: swipeProgress > 0 
+                ? `rgb(${244 - Math.floor(swipeProgress * 54)}, ${63 - Math.floor(swipeProgress * 45)}, ${94 - Math.floor(swipeProgress * 34)})`
+                : undefined,
+              transition: isDragging ? 'background-color 0.1s ease-out, transform 0.1s ease-out' : 'background-color 0.3s ease-out, transform 0.3s ease-out'
             }}
-          />
-        </div>
+          >
+            <ArrowBigRight 
+              className="h-6 w-6 sm:h-7 sm:w-7 text-white transition-transform duration-200"
+              style={{
+                transform: `translateX(${swipeProgress * 10}px)`,
+                transition: isDragging ? 'transform 0.1s ease-out' : 'transform 0.3s ease-out'
+              }}
+            />
+          </div>
+        </button>
         
-        {/* Text Label */}
-        <div className="px-5 pr-7 py-4 flex-1">
-          <span className="text-sm sm:text-base font-medium text-gray-200 whitespace-nowrap">
-            Swipe to open Lisa
-          </span>
-        </div>
+        {/* Text Label - Fixed in place */}
+        <span className="text-sm sm:text-base font-medium text-gray-200 whitespace-nowrap">
+          Swipe to open Lisa chat
+        </span>
       </div>
-    </button>
+    </div>
   );
 }
 
