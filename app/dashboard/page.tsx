@@ -12,6 +12,7 @@ import type { Fitness } from "@/components/fitness/FitnessList";
 import AddSymptomModal from "@/components/symptoms/AddSymptomModal";
 import AddNutritionModal from "@/components/nutrition/AddNutritionModal";
 import AddFitnessModal from "@/components/fitness/AddFitnessModal";
+import DeleteConfirmationDialog from "@/components/DeleteConfirmationDialog";
 
 // Prevent static prerendering (safe)
 export const dynamic = "force-dynamic";
@@ -58,58 +59,65 @@ function TrialStatusCard({
   };
 }) {
   return (
-    <div className="rounded-xl sm:rounded-2xl border border-foreground/10 bg-background/60 p-4 sm:p-6 lg:p-8 shadow-sm">
-      <div className="flex items-start justify-between mb-3 sm:mb-4">
-        <div className="flex-1 min-w-0">
-          <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground mb-1 sm:mb-2">
-            {trial.expired ? "Trial Expired" : "Your Trial"}
-          </h2>
-          <p className="text-xs sm:text-sm text-muted-foreground">
-            {trial.start && !trial.expired && (
-              <>
-                Started {trial.start.toLocaleDateString()} · Ends {trial.end?.toLocaleDateString()}
-              </>
-            )}
-            {trial.expired && "Upgrade to continue using the platform."}
-          </p>
-        </div>
-        <div
-          className={`rounded-full px-2.5 sm:px-3 py-1 text-xs font-semibold shrink-0 ml-2 ${
-            trial.expired
-              ? "bg-rose-500/20 text-rose-700"
-              : "bg-green-500/20 text-green-700"
-          }`}
-        >
-          {trial.expired ? "Expired" : "Active"}
-        </div>
-      </div>
-
-      <div className="mb-4 sm:mb-6">
-        <div className="flex items-baseline gap-2 mb-2">
-          <span className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground">
-            {trial.daysLeft}
-          </span>
-          <span className="text-base sm:text-lg text-muted-foreground">days left</span>
-        </div>
-        <div className="h-3 w-full overflow-hidden rounded-full bg-foreground/10">
+    <div className="relative overflow-hidden rounded-2xl bg-linear-to-br from-purple-50 via-pink-50/50 to-white border-2 border-pink-200/50 p-6 lg:p-8 shadow-lg">
+      <div className="absolute top-0 right-0 w-64 h-64 bg-linear-to-br from-purple-400/20 to-pink-400/20 rounded-full blur-3xl" />
+      <div className="relative">
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex-1 min-w-0">
+            <h2 className="text-2xl lg:text-3xl font-extrabold text-foreground mb-2">
+              {trial.expired ? "Trial Expired" : "Your Trial"}
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              {trial.start && !trial.expired && (
+                <>
+                  Started {trial.start.toLocaleDateString()} · Ends {trial.end?.toLocaleDateString()}
+                </>
+              )}
+              {trial.expired && "Upgrade to continue using the platform."}
+            </p>
+          </div>
           <div
-            className="h-full bg-primary transition-[width] duration-500"
-            style={{ width: `${Math.max(0, Math.min(100, trial.progressPct))}%` }}
-          />
+            className={`rounded-full px-3 py-1.5 text-xs font-semibold shrink-0 ml-2 ${
+              trial.expired
+                ? "bg-rose-500/20 text-rose-700"
+                : "bg-green-500/20 text-green-700"
+            }`}
+          >
+            {trial.expired ? "Expired" : "Active"}
+          </div>
         </div>
-        <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
-          <span>
-            {Math.min(trial.trialDays || 3, trial.elapsedDays)} / {trial.trialDays || 3} days used
-          </span>
-          <span>{trial.progressPct.toFixed(0)}%</span>
-        </div>
-      </div>
 
-      {!trial.expired && (
-        <div className="text-xs sm:text-sm text-muted-foreground">
-          Ends in {trial.remaining.d}d {trial.remaining.h}h {trial.remaining.m}m
+        <div className="mb-6">
+          <div className="flex items-baseline gap-2 mb-3">
+            <span className="text-5xl lg:text-6xl font-extrabold text-foreground tracking-tight">
+              {trial.daysLeft}
+            </span>
+            <span className="text-lg text-muted-foreground">days left</span>
+          </div>
+          <div className="h-3 w-full overflow-hidden rounded-full bg-foreground/10">
+            <div
+              className={`h-full bg-linear-to-r transition-[width] duration-500 ${
+                trial.expired
+                  ? "from-rose-500 to-rose-600"
+                  : "from-pink-500 to-pink-600"
+              }`}
+              style={{ width: `${Math.max(0, Math.min(100, trial.progressPct))}%` }}
+            />
+          </div>
+          <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
+            <span>
+              {Math.min(trial.trialDays || 3, trial.elapsedDays)} / {trial.trialDays || 3} days used
+            </span>
+            <span>{trial.progressPct.toFixed(0)}%</span>
+          </div>
         </div>
-      )}
+
+        {!trial.expired && (
+          <div className="text-sm text-muted-foreground">
+            Ends in {trial.remaining.d}d {trial.remaining.h}h {trial.remaining.m}m
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -126,29 +134,31 @@ function SymptomsOverviewCard({
   return (
     <Link
       href="/dashboard/symptoms"
-      className="group block h-full rounded-xl sm:rounded-2xl border border-foreground/10 bg-background/60 p-4 sm:p-6 shadow-sm transition-all hover:shadow-md hover:border-primary/30"
+      className="group relative overflow-hidden block h-full rounded-2xl bg-linear-to-br from-pink-50 via-pink-100/50 to-white border-2 border-pink-200/50 p-6 shadow-lg transition-all hover:shadow-xl hover:scale-[1.02]"
     >
-      <div className="flex items-start justify-between mb-3 sm:mb-4">
-        <div className="rounded-lg bg-primary/10 p-2.5 sm:p-3">
-          <Activity className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-        </div>
-        <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground transition-transform group-hover:translate-x-1" />
-      </div>
-      <div>
-        <h3 className="text-base sm:text-lg font-semibold text-foreground mb-1">Symptom Tracker</h3>
-        {isLoading ? (
-          <div className="h-7 sm:h-8 w-16 sm:w-20 bg-foreground/10 rounded animate-pulse" />
-        ) : (
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground">
-              {totalSymptoms}
-            </span>
-            <span className="text-xs sm:text-sm text-muted-foreground">
-              {totalSymptoms === 1 ? "symptom" : "symptoms"} logged
-            </span>
+      <div className="absolute top-0 right-0 w-32 h-32 bg-linear-to-br from-pink-400/20 to-transparent rounded-full blur-2xl" />
+      <div className="relative">
+        <div className="flex items-start justify-between mb-4">
+          <div className="p-3 rounded-xl bg-linear-to-br from-pink-500 to-pink-600 shadow-md">
+            <Activity className="h-6 w-6 text-white" />
           </div>
-        )}
-        <p className="text-xs sm:text-sm text-muted-foreground mt-2">View your tracker →</p>
+          <ArrowRight className="h-5 w-5 text-pink-500 transition-transform group-hover:translate-x-1" />
+        </div>
+        <div>
+          <h3 className="text-base font-medium text-muted-foreground mb-1">Symptom Tracker</h3>
+          {isLoading ? (
+            <div className="h-8 w-20 bg-foreground/10 rounded animate-pulse" />
+          ) : (
+            <div className="flex items-baseline gap-2">
+              <span className="text-4xl font-extrabold text-foreground tracking-tight">
+                {totalSymptoms}
+              </span>
+              <span className="text-sm text-muted-foreground">
+                {totalSymptoms === 1 ? "symptom" : "symptoms"}
+              </span>
+            </div>
+          )}
+        </div>
       </div>
     </Link>
   );
@@ -164,7 +174,7 @@ function RecentSymptomsCard({
   symptoms: Symptom[];
   isLoading: boolean;
   onEdit?: (symptom: Symptom) => void;
-  onDelete?: (id: string) => void;
+  onDelete?: (symptom: Symptom) => void;
 }) {
   const recentSymptoms = symptoms.slice(0, 5);
 
@@ -189,77 +199,80 @@ function RecentSymptomsCard({
   };
 
   return (
-    <div className="rounded-xl sm:rounded-2xl border border-foreground/10 bg-background/60 p-4 sm:p-6 shadow-sm">
-      <div className="flex items-center justify-between mb-3 sm:mb-4">
-        <h3 className="text-base sm:text-lg font-semibold text-foreground">Recent Symptoms</h3>
-        <Link
-          href="/dashboard/symptoms"
-          className="text-xs sm:text-sm text-primary hover:underline flex items-center gap-1"
-        >
-          View all
-          <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4" />
-        </Link>
-      </div>
-
-      {isLoading ? (
-        <div className="space-y-3">
-          {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-16 w-full" />
-          ))}
-        </div>
-      ) : recentSymptoms.length === 0 ? (
-        <div className="text-center py-8">
-          <Activity className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
-          <p className="text-sm text-muted-foreground">No symptoms logged yet</p>
+    <div className="relative overflow-hidden rounded-2xl bg-linear-to-br from-white via-pink-50/30 to-white border-2 border-pink-200/50 p-6 shadow-lg">
+      <div className="absolute top-0 right-0 w-40 h-40 bg-linear-to-br from-pink-300/10 to-transparent rounded-full blur-3xl" />
+      <div className="relative">
+        <div className="flex items-center justify-between mb-5">
+          <h3 className="text-lg font-bold text-foreground">Recent Symptoms</h3>
           <Link
             href="/dashboard/symptoms"
-            className="text-sm text-primary hover:underline mt-2 inline-block"
+            className="text-sm text-primary hover:underline flex items-center gap-1 font-medium"
           >
-            Start tracking →
+            View all
+            <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
-      ) : (
-        <div className="space-y-3">
-          {recentSymptoms.map((symptom) => (
-            <div
-              key={symptom.id}
-              className="flex items-center gap-3 p-3 rounded-lg border border-foreground/5 hover:border-foreground/10 transition-colors"
+
+        {isLoading ? (
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-16 w-full" />
+            ))}
+          </div>
+        ) : recentSymptoms.length === 0 ? (
+          <div className="text-center py-8">
+            <Activity className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
+            <p className="text-sm text-muted-foreground">No symptoms logged yet</p>
+            <Link
+              href="/dashboard/symptoms"
+              className="text-sm text-primary hover:underline mt-2 inline-block"
             >
-              <div 
-                className="flex-1 min-w-0 cursor-pointer flex items-center gap-3"
-                onClick={() => onEdit?.(symptom)}
+              Start tracking →
+            </Link>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {recentSymptoms.map((symptom) => (
+              <div
+                key={symptom.id}
+                className="group rounded-xl border border-foreground/10 bg-white/60 p-4 hover:border-pink-300/50 hover:shadow-md transition-all duration-200"
               >
-                <div className="shrink-0">{getSeverityIcon(symptom.severity)}</div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-sm font-medium text-foreground truncate">
-                      {symptom.name}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {getSeverityLabel(symptom.severity)}
-                    </span>
+                <div className="flex items-center gap-3">
+                  <div 
+                    className="flex-1 min-w-0 cursor-pointer flex items-center gap-3"
+                    onClick={() => onEdit?.(symptom)}
+                  >
+                    <div className="shrink-0">{getSeverityIcon(symptom.severity)}</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-sm font-semibold text-foreground truncate">
+                          {symptom.name}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {getSeverityLabel(symptom.severity)}
+                        </span>
+                      </div>
+                      <span className="text-xs text-muted-foreground">{formatDate(symptom.occurred_at)}</span>
+                    </div>
                   </div>
-                  <span className="text-xs text-muted-foreground">{formatDate(symptom.occurred_at)}</span>
+                  {onDelete && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDelete(symptom);
+                      }}
+                      className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-rose-500/10 hover:text-rose-600 shrink-0"
+                      aria-label="Delete symptom"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
                 </div>
               </div>
-              {onDelete && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (confirm("Are you sure you want to delete this symptom entry?")) {
-                      onDelete(symptom.id);
-                    }
-                  }}
-                  className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-rose-500/10 hover:text-rose-600 shrink-0"
-                  aria-label="Delete symptom"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -275,29 +288,31 @@ function NutritionOverviewCard({
   return (
     <Link
       href="/dashboard/nutrition"
-      className="group block h-full rounded-xl sm:rounded-2xl border border-foreground/10 bg-background/60 p-4 sm:p-6 shadow-sm transition-all hover:shadow-md hover:border-primary/30"
+      className="group relative overflow-hidden block h-full rounded-2xl bg-linear-to-br from-orange-50 via-orange-100/50 to-white border-2 border-orange-200/50 p-6 shadow-lg transition-all hover:shadow-xl hover:scale-[1.02]"
     >
-      <div className="flex items-start justify-between mb-3 sm:mb-4">
-        <div className="rounded-lg bg-primary/10 p-2.5 sm:p-3">
-          <UtensilsCrossed className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-        </div>
-        <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground transition-transform group-hover:translate-x-1" />
-      </div>
-      <div>
-        <h3 className="text-base sm:text-lg font-semibold text-foreground mb-1">Nutrition Tracker</h3>
-        {isLoading ? (
-          <div className="h-7 sm:h-8 w-16 sm:w-20 bg-foreground/10 rounded animate-pulse" />
-        ) : (
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground">
-              {totalNutrition}
-            </span>
-            <span className="text-xs sm:text-sm text-muted-foreground">
-              {totalNutrition === 1 ? "entry" : "entries"} logged
-            </span>
+      <div className="absolute top-0 right-0 w-32 h-32 bg-linear-to-br from-orange-400/20 to-transparent rounded-full blur-2xl" />
+      <div className="relative">
+        <div className="flex items-start justify-between mb-4">
+          <div className="p-3 rounded-xl bg-linear-to-br from-orange-500 to-orange-600 shadow-md">
+            <UtensilsCrossed className="h-6 w-6 text-white" />
           </div>
-        )}
-        <p className="text-xs sm:text-sm text-muted-foreground mt-2">View your tracker →</p>
+          <ArrowRight className="h-5 w-5 text-orange-500 transition-transform group-hover:translate-x-1" />
+        </div>
+        <div>
+          <h3 className="text-base font-medium text-muted-foreground mb-1">Nutrition Tracker</h3>
+          {isLoading ? (
+            <div className="h-8 w-20 bg-foreground/10 rounded animate-pulse" />
+          ) : (
+            <div className="flex items-baseline gap-2">
+              <span className="text-4xl font-extrabold text-foreground tracking-tight">
+                {totalNutrition}
+              </span>
+              <span className="text-sm text-muted-foreground">
+                {totalNutrition === 1 ? "entry" : "entries"}
+              </span>
+            </div>
+          )}
+        </div>
       </div>
     </Link>
   );
@@ -313,7 +328,7 @@ function RecentNutritionCard({
   nutrition: Nutrition[];
   isLoading: boolean;
   onEdit?: (nutrition: Nutrition) => void;
-  onDelete?: (id: string) => void;
+  onDelete?: (nutrition: Nutrition) => void;
 }) {
   const recentNutrition = nutrition.slice(0, 5);
 
@@ -360,17 +375,19 @@ function RecentNutritionCard({
   };
 
   return (
-    <div className="rounded-xl sm:rounded-2xl border border-foreground/10 bg-background/60 p-4 sm:p-6 shadow-sm">
-      <div className="flex items-center justify-between mb-3 sm:mb-4">
-        <h3 className="text-base sm:text-lg font-semibold text-foreground">Recent Meals</h3>
-        <Link
-          href="/dashboard/nutrition"
-          className="text-xs sm:text-sm text-primary hover:underline flex items-center gap-1"
-        >
-          View all
-          <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4" />
-        </Link>
-      </div>
+    <div className="relative overflow-hidden rounded-2xl bg-linear-to-br from-white via-orange-50/30 to-white border-2 border-orange-200/50 p-6 shadow-lg">
+      <div className="absolute top-0 right-0 w-40 h-40 bg-linear-to-br from-orange-300/10 to-transparent rounded-full blur-3xl" />
+      <div className="relative">
+        <div className="flex items-center justify-between mb-5">
+          <h3 className="text-lg font-bold text-foreground">Recent Meals</h3>
+          <Link
+            href="/dashboard/nutrition"
+            className="text-sm text-primary hover:underline flex items-center gap-1 font-medium"
+          >
+            View all
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
 
       {isLoading ? (
         <div className="space-y-3">
@@ -394,8 +411,9 @@ function RecentNutritionCard({
           {recentNutrition.map((entry) => (
             <div
               key={entry.id}
-              className="flex items-center gap-3 p-3 rounded-lg border border-foreground/5 hover:border-foreground/10 transition-colors"
+              className="group rounded-xl border border-foreground/10 bg-white/60 p-4 hover:border-orange-300/50 hover:shadow-md transition-all duration-200"
             >
+              <div className="flex items-center gap-3">
               <div 
                 className="flex-1 min-w-0 cursor-pointer flex items-center gap-3"
                 onClick={() => onEdit?.(entry)}
@@ -423,9 +441,7 @@ function RecentNutritionCard({
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (confirm("Are you sure you want to delete this nutrition entry?")) {
-                      onDelete(entry.id);
-                    }
+                    onDelete(entry);
                   }}
                   className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-rose-500/10 hover:text-rose-600 shrink-0"
                   aria-label="Delete nutrition entry"
@@ -433,10 +449,12 @@ function RecentNutritionCard({
                   <Trash2 className="h-4 w-4" />
                 </button>
               )}
+              </div>
             </div>
           ))}
         </div>
       )}
+      </div>
     </div>
   );
 }
@@ -452,29 +470,31 @@ function FitnessOverviewCard({
   return (
     <Link
       href="/dashboard/fitness"
-      className="group block h-full rounded-xl sm:rounded-2xl border border-foreground/10 bg-background/60 p-4 sm:p-6 shadow-sm transition-all hover:shadow-md hover:border-primary/30"
+      className="group relative overflow-hidden block h-full rounded-2xl bg-linear-to-br from-blue-50 via-blue-100/50 to-white border-2 border-blue-200/50 p-6 shadow-lg transition-all hover:shadow-xl hover:scale-[1.02]"
     >
-      <div className="flex items-start justify-between mb-3 sm:mb-4">
-        <div className="rounded-lg bg-primary/10 p-2.5 sm:p-3">
-          <Dumbbell className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-        </div>
-        <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground transition-transform group-hover:translate-x-1" />
-      </div>
-      <div>
-        <h3 className="text-base sm:text-lg font-semibold text-foreground mb-1">Fitness Tracker</h3>
-        {isLoading ? (
-          <div className="h-7 sm:h-8 w-16 sm:w-20 bg-foreground/10 rounded animate-pulse" />
-        ) : (
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground">
-              {totalFitness}
-            </span>
-            <span className="text-xs sm:text-sm text-muted-foreground">
-              {totalFitness === 1 ? "workout" : "workouts"} logged
-            </span>
+      <div className="absolute top-0 right-0 w-32 h-32 bg-linear-to-br from-blue-400/20 to-transparent rounded-full blur-2xl" />
+      <div className="relative">
+        <div className="flex items-start justify-between mb-4">
+          <div className="p-3 rounded-xl bg-linear-to-br from-blue-500 to-blue-600 shadow-md">
+            <Dumbbell className="h-6 w-6 text-white" />
           </div>
-        )}
-        <p className="text-xs sm:text-sm text-muted-foreground mt-2">View your tracker →</p>
+          <ArrowRight className="h-5 w-5 text-blue-500 transition-transform group-hover:translate-x-1" />
+        </div>
+        <div>
+          <h3 className="text-base font-medium text-muted-foreground mb-1">Fitness Tracker</h3>
+          {isLoading ? (
+            <div className="h-8 w-20 bg-foreground/10 rounded animate-pulse" />
+          ) : (
+            <div className="flex items-baseline gap-2">
+              <span className="text-4xl font-extrabold text-foreground tracking-tight">
+                {totalFitness}
+              </span>
+              <span className="text-sm text-muted-foreground">
+                {totalFitness === 1 ? "workout" : "workouts"}
+              </span>
+            </div>
+          )}
+        </div>
       </div>
     </Link>
   );
@@ -490,7 +510,7 @@ function RecentFitnessCard({
   fitness: Fitness[];
   isLoading: boolean;
   onEdit?: (fitness: Fitness) => void;
-  onDelete?: (id: string) => void;
+  onDelete?: (fitness: Fitness) => void;
 }) {
   const recentFitness = fitness.slice(0, 5);
 
@@ -541,17 +561,19 @@ function RecentFitnessCard({
   };
 
   return (
-    <div className="rounded-xl sm:rounded-2xl border border-foreground/10 bg-background/60 p-4 sm:p-6 shadow-sm">
-      <div className="flex items-center justify-between mb-3 sm:mb-4">
-        <h3 className="text-base sm:text-lg font-semibold text-foreground">Recent Workouts</h3>
-        <Link
-          href="/dashboard/fitness"
-          className="text-xs sm:text-sm text-primary hover:underline flex items-center gap-1"
-        >
-          View all
-          <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4" />
-        </Link>
-      </div>
+    <div className="relative overflow-hidden rounded-2xl bg-linear-to-br from-white via-blue-50/30 to-white border-2 border-blue-200/50 p-6 shadow-lg">
+      <div className="absolute top-0 right-0 w-40 h-40 bg-linear-to-br from-blue-300/10 to-transparent rounded-full blur-3xl" />
+      <div className="relative">
+        <div className="flex items-center justify-between mb-5">
+          <h3 className="text-lg font-bold text-foreground">Recent Workouts</h3>
+          <Link
+            href="/dashboard/fitness"
+            className="text-sm text-primary hover:underline flex items-center gap-1 font-medium"
+          >
+            View all
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
 
       {isLoading ? (
         <div className="space-y-3">
@@ -575,8 +597,9 @@ function RecentFitnessCard({
           {recentFitness.map((entry) => (
             <div
               key={entry.id}
-              className="flex items-center gap-3 p-3 rounded-lg border border-foreground/5 hover:border-foreground/10 transition-colors"
+              className="group rounded-xl border border-foreground/10 bg-white/60 p-4 hover:border-blue-300/50 hover:shadow-md transition-all duration-200"
             >
+              <div className="flex items-center gap-3">
               <div 
                 className="flex-1 min-w-0 cursor-pointer flex items-center gap-3"
                 onClick={() => onEdit?.(entry)}
@@ -604,9 +627,7 @@ function RecentFitnessCard({
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (confirm("Are you sure you want to delete this fitness entry?")) {
-                      onDelete(entry.id);
-                    }
+                    onDelete(entry);
                   }}
                   className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-rose-500/10 hover:text-rose-600 shrink-0"
                   aria-label="Delete fitness entry"
@@ -614,10 +635,12 @@ function RecentFitnessCard({
                   <Trash2 className="h-4 w-4" />
                 </button>
               )}
+              </div>
             </div>
           ))}
         </div>
       )}
+      </div>
     </div>
   );
 }
@@ -652,6 +675,21 @@ export default function DashboardPage() {
   const [editingSymptom, setEditingSymptom] = useState<Symptom | null>(null);
   const [editingNutrition, setEditingNutrition] = useState<Nutrition | null>(null);
   const [editingFitness, setEditingFitness] = useState<Fitness | null>(null);
+  
+  // Delete confirmation states
+  const [deleteDialog, setDeleteDialog] = useState<{
+    isOpen: boolean;
+    type: "symptom" | "nutrition" | "fitness" | null;
+    id: string | null;
+    name: string;
+    isLoading: boolean;
+  }>({
+    isOpen: false,
+    type: null,
+    id: null,
+    name: "",
+    isLoading: false,
+  });
 
   // Ticker for live countdown
   useEffect(() => {
@@ -969,9 +1007,22 @@ export default function DashboardPage() {
     setIsSymptomModalOpen(true);
   }, []);
 
-  const handleSymptomDeleted = useCallback(async (id: string) => {
+  const handleSymptomDeleteClick = useCallback((symptom: Symptom) => {
+    setDeleteDialog({
+      isOpen: true,
+      type: "symptom",
+      id: symptom.id,
+      name: symptom.name,
+      isLoading: false,
+    });
+  }, []);
+
+  const handleSymptomDeleted = useCallback(async () => {
+    if (!deleteDialog.id || deleteDialog.type !== "symptom") return;
+
+    setDeleteDialog((prev) => ({ ...prev, isLoading: true }));
     try {
-      const response = await fetch(`/api/symptoms?id=${id}`, {
+      const response = await fetch(`/api/symptoms?id=${deleteDialog.id}`, {
         method: "DELETE",
       });
 
@@ -980,11 +1031,13 @@ export default function DashboardPage() {
         throw new Error(data.error || "Failed to delete symptom");
       }
 
-      setSymptoms((prev) => prev.filter((s) => s.id !== id));
+      setSymptoms((prev) => prev.filter((s) => s.id !== deleteDialog.id));
+      setDeleteDialog({ isOpen: false, type: null, id: null, name: "", isLoading: false });
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to delete symptom");
+      setDeleteDialog((prev) => ({ ...prev, isLoading: false }));
     }
-  }, []);
+  }, [deleteDialog.id, deleteDialog.type]);
 
   // Handle nutrition added/updated
   const handleNutritionAdded = useCallback((entry: Nutrition) => {
@@ -1002,9 +1055,22 @@ export default function DashboardPage() {
     setIsNutritionModalOpen(true);
   }, []);
 
-  const handleNutritionDeleted = useCallback(async (id: string) => {
+  const handleNutritionDeleteClick = useCallback((entry: Nutrition) => {
+    setDeleteDialog({
+      isOpen: true,
+      type: "nutrition",
+      id: entry.id,
+      name: entry.food_item,
+      isLoading: false,
+    });
+  }, []);
+
+  const handleNutritionDeleted = useCallback(async () => {
+    if (!deleteDialog.id || deleteDialog.type !== "nutrition") return;
+
+    setDeleteDialog((prev) => ({ ...prev, isLoading: true }));
     try {
-      const response = await fetch(`/api/nutrition?id=${id}`, {
+      const response = await fetch(`/api/nutrition?id=${deleteDialog.id}`, {
         method: "DELETE",
       });
 
@@ -1013,11 +1079,13 @@ export default function DashboardPage() {
         throw new Error(data.error || "Failed to delete nutrition entry");
       }
 
-      setNutrition((prev) => prev.filter((n) => n.id !== id));
+      setNutrition((prev) => prev.filter((n) => n.id !== deleteDialog.id));
+      setDeleteDialog({ isOpen: false, type: null, id: null, name: "", isLoading: false });
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to delete nutrition entry");
+      setDeleteDialog((prev) => ({ ...prev, isLoading: false }));
     }
-  }, []);
+  }, [deleteDialog.id, deleteDialog.type]);
 
   // Handle fitness added/updated
   const handleFitnessAdded = useCallback((entry: Fitness) => {
@@ -1035,9 +1103,22 @@ export default function DashboardPage() {
     setIsFitnessModalOpen(true);
   }, []);
 
-  const handleFitnessDeleted = useCallback(async (id: string) => {
+  const handleFitnessDeleteClick = useCallback((entry: Fitness) => {
+    setDeleteDialog({
+      isOpen: true,
+      type: "fitness",
+      id: entry.id,
+      name: entry.exercise_name,
+      isLoading: false,
+    });
+  }, []);
+
+  const handleFitnessDeleted = useCallback(async () => {
+    if (!deleteDialog.id || deleteDialog.type !== "fitness") return;
+
+    setDeleteDialog((prev) => ({ ...prev, isLoading: true }));
     try {
-      const response = await fetch(`/api/fitness?id=${id}`, {
+      const response = await fetch(`/api/fitness?id=${deleteDialog.id}`, {
         method: "DELETE",
       });
 
@@ -1046,11 +1127,13 @@ export default function DashboardPage() {
         throw new Error(data.error || "Failed to delete fitness entry");
       }
 
-      setFitness((prev) => prev.filter((f) => f.id !== id));
+      setFitness((prev) => prev.filter((f) => f.id !== deleteDialog.id));
+      setDeleteDialog({ isOpen: false, type: null, id: null, name: "", isLoading: false });
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to delete fitness entry");
+      setDeleteDialog((prev) => ({ ...prev, isLoading: false }));
     }
-  }, []);
+  }, [deleteDialog.id, deleteDialog.type]);
 
   function handleLogout() {
     // Navigate immediately - no waiting
@@ -1156,7 +1239,7 @@ export default function DashboardPage() {
             symptoms={symptoms} 
             isLoading={symptomsLoading}
             onEdit={handleSymptomEdit}
-            onDelete={handleSymptomDeleted}
+            onDelete={handleSymptomDeleteClick}
           />
         </div>
 
@@ -1166,7 +1249,7 @@ export default function DashboardPage() {
             nutrition={nutrition} 
             isLoading={nutritionLoading}
             onEdit={handleNutritionEdit}
-            onDelete={handleNutritionDeleted}
+            onDelete={handleNutritionDeleteClick}
           />
         </div>
 
@@ -1176,7 +1259,7 @@ export default function DashboardPage() {
             fitness={fitness} 
             isLoading={fitnessLoading}
             onEdit={handleFitnessEdit}
-            onDelete={handleFitnessDeleted}
+            onDelete={handleFitnessDeleteClick}
           />
         </div>
       </div>
@@ -1210,6 +1293,25 @@ export default function DashboardPage() {
         }}
         onSuccess={handleFitnessAdded}
         editingEntry={editingFitness}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmationDialog
+        isOpen={deleteDialog.isOpen}
+        onClose={() => setDeleteDialog({ isOpen: false, type: null, id: null, name: "", isLoading: false })}
+        onConfirm={() => {
+          if (deleteDialog.type === "symptom") {
+            handleSymptomDeleted();
+          } else if (deleteDialog.type === "nutrition") {
+            handleNutritionDeleted();
+          } else if (deleteDialog.type === "fitness") {
+            handleFitnessDeleted();
+          }
+        }}
+        title={`Delete ${deleteDialog.type === "symptom" ? "Symptom" : deleteDialog.type === "nutrition" ? "Nutrition Entry" : "Workout"}?`}
+        message={`Are you sure you want to delete this ${deleteDialog.type === "symptom" ? "symptom" : deleteDialog.type === "nutrition" ? "nutrition entry" : "workout"}? This action cannot be undone.`}
+        itemName={deleteDialog.name}
+        isLoading={deleteDialog.isLoading}
       />
     </main>
   );

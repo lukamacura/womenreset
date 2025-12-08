@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import type { Symptom } from "./SymptomList";
-import { Calendar, Heart, AlertCircle, TrendingUp, Activity, Activity as ActivityIcon } from "lucide-react";
+import { Calendar, Heart, AlertCircle, TrendingUp, Activity as ActivityIcon } from "lucide-react";
 
 type DateRange = 7 | 30 | 90;
 

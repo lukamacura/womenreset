@@ -20,6 +20,7 @@ export default function SymptomsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingSymptom, setEditingSymptom] = useState<Symptom | null>(null);
   const [dateRange, setDateRange] = useState<DateRange>(30);
 
   // Redirect to dashboard if trial is expired
@@ -59,9 +60,21 @@ export default function SymptomsPage() {
     fetchSymptoms();
   }, [fetchSymptoms]);
 
-  // Handle new symptom added
-  const handleSymptomAdded = (newSymptom: Symptom) => {
-    setSymptoms((prev) => [newSymptom, ...prev]);
+  // Handle new symptom added/updated
+  const handleSymptomAdded = (symptom: Symptom) => {
+    if (editingSymptom) {
+      setSymptoms((prev) => prev.map((s) => (s.id === symptom.id ? symptom : s)));
+      setEditingSymptom(null);
+    } else {
+      setSymptoms((prev) => [symptom, ...prev]);
+    }
+    setIsModalOpen(false);
+  };
+
+  // Handle symptom edit
+  const handleSymptomEdit = (symptom: Symptom) => {
+    setEditingSymptom(symptom);
+    setIsModalOpen(true);
   };
 
   // Handle symptom deleted
@@ -194,15 +207,20 @@ export default function SymptomsPage() {
         <SymptomList
           symptoms={recentSymptoms}
           onDelete={handleSymptomDeleted}
+          onEdit={handleSymptomEdit}
           isLoading={isLoading}
         />
       </section>
 
-      {/* Add Symptom Modal */}
+      {/* Add/Edit Symptom Modal */}
       <AddSymptomModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingSymptom(null);
+        }}
         onSuccess={handleSymptomAdded}
+        editingEntry={editingSymptom}
       />
     </div>
   );
