@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState, FormEvent, useEffect } from "react";
@@ -146,7 +147,7 @@ export default function AddNutritionModal({
       {/* Modal */}
       <div className="relative z-10 w-full h-full sm:h-auto sm:max-h-[90vh] sm:max-w-md sm:rounded-2xl border-t sm:border border-foreground/10 bg-background flex flex-col shadow-xl">
         {/* Header - Sticky on mobile */}
-        <div className="flex-shrink-0 flex items-center justify-between p-4 sm:p-6 border-b border-foreground/10">
+        <div className="shrink-0 flex items-center justify-between p-4 sm:p-6 border-b border-foreground/10">
           <h2 className="text-xl sm:text-2xl font-semibold">
             {editingEntry ? "Edit Nutrition Entry" : "Add Nutrition Entry"}
           </h2>
@@ -361,7 +362,7 @@ export default function AddNutritionModal({
         </form>
 
         {/* Actions - Sticky footer on mobile */}
-        <div className="flex-shrink-0 flex gap-2 sm:gap-3 p-4 sm:p-6 pt-3 sm:pt-2 border-t border-foreground/10 bg-background">
+        <div className="shrink-0 flex gap-2 sm:gap-3 p-4 sm:p-6 pt-3 sm:pt-2 border-t border-foreground/10 bg-background">
           <button
             type="button"
             onClick={onClose}
@@ -374,7 +375,7 @@ export default function AddNutritionModal({
             type="submit"
             form="nutrition-form"
             disabled={isSubmitting || !foodItem.trim()}
-            className="flex-1 rounded-lg bg-primary px-4 py-3 sm:py-2.5 text-base font-medium text-white transition-colors active:bg-primary/80 hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
+            className="flex-1 rounded-lg bg-linear-to-r from-orange-500 to-rose-500 px-4 py-3 sm:py-2.5 text-base font-bold text-white transition-colors active:bg-primary/80 hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
           >
             {isSubmitting
               ? editingEntry

@@ -1,23 +1,34 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Dumbbell } from "lucide-react";
 import AddFitnessModal from "@/components/fitness/AddFitnessModal";
 import FitnessList, { type Fitness } from "@/components/fitness/FitnessList";
 import FitnessStats from "@/components/fitness/FitnessStats";
 import FitnessCharts from "@/components/fitness/FitnessCharts";
+import { useTrialStatus } from "@/lib/useTrialStatus";
 
 export const dynamic = "force-dynamic";
 
 type DateRange = 7 | 30 | 90;
 
 export default function FitnessPage() {
+  const router = useRouter();
+  const trialStatus = useTrialStatus();
   const [fitness, setFitness] = useState<Fitness[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<Fitness | null>(null);
   const [dateRange, setDateRange] = useState<DateRange>(30);
+
+  // Redirect to dashboard if trial is expired
+  useEffect(() => {
+    if (!trialStatus.loading && trialStatus.expired) {
+      router.replace("/dashboard");
+    }
+  }, [trialStatus.expired, trialStatus.loading, router]);
 
   // Fetch fitness entries
   const fetchFitness = useCallback(async () => {
@@ -133,6 +144,23 @@ export default function FitnessPage() {
 
   const recentFitness = getRecentFitness();
 
+  // Show loading state while checking trial status
+  if (trialStatus.loading) {
+    return (
+      <div className="mx-auto max-w-7xl p-6 sm:p-8">
+        <div className="text-center py-12">
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
+          <p className="mt-4 text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render if trial is expired (will redirect)
+  if (trialStatus.expired) {
+    return null;
+  }
+
   return (
     <div className="mx-auto max-w-7xl p-6 sm:p-8 space-y-8 text-[17px] sm:text-[18px]">
       {/* Header */}
@@ -147,7 +175,7 @@ export default function FitnessPage() {
         </div>
         <button
           onClick={() => setIsModalOpen(true)}
-          className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-lg justify-center  font-bold text-white shadow-md transition-all hover:bg-primary/90 hover:translate-y-px"
+          className="inline-flex items-center gap-2 rounded-lg bg-linear-to-r from-orange-500 to-rose-500 cursor-pointer px-5 py-2.5 text-lg justify-center  font-bold text-white shadow-md transition-all hover:bg-primary/90 hover:translate-y-px"
         >
           <Dumbbell className="h-5 w-5" />
           Add workout

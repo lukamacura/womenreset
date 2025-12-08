@@ -1,6 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useState, FormEvent, useEffect } from "react";
 import { X, Smile, Meh, Frown } from "lucide-react";
 import type { Symptom } from "./SymptomList";
 
@@ -8,12 +9,14 @@ type AddSymptomModalProps = {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: (symptom: Symptom) => void;
+  editingEntry?: Symptom | null;
 };
 
 export default function AddSymptomModal({
   isOpen,
   onClose,
   onSuccess,
+  editingEntry = null,
 }: AddSymptomModalProps) {
   const [name, setName] = useState("");
   const [severity, setSeverity] = useState<"low" | "medium" | "high">("medium");
@@ -31,6 +34,41 @@ export default function AddSymptomModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Populate form when editing
+  useEffect(() => {
+    if (editingEntry) {
+      setName(editingEntry.name);
+      // Map numeric severity to string: 1-3 = low, 4-6 = medium, 7-10 = high
+      if (editingEntry.severity <= 3) {
+        setSeverity("low");
+      } else if (editingEntry.severity <= 6) {
+        setSeverity("medium");
+      } else {
+        setSeverity("high");
+      }
+      setNotes(editingEntry.notes || "");
+      const date = new Date(editingEntry.occurred_at);
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      const hours = String(date.getHours()).padStart(2, "0");
+      const minutes = String(date.getMinutes()).padStart(2, "0");
+      setOccurredAt(`${year}-${month}-${day}T${hours}:${minutes}`);
+    } else {
+      // Reset form for new entry
+      setName("");
+      setSeverity("medium");
+      setNotes("");
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, "0");
+      const day = String(now.getDate()).padStart(2, "0");
+      const hours = String(now.getHours()).padStart(2, "0");
+      const minutes = String(now.getMinutes()).padStart(2, "0");
+      setOccurredAt(`${year}-${month}-${day}T${hours}:${minutes}`);
+    }
+  }, [editingEntry, isOpen]);
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -44,22 +82,31 @@ export default function AddSymptomModal({
       const severityMap = { low: 3, medium: 6, high: 9 };
       const severityValue = severityMap[severity];
 
-      const response = await fetch("/api/symptoms", {
-        method: "POST",
+      const url = editingEntry ? "/api/symptoms" : "/api/symptoms";
+      const method = editingEntry ? "PUT" : "POST";
+
+      const body: any = {
+        name: name.trim(),
+        severity: severityValue,
+        notes: notes.trim() || null,
+        occurred_at: occurredAtISO,
+      };
+
+      if (editingEntry) {
+        body.id = editingEntry.id;
+      }
+
+      const response = await fetch(url, {
+        method,
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          name: name.trim(),
-          severity: severityValue,
-          notes: notes.trim() || null,
-          occurred_at: occurredAtISO,
-        }),
+        body: JSON.stringify(body),
       });
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || "Failed to save symptom");
+        throw new Error(data.error || `Failed to ${editingEntry ? "update" : "save"} symptom`);
       }
 
       const { data } = await response.json();
@@ -100,8 +147,10 @@ export default function AddSymptomModal({
       {/* Modal */}
       <div className="relative z-10 w-full h-full sm:h-auto sm:max-h-[90vh] sm:max-w-md sm:rounded-2xl border-t sm:border border-foreground/10 bg-background flex flex-col shadow-xl">
         {/* Header - Sticky on mobile */}
-        <div className="flex-shrink-0 flex items-center justify-between p-4 sm:p-6 border-b border-foreground/10">
-          <h2 className="text-xl sm:text-2xl font-semibold">Add Symptom</h2>
+        <div className="shrink-0 flex items-center justify-between p-4 sm:p-6 border-b border-foreground/10">
+          <h2 className="text-xl sm:text-2xl font-semibold">
+            {editingEntry ? "Edit Symptom" : "Add Symptom"}
+          </h2>
           <button
             onClick={onClose}
             className="rounded-lg p-2 text-muted-foreground transition-colors active:bg-foreground/10 hover:bg-foreground/10 hover:text-foreground touch-manipulation"
@@ -266,7 +315,7 @@ export default function AddSymptomModal({
         </form>
 
         {/* Actions - Sticky footer on mobile */}
-        <div className="flex-shrink-0 flex gap-2 sm:gap-3 p-4 sm:p-6 pt-3 sm:pt-2 border-t border-foreground/10 bg-background">
+        <div className="shrink-0 flex gap-2 sm:gap-3 p-4 sm:p-6 pt-3 sm:pt-2 border-t border-foreground/10 bg-background">
           <button
             type="button"
             onClick={onClose}
@@ -279,9 +328,9 @@ export default function AddSymptomModal({
             type="submit"
             form="symptom-form"
             disabled={isSubmitting || !name.trim()}
-            className="flex-1 rounded-lg bg-primary px-4 py-3 sm:py-2.5 text-base font-medium text-white transition-colors active:bg-primary/80 hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
+            className="flex-1 rounded-lg bg-linear-to-r from-orange-500 to-rose-500 px-4 py-3 sm:py-2.5 text-base font-bold text-white transition-colors active:bg-primary/80 hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
           >
-            {isSubmitting ? "Saving..." : "Save Symptom"}
+            {isSubmitting ? "Saving..." : editingEntry ? "Update Symptom" : "Save Symptom"}
           </button>
         </div>
       </div>

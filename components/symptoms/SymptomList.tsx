@@ -128,7 +128,10 @@ export default function SymptomList({
             className="group rounded-xl border border-foreground/10 bg-background/60 p-4 transition-colors hover:border-foreground/20"
           >
             <div className="flex items-start justify-between gap-4">
-              <div className="flex-1 min-w-0">
+              <div 
+                className="flex-1 min-w-0 cursor-pointer"
+                onClick={() => onEdit?.(symptom)}
+              >
                 <div className="flex items-center gap-3 mb-2">
                   <h3 className="text-base font-semibold text-foreground truncate">
                     {symptom.name}
@@ -163,27 +166,19 @@ export default function SymptomList({
               </div>
 
               {/* Actions */}
-              {(onEdit || onDelete) && (
-                <div className="flex items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100">
-                  {onEdit && (
-                    <button
-                      onClick={() => onEdit(symptom)}
-                      className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground"
-                      aria-label="Edit symptom"
-                    >
-                      <Edit2 className="h-4 w-4" />
-                    </button>
-                  )}
-                  {onDelete && (
-                    <button
-                      onClick={() => handleDelete(symptom.id)}
-                      disabled={deletingId === symptom.id}
-                      className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-rose-500/10 hover:text-rose-600 disabled:opacity-50"
-                      aria-label="Delete symptom"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  )}
+              {onDelete && (
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(symptom.id);
+                    }}
+                    disabled={deletingId === symptom.id}
+                    className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-rose-500/10 hover:text-rose-600 disabled:opacity-50"
+                    aria-label="Delete symptom"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                 </div>
               )}
             </div>

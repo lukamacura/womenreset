@@ -3,9 +3,11 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowBigRight } from "lucide-react";
+import { useTrialStatus } from "@/lib/useTrialStatus";
 
 export default function LisaSwipeButton() {
   const router = useRouter();
+  const trialStatus = useTrialStatus();
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState(0);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -39,7 +41,7 @@ export default function LisaSwipeButton() {
   const handleTouchEnd = (e: React.TouchEvent) => {
     e.preventDefault();
     const finalOffset = dragOffsetRef.current;
-    if (finalOffset >= SWIPE_THRESHOLD) {
+    if (finalOffset >= SWIPE_THRESHOLD && !trialStatus.expired) {
       // Swipe successful - navigate to Lisa
       router.push("/chat/lisa");
     }
@@ -76,7 +78,7 @@ export default function LisaSwipeButton() {
     const handleMouseUpWrapper = (e: MouseEvent) => {
       e.preventDefault();
       const finalOffset = dragOffsetRef.current;
-      if (finalOffset >= SWIPE_THRESHOLD) {
+      if (finalOffset >= SWIPE_THRESHOLD && !trialStatus.expired) {
         router.push("/chat/lisa");
       }
       setIsDragging(false);
@@ -90,15 +92,24 @@ export default function LisaSwipeButton() {
       document.removeEventListener("mousemove", handleMouseMoveWrapper);
       document.removeEventListener("mouseup", handleMouseUpWrapper);
     };
-  }, [isDragging, router]);
+  }, [isDragging, router, trialStatus.expired]);
 
   // Click handler as fallback
   const handleClick = () => {
+    // Block navigation if trial is expired
+    if (trialStatus.expired) {
+      return;
+    }
     // Only navigate if we didn't just complete a drag
     if (dragOffsetRef.current === 0 && !isDragging) {
       router.push("/chat/lisa");
     }
   };
+
+  // Hide button if trial is expired
+  if (trialStatus.expired) {
+    return null;
+  }
 
   // Calculate progress for color transition (0 to 1)
   const swipeProgress = Math.min(dragOffset / SWIPE_THRESHOLD, 1);
@@ -111,7 +122,7 @@ export default function LisaSwipeButton() {
   };
 
   return (
-    <div className="fixed bottom-0 left-1/2 -translate-x-1/2 z-50 mb-4 sm:mb-6 select-none">
+    <div className="fixed bottom-0 left-1/2 -translate-x-1/2 z-20 mb-4 sm:mb-6 select-none">
       {/* Outer Container - Fixed and Centered */}
       <div className="flex items-center justify-center bg-gray-900 rounded-full shadow-lg overflow-hidden min-w-[280px] sm:min-w-[320px] px-5 pr-7 py-4 gap-4">
         {/* Swipeable Circular Button */}

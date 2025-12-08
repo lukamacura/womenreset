@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import type { Fitness } from "./FitnessList";
+import { Calendar, Dumbbell, Clock, Flame, TrendingUp, Heart, Dumbbell as StrengthIcon, StretchHorizontal, Trophy, Activity } from "lucide-react";
 
 type DateRange = 7 | 30 | 90;
 
@@ -61,6 +62,9 @@ export default function FitnessStats({
       .slice(0, 3)
       .map(([exerciseType, count]) => ({ exerciseType, count }));
 
+    // Calculate weekly average for progress indication
+    const workoutsPerWeek = dateRange > 0 ? (totalCount / dateRange) * 7 : 0;
+
     return {
       totalCount,
       totalDuration,
@@ -68,6 +72,7 @@ export default function FitnessStats({
       topExerciseTypes,
       hasDurationData: entriesWithDuration.length > 0,
       hasCalorieData: entriesWithCalories.length > 0,
+      workoutsPerWeek,
     };
   }, [fitness, dateRange]);
 
@@ -84,103 +89,252 @@ export default function FitnessStats({
     return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
   };
 
+  const getExerciseTypeIcon = (exerciseType: string) => {
+    switch (exerciseType.toLowerCase()) {
+      case "cardio":
+        return <Heart className="h-5 w-5 text-red-500" />;
+      case "strength":
+        return <StrengthIcon className="h-5 w-5 text-blue-500" />;
+      case "flexibility":
+        return <StretchHorizontal className="h-5 w-5 text-purple-500" />;
+      case "sports":
+        return <Trophy className="h-5 w-5 text-green-500" />;
+      case "other":
+        return <Activity className="h-5 w-5 text-gray-500" />;
+      default:
+        return <Activity className="h-5 w-5 text-gray-500" />;
+    }
+  };
+
+  const getExerciseTypeColor = (exerciseType: string) => {
+    switch (exerciseType.toLowerCase()) {
+      case "cardio":
+        return "from-red-500/20 to-red-600/10";
+      case "strength":
+        return "from-blue-500/20 to-blue-600/10";
+      case "flexibility":
+        return "from-purple-500/20 to-purple-600/10";
+      case "sports":
+        return "from-green-500/20 to-green-600/10";
+      default:
+        return "from-gray-500/20 to-gray-600/10";
+    }
+  };
+
+  // Calculate progress percentage for visual bars (normalized to 0-100)
+  const maxWorkouts = Math.max(stats.totalCount, 20); // Use 20 as baseline or actual max
+  const workoutProgress = Math.min(100, (stats.totalCount / maxWorkouts) * 100);
+  const maxDuration = Math.max(stats.totalDuration, 300); // 5 hours baseline
+  const durationProgress = stats.hasDurationData ? Math.min(100, (stats.totalDuration / maxDuration) * 100) : 0;
+  const maxCalories = Math.max(stats.averageCaloriesPerDay, 500);
+  const caloriesProgress = stats.hasCalorieData ? Math.min(100, (stats.averageCaloriesPerDay / maxCalories) * 100) : 0;
+
   return (
     <div className="space-y-6">
-      {/* Date Range Selector */}
-      <div className="flex items-center gap-2">
-        <span className="text-sm font-medium text-muted-foreground">
-          Viewing:
-        </span>
+      {/* Modern Date Range Selector */}
+      <div className="flex items-center gap-2 flex-wrap">
         {([7, 30, 90] as DateRange[]).map((range) => (
           <button
             key={range}
             onClick={() => onDateRangeChange(range)}
             className={`
-              rounded-lg px-3 py-1.5 text-sm font-medium transition-colors
+              relative px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer flex items-center gap-2
               ${
                 dateRange === range
-                  ? "bg-primary/20 text-foreground"
-                  : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
+                  ? "bg-linear-to-r from-pink-500 to-pink-600 text-white shadow-lg shadow-pink-500/30 scale-105"
+                  : "bg-white/60 text-muted-foreground hover:bg-white/80 hover:text-foreground border border-foreground/10"
               }
             `}
           >
-            Last {range} days
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+            {range} days
+
           </button>
         ))}
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        {/* Total Count */}
-        <div className="rounded-xl border border-foreground/10 bg-background/60 p-5">
-          <div className="text-sm text-muted-foreground mb-1">
-            Total Workouts
-          </div>
-          <div className="text-3xl font-bold text-foreground">
-            {stats.totalCount}
-          </div>
-          <div className="mt-2 text-xs text-muted-foreground">
-            in the last {dateRange} days
+      {/* Modern Stats Cards with Visual Progress */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {/* Total Workouts Card */}
+        <div className="group relative overflow-hidden rounded-2xl bg-linear-to-br from-pink-50 via-pink-100/50 to-white border-2 border-pink-200/50 p-6 shadow-lg hover:shadow-xl transition-all duration-300">
+          {/* Decorative gradient overlay */}
+          <div className="absolute top-0 right-0 w-32 h-32 bg-linear-to-br from-pink-400/20 to-transparent rounded-full blur-2xl" />
+          
+          <div className="relative">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-3 rounded-xl bg-linear-to-br from-pink-500 to-pink-600 shadow-md">
+                <Dumbbell className="h-6 w-6 text-white" />
+              </div>
+              <TrendingUp className="h-5 w-5 text-pink-500" />
+            </div>
+            
+            <div className="mb-3">
+              <div className="text-sm font-medium text-muted-foreground mb-1">
+                Total Workouts
+              </div>
+              <div className="text-4xl font-extrabold text-foreground tracking-tight">
+                {stats.totalCount}
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">
+                Last {dateRange} days
+              </div>
+            </div>
+
+            {/* Progress Bar */}
+            <div className="mt-4">
+              <div className="h-2 w-full bg-pink-100 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-linear-to-r from-pink-500 to-pink-600 rounded-full transition-all duration-500 ease-out"
+                  style={{ width: `${workoutProgress}%` }}
+                />
+              </div>
+              <div className="text-xs text-muted-foreground mt-1.5">
+                {stats.workoutsPerWeek.toFixed(1)} workouts/week avg
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Total Duration */}
-        <div className="rounded-xl border border-foreground/10 bg-background/60 p-5">
-          <div className="text-sm text-muted-foreground mb-1">
-            Total Duration
-          </div>
-          <div className="text-3xl font-bold text-foreground">
-            {stats.hasDurationData ? formatDuration(stats.totalDuration) : "—"}
-          </div>
-          <div className="mt-2 text-xs text-muted-foreground">
-            {stats.hasDurationData
-              ? "across all workouts"
-              : "no duration data"}
+        {/* Total Duration Card */}
+        <div className="group relative overflow-hidden rounded-2xl bg-linear-to-br from-blue-50 via-blue-100/50 to-white border-2 border-blue-200/50 p-6 shadow-lg hover:shadow-xl transition-all duration-300">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-linear-to-br from-blue-400/20 to-transparent rounded-full blur-2xl" />
+          
+          <div className="relative">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-3 rounded-xl bg-linear-to-br from-blue-500 to-blue-600 shadow-md">
+                <Clock className="h-6 w-6 text-white" />
+              </div>
+              <TrendingUp className="h-5 w-5 text-blue-500" />
+            </div>
+            
+            <div className="mb-3">
+              <div className="text-sm font-medium text-muted-foreground mb-1">
+                Total Duration
+              </div>
+              <div className="text-4xl font-extrabold text-foreground tracking-tight">
+                {stats.hasDurationData ? formatDuration(stats.totalDuration) : "—"}
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">
+                {stats.hasDurationData ? "across all workouts" : "no duration data"}
+              </div>
+            </div>
+
+            {/* Progress Bar */}
+            {stats.hasDurationData && (
+              <div className="mt-4">
+                <div className="h-2 w-full bg-blue-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-linear-to-r from-blue-500 to-blue-600 rounded-full transition-all duration-500 ease-out"
+                    style={{ width: `${durationProgress}%` }}
+                  />
+                </div>
+                <div className="text-xs text-muted-foreground mt-1.5">
+                  {formatDuration(stats.totalDuration / stats.totalCount)} avg per workout
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Average Calories per Day */}
-        <div className="rounded-xl border border-foreground/10 bg-background/60 p-5">
-          <div className="text-sm text-muted-foreground mb-1">
-            Avg Calories/Day
-          </div>
-          <div className="text-3xl font-bold text-foreground">
-            {stats.hasCalorieData ? stats.averageCaloriesPerDay : "—"}
-          </div>
-          <div className="mt-2 text-xs text-muted-foreground">
-            {stats.hasCalorieData
-              ? "across tracked days"
-              : "no calorie data"}
+        {/* Average Calories Card */}
+        <div className="group relative overflow-hidden rounded-2xl bg-linear-to-br from-orange-50 via-orange-100/50 to-white border-2 border-orange-200/50 p-6 shadow-lg hover:shadow-xl transition-all duration-300 sm:col-span-2 lg:col-span-1">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-linear-to-br from-orange-400/20 to-transparent rounded-full blur-2xl" />
+          
+          <div className="relative">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-3 rounded-xl bg-linear-to-br from-orange-500 to-orange-600 shadow-md">
+                <Flame className="h-6 w-6 text-white" />
+              </div>
+              <TrendingUp className="h-5 w-5 text-orange-500" />
+            </div>
+            
+            <div className="mb-3">
+              <div className="text-sm font-medium text-muted-foreground mb-1">
+                Avg Calories/Day
+              </div>
+              <div className="text-4xl font-extrabold text-foreground tracking-tight">
+                {stats.hasCalorieData ? stats.averageCaloriesPerDay : "—"}
+                {stats.hasCalorieData && <span className="text-lg text-muted-foreground ml-1">kcal</span>}
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">
+                {stats.hasCalorieData ? "across tracked days" : "no calorie data"}
+              </div>
+            </div>
+
+            {/* Progress Bar */}
+            {stats.hasCalorieData && (
+              <div className="mt-4">
+                <div className="h-2 w-full bg-orange-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-linear-to-r from-orange-500 to-orange-600 rounded-full transition-all duration-500 ease-out"
+                    style={{ width: `${caloriesProgress}%` }}
+                  />
+                </div>
+                <div className="text-xs text-muted-foreground mt-1.5">
+                  Daily average
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Most Frequent Exercise Types */}
-      <div className="rounded-xl border border-foreground/10 bg-background/60 p-5">
-        <div className="text-sm text-muted-foreground mb-3">
-          Most Frequent Exercise Types
-        </div>
-        {stats.topExerciseTypes.length > 0 ? (
-          <div className="space-y-2">
-            {stats.topExerciseTypes.map((item, index) => (
-              <div
-                key={item.exerciseType}
-                className="flex items-center justify-between text-sm"
-              >
-                <span className="text-foreground truncate flex-1">
-                  {index + 1}. {formatExerciseType(item.exerciseType)}
-                </span>
-                <span className="ml-2 text-muted-foreground font-medium">
-                  {item.count}x
-                </span>
+      {/* Modern Most Frequent Exercise Types Card */}
+      <div className="relative overflow-hidden rounded-2xl bg-linear-to-br from-white via-pink-50/30 to-white border-2 border-pink-200/50 p-6 shadow-lg">
+        <div className="absolute top-0 right-0 w-40 h-40 bg-linear-to-br from-purple-300/10 to-transparent rounded-full blur-3xl" />
+        
+        <div className="relative">
+          <div className="flex items-center gap-2 mb-5">
+            <div className="p-2 rounded-lg bg-linear-to-br from-orange-500 to-pink-500">
+              <Activity className="h-5 w-5 text-white" />
+            </div>
+            <h3 className="text-lg font-bold text-foreground">Most Frequent Exercise Types</h3>
+          </div>
+
+          {stats.topExerciseTypes.length > 0 ? (
+            <div className="space-y-4">
+              {stats.topExerciseTypes.map((item, index) => {
+                const percentage = stats.totalCount > 0 ? (item.count / stats.totalCount) * 100 : 0;
+                return (
+                  <div key={item.exerciseType} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="p-1.5 rounded-lg bg-foreground/5">
+                          {getExerciseTypeIcon(item.exerciseType)}
+                        </div>
+                        <div>
+                          <span className="font-semibold text-foreground">
+                            {formatExerciseType(item.exerciseType)}
+                          </span>
+                          <span className="text-sm text-muted-foreground ml-2">
+                            {percentage.toFixed(0)}%
+                          </span>
+                        </div>
+                      </div>
+                      <span className="text-lg font-bold text-foreground">
+                        {item.count}x
+                      </span>
+                    </div>
+                    <div className="h-1.5 w-full bg-foreground/5 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full bg-linear-to-r ${getExerciseTypeColor(item.exerciseType)} rounded-full transition-all duration-700 ease-out`}
+                        style={{ width: `${percentage}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <div className="inline-flex p-4 rounded-full bg-foreground/5 mb-3">
+                <Activity className="h-8 w-8 text-muted-foreground" />
               </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-sm text-muted-foreground">
-            No data yet
-          </div>
-        )}
+              <p className="text-sm font-medium text-muted-foreground">No exercise data yet</p>
+              <p className="text-xs text-muted-foreground mt-1">Start logging workouts to see your stats</p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

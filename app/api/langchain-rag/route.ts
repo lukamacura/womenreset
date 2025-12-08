@@ -7,6 +7,7 @@ import { HumanMessage, AIMessage, SystemMessage, ToolMessage } from "@langchain/
 import { DynamicStructuredTool } from "@langchain/core/tools";
 import { z } from "zod";
 import { fetchTrackerData, analyzeTrackerData, formatTrackerSummary } from "@/lib/trackerAnalysis";
+import { checkTrialExpired } from "@/lib/checkTrialStatus";
 import type { Document } from "@langchain/core/documents";
 
 export const runtime = "nodejs";
@@ -429,6 +430,15 @@ export async function POST(req: NextRequest) {
 
     if (!user_id?.trim()) {
       return NextResponse.json({ error: "Missing user_id" }, { status: 400 });
+    }
+
+    // Check if trial is expired
+    const isExpired = await checkTrialExpired(user_id);
+    if (isExpired) {
+      return NextResponse.json(
+        { error: "Trial expired. Please upgrade to continue using the chat feature." },
+        { status: 403 }
+      );
     }
 
     if (!process.env.OPENAI_API_KEY) {

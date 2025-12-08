@@ -5,10 +5,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import type { User } from "@supabase/supabase-js";
-import { Activity, ArrowRight, Smile, Meh, Frown, UtensilsCrossed, Dumbbell } from "lucide-react";
+import { Activity, ArrowRight, Smile, Meh, Frown, UtensilsCrossed, Dumbbell, Trash2, Sunrise, Sun, Moon, Cookie, Heart, StretchHorizontal, Trophy } from "lucide-react";
 import type { Symptom } from "@/components/symptoms/SymptomList";
 import type { Nutrition } from "@/components/nutrition/NutritionList";
 import type { Fitness } from "@/components/fitness/FitnessList";
+import AddSymptomModal from "@/components/symptoms/AddSymptomModal";
+import AddNutritionModal from "@/components/nutrition/AddNutritionModal";
+import AddFitnessModal from "@/components/fitness/AddFitnessModal";
 
 // Prevent static prerendering (safe)
 export const dynamic = "force-dynamic";
@@ -155,9 +158,13 @@ function SymptomsOverviewCard({
 function RecentSymptomsCard({
   symptoms,
   isLoading,
+  onEdit,
+  onDelete,
 }: {
   symptoms: Symptom[];
   isLoading: boolean;
+  onEdit?: (symptom: Symptom) => void;
+  onDelete?: (id: string) => void;
 }) {
   const recentSymptoms = symptoms.slice(0, 5);
 
@@ -218,18 +225,37 @@ function RecentSymptomsCard({
               key={symptom.id}
               className="flex items-center gap-3 p-3 rounded-lg border border-foreground/5 hover:border-foreground/10 transition-colors"
             >
-              <div className="shrink-0">{getSeverityIcon(symptom.severity)}</div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-sm font-medium text-foreground truncate">
-                    {symptom.name}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {getSeverityLabel(symptom.severity)}
-                  </span>
+              <div 
+                className="flex-1 min-w-0 cursor-pointer flex items-center gap-3"
+                onClick={() => onEdit?.(symptom)}
+              >
+                <div className="shrink-0">{getSeverityIcon(symptom.severity)}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-sm font-medium text-foreground truncate">
+                      {symptom.name}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {getSeverityLabel(symptom.severity)}
+                    </span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">{formatDate(symptom.occurred_at)}</span>
                 </div>
-                <span className="text-xs text-muted-foreground">{formatDate(symptom.occurred_at)}</span>
               </div>
+              {onDelete && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (confirm("Are you sure you want to delete this symptom entry?")) {
+                      onDelete(symptom.id);
+                    }
+                  }}
+                  className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-rose-500/10 hover:text-rose-600 shrink-0"
+                  aria-label="Delete symptom"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              )}
             </div>
           ))}
         </div>
@@ -281,9 +307,13 @@ function NutritionOverviewCard({
 function RecentNutritionCard({
   nutrition,
   isLoading,
+  onEdit,
+  onDelete,
 }: {
   nutrition: Nutrition[];
   isLoading: boolean;
+  onEdit?: (nutrition: Nutrition) => void;
+  onDelete?: (id: string) => void;
 }) {
   const recentNutrition = nutrition.slice(0, 5);
 
@@ -304,6 +334,21 @@ function RecentNutritionCard({
 
   const formatMealType = (mealType: string) => {
     return mealType.charAt(0).toUpperCase() + mealType.slice(1);
+  };
+
+  const getMealTypeIcon = (mealType: string) => {
+    switch (mealType.toLowerCase()) {
+      case "breakfast":
+        return <Sunrise className="h-4 w-4 text-orange-600" />;
+      case "lunch":
+        return <Sun className="h-4 w-4 text-blue-600" />;
+      case "dinner":
+        return <Moon className="h-4 w-4 text-purple-600" />;
+      case "snack":
+        return <Cookie className="h-4 w-4 text-green-600" />;
+      default:
+        return null;
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -351,24 +396,43 @@ function RecentNutritionCard({
               key={entry.id}
               className="flex items-center gap-3 p-3 rounded-lg border border-foreground/5 hover:border-foreground/10 transition-colors"
             >
-              <div className="shrink-0">
-                <UtensilsCrossed className="h-4 w-4 text-primary" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-sm font-medium text-foreground truncate">
-                    {entry.food_item}
-                  </span>
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${getMealTypeColor(
-                      entry.meal_type
-                    )}`}
-                  >
-                    {formatMealType(entry.meal_type)}
-                  </span>
+              <div 
+                className="flex-1 min-w-0 cursor-pointer flex items-center gap-3"
+                onClick={() => onEdit?.(entry)}
+              >
+                <div className="shrink-0">
+                  {getMealTypeIcon(entry.meal_type)}
                 </div>
-                <span className="text-xs text-muted-foreground">{formatDate(entry.consumed_at)}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-sm font-medium text-foreground truncate">
+                      {entry.food_item}
+                    </span>
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-xs font-medium ${getMealTypeColor(
+                        entry.meal_type
+                      )}`}
+                    >
+                      {formatMealType(entry.meal_type)}
+                    </span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">{formatDate(entry.consumed_at)}</span>
+                </div>
               </div>
+              {onDelete && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (confirm("Are you sure you want to delete this nutrition entry?")) {
+                      onDelete(entry.id);
+                    }
+                  }}
+                  className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-rose-500/10 hover:text-rose-600 shrink-0"
+                  aria-label="Delete nutrition entry"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              )}
             </div>
           ))}
         </div>
@@ -420,9 +484,13 @@ function FitnessOverviewCard({
 function RecentFitnessCard({
   fitness,
   isLoading,
+  onEdit,
+  onDelete,
 }: {
   fitness: Fitness[];
   isLoading: boolean;
+  onEdit?: (fitness: Fitness) => void;
+  onDelete?: (id: string) => void;
 }) {
   const recentFitness = fitness.slice(0, 5);
 
@@ -445,6 +513,23 @@ function RecentFitnessCard({
 
   const formatExerciseType = (exerciseType: string) => {
     return exerciseType.charAt(0).toUpperCase() + exerciseType.slice(1);
+  };
+
+  const getExerciseTypeIcon = (exerciseType: string) => {
+    switch (exerciseType.toLowerCase()) {
+      case "cardio":
+        return <Heart className="h-4 w-4 text-red-600" />;
+      case "strength":
+        return <Dumbbell className="h-4 w-4 text-blue-600" />;
+      case "flexibility":
+        return <StretchHorizontal className="h-4 w-4 text-purple-600" />;
+      case "sports":
+        return <Trophy className="h-4 w-4 text-green-600" />;
+      case "other":
+        return <Activity className="h-4 w-4 text-gray-600" />;
+      default:
+        return null;
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -492,24 +577,43 @@ function RecentFitnessCard({
               key={entry.id}
               className="flex items-center gap-3 p-3 rounded-lg border border-foreground/5 hover:border-foreground/10 transition-colors"
             >
-              <div className="shrink-0">
-                <Dumbbell className="h-4 w-4 text-primary" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-sm font-medium text-foreground truncate">
-                    {entry.exercise_name}
-                  </span>
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${getExerciseTypeColor(
-                      entry.exercise_type
-                    )}`}
-                  >
-                    {formatExerciseType(entry.exercise_type)}
-                  </span>
+              <div 
+                className="flex-1 min-w-0 cursor-pointer flex items-center gap-3"
+                onClick={() => onEdit?.(entry)}
+              >
+                <div className="shrink-0">
+                  {getExerciseTypeIcon(entry.exercise_type)}
                 </div>
-                <span className="text-xs text-muted-foreground">{formatDate(entry.performed_at)}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-sm font-medium text-foreground truncate">
+                      {entry.exercise_name}
+                    </span>
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-xs font-medium ${getExerciseTypeColor(
+                        entry.exercise_type
+                      )}`}
+                    >
+                      {formatExerciseType(entry.exercise_type)}
+                    </span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">{formatDate(entry.performed_at)}</span>
+                </div>
               </div>
+              {onDelete && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (confirm("Are you sure you want to delete this fitness entry?")) {
+                      onDelete(entry.id);
+                    }
+                  }}
+                  className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-rose-500/10 hover:text-rose-600 shrink-0"
+                  aria-label="Delete fitness entry"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              )}
             </div>
           ))}
         </div>
@@ -540,6 +644,14 @@ export default function DashboardPage() {
     trial_days: number;
     account_status: string;
   } | null>(null);
+  
+  // Modal states
+  const [isSymptomModalOpen, setIsSymptomModalOpen] = useState(false);
+  const [isNutritionModalOpen, setIsNutritionModalOpen] = useState(false);
+  const [isFitnessModalOpen, setIsFitnessModalOpen] = useState(false);
+  const [editingSymptom, setEditingSymptom] = useState<Symptom | null>(null);
+  const [editingNutrition, setEditingNutrition] = useState<Nutrition | null>(null);
+  const [editingFitness, setEditingFitness] = useState<Fitness | null>(null);
 
   // Ticker for live countdown
   useEffect(() => {
@@ -840,6 +952,106 @@ export default function DashboardPage() {
   // ---------------------------
   // Event handlers
   // ---------------------------
+  
+  // Handle symptom added/updated
+  const handleSymptomAdded = useCallback((symptom: Symptom) => {
+    if (editingSymptom) {
+      setSymptoms((prev) => prev.map((s) => (s.id === symptom.id ? symptom : s)));
+      setEditingSymptom(null);
+    } else {
+      setSymptoms((prev) => [symptom, ...prev]);
+    }
+    setIsSymptomModalOpen(false);
+  }, [editingSymptom]);
+
+  const handleSymptomEdit = useCallback((symptom: Symptom) => {
+    setEditingSymptom(symptom);
+    setIsSymptomModalOpen(true);
+  }, []);
+
+  const handleSymptomDeleted = useCallback(async (id: string) => {
+    try {
+      const response = await fetch(`/api/symptoms?id=${id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to delete symptom");
+      }
+
+      setSymptoms((prev) => prev.filter((s) => s.id !== id));
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to delete symptom");
+    }
+  }, []);
+
+  // Handle nutrition added/updated
+  const handleNutritionAdded = useCallback((entry: Nutrition) => {
+    if (editingNutrition) {
+      setNutrition((prev) => prev.map((n) => (n.id === entry.id ? entry : n)));
+      setEditingNutrition(null);
+    } else {
+      setNutrition((prev) => [entry, ...prev]);
+    }
+    setIsNutritionModalOpen(false);
+  }, [editingNutrition]);
+
+  const handleNutritionEdit = useCallback((entry: Nutrition) => {
+    setEditingNutrition(entry);
+    setIsNutritionModalOpen(true);
+  }, []);
+
+  const handleNutritionDeleted = useCallback(async (id: string) => {
+    try {
+      const response = await fetch(`/api/nutrition?id=${id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to delete nutrition entry");
+      }
+
+      setNutrition((prev) => prev.filter((n) => n.id !== id));
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to delete nutrition entry");
+    }
+  }, []);
+
+  // Handle fitness added/updated
+  const handleFitnessAdded = useCallback((entry: Fitness) => {
+    if (editingFitness) {
+      setFitness((prev) => prev.map((f) => (f.id === entry.id ? entry : f)));
+      setEditingFitness(null);
+    } else {
+      setFitness((prev) => [entry, ...prev]);
+    }
+    setIsFitnessModalOpen(false);
+  }, [editingFitness]);
+
+  const handleFitnessEdit = useCallback((entry: Fitness) => {
+    setEditingFitness(entry);
+    setIsFitnessModalOpen(true);
+  }, []);
+
+  const handleFitnessDeleted = useCallback(async (id: string) => {
+    try {
+      const response = await fetch(`/api/fitness?id=${id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to delete fitness entry");
+      }
+
+      setFitness((prev) => prev.filter((f) => f.id !== id));
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to delete fitness entry");
+    }
+  }, []);
+
   function handleLogout() {
     // Navigate immediately - no waiting
     window.location.href = "/login";
@@ -940,19 +1152,65 @@ export default function DashboardPage() {
 
         {/* Recent Symptoms Card - Full width on desktop (3 columns) */}
         <div className="lg:col-span-3">
-          <RecentSymptomsCard symptoms={symptoms} isLoading={symptomsLoading} />
+          <RecentSymptomsCard 
+            symptoms={symptoms} 
+            isLoading={symptomsLoading}
+            onEdit={handleSymptomEdit}
+            onDelete={handleSymptomDeleted}
+          />
         </div>
 
         {/* Recent Nutrition Card - Full width on desktop (3 columns) */}
         <div className="lg:col-span-3">
-          <RecentNutritionCard nutrition={nutrition} isLoading={nutritionLoading} />
+          <RecentNutritionCard 
+            nutrition={nutrition} 
+            isLoading={nutritionLoading}
+            onEdit={handleNutritionEdit}
+            onDelete={handleNutritionDeleted}
+          />
         </div>
 
         {/* Recent Fitness Card - Full width on desktop (3 columns) */}
         <div className="lg:col-span-3">
-          <RecentFitnessCard fitness={fitness} isLoading={fitnessLoading} />
+          <RecentFitnessCard 
+            fitness={fitness} 
+            isLoading={fitnessLoading}
+            onEdit={handleFitnessEdit}
+            onDelete={handleFitnessDeleted}
+          />
         </div>
       </div>
+
+      {/* Modals */}
+      <AddSymptomModal
+        isOpen={isSymptomModalOpen}
+        onClose={() => {
+          setIsSymptomModalOpen(false);
+          setEditingSymptom(null);
+        }}
+        onSuccess={handleSymptomAdded}
+        editingEntry={editingSymptom}
+      />
+
+      <AddNutritionModal
+        isOpen={isNutritionModalOpen}
+        onClose={() => {
+          setIsNutritionModalOpen(false);
+          setEditingNutrition(null);
+        }}
+        onSuccess={handleNutritionAdded}
+        editingEntry={editingNutrition}
+      />
+
+      <AddFitnessModal
+        isOpen={isFitnessModalOpen}
+        onClose={() => {
+          setIsFitnessModalOpen(false);
+          setEditingFitness(null);
+        }}
+        onSuccess={handleFitnessAdded}
+        editingEntry={editingFitness}
+      />
     </main>
   );
 }

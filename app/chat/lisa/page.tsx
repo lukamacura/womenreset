@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { useTrialStatus } from "@/lib/useTrialStatus";
 
 /* ===== Theme (matching app pink/purple theme, optimized for 40+ vision) ===== */
 const THEME = {
@@ -243,12 +244,15 @@ function CopyButton({ text }: { text: string }) {
 function renderMarkdownText(text: string) {
   if (!text) return null;
 
-  // Split text into blocks (paragraphs, headings, dividers, blockquotes, tables)
-  const blocks: Array<{ type: string; content: string }> = [];
+  // Split text into blocks (paragraphs, headings, dividers, blockquotes, tables, lists)
+  const blocks: Array<{ type: string; content: string; listType?: 'ul' | 'ol' }> = [];
   const lines = text.split('\n');
-  let currentBlock: { type: string; content: string } | null = null;
+  let currentBlock: { type: string; content: string; listType?: 'ul' | 'ol' } | null = null;
   let inTable = false;
   let tableRows: string[] = [];
+  let inList = false;
+  let listType: 'ul' | 'ol' | null = null;
+  let listItems: string[] = [];
 
   lines.forEach((line, idx) => {
     const trimmed = line.trim();
@@ -258,6 +262,12 @@ function renderMarkdownText(text: string) {
       if (currentBlock) {
         blocks.push(currentBlock);
         currentBlock = null;
+      }
+      if (inList && listItems.length > 0) {
+        blocks.push({ type: listType === 'ol' ? 'ol' : 'ul', content: listItems.join('\n') });
+        listItems = [];
+        inList = false;
+        listType = null;
       }
       blocks.push({ type: 'hr', content: '' });
       return;
@@ -270,8 +280,52 @@ function renderMarkdownText(text: string) {
         blocks.push(currentBlock);
         currentBlock = null;
       }
+      if (inList && listItems.length > 0) {
+        blocks.push({ type: listType === 'ol' ? 'ol' : 'ul', content: listItems.join('\n') });
+        listItems = [];
+        inList = false;
+        listType = null;
+      }
       blocks.push({ type: `h${headingMatch[1].length}`, content: headingMatch[2] });
       return;
+    }
+
+    // Check for ordered list (1. or 1) or unordered list (-, *, •)
+    const orderedListMatch = trimmed.match(/^(\d+)\.\s+(.+)$/);
+    const unorderedListMatch = trimmed.match(/^[-*•]\s+(.+)$/);
+    
+    if (orderedListMatch || unorderedListMatch) {
+      const detectedType = orderedListMatch ? 'ol' : 'ul';
+      const itemContent = orderedListMatch ? orderedListMatch[2] : unorderedListMatch![1];
+      
+      if (currentBlock) {
+        blocks.push(currentBlock);
+        currentBlock = null;
+      }
+      
+      if (inList && listType === detectedType) {
+        // Continue same list
+        listItems.push(itemContent);
+      } else {
+        // Start new list (different type or first list)
+        if (inList && listItems.length > 0) {
+          blocks.push({ type: listType === 'ol' ? 'ol' : 'ul', content: listItems.join('\n') });
+          listItems = [];
+        }
+        inList = true;
+        listType = detectedType;
+        listItems.push(itemContent);
+      }
+      return;
+    } else if (!trimmed && inList) {
+      // Blank line within list - continue the list (don't end it yet)
+      return;
+    } else if (inList && listItems.length > 0) {
+      // End of list (non-list content encountered)
+      blocks.push({ type: listType === 'ol' ? 'ol' : 'ul', content: listItems.join('\n') });
+      listItems = [];
+      inList = false;
+      listType = null;
     }
 
     // Check for blockquote
@@ -328,6 +382,9 @@ function renderMarkdownText(text: string) {
   if (inTable && tableRows.length > 0) {
     blocks.push({ type: 'table', content: tableRows.join('\n') });
   }
+  if (inList && listItems.length > 0) {
+    blocks.push({ type: listType === 'ol' ? 'ol' : 'ul', content: listItems.join('\n') });
+  }
   if (currentBlock) {
     blocks.push(currentBlock);
   }
@@ -338,38 +395,74 @@ function renderMarkdownText(text: string) {
       {blocks.map((block, blockIdx) => {
         if (block.type === 'hr') {
           return (
-            <hr
-              key={`hr-${blockIdx}`}
-              style={{
-                border: 'none',
-                borderTop: `2px solid ${THEME.pink[200]}`,
-                margin: '2rem 0',
-                background: `linear-gradient(to right, transparent, ${THEME.pink[300]}, transparent)`,
-                height: '1px',
-              }}
-            />
+            <div key={`hr-${blockIdx}`} style={{ margin: '2.5rem 0', position: 'relative' }}>
+              <div
+                style={{
+                  height: '2px',
+                  background: `linear-gradient(to right, transparent, ${THEME.pink[300]}, ${THEME.pink[400]}, ${THEME.pink[300]}, transparent)`,
+                  borderRadius: '2px',
+                  position: 'relative',
+                }}
+              >
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: '50%',
+                    top: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    background: THEME.pink[400],
+                    boxShadow: `0 0 8px ${THEME.pink[300]}`,
+                  }}
+                />
+              </div>
+            </div>
           );
         }
 
         if (block.type.startsWith('h')) {
           const level = parseInt(block.type[1]);
-          const sizes = { 1: '2.5rem', 2: '2rem', 3: '1.5rem', 4: '1.25rem', 5: '1.1rem' };
-          const weights = { 1: 800, 2: 700, 3: 600, 4: 600, 5: 600 };
-          const margins = { 1: '1.5rem 0 0.75rem', 2: '1.25rem 0 0.5rem', 3: '1rem 0 0.5rem', 4: '0.75rem 0 0.5rem', 5: '0.75rem 0 0.25rem' };
+          const config = {
+            1: { size: '2.75rem', weight: 800, margin: '2rem 0 1rem', color: THEME.pink[600], letterSpacing: '-0.03em' },
+            2: { size: '2.25rem', weight: 700, margin: '1.75rem 0 0.875rem', color: THEME.pink[600], letterSpacing: '-0.025em' },
+            3: { size: '1.75rem', weight: 700, margin: '1.5rem 0 0.75rem', color: THEME.text[900], letterSpacing: '-0.02em' },
+            4: { size: '1.5rem', weight: 600, margin: '1.25rem 0 0.625rem', color: THEME.text[900], letterSpacing: '-0.015em' },
+            5: { size: '1.25rem', weight: 600, margin: '1rem 0 0.5rem', color: THEME.text[800], letterSpacing: '-0.01em' },
+          };
+          const style = config[level as keyof typeof config] || config[3];
 
           return (
             <div
               key={`${block.type}-${blockIdx}`}
               style={{
-                fontSize: sizes[level as keyof typeof sizes] || '1rem',
-                fontWeight: weights[level as keyof typeof weights] || 600,
-                color: THEME.pink[600],
-                margin: margins[level as keyof typeof margins] || '0.5rem 0',
+                fontSize: style.size,
+                fontWeight: style.weight,
+                color: style.color,
+                margin: style.margin,
                 lineHeight: '1.2',
-                letterSpacing: '-0.02em',
+                letterSpacing: style.letterSpacing,
+                position: 'relative',
+                paddingLeft: level <= 2 ? '0' : '0',
               }}
             >
-              {renderInlineMarkdown(block.content)}
+              {level <= 2 && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: '-1.5rem',
+                    top: '0.5rem',
+                    width: '4px',
+                    height: 'calc(100% - 1rem)',
+                    background: `linear-gradient(to bottom, ${THEME.pink[400]}, ${THEME.pink[500]})`,
+                    borderRadius: '2px',
+                  }}
+                />
+              )}
+              <div style={{ position: 'relative', zIndex: 1 }}>
+                {renderInlineMarkdown(block.content)}
+              </div>
             </div>
           );
         }
@@ -380,19 +473,151 @@ function renderMarkdownText(text: string) {
               key={`blockquote-${blockIdx}`}
               style={{
                 borderLeft: `4px solid ${THEME.pink[400]}`,
-                paddingLeft: '1rem',
-                margin: '1rem 0',
+                margin: '1.5rem 0',
+                padding: '1.25rem 1.5rem',
                 fontStyle: 'italic',
-                color: THEME.text[700],
-                backgroundColor: THEME.pink[50],
-                padding: '0.75rem 1rem',
-                borderRadius: '0.5rem',
+                color: THEME.text[800],
+                background: `linear-gradient(to right, ${THEME.pink[50]}, ${THEME.pink[100]})`,
+                borderRadius: '0.75rem',
+                boxShadow: `0 2px 8px rgba(236, 72, 153, 0.1)`,
+                position: 'relative',
+                fontSize: '1.125rem',
+                lineHeight: '1.6',
               }}
             >
-              {block.content.split('\n').map((line, lineIdx) => (
-                <div key={lineIdx}>{renderInlineMarkdown(line)}</div>
-              ))}
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '1rem',
+                  left: '1.5rem',
+                  fontSize: '2rem',
+                  color: THEME.pink[300],
+                  opacity: 0.5,
+                  fontFamily: 'Georgia, serif',
+                }}
+              >
+                &ldquo;
+              </div>
+              <div style={{ paddingLeft: '1.5rem' }}>
+                {block.content.split('\n').map((line, lineIdx) => (
+                  <div key={lineIdx} style={{ marginBottom: lineIdx < block.content.split('\n').length - 1 ? '0.5rem' : '0' }}>
+                    {renderInlineMarkdown(line)}
+                  </div>
+                ))}
+              </div>
             </blockquote>
+          );
+        }
+
+        if (block.type === 'ul' || block.type === 'ol') {
+          // Split by newline and filter out empty items, preserving order
+          const rawItems = block.content.split('\n');
+          const items = rawItems.filter(item => item && item.trim().length > 0).map(item => item.trim());
+          const isOrdered = block.type === 'ol';
+
+          if (items.length === 0) {
+            return null;
+          }
+
+          return (
+            <div
+              key={`${block.type}-${blockIdx}`}
+              style={{
+                margin: '1.25rem 0',
+                paddingLeft: '0',
+              }}
+            >
+              {isOrdered ? (
+                <ol
+                  style={{
+                    listStyle: 'none',
+                    padding: 0,
+                    margin: 0,
+                  }}
+                >
+                  {items.map((item, itemIdx) => {
+                    // Calculate the correct sequential number (1, 2, 3, etc.)
+                    // itemIdx is 0-based, so add 1 to get 1, 2, 3...
+                    const itemNumber = itemIdx + 1;
+                    return (
+                      <li
+                        key={`${blockIdx}-ol-${itemIdx}`}
+                        style={{
+                          position: 'relative',
+                          paddingLeft: '2rem',
+                          marginBottom: '0.875rem',
+                          fontSize: '1.125rem',
+                          lineHeight: '1.6',
+                          color: THEME.text[900],
+                        }}
+                      >
+                        <span
+                          style={{
+                            position: 'absolute',
+                            left: '0',
+                            top: '0',
+                            width: '1.75rem',
+                            height: '1.75rem',
+                            borderRadius: '50%',
+                            background: `linear-gradient(135deg, ${THEME.pink[400]}, ${THEME.pink[500]})`,
+                            color: 'white',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '0.875rem',
+                            fontWeight: 700,
+                            boxShadow: `0 2px 4px rgba(236, 72, 153, 0.3)`,
+                          }}
+                        >
+                          {itemNumber}
+                        </span>
+                        <div style={{ paddingTop: '0.125rem' }}>
+                          {renderInlineMarkdown(item)}
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ol>
+              ) : (
+                <ul
+                  style={{
+                    listStyle: 'none',
+                    padding: 0,
+                    margin: 0,
+                  }}
+                >
+                  {items.map((item, itemIdx) => (
+                    <li
+                      key={itemIdx}
+                      style={{
+                        position: 'relative',
+                        paddingLeft: '2rem',
+                        marginBottom: '0.875rem',
+                        fontSize: '1.125rem',
+                        lineHeight: '1.6',
+                        color: THEME.text[900],
+                      }}
+                    >
+                      <span
+                        style={{
+                          position: 'absolute',
+                          left: '0.375rem',
+                          top: '0.75rem',
+                          width: '8px',
+                          height: '8px',
+                          borderRadius: '50%',
+                          background: `linear-gradient(135deg, ${THEME.pink[400]}, ${THEME.pink[500]})`,
+                          boxShadow: `0 2px 4px rgba(236, 72, 153, 0.3)`,
+                        }}
+                      />
+                      <div style={{ paddingTop: '0.125rem' }}>
+                        {renderInlineMarkdown(item)}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           );
         }
 
@@ -409,25 +634,33 @@ function renderMarkdownText(text: string) {
             <div
               key={`table-${blockIdx}`}
               style={{
-                margin: '1rem 0',
+                margin: '1.5rem 0',
                 overflowX: 'auto',
-                borderRadius: '0.75rem',
-                border: `1px solid ${THEME.pink[200]}`,
+                borderRadius: '1rem',
+                border: `2px solid ${THEME.pink[200]}`,
                 overflow: 'hidden',
+                boxShadow: `0 4px 12px rgba(236, 72, 153, 0.1)`,
+                background: 'white',
               }}
             >
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
-                  <tr style={{ backgroundColor: THEME.pink[100] }}>
+                  <tr
+                    style={{
+                      background: `linear-gradient(135deg, ${THEME.pink[100]}, ${THEME.pink[200]})`,
+                    }}
+                  >
                     {headerRow.map((cell, cellIdx) => (
                       <th
                         key={cellIdx}
                         style={{
-                          padding: '0.75rem 1rem',
+                          padding: '1rem 1.25rem',
                           textAlign: 'left',
                           fontWeight: 700,
                           color: THEME.text[900],
-                          borderBottom: `2px solid ${THEME.pink[300]}`,
+                          borderBottom: `3px solid ${THEME.pink[400]}`,
+                          fontSize: '1rem',
+                          letterSpacing: '0.01em',
                         }}
                       >
                         {renderInlineMarkdown(cell)}
@@ -440,16 +673,19 @@ function renderMarkdownText(text: string) {
                     <tr
                       key={rowIdx}
                       style={{
-                        backgroundColor: rowIdx % 2 === 0 ? 'white' : THEME.pink[50],
+                        background: rowIdx % 2 === 0 ? 'white' : THEME.pink[50],
+                        transition: 'background-color 0.2s ease',
                       }}
                     >
                       {row.map((cell, cellIdx) => (
                         <td
                           key={cellIdx}
                           style={{
-                            padding: '0.75rem 1rem',
+                            padding: '0.875rem 1.25rem',
                             borderBottom: `1px solid ${THEME.pink[200]}`,
                             color: THEME.text[800],
+                            fontSize: '1rem',
+                            lineHeight: '1.5',
                           }}
                         >
                           {renderInlineMarkdown(cell)}
@@ -468,13 +704,13 @@ function renderMarkdownText(text: string) {
           <p
             key={`para-${blockIdx}`}
             style={{
-              marginBottom: blockIdx < blocks.length - 1 ? '1rem' : '0',
+              marginBottom: blockIdx < blocks.length - 1 ? '1.5rem' : '0',
               fontSize: '1.125rem',
-              lineHeight: '1.4',
+              lineHeight: '1.7',
               color: THEME.text[900],
-              fontWeight: 500,
+              fontWeight: 400,
               letterSpacing: '0.01em',
-              textShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+              textShadow: '0 1px 2px rgba(0, 0, 0, 0.02)',
               WebkitFontSmoothing: 'antialiased',
               MozOsxFontSmoothing: 'grayscale',
             }}
@@ -995,6 +1231,14 @@ function ToastNotificationComponent({ notification, onDismiss }: { notification:
 
 function ChatPageInner() {
   const router = useRouter();
+  const trialStatus = useTrialStatus();
+
+  // Redirect to dashboard if trial is expired
+  useEffect(() => {
+    if (!trialStatus.loading && trialStatus.expired) {
+      router.replace("/dashboard");
+    }
+  }, [trialStatus.expired, trialStatus.loading, router]);
 
   /* ---- State ---- */
   const [sessions, setSessions] = useState<Conversation[]>(() => {
@@ -1302,6 +1546,13 @@ function ChatPageInner() {
     async (text: string, targetId?: string) => {
       const id = targetId ?? activeId;
       if (!id) return;
+      
+      // Block sending if trial is expired
+      if (trialStatus.expired) {
+        addNotification("Trial Expired", "Your trial has expired. Please upgrade to continue using the chat.");
+        router.push("/dashboard");
+        return;
+      }
 
       upsertAndAppendMessage(
         id,
@@ -1568,8 +1819,42 @@ function ChatPageInner() {
         setIsLisaThinking(false);
       }
     },
-    [activeId, sessions, upsertAndAppendMessage, userId, addNotification],
+    [activeId, sessions, upsertAndAppendMessage, userId, addNotification, trialStatus.expired, router],
   );
+
+  // Show loading or expired message
+  if (trialStatus.loading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" style={{ color: THEME.pink[500] }} />
+          <p className="text-lg" style={{ color: THEME.text[700] }}>Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (trialStatus.expired) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <div className="text-center max-w-md mx-auto px-4">
+          <div className="rounded-2xl border-2 p-8 shadow-lg" style={{ borderColor: THEME.pink[300], backgroundColor: THEME.background.white }}>
+            <h2 className="text-2xl font-bold mb-4" style={{ color: THEME.text[900] }}>Trial Expired</h2>
+            <p className="text-lg mb-6" style={{ color: THEME.text[700] }}>
+              Your trial has expired. Please upgrade to continue using the chat feature.
+            </p>
+            <button
+              onClick={() => router.push("/dashboard")}
+              className="inline-flex items-center gap-2 rounded-lg px-6 py-3 text-base font-semibold text-white transition-all hover:opacity-90"
+              style={{ backgroundColor: THEME.pink[500] }}
+            >
+              Go to Dashboard
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   /* ---- UI ---- */
   const SidebarContent = (
@@ -1904,8 +2189,8 @@ function ChatPageInner() {
                     >
                       <div
                         className={`rounded-2xl px-4 py-3 text-base leading-relaxed sm:px-5 sm:py-4 sm:text-lg transition-all backdrop-blur-sm ${isUser
-                            ? "ml-auto max-w-full sm:max-w-[80%] shadow-lg"
-                            : "max-w-full sm:max-w-[80%] bg-rose-300/80 backdrop-blur-lg ring-1 ring-rose-200 shadow-lg"
+                            ? "ml-auto max-w-full bg-linear-to-r from-orange-200/90 to-pink-200/90 backdrop-blur-lg sm:max-w-[80%] shadow-lg"
+                            : "max-w-full sm:max-w-[80%] bg-rose-100/90 backdrop-blur-lg ring-1 ring-rose-200 shadow-lg"
                           }`}
                         style={{
                           lineHeight: '1.4',

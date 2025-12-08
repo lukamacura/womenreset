@@ -1,22 +1,33 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Activity } from "lucide-react";
 import AddSymptomModal from "@/components/symptoms/AddSymptomModal";
 import SymptomList, { type Symptom } from "@/components/symptoms/SymptomList";
 import SymptomStats from "@/components/symptoms/SymptomStats";
 import SymptomCharts from "@/components/symptoms/SymptomCharts";
+import { useTrialStatus } from "@/lib/useTrialStatus";
 
 export const dynamic = "force-dynamic";
 
 type DateRange = 7 | 30 | 90;
 
 export default function SymptomsPage() {
+  const router = useRouter();
+  const trialStatus = useTrialStatus();
   const [symptoms, setSymptoms] = useState<Symptom[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [dateRange, setDateRange] = useState<DateRange>(30);
+
+  // Redirect to dashboard if trial is expired
+  useEffect(() => {
+    if (!trialStatus.loading && trialStatus.expired) {
+      router.replace("/dashboard");
+    }
+  }, [trialStatus.expired, trialStatus.loading, router]);
 
   // Fetch symptoms
   const fetchSymptoms = useCallback(async () => {
@@ -103,6 +114,23 @@ export default function SymptomsPage() {
 
   const recentSymptoms = getRecentSymptoms();
 
+  // Show loading state while checking trial status
+  if (trialStatus.loading) {
+    return (
+      <div className="mx-auto max-w-7xl p-6 sm:p-8">
+        <div className="text-center py-12">
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
+          <p className="mt-4 text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render if trial is expired (will redirect)
+  if (trialStatus.expired) {
+    return null;
+  }
+
   return (
     <div className="mx-auto max-w-7xl p-6 sm:p-8 space-y-8 text-[17px] sm:text-[18px]">
       {/* Header */}
@@ -117,7 +145,7 @@ export default function SymptomsPage() {
         </div>
         <button
           onClick={() => setIsModalOpen(true)}
-          className="inline-flex justify-center items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-lg font-bold text-white shadow-md transition-all hover:bg-primary/90 hover:translate-y-px"
+          className="inline-flex justify-center items-center gap-2 rounded-lg bg-linear-to-r from-orange-500 to-rose-500 cursor-pointer px-5 py-2.5 text-lg font-bold text-white shadow-md transition-all hover:bg-primary/90 hover:translate-y-px"
         >
           <Activity className="h-5 w-5" />
           Add symptom

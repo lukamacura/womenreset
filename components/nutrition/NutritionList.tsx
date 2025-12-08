@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Trash2, Edit2 } from "lucide-react";
+import { Trash2, Sunrise, Sun, Moon, Cookie } from "lucide-react";
 
 export type Nutrition = {
   id: string;
@@ -61,6 +61,21 @@ export default function NutritionList({
 
   const formatMealType = (mealType: string) => {
     return mealType.charAt(0).toUpperCase() + mealType.slice(1);
+  };
+
+  const getMealTypeIcon = (mealType: string) => {
+    switch (mealType.toLowerCase()) {
+      case "breakfast":
+        return <Sunrise className="h-4 w-4 text-orange-600" />;
+      case "lunch":
+        return <Sun className="h-4 w-4 text-blue-600" />;
+      case "dinner":
+        return <Moon className="h-4 w-4 text-purple-600" />;
+      case "snack":
+        return <Cookie className="h-4 w-4 text-green-600" />;
+      default:
+        return null;
+    }
   };
 
   const formatDateTime = (dateString: string) => {
@@ -136,12 +151,16 @@ export default function NutritionList({
             className="group rounded-xl border border-foreground/10 bg-background/60 p-4 transition-colors hover:border-foreground/20"
           >
             <div className="flex items-start justify-between gap-4">
-              <div className="flex-1 min-w-0">
+              <div 
+                className="flex-1 min-w-0 cursor-pointer"
+                onClick={() => onEdit?.(entry)}
+              >
                 <div className="flex items-center gap-3 mb-2">
                   <h3 className="text-base font-semibold text-foreground truncate">
                     {entry.food_item}
                   </h3>
                   <div className="flex items-center gap-1.5 shrink-0">
+                    {getMealTypeIcon(entry.meal_type)}
                     <span
                       className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${mealTypeColor}`}
                     >
@@ -167,27 +186,19 @@ export default function NutritionList({
               </div>
 
               {/* Actions */}
-              {(onEdit || onDelete) && (
-                <div className="flex items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100">
-                  {onEdit && (
-                    <button
-                      onClick={() => onEdit(entry)}
-                      className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground"
-                      aria-label="Edit nutrition entry"
-                    >
-                      <Edit2 className="h-4 w-4" />
-                    </button>
-                  )}
-                  {onDelete && (
-                    <button
-                      onClick={() => handleDelete(entry.id)}
-                      disabled={deletingId === entry.id}
-                      className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-rose-500/10 hover:text-rose-600 disabled:opacity-50"
-                      aria-label="Delete nutrition entry"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  )}
+              {onDelete && (
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(entry.id);
+                    }}
+                    disabled={deletingId === entry.id}
+                    className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-rose-500/10 hover:text-rose-600 disabled:opacity-50"
+                    aria-label="Delete nutrition entry"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                 </div>
               )}
             </div>

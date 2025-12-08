@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { LayoutDashboard, Activity, UtensilsCrossed, Dumbbell, LogOut, ChevronDown } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import LisaSwipeButton from "@/components/LisaSwipeButton";
+import { useTrialStatus } from "@/lib/useTrialStatus";
 
 export default function DashboardLayout({
   children,
@@ -13,6 +14,8 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const trialStatus = useTrialStatus();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const isDropdownOpenRef = useRef(false);
@@ -22,23 +25,37 @@ export default function DashboardLayout({
       href: "/dashboard",
       label: "Dashboard",
       icon: LayoutDashboard,
+      requiresActiveTrial: false,
     },
     {
       href: "/dashboard/symptoms",
       label: "Symptom Tracker",
       icon: Activity,
+      requiresActiveTrial: true,
     },
     {
       href: "/dashboard/nutrition",
       label: "Nutrition Tracker",
       icon: UtensilsCrossed,
+      requiresActiveTrial: true,
     },
     {
       href: "/dashboard/fitness",
       label: "Fitness Tracker",
       icon: Dumbbell,
+      requiresActiveTrial: true,
     },
   ];
+
+  const handleNavClick = (item: typeof navItems[0], e: React.MouseEvent) => {
+    if (item.requiresActiveTrial && trialStatus.expired) {
+      e.preventDefault();
+      // Stay on dashboard if trial is expired
+      if (pathname !== "/dashboard") {
+        router.push("/dashboard");
+      }
+    }
+  };
 
   // Find active item
   const activeItem = navItems.find(
@@ -95,7 +112,7 @@ export default function DashboardLayout({
             <div className="relative lg:hidden" ref={dropdownRef}>
               <button
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium bg-primary/20 text-pink-800 transition-colors duration-200 w-full min-w-[200px]"
+                className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold bg-primary/20 text-pink-800 transition-colors duration-200 w-full min-w-[200px]"
               >
                 <ActiveIcon className="h-5 w-5" />
                 <span className="flex-1 text-left">{activeItem.label}</span>
@@ -114,16 +131,22 @@ export default function DashboardLayout({
                       pathname === item.href ||
                       (item.href !== "/dashboard" && pathname?.startsWith(item.href));
 
+                    const isDisabled = item.requiresActiveTrial && trialStatus.expired;
                     return (
                       <Link
                         key={item.href}
                         href={item.href}
-                        onClick={() => setIsDropdownOpen(false)}
+                        onClick={(e) => {
+                          setIsDropdownOpen(false);
+                          handleNavClick(item, e);
+                        }}
                         className={`
                           flex items-center gap-3 px-4 py-3 text-sm font-medium
                           transition-colors duration-200
                           ${isActive
                             ? "bg-primary/20 text-foreground"
+                            : isDisabled
+                            ? "text-muted-foreground/50 cursor-not-allowed opacity-50"
                             : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
                           }
                         `}
@@ -154,15 +177,18 @@ export default function DashboardLayout({
                   pathname === item.href ||
                   (item.href !== "/dashboard" && pathname?.startsWith(item.href));
 
+                const isDisabled = item.requiresActiveTrial && trialStatus.expired;
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
+                    onClick={(e) => handleNavClick(item, e)}
                     className={`
-                      flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium
-                      transition-colors duration-200
+                      flex items-center gap-2 rounded-lg px-4 py-2 font-medium text-sm transition-colors duration-200
                       ${isActive
-                        ? "bg-primary/20 text-pink-800"
+                        ? "bg-pink-800/15 text-pink-800 font-semibold"
+                        : isDisabled
+                        ? "text-muted-foreground/50 cursor-not-allowed opacity-50"
                         : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
                       }
                     `}

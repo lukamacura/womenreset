@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Trash2, Edit2 } from "lucide-react";
+import { Trash2, Heart, Dumbbell, StretchHorizontal, Trophy, Activity } from "lucide-react";
 
 export type Fitness = {
   id: string;
@@ -65,6 +65,23 @@ export default function FitnessList({
 
   const formatExerciseType = (exerciseType: string) => {
     return exerciseType.charAt(0).toUpperCase() + exerciseType.slice(1);
+  };
+
+  const getExerciseTypeIcon = (exerciseType: string) => {
+    switch (exerciseType.toLowerCase()) {
+      case "cardio":
+        return <Heart className="h-4 w-4 text-red-600" />;
+      case "strength":
+        return <Dumbbell className="h-4 w-4 text-blue-600" />;
+      case "flexibility":
+        return <StretchHorizontal className="h-4 w-4 text-purple-600" />;
+      case "sports":
+        return <Trophy className="h-4 w-4 text-green-600" />;
+      case "other":
+        return <Activity className="h-4 w-4 text-gray-600" />;
+      default:
+        return null;
+    }
   };
 
   const getIntensityColor = (intensity: string | null) => {
@@ -155,12 +172,16 @@ export default function FitnessList({
             className="group rounded-xl border border-foreground/10 bg-background/60 p-4 transition-colors hover:border-foreground/20"
           >
             <div className="flex items-start justify-between gap-4">
-              <div className="flex-1 min-w-0">
+              <div 
+                className="flex-1 min-w-0 cursor-pointer"
+                onClick={() => onEdit?.(entry)}
+              >
                 <div className="flex items-center gap-3 mb-2">
                   <h3 className="text-base font-semibold text-foreground truncate">
                     {entry.exercise_name}
                   </h3>
                   <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
+                    {getExerciseTypeIcon(entry.exercise_type)}
                     <span
                       className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${exerciseTypeColor}`}
                     >
@@ -198,27 +219,19 @@ export default function FitnessList({
               </div>
 
               {/* Actions */}
-              {(onEdit || onDelete) && (
-                <div className="flex items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100">
-                  {onEdit && (
-                    <button
-                      onClick={() => onEdit(entry)}
-                      className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground"
-                      aria-label="Edit fitness entry"
-                    >
-                      <Edit2 className="h-4 w-4" />
-                    </button>
-                  )}
-                  {onDelete && (
-                    <button
-                      onClick={() => handleDelete(entry.id)}
-                      disabled={deletingId === entry.id}
-                      className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-rose-500/10 hover:text-rose-600 disabled:opacity-50"
-                      aria-label="Delete fitness entry"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  )}
+              {onDelete && (
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(entry.id);
+                    }}
+                    disabled={deletingId === entry.id}
+                    className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-rose-500/10 hover:text-rose-600 disabled:opacity-50"
+                    aria-label="Delete fitness entry"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                 </div>
               )}
             </div>
