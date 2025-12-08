@@ -158,7 +158,7 @@ export default function SymptomsPage() {
         </div>
         <button
           onClick={() => setIsModalOpen(true)}
-          className="inline-flex justify-center items-center gap-2 rounded-lg bg-linear-to-r from-orange-500 to-rose-500 cursor-pointer px-5 py-2.5 text-lg font-bold text-white shadow-md transition-all hover:bg-primary/90 hover:translate-y-px"
+          className="inline-flex justify-center items-center gap-2 rounded-lg bg-linear-to-r from-rose-500 to-pink-500 cursor-pointer px-5 py-2.5 text-lg font-bold text-white shadow-md transition-all hover:bg-primary/90 hover:translate-y-px"
         >
           <Activity className="h-5 w-5" />
           Add symptom

@@ -175,7 +175,7 @@ export default function NutritionPage() {
         </div>
         <button
           onClick={() => setIsModalOpen(true)}
-          className="inline-flex font-bold text-lg justify-center items-center gap-2 rounded-lg bg-linear-to-r from-orange-500 to-rose-500 cursor-pointer px-5 py-2.5 text-white shadow-md transition-all hover:bg-primary/90 hover:translate-y-px"
+          className="inline-flex font-bold text-lg justify-center items-center gap-2 rounded-lg bg-linear-to-r from-rose-500 to-pink-500 cursor-pointer px-5 py-2.5 text-white shadow-md transition-all hover:bg-primary/90 hover:translate-y-px"
         >
           <ForkKnifeCrossed className="h-5 w-5" />
           Add meal
