@@ -1,21 +1,17 @@
 "use client";
 
 import { useEffect, useMemo, useState, useCallback } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import type { User } from "@supabase/supabase-js";
-import { MessageSquare, Activity, ArrowRight, Smile, Meh, Frown, UtensilsCrossed, Dumbbell } from "lucide-react";
+import { Activity, ArrowRight, Smile, Meh, Frown, UtensilsCrossed, Dumbbell } from "lucide-react";
 import type { Symptom } from "@/components/symptoms/SymptomList";
 import type { Nutrition } from "@/components/nutrition/NutritionList";
 import type { Fitness } from "@/components/fitness/FitnessList";
 
 // Prevent static prerendering (safe)
 export const dynamic = "force-dynamic";
-
-// TRIAL_DAYS is now fetched from user_trials.trial_days (default: 3)
-const CHAT_BASE = "/chat";
 
 // ---------------------------
 // Small UI helpers
@@ -115,62 +111,6 @@ function TrialStatusCard({
   );
 }
 
-// Quick Chat Card
-function QuickChatCard({
-  trial,
-}: {
-  trial: {
-    expired: boolean | null;
-  };
-}) {
-  const trialLocked = trial.expired === true;
-
-  const CardContent = (
-    <div
-      className={classNames(
-        "group relative h-full rounded-xl sm:rounded-2xl border border-foreground/10 bg-linear-to-br from-pink-200 via-fuchsia-200 to-orange-100 p-4 sm:p-6 shadow-sm transition-all hover:shadow-md",
-        trialLocked && "opacity-60"
-      )}
-    >
-      <div className="flex flex-col items-center text-center">
-        <div className="mb-3 sm:mb-4 relative">
-          <Image
-            src="/profile.webp"
-            alt="Lisa"
-            width={200}
-            height={200}
-            className="rounded-full sm:w-20 sm:h-20"
-          />
-        </div>
-        <h3 className="text-base sm:text-lg font-semibold text-foreground mb-1">Chat with Lisa</h3>
-        <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">
-          Your menopause support expert
-        </p>
-        <div
-          className={classNames(
-            "inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all",
-            trialLocked
-              ? "bg-foreground/10 text-muted-foreground cursor-not-allowed"
-              : "bg-pink-600 text-white hover:bg-pink-800 group-hover:translate-x-1"
-          )}
-        >
-          <MessageSquare className="h-4 w-4" />
-          <span>{trialLocked ? "Locked" : "Start Chat"}</span>
-          {!trialLocked && <ArrowRight className="h-4 w-4" />}
-        </div>
-      </div>
-      {trialLocked && <div className="pointer-events-none absolute inset-0 rounded-xl sm:rounded-2xl" />}
-    </div>
-  );
-
-  return trialLocked ? (
-    <div>{CardContent}</div>
-  ) : (
-    <Link href={`${CHAT_BASE}/lisa`} className="block h-full">
-      {CardContent}
-    </Link>
-  );
-}
 
 // Symptoms Overview Card
 function SymptomsOverviewCard({
@@ -968,15 +908,11 @@ export default function DashboardPage() {
 
       {/* Bento Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
-        {/* Trial Status Card - 2 columns on desktop */}
-        <div className="lg:col-span-2">
+        {/* Trial Status Card - Full width on desktop (3 columns) */}
+        <div className="lg:col-span-3">
           <TrialStatusCard trial={trial} />
         </div>
 
-        {/* Quick Chat Card - 1 column */}
-        <div>
-          <QuickChatCard trial={trial} />
-        </div>
 
         {/* Symptoms Overview Card - 1 column */}
         <div>

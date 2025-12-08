@@ -83,3 +83,4 @@ The RAG endpoint should now automatically use these documents when answering que
 ✅ RAG queries return relevant results
 ✅ Hybrid search works (semantic + keyword matching)
 
+

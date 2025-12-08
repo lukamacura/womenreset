@@ -25,3 +25,4 @@ ON documents USING GIN ((metadata->'keywords'));
 -- 3. Fast keyword searches: WHERE metadata->'keywords' @> '["insomnia"]'
 -- 4. Improved query performance for hybrid search implementations
 
+

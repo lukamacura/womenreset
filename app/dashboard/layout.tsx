@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, Activity, UtensilsCrossed, Dumbbell, LogOut, ChevronDown } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
+import LisaSwipeButton from "@/components/LisaSwipeButton";
 
 export default function DashboardLayout({
   children,
@@ -187,6 +188,9 @@ export default function DashboardLayout({
 
       {/* Main Content */}
       <main className="flex-1">{children}</main>
+
+      {/* Fixed Lisa Swipe Button */}
+      <LisaSwipeButton />
     </div>
   );
 }

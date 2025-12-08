@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * Document Ingestion Script for LangChain RAG
  * 
@@ -177,11 +178,11 @@ function parseKeywords(section: string): string[] {
 }
 
 /**
- * Clean content by removing metadata, Intent Patterns, and Keywords sections
+ * Clean content by extracting ONLY actual content sections
+ * Removes: section headers, metadata, Intent Patterns, Keywords
+ * Keeps: Content, Action Tips, Motivation Nudge, Follow-Up Question, Habit Strategy
  */
 function cleanContent(section: string): { content: string; contentSections: ContentSections } {
-  let content = section;
-  
   // Track which content sections exist
   const contentSections: ContentSections = {
     has_content: false,
@@ -191,28 +192,77 @@ function cleanContent(section: string): { content: string; contentSections: Cont
     has_habit_strategy: false,
   };
   
-  // Remove metadata block (Persona, Topic, Subtopic lines)
-  content = content.replace(/\*\*Persona:\*\*.*?\n/g, '');
-  content = content.replace(/\*\*Topic:\*\*.*?\n/g, '');
-  content = content.replace(/\*\*Subtopic:\*\*.*?\n/g, '');
+  // Extract only the content sections we want to keep
+  const contentParts: string[] = [];
   
-  // Check for and mark content sections
-  contentSections.has_content = /###\s*\*\*Content\*\*/i.test(content);
-  contentSections.has_action_tips = /###\s*\*\*Action Tips?\*\*/i.test(content);
-  contentSections.has_motivation = /###\s*\*\*Motivation Nudge\*\*/i.test(content);
-  contentSections.has_followup = /###\s*\*\*Follow-Up (Question|Questions)\*\*/i.test(content);
-  contentSections.has_habit_strategy = /###\s*\*\*Habit Strategy/i.test(content);
+  // Define the content sections we want to extract
+  const contentSectionPatterns = [
+    { 
+      pattern: /###\s*\*\*Content\*\*\s*\n([\s\S]*?)(?=###|---\s*$|$)/i, 
+      key: 'has_content' as keyof ContentSections 
+    },
+    { 
+      pattern: /###\s*\*\*Action Tips?\*\*\s*\n([\s\S]*?)(?=###|---\s*$|$)/i, 
+      key: 'has_action_tips' as keyof ContentSections 
+    },
+    { 
+      pattern: /###\s*\*\*Motivation Nudge\*\*\s*\n([\s\S]*?)(?=###|---\s*$|$)/i, 
+      key: 'has_motivation' as keyof ContentSections 
+    },
+    { 
+      pattern: /###\s*\*\*Follow-Up (Question|Questions)\*\*\s*\n([\s\S]*?)(?=###|---\s*$|$)/i, 
+      key: 'has_followup' as keyof ContentSections 
+    },
+    { 
+      pattern: /###\s*\*\*Habit Strategy[\s\S]*?\*\*\s*\n([\s\S]*?)(?=###|---\s*$|$)/i, 
+      key: 'has_habit_strategy' as keyof ContentSections 
+    },
+  ];
   
-  // Remove Intent Patterns section
-  content = content.replace(/###\s*\*\*Intent Patterns?\*\*\s*\n[\s\S]*?(?=###|---\s*$|$)/, '');
+  // Extract each content section
+  for (const { pattern, key } of contentSectionPatterns) {
+    const match = section.match(pattern);
+    if (match) {
+      // Get the captured content (group 1 or 2 depending on pattern)
+      const extractedContent = match[1] || match[2];
+      if (extractedContent && extractedContent.trim()) {
+        contentSections[key] = true;
+        // Clean up the extracted content
+        let cleaned = extractedContent.trim();
+        // Remove any trailing separators
+        cleaned = cleaned.replace(/\n*---\s*$/g, '');
+        // Remove excessive whitespace
+        cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
+        if (cleaned) {
+          contentParts.push(cleaned);
+        }
+      }
+    }
+  }
   
-  // Remove Keywords section
-  content = content.replace(/###\s*\*\*Keywords?\*\*\s*\n[\s\S]*?(?=###|---\s*$|$)/, '');
+  // Combine all content parts
+  let content = contentParts.join('\n\n').trim();
   
-  // Clean up extra whitespace and separators
-  content = content.replace(/^---\s*$/gm, ''); // Remove standalone --- lines
-  content = content.replace(/\n{3,}/g, '\n\n'); // Max 2 newlines
-  content = content.trim();
+  // If no content sections were found, try to extract any text after removing metadata
+  // This is a fallback for sections that might not follow the standard format
+  if (!content) {
+    // Remove section header (##)
+    content = section.replace(/^##\s+.*?\n/g, '');
+    // Remove metadata lines
+    content = content.replace(/\*\*Persona:\*\*.*?\n/g, '');
+    content = content.replace(/\*\*Topic:\*\*.*?\n/g, '');
+    content = content.replace(/\*\*Subtopic:\*\*.*?\n/g, '');
+    // Remove Intent Patterns section
+    content = content.replace(/###\s*\*\*Intent Patterns?\*\*\s*\n[\s\S]*?(?=###|---\s*$|$)/i, '');
+    // Remove Keywords section
+    content = content.replace(/###\s*\*\*Keywords?\*\*\s*\n[\s\S]*?(?=###|---\s*$|$)/i, '');
+    // Remove section headers (###)
+    content = content.replace(/^###\s+.*?\n/gm, '');
+    // Clean up
+    content = content.replace(/^---\s*$/gm, '');
+    content = content.replace(/\n{3,}/g, '\n\n');
+    content = content.trim();
+  }
   
   return { content, contentSections };
 }
@@ -225,12 +275,15 @@ function estimateTokens(text: string): number {
 }
 
 /**
- * Split content into chunks if it exceeds token limit
+ * Split content into chunks if it exceeds token or character limit
+ * Enforces both token limit (for model) and character limit (for Supabase UI display)
  */
-function chunkContentIfNeeded(content: string, maxTokens: number = 6000): string[] {
+function chunkContentIfNeeded(content: string, maxTokens: number = 2000, maxChars: number = 10000): string[] {
+  // Check both token and character limits
   const estimatedTokens = estimateTokens(content);
+  const charLength = content.length;
   
-  if (estimatedTokens <= maxTokens) {
+  if (estimatedTokens <= maxTokens && charLength <= maxChars) {
     return [content];
   }
   
@@ -241,28 +294,61 @@ function chunkContentIfNeeded(content: string, maxTokens: number = 6000): string
   
   for (const paragraph of paragraphs) {
     const testChunk = currentChunk ? `${currentChunk}\n\n${paragraph}` : paragraph;
+    const testTokens = estimateTokens(testChunk);
+    const testChars = testChunk.length;
     
-    if (estimateTokens(testChunk) <= maxTokens) {
+    // Check both limits
+    if (testTokens <= maxTokens && testChars <= maxChars) {
       currentChunk = testChunk;
     } else {
       if (currentChunk) {
         chunks.push(currentChunk);
       }
       // If single paragraph is too large, split by sentences
-      if (estimateTokens(paragraph) > maxTokens) {
+      const paraTokens = estimateTokens(paragraph);
+      const paraChars = paragraph.length;
+      
+      if (paraTokens > maxTokens || paraChars > maxChars) {
         const sentences = paragraph.split(/[.!?]+\s+/).filter(s => s.trim().length > 0);
         let sentenceChunk = '';
         
         for (const sentence of sentences) {
           const testSentenceChunk = sentenceChunk ? `${sentenceChunk}. ${sentence}` : sentence;
+          const testSentenceTokens = estimateTokens(testSentenceChunk);
+          const testSentenceChars = testSentenceChunk.length;
           
-          if (estimateTokens(testSentenceChunk) <= maxTokens) {
+          if (testSentenceTokens <= maxTokens && testSentenceChars <= maxChars) {
             sentenceChunk = testSentenceChunk;
           } else {
             if (sentenceChunk) {
               chunks.push(sentenceChunk + '.');
             }
-            sentenceChunk = sentence;
+            // If even a single sentence is too large, split by words (last resort)
+            if (sentence.length > maxChars) {
+              // Split very long sentences by words
+              const words = sentence.split(/\s+/);
+              let wordChunk = '';
+              
+              for (const word of words) {
+                const testWordChunk = wordChunk ? `${wordChunk} ${word}` : word;
+                if (testWordChunk.length <= maxChars) {
+                  wordChunk = testWordChunk;
+                } else {
+                  if (wordChunk) {
+                    chunks.push(wordChunk);
+                  }
+                  wordChunk = word;
+                }
+              }
+              
+              if (wordChunk) {
+                sentenceChunk = wordChunk;
+              } else {
+                sentenceChunk = '';
+              }
+            } else {
+              sentenceChunk = sentence;
+            }
           }
         }
         
@@ -288,7 +374,7 @@ function chunkContentIfNeeded(content: string, maxTokens: number = 6000): string
  * Parse a single section into structured format
  * May return multiple documents if content needs to be chunked
  */
-function parseSection(section: string, source: string, sectionIndex: number): ParsedSection[] {
+function parseSection(section: string, _source: string, _sectionIndex: number): ParsedSection[] {
   const metadata = extractMetadata(section);
   if (!metadata) {
     // Skip sections without proper metadata
@@ -299,8 +385,9 @@ function parseSection(section: string, source: string, sectionIndex: number): Pa
   const intent_patterns = parseIntentPatterns(section);
   const keywords = parseKeywords(section);
   
-  // Split content into chunks if it's too large (6000 tokens leaves buffer for 8192 max)
-  const contentChunks = chunkContentIfNeeded(content, 6000);
+  // Split content into chunks if it's too large
+  // Reduced to 2000 tokens (~8,000 chars) to stay well under 10,240 char limit for Supabase UI
+  const contentChunks = chunkContentIfNeeded(content, 2000, 10000);
   
   return contentChunks.map((chunk, chunkIndex) => ({
     metadata,
@@ -400,14 +487,17 @@ async function ingestDocuments() {
 
     // Validate documents and filter out those that are too large
     const MAX_TOKENS = 8000; // Hard limit with safety buffer (model max is 8192)
+    const MAX_CHARS = 10000; // Character limit to prevent Supabase UI display issues (10,240 is the limit)
     const validDocuments: Document[] = [];
     let skippedDocuments = 0;
 
     console.log("🔍 Validating documents...");
     for (const doc of documents) {
       const tokens = estimateTokens(doc.pageContent);
-      if (tokens > MAX_TOKENS) {
-        console.warn(`   ⚠️  Skipping document (${tokens} tokens > ${MAX_TOKENS}): "${doc.metadata.subtopic?.substring(0, 60)}..."`);
+      const chars = doc.pageContent.length;
+      
+      if (tokens > MAX_TOKENS || chars > MAX_CHARS) {
+        console.warn(`   ⚠️  Skipping document (${tokens} tokens, ${chars} chars): "${doc.metadata.subtopic?.substring(0, 60)}..."`);
         skippedDocuments++;
       } else {
         validDocuments.push(doc);
@@ -457,8 +547,9 @@ async function ingestDocuments() {
         for (const doc of batch) {
           try {
             const tokens = estimateTokens(doc.pageContent);
-            if (tokens > MAX_TOKENS) {
-              console.warn(`     ⚠️  Skipping document (${tokens} tokens): "${doc.metadata.subtopic?.substring(0, 50)}..."`);
+            const chars = doc.pageContent.length;
+            if (tokens > MAX_TOKENS || chars > MAX_CHARS) {
+              console.warn(`     ⚠️  Skipping document (${tokens} tokens, ${chars} chars): "${doc.metadata.subtopic?.substring(0, 50)}..."`);
               failCount++;
               continue;
             }

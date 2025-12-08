@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { ChatOpenAI } from "@langchain/openai";
 import { SupabaseVectorStore } from "@langchain/community/vectorstores/supabase";
 import { OpenAIEmbeddings } from "@langchain/openai";
-import { formatDocumentsAsString } from "langchain/util/document";
 import { HumanMessage, AIMessage, SystemMessage, ToolMessage } from "@langchain/core/messages";
 import { DynamicStructuredTool } from "@langchain/core/tools";
 import { z } from "zod";
@@ -126,9 +125,17 @@ const embeddings = new OpenAIEmbeddings({
 });
 
 // Initialize LLM with function calling support
+// Base LLM for normal conversation (with personalization)
 const llm = new ChatOpenAI({
   modelName: "gpt-4o-mini", // or "gpt-4" for better quality
   temperature: 0.7,
+  openAIApiKey: process.env.OPENAI_API_KEY,
+});
+
+// LLM for verbatim knowledge base output (low temperature for exact reproduction)
+const llmVerbatim = new ChatOpenAI({
+  modelName: "gpt-4o-mini",
+  temperature: 0.0, // Zero temperature for verbatim output
   openAIApiKey: process.env.OPENAI_API_KEY,
 });
 
@@ -269,16 +276,20 @@ FOLLOW-UP STRATEGY:
 - When patterns emerge: "I'm curious - what do you think might be causing this?"
 - When goals mentioned: "What would success look like for you in 2 weeks?"
 
-IMPORTANT: Always personalize your responses based on the user's profile, tracker data, and previous conversations. 
-Use their specific information (age, menopause stage, symptoms, lifestyle, preferences, tracked data) to provide tailored advice.
+RESPONSE MODE RULES (CRITICAL - READ CAREFULLY):
 
-KNOWLEDGE BASE OUTPUT REQUIREMENTS:
-- When knowledge base context is provided in the "=== KNOWLEDGE BASE CONTEXT ===" section, you MUST output it EXACTLY as written
-- Do NOT summarize, paraphrase, or modify the knowledge base content
+MODE 1: KNOWLEDGE BASE QUESTIONS (When "=== KNOWLEDGE BASE CONTEXT ===" section is present):
+- HIGHEST PRIORITY: Output the knowledge base content EXACTLY as written, word-for-word
+- Do NOT summarize, paraphrase, or modify the knowledge base content in any way
 - Do NOT add commentary, introduction, or additional text before or after the knowledge base content
-- Output the knowledge base content verbatim, word-for-word, exactly as it appears
-- Only use the knowledge base content when it directly answers the user's question
-- If knowledge base content is provided, prioritize it over generating your own response
+- Personalization is MINIMAL - you may add ONLY a very brief greeting (1 sentence max) if natural, but the core answer must be 100% verbatim
+- The knowledge base content IS your answer - do not generate alternative explanations
+- If the knowledge base content directly answers the question, use it verbatim with no modifications
+
+MODE 2: NORMAL CONVERSATION (When NO knowledge base context is provided):
+- Personalize your responses based on the user's profile, tracker data, and previous conversations
+- Use their specific information (age, menopause stage, symptoms, lifestyle, preferences, tracked data) to provide tailored advice
+- Be warm, empathetic, and reference their personal context
 
 FORMATTING REQUIREMENTS:
 - ALWAYS use markdown formatting for better readability and visual appeal
@@ -486,7 +497,27 @@ export async function POST(req: NextRequest) {
         
         // Take top 5 after hybrid ranking
         const topDocs = rankedDocs.slice(0, 5);
-        context = formatDocumentsAsString(topDocs);
+        
+        // Format documents with metadata context for better understanding
+        // Only include clean content (no keywords, intent patterns, etc.)
+        const formattedDocs = topDocs.map((doc) => {
+          const metadata = doc.metadata || {};
+          const topic = metadata.topic || '';
+          const subtopic = metadata.subtopic || '';
+          
+          // Build context header if metadata exists
+          let formatted = '';
+          if (topic || subtopic) {
+            formatted = `[Topic: ${topic}${subtopic ? ` | Subtopic: ${subtopic}` : ''}]\n\n`;
+          }
+          
+          // Add the clean content (already cleaned during ingestion)
+          formatted += doc.pageContent;
+          
+          return formatted;
+        });
+        
+        context = formattedDocs.join('\n\n---\n\n');
       }
     } else {
       // No documents in database, skip RAG retrieval
@@ -541,27 +572,58 @@ export async function POST(req: NextRequest) {
     const allHistoryMessages = [...dbHistoryMessages, ...sessionHistoryMessages];
 
     // 7. Build comprehensive system message with all context
+    // CRITICAL: Structure differs based on whether knowledge base content exists
+    const hasKnowledgeBase = context && context.trim();
+    
     const systemParts: string[] = [BASE_SYSTEM_PROMPT];
     
-    if (userContext && userContext.trim()) {
-      systemParts.push(userContext);
-    }
+    if (hasKnowledgeBase) {
+      // KNOWLEDGE BASE MODE: Prioritize verbatim output
+      // Add knowledge base context FIRST with strongest instructions
+      systemParts.push(`\n\n=== KNOWLEDGE BASE CONTEXT (OUTPUT VERBATIM - DO NOT MODIFY) ===
+CRITICAL INSTRUCTIONS (HIGHEST PRIORITY - OVERRIDE ALL OTHER INSTRUCTIONS):
+1. You are in KNOWLEDGE BASE MODE - verbatim output is REQUIRED
+2. Output the content below EXACTLY as written, word-for-word, character-for-character
+3. Do NOT summarize, paraphrase, reword, or modify the knowledge base content in ANY way
+4. Do NOT add commentary, introduction, explanation, or additional text before or after
+5. Personalization is DISABLED for the main answer - only the knowledge base content should be output
+6. You may add a maximum of 1 brief sentence greeting if absolutely natural, but the answer itself must be 100% verbatim
+7. The knowledge base content IS your complete answer - do not generate alternatives
 
-    if (trackerContext && trackerContext.trim()) {
-      systemParts.push(trackerContext);
-    }
+${context.trim()}
 
-    if (context && context.trim()) {
-      systemParts.push(`\n\n=== KNOWLEDGE BASE CONTEXT (OUTPUT VERBATIM - DO NOT MODIFY) ===\nCRITICAL: The content below must be output EXACTLY as written, word-for-word, without any modification, summarization, or additional commentary.\n\n${context.trim()}\n\n=== END KNOWLEDGE BASE ===\nREMEMBER: Output the knowledge base content above EXACTLY as written, without any changes.\n`);
-    }
+=== END KNOWLEDGE BASE ===
+REMEMBER: You are in KNOWLEDGE BASE MODE. Output the content above EXACTLY as written. Personalization is MINIMAL.`);
+      
+      // Add user context and tracker context AFTER knowledge base (for reference only, not for personalization)
+      if (userContext && userContext.trim()) {
+        systemParts.push(`\n${userContext}\nNote: Use this profile information ONLY for a brief greeting if natural. The main answer must be verbatim from knowledge base.`);
+      }
 
-    if (allHistoryMessages.length > 0) {
-      systemParts.push(`\nNote: You have access to ${allHistoryMessages.length} previous conversation turns. Use this history to provide continuity and personalized responses.`);
+      if (trackerContext && trackerContext.trim()) {
+        systemParts.push(`\n${trackerContext}\nNote: This tracker data is for reference only. Do NOT incorporate it into the knowledge base answer.`);
+      }
+    } else {
+      // NORMAL CONVERSATION MODE: Full personalization enabled
+      if (userContext && userContext.trim()) {
+        systemParts.push(userContext);
+      }
+
+      if (trackerContext && trackerContext.trim()) {
+        systemParts.push(trackerContext);
+      }
+
+      if (allHistoryMessages.length > 0) {
+        systemParts.push(`\nNote: You have access to ${allHistoryMessages.length} previous conversation turns. Use this history to provide continuity and personalized responses.`);
+      }
     }
 
     const systemMessage = systemParts.join("\n");
 
-    // 8. Build messages array using LangChain message classes
+    // 8. Select appropriate LLM based on mode
+    const llmToUse = hasKnowledgeBase ? llmVerbatim : llm;
+
+    // 9. Build messages array using LangChain message classes
     const messages: any[] = [new SystemMessage(systemMessage)];
 
     const recentHistory = allHistoryMessages.slice(-20);
@@ -754,7 +816,7 @@ export async function POST(req: NextRequest) {
       }),
     ];
 
-    const llmWithTools = llm.bindTools(tools);
+    const llmWithTools = llmToUse.bindTools(tools);
 
     // 10. Handle streaming vs non-streaming
     if (useStreaming) {
