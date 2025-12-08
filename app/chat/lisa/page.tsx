@@ -1873,16 +1873,16 @@ function ChatPageInner() {
                 paddingBottom: '120px',
               }}
             >
-              {/* Fixed background character image positioned at bottom-right */}
-              <div className="fixed right-0 bottom-0 pointer-events-none z-0" style={{ right: '5%', bottom: '140px' }}>
-                <div className="relative w-[180px] h-[180px] sm:w-60 sm:h-60 md:w-[300px] md:h-[300px] opacity-15">
+              {/* Fixed background character image positioned at center */}
+              <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-0">
+                <div className="relative w-[400px] h-[400px] sm:w-[500px] sm:h-[500px] md:w-[600px] md:h-[600px]">
                   {lisaImages.map((src, index) => (
                     <Image
                       key={src}
                       src={src}
                       alt={`Lisa ${index + 1}`}
-                      width={300}
-                      height={300}
+                      width={600}
+                      height={600}
                       className={`absolute inset-0 w-full h-full object-contain transition-opacity duration-500 ease-in-out ${index === lisaImageIndex ? "opacity-100" : "opacity-0"
                         }`}
                     />
@@ -1904,21 +1904,17 @@ function ChatPageInner() {
                     >
                       <div
                         className={`rounded-2xl px-4 py-3 text-base leading-relaxed sm:px-5 sm:py-4 sm:text-lg transition-all backdrop-blur-sm ${isUser
-                            ? "ml-auto max-w-[90%] sm:max-w-[80%] shadow-lg"
-                            : "max-w-[90%] sm:max-w-[80%] bg-white/95 ring-1 shadow-lg"
+                            ? "ml-auto max-w-full sm:max-w-[80%] shadow-lg"
+                            : "max-w-full sm:max-w-[80%] bg-rose-300/80 backdrop-blur-lg ring-1 ring-rose-200 shadow-lg"
                           }`}
                         style={{
                           lineHeight: '1.4',
                           ...(isUser
                             ? {
-                              backgroundColor: `rgba(251, 207, 232, 0.9)`,
-                              backdropFilter: 'blur(10px)',
                               color: THEME.text[900],
                               boxShadow: "0 4px 16px rgba(236, 72, 153, 0.25)",
                             }
                             : {
-                              backgroundColor: `rgba(255, 255, 255, 0.95)`,
-                              backdropFilter: 'blur(10px)',
                               color: THEME.text[900],
                               borderColor: THEME.pink[200],
                               boxShadow: "0 4px 16px rgba(0, 0, 0, 0.12)",
