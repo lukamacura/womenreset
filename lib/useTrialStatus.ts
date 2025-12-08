@@ -237,10 +237,10 @@ export function useTrialStatus() {
     const nowTs = now.getTime();
 
     const remainingMs = Math.max(0, endTs - nowTs);
-    const expired =
+    const expired: boolean =
       accountStatus === "expired" ||
       remainingMs === 0 ||
-      (end && end.getTime() < nowTs);
+      (end !== null && end.getTime() < nowTs);
 
     const elapsedDays = Math.floor((nowTs - startTs) / MS.DAY);
     const daysLeft = Math.max(0, Math.ceil(remainingMs / MS.DAY));
