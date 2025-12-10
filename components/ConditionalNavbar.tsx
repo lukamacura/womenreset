@@ -17,9 +17,8 @@ export default function ConditionalNavbar({ isAuthenticated }: ConditionalNavbar
     if (main) {
       if (isChatPage) {
         main.classList.remove("pt-20");
-      } else {
-        main.classList.add("pt-20");
       }
+      // Removed automatic pt-20 addition - control padding via className in layout.tsx instead
     }
   }, [isChatPage]);
 
