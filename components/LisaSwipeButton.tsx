@@ -196,7 +196,7 @@ export default function LisaSwipeButton() {
               WebkitTransform: `translateX(${dragOffset}px)`,
               transition: isDragging ? 'none' : 'transform 0.3s ease-out'
             }}
-            aria-label="Swipe to open Lisa chat"
+            aria-label="Swipe to chat withLisa"
           >
             <div 
               className={`flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full transition-all duration-200 ${getBackgroundColor()} ${swipeProgress > 0.5 ? 'scale-110' : ''} group-hover:scale-105`}
