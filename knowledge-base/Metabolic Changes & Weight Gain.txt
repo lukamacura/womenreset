@@ -34,44 +34,44 @@ So even if you’re eating less, your body may be holding on to fat because it f
 ---
 
 ### **Intent Patterns**
-- Why am I not losing weight even in a calorie deficit?  
-- Why do I gain weight even when eating healthy?  
-- Why do diets stop working after 40?  
-- Why does calorie counting stop working in menopause?  
-- Why is my metabolism slower even though I eat less?  
-- Why do I feel like my metabolism is broken?  
-- I’m eating clean but still gaining belly fat — why?  
-- Why doesn’t eating less help anymore?  
-- Why is weight loss harder now than it used to be?  
-- Why does it feel impossible to lose fat during menopause?  
+PRIMARY INTENTS (unique to this subtopic):
+- Why doesn't calorie counting work anymore in menopause?
+- Why does eating less make me gain weight or plateau?
+- I'm eating 1200 calories but not losing weight – why?
+- Why did my diet that worked before stop working after 40?
+- Why does restricting calories make me feel worse and gain more?
+- I'm doing everything right but seeing no results – what's wrong?
+- Why does my body hold onto weight even in a deficit?
+- Is the calories in/calories out model broken for menopause?
+- Why do I feel like my metabolism is punishing me for dieting?
+- Can under-eating actually cause weight gain in midlife?
+
+SECONDARY INTENTS (with disambiguation context):
+- Why am I not losing weight? [+ "even though I eat less"]
+- Why do diets stop working? [+ "after menopause"]
+- Why doesn't anything work anymore? [+ "I've tried everything"] 
 
 ---
 
 ### **Keywords**
-- slow metabolism  
-- metabolic adaptation  
-- resting metabolic rate decline  
-- muscle mass loss  
-- insulin resistance  
-- cortisol elevation  
-- thyroid slowdown  
-- hormonal regulation  
-- estrogen decline  
-- menopause metabolism  
-- midlife weight gain  
-- weight loss plateau  
-- chronic dieting  
-- under-eating cycle  
-- calorie deficit myth  
-- diet not working  
-- clean eating weight gain  
-- stubborn belly fat  
-- can’t lose weight after 40  
-- metabolism feels broken  
-- I eat healthy but gain weight  
-- my metabolism feels broken  
-- calorie counting doesn’t work  
-- doing everything right but no results  
+- calorie deficit myth
+- metabolic adaptation menopause
+- under-eating cycle
+- chronic dieting backfire
+- eating less gaining more
+- starvation mode midlife
+- diet resistance menopause
+- calorie counting doesn't work menopause
+- restrictive dieting metabolism slowdown
+- doing everything right no results
+- 1200 calories not working
+- diet fatigue menopause
+- metabolic slowdown [shared with Overview]
+- weight loss plateau [shared with Overview, Solutions]
+- resting metabolic rate decline [shared with Muscle Loss]
+- menopause weight gain [→ Overview]
+- slow metabolism [→ Overview]
+- midlife weight gain [→ Overview]
 
 ---
 
@@ -121,56 +121,43 @@ The good news? You can absolutely turn this around with strength training, prote
 ---
 
 ### **Intent Patterns**
-- Why am I gaining belly fat during menopause even if I don’t eat more?  
-- Why is my stomach bigger in midlife compared to before?  
-- Why does fat shift from my hips and thighs to my belly?  
-- How does menopause change my body shape?  
-- Is belly fat after 50 normal or reversible?  
-- Why can’t I lose belly fat after menopause?  
-- How does estrogen loss change fat distribution?  
-- What’s the link between hormones, metabolism, and belly fat?  
-- Why do women store more visceral fat after menopause?  
-- Can hormone therapy or lifestyle reduce abdominal fat?  
-- Why is belly fat harder to lose than before?  
-- Do stress and poor sleep make belly fat worse?  
-- How does metabolism slow when estrogen declines?  
-- Is belly fat dangerous or just aesthetic?  
-- Can I slim my waistline again after menopause?  
+PRIMARY INTENTS (unique to this subtopic):
+- Why is fat moving from my hips and thighs to my stomach?
+- Why is my waistline expanding even if my weight stays the same?
+- Why does my body shape look different since menopause started?
+- Why is my belly getting bigger but my arms and legs stay thin?
+- Why do I suddenly have a "menopause belly"?
+- What causes the muffin top around my middle after 40?
+- Why is visceral fat more common in menopause?
+- Is belly fat dangerous or just cosmetic after menopause?
+- Can I reverse the belly fat that appeared during menopause?
+- Why does fat prefer my abdomen now instead of other areas?
+
+SECONDARY INTENTS (with disambiguation):
+- Why am I gaining belly fat? [+ "even though I don't eat more"]
+- Why can't I lose belly fat? [+ "like I used to"]
+- How does menopause change my shape? [+ "specifically waistline"]
 
 ---
 
 ### **Keywords**
-**Hormonal & Metabolic:**  
-- estrogen decline  
-- fat redistribution  
-- visceral fat accumulation  
-- abdominal adiposity  
-- central obesity  
-- insulin sensitivity changes  
-- metabolic rate decline  
-
-**Lifestyle & Physiological:**  
-- stress and cortisol  
-- poor sleep  
-- reduced muscle mass  
-- sedentary metabolism  
-- nutrient partitioning  
-- energy storage patterns  
-
-**Common Terms:**  
-- belly fat after 50  
-- menopause belly  
-- stubborn belly fat  
-- midsection weight gain  
-- body shape changes  
-- muffin top menopause  
-- harder to lose fat after 40  
-
-**Health Links:**  
-- visceral fat health risks  
-- waistline expansion  
-- metabolic syndrome link  
-- cardiovascular risk belly fat  
+- fat redistribution menopause
+- visceral fat accumulation
+- central obesity perimenopause
+- menopause belly
+- muffin top menopause
+- waistline expansion midlife
+- hips to belly fat shift
+- abdominal adiposity menopause
+- body shape changes menopause
+- thicker waist after 50
+- belly pooch menopause
+- fat storage pattern change
+- estrogen decline [shared with multiple]
+- insulin sensitivity changes [shared with Insulin Resistance]
+- cortisol and belly fat [shared with Cortisol subtopic]
+- belly fat after 50 [→ Overview or this page]
+- stubborn belly fat [→ could be here or Solutions]  
 
 ---
 
@@ -215,57 +202,41 @@ It’s not about willpower — it’s about safety. Your body holds on when it f
 ---
 
 ### **Intent Patterns**
-- How does stress trigger weight gain during menopause?  
-- Why does cortisol make me store more belly fat?  
-- Why does my body hold on to weight when I’m under stress?  
-- What’s the connection between menopause hormones and cortisol?  
-- Is “stress belly” a real thing in midlife?  
-- Can chronic stress slow down metabolism or block fat loss?  
-- Why do I crave sugar or comfort food after stressful days?  
-- How does long-term stress change fat storage and appetite?  
-- Can stress affect insulin or blood sugar control?  
-- How do estrogen and cortisol interact in menopause?  
-- Can hormone therapy or relaxation help balance stress-related weight?  
-- Why do I gain weight even while eating well but feeling anxious?  
-- How does poor sleep raise cortisol and belly fat?  
-- What lifestyle changes lower cortisol naturally?  
-- Can mindfulness or deep breathing help my metabolism?  
+PRIMARY INTENTS (unique to this subtopic):
+- Why does stress make me gain weight around my middle?
+- Can anxiety or overwhelm actually cause belly fat?
+- Why do I crave sugar and carbs when I'm stressed?
+- Is "stress belly" a real thing in menopause?
+- Why does my body store fat when I'm anxious or busy?
+- How does chronic stress block fat loss in midlife?
+- Why do I gain weight when I'm doing everything right but feeling stressed?
+- Can cortisol make me hold onto weight even with healthy eating?
+- Why do stressful periods trigger weight gain for me?
+- How does sleep deprivation raise cortisol and belly fat?
+
+SECONDARY INTENTS (with disambiguation):
+- Why am I gaining weight when stressed? [+ specific to menopause context]
+- Can stress affect my metabolism? [+ "especially after 40"]
 
 ---
 
 ### **Keywords**
-**Hormonal & Physiological**  
-- cortisol elevation  
-- HPA axis dysregulation  
-- estrogen-cortisol interaction  
-- insulin resistance stress link  
-- fat redistribution cortisol  
-- visceral fat accumulation  
-- metabolic slowdown stress  
-
-**Behavioral & Emotional**  
-- emotional eating  
-- sugar cravings  
-- stress snacking  
-- poor sleep and cortisol  
-- anxiety weight gain  
-- mindfulness cortisol balance  
-
-**Casual / Common Terms**  
-- stress belly menopause  
-- weight gain from stress  
-- can’t lose weight when stressed  
-- menopause stress fat  
-- stress and belly fat link  
-- cortisol and sleep problems  
-
-**Recovery & Regulation**  
-- relaxation response  
-- deep breathing  
-- sleep restoration  
-- restorative habits for cortisol  
-- stress management for metabolism  
-
+- stress belly menopause
+- cortisol elevation perimenopause
+- HPA axis dysregulation midlife
+- stress-induced weight gain
+- anxiety belly fat
+- emotional eating menopause
+- stress snacking patterns
+- cortisol and sleep problems
+- chronic stress fat storage
+- overwhelm weight gain
+- stress hormone imbalance
+- fight-or-flight metabolism
+- cortisol and belly fat [shared with Belly Fat]
+- poor sleep weight gain [shared with Sleep/Recovery]
+- sugar cravings stress [shared with Insulin Resistance]
+- weight gain from stress [→ could route here or overview]
 ---
 
 
@@ -317,61 +288,43 @@ It’s not lack of willpower — it’s biology being dramatic. The win? With st
 ---
 
 ### **Intent Patterns**
-- Why does menopause make it harder to process carbs?  
-- What is insulin resistance and why is it common after 40?  
-- How does low estrogen affect blood sugar control?  
-- Why do I feel tired or shaky after eating?  
-- How is insulin linked to midlife weight gain?  
-- What happens to metabolism when estrogen drops?  
-- Why do I crave sweets or feel energy crashes?  
-- Why am I gaining weight even without eating more sugar?  
-- Why do I feel bloated or sleepy after meals?  
-- What are signs that my blood sugar is unbalanced?  
-- Why does skipping meals make me dizzy or tired?  
-- Can insulin resistance be reversed in menopause?  
-- What’s the best way to stabilize blood sugar naturally?  
-- Can exercise or strength training improve insulin sensitivity?  
-- Should I lower carbs or increase protein now?  
-- What kind of eating pattern supports glucose control?  
-- Is it too late to improve metabolism after 50?  
-- Do stress and poor sleep worsen insulin resistance?  
-- Can hormone therapy support better blood sugar balance?  
-- How can I stop craving sweets when I’m tired or anxious?  
+PRIMARY INTENTS (unique to this subtopic):
+- Why do I crash or feel shaky after eating carbs now?
+- Why do I feel tired or bloated right after meals?
+- Why do I crave sweets when I'm tired or anxious?
+- Why does my energy drop mid-afternoon even after eating?
+- Why do carbs make me feel sluggish in menopause?
+- What does it mean if I feel shaky between meals?
+- Why do I get brain fog after eating bread or pasta?
+- Can menopause cause blood sugar problems even without diabetes?
+- Why am I more sensitive to sugar and carbs after 40?
+- Why do I feel like carbs "stick" to me now?
+
+SECONDARY INTENTS (with disambiguation):
+- What is insulin resistance? [+ "in menopause context"]
+- Why am I sensitive to carbs now? [+ "since perimenopause"]
+- Why do I crave sugar? [+ "after meals" or "when tired"]
 
 ---
 
 ### **Keywords**
-**Core Metabolic Terms**  
-- insulin resistance  
-- glucose metabolism  
-- estrogen decline  
-- insulin sensitivity drop  
-- cortisol interaction  
-- thyroid function  
-- prediabetes  
-- blood sugar regulation  
-
-**Blood Sugar & Symptoms**  
-- blood sugar swings  
-- energy crash  
-- post-meal fatigue  
-- sugar cravings  
-- carb sensitivity  
-- bloating after meals  
-- sleepiness after eating  
-
-**Metabolic Function & Stress**  
-- slow metabolism  
-- muscle loss metabolism  
-- stress metabolism  
-- poor sleep and glucose control  
-- meal skipping effects  
-
-**Outcome & Solutions**  
-- reverse insulin resistance  
-- balance blood sugar  
-- midlife metabolism reset  
-- strength training for insulin sensitivity  
+- glucose metabolism menopause
+- post-meal fatigue
+- carb sensitivity after 40
+- blood sugar swings perimenopause
+- energy crash after eating
+- insulin sensitivity drop menopause
+- shaky between meals
+- brain fog after carbs
+- reactive hypoglycemia menopause
+- carbs feel heavy menopause
+- sleepy after meals
+- post-meal bloating insulin
+- insulin resistance [shared with Belly Fat, Overview]
+- sugar cravings [shared with Cortisol]
+- prediabetes menopause [shared with Other Contributors]
+- blood sugar balance [→ Solutions]
+- metabolic syndrome [→ Overview or Health Risks]
 
 ---
 
@@ -423,55 +376,42 @@ Would you like a simple strength plan tailored to rebuilding muscle during menop
 ---
 
 ### **Intent Patterns**
-- Why does muscle loss accelerate during menopause?  
-- What causes muscle tone to fade after 40 or 50?  
-- How does estrogen decline affect strength and recovery?  
-- Why does losing muscle slow down metabolism?  
-- How does reduced muscle mass lead to midlife weight gain?  
-- Why does my body feel softer or less toned even if my weight is stable?  
-- Can hormonal changes make it harder to maintain muscle?  
-- Is muscle loss inevitable in menopause or can it be slowed?  
-- How does age-related muscle loss affect energy and fat burning?  
-- What happens to metabolism when lean mass drops?  
-- Why do I feel weaker or take longer to recover after workouts?  
-- Can hormone therapy or resistance training preserve muscle?  
-- Does less muscle make it easier to gain belly fat?  
-- Why do I need more recovery time than before?  
-- What’s the connection between muscle strength and longevity in women?  
+PRIMARY INTENTS (unique to this subtopic):
+- Why do I feel weaker even though my weight is the same?
+- Why does my body feel softer despite exercising regularly?
+- Why is my muscle tone fading after 40?
+- Why do I lose strength faster than I used to?
+- Why does recovery take longer after workouts now?
+- Why do my arms and legs look less defined since menopause?
+- Can menopause actually cause muscle to disappear?
+- Why does it feel harder to build or maintain muscle after 50?
+- Why am I losing muscle even though I'm active?
+- What's the connection between estrogen and muscle loss?
+
+SECONDARY INTENTS (with disambiguation):
+- Why am I losing muscle? [+ "in menopause"]
+- Why does muscle loss slow metabolism? [+ specific mechanism]
 
 ---
 
 ### **Keywords**
-**Hormonal & Physiological**  
-- estrogen decline  
-- sarcopenia  
-- anabolic resistance  
-- muscle protein synthesis  
-- mitochondrial efficiency  
-- metabolic rate reduction  
-- lean mass decline  
-
-**Strength & Recovery**  
-- strength loss  
-- reduced endurance  
-- slower recovery  
-- mobility decline  
-- energy expenditure drop  
-- body composition change  
-
-**Nutrition & Training**  
-- protein intake  
-- resistance training  
-- strength maintenance  
-- recovery needs  
-- muscle rebuilding support  
-
-**Common / Symptom-Language**  
-- feeling weaker  
-- body feels softer  
-- harder to stay toned  
-- midlife muscle loss  
-- slower metabolism after 40  
+- sarcopenia menopause
+- anabolic resistance perimenopause
+- muscle tone decline midlife
+- feeling weaker after 40
+- body feels softer menopause
+- strength loss perimenopause
+- muscle protein synthesis menopause
+- slower recovery workouts
+- arms legs less defined
+- muscle mass decline estrogen
+- weakness fatigue muscle loss
+- lean tissue loss menopause
+- muscle mass loss [shared with Overview]
+- resting metabolic rate [shared with Common Myths]
+- estrogen decline [shared with multiple]
+- strength training menopause [→ Solutions]
+- protein needs after 40 [→ Nutrition Solutions] 
 
 ---
 
@@ -515,56 +455,42 @@ Want to learn how gut health supports metabolism? I can show you how balanced di
 ---
 
 ### **Intent Patterns**
-- What else besides hormones can cause weight gain in menopause?  
-- Can thyroid problems make weight loss harder after 40?  
-- How does an underactive thyroid slow metabolism?  
-- Can gut health or digestion changes affect weight in menopause?  
-- Is the microbiome linked to metabolism or cravings?  
-- Could vitamin or mineral deficiencies affect energy or metabolism?  
-- Does chronic inflammation make fat loss more difficult?  
-- How do circadian rhythm shifts change metabolism or hunger?  
-- Can medications or health conditions contribute to midlife weight gain?  
-- Why do I feel bloated or retain water even when I eat healthy?  
-- Can dehydration or fluid retention affect weight fluctuations?  
-- Does menopause change how my body absorbs or uses nutrients?  
-- Is weight gain normal if my thyroid is slightly underactive?  
-- Could gut bacteria influence cravings or appetite control?  
-- How do stress, sleep, and digestion together affect metabolism and fat storage?  
+PRIMARY INTENTS (unique to this subtopic):
+- Could my thyroid be causing weight gain in menopause?
+- Can gut health affect weight during perimenopause?
+- Why am I bloated and puffy even when eating clean?
+- Could vitamin deficiencies be slowing my metabolism?
+- Can medications cause midlife weight gain?
+- Why do I retain water or feel inflamed all the time?
+- Could my circadian rhythm affect my metabolism?
+- Is my gut microbiome making weight loss harder?
+- Should I get my thyroid checked if I can't lose weight?
+- Can chronic inflammation block fat loss?
+
+SECONDARY INTENTS (with disambiguation):
+- What else causes weight gain? [+ "besides hormones"]
+- Could something else be wrong? [+ "beyond menopause"]
 
 ---
 
 ### **Keywords**
 
-**Thyroid & Hormonal Factors**  
-- thyroid function  
-- hypothyroidism  
-- subclinical hypothyroidism  
-- Hashimoto’s thyroiditis  
-- T3 T4 metabolism  
-- metabolic rate reduction from thyroid  
-
-**Gut & Inflammation**  
-- gut microbiome imbalance  
-- digestive health changes  
-- microbiota diversity  
-- chronic inflammation  
-- bloating and puffiness  
-- nutrient absorption problems  
-
-**Nutrient & Rhythm Factors**  
-- vitamin D deficiency  
-- vitamin B12 deficiency  
-- magnesium deficiency  
-- circadian rhythm disruption  
-- sleep-wake cycle imbalance  
-- metabolic impact of poor sleep  
-
-**Other Contributors**  
-- medication side effects weight gain  
-- hydration and water retention  
-- stress-sleep-digestion connection  
-- fluid retention midlife  
-- health conditions slowing metabolism  
+- thyroid function weight gain
+- hypothyroidism menopause
+- Hashimoto's midlife
+- gut microbiome menopause weight
+- bloating puffiness perimenopause
+- vitamin D deficiency metabolism
+- magnesium deficiency weight
+- circadian rhythm metabolism
+- medication side effects weight
+- chronic inflammation fat loss
+- water retention menopause
+- microbiota diversity weight
+- thyroid slowdown [shared with Overview]
+- nutrient deficiencies [could overlap with Nutrition]
+- inflammation [shared with multiple topics]
+- health conditions weight gain [→ Medical overview]
 
 ---
 
@@ -616,47 +542,40 @@ Would you like to know more about optimizing protein, resistance training or str
 ---
 
 ### **Intent Patterns**
-- How can I lose weight during menopause?  
-- What’s the best way to lose belly fat after 40?  
-- Why is weight loss harder in midlife?  
-- How can I reset or boost my metabolism?  
-- What should I do to lose weight after menopause?  
-- Why am I not losing weight even though I’m trying?  
-- How do I get my body to start burning fat again?  
-- Is it still possible to lose weight in perimenopause?  
-- Can I lose belly fat naturally without dieting?  
-- How can I balance hormones to support weight loss?  
+PRIMARY INTENTS (unique to this subtopic):
+- How can I lose weight during menopause?
+- What's the best approach to weight loss after 40?
+- Can I still lose weight in perimenopause or is it too late?
+- What's different about losing weight in menopause vs before?
+- How do I start a weight loss plan that actually works in midlife?
+- Is weight loss possible without extreme dieting in menopause?
+- What should I focus on first to lose weight after 50?
+- Can I lose belly fat naturally during menopause?
+- What's the fastest safe way to lose weight in perimenopause?
+- How long does it take to see weight loss results in menopause?
+
+SECONDARY INTENTS (with disambiguation):
+- Can I lose weight? [+ general entry point]
+- What works for menopause weight loss? [+ broad solution query] 
 
 ---
 
 ### **Keywords**
 
-**Core Concepts**  
-- menopause weight loss  
-- midlife metabolism  
-- fat burning slowdown  
-- hormone balance  
-- insulin sensitivity  
-- metabolic flexibility  
-
-**Common Challenges**  
-- hard to lose weight  
-- stubborn midlife weight  
-- slow metabolism  
-- reset metabolism  
-- natural fat loss  
-
-**Lifestyle & Intervention**  
-- nutrition for menopause weight  
-- exercise for fat loss  
-- strength training for women  
-- stress recovery  
-- sleep and metabolism  
-
-**Linked Factors**  
-- HRT and weight management  
-- thyroid and metabolism  
-- menopause belly fat solutions  
+- how to lose weight menopause
+- weight loss after 40 strategy
+- menopause weight loss plan
+- lose belly fat naturally menopause
+- best approach midlife weight loss
+- sustainable weight loss perimenopause
+- safe weight loss after 50
+- weight loss timeline menopause
+- realistic weight loss expectations
+- menopause weight loss [hub keyword]
+- metabolic flexibility [shared with Solutions]
+- hormone balance weight loss [shared with HRT]
+- menopause weight gain [routes FROM here to specific causes]
+- midlife metabolism [routes FROM here to Why Metabolism Changes]
 
 ---
 
@@ -702,61 +621,41 @@ Would you like to understand what’s driving your changes — hormones, insulin
 ---
 
 ### **Intent Patterns**
-- Why do women gain weight during menopause?  
-- Why is my metabolism slower after 40 or 50?  
-- Is weight gain inevitable in menopause?  
-- How do hormones like estrogen affect metabolism?  
-- Why does my body store fat differently now?  
-- Why has my shape changed since menopause?  
-- What happens to metabolism when estrogen levels drop?  
-- Can I naturally boost metabolism after menopause?  
-- Is midlife weight gain hormonal or lifestyle-related?  
-- How can I manage weight without strict dieting?  
-- Why am I gaining fat even when I eat less?  
-- Why does my metabolism feel like it stopped working?  
-- Why does my body feel out of control since menopause?  
-- Why do I feel softer or heavier even at the same weight?  
-- Is my metabolism really broken or just changing?  
-- Why do I suddenly have belly fat or bloating?  
-- Can hormones cause weight gain even with a healthy diet?  
-- Why does it feel impossible to lose weight in menopause?  
-- What’s really happening to my metabolism right now?  
+PRIMARY INTENTS (unique to this subtopic):
+- Why does metabolism slow down in menopause?
+- What happens to my metabolism when estrogen drops?
+- Why does my body suddenly work differently after 40?
+- What's the science behind menopause metabolism changes?
+- How do hormones control metabolism and fat storage?
+- Why does my body feel completely different since menopause?
+- Is slower metabolism inevitable or can I prevent it?
+- What changes happen to energy burning during perimenopause?
+- Why do hunger and fullness signals feel off now?
+- How does menopause rewire my metabolism?
+
+SECONDARY INTENTS (with disambiguation):
+- Why is my metabolism slower? [+ general educational]
+- What's happening to my body? [+ physiological overview]
 
 ---
 
 ### **Keywords**
 
-**Core Hormonal & Metabolic Changes**  
-- estrogen decline  
-- hormonal balance shift  
-- metabolic slowdown  
-- insulin resistance  
-- muscle loss  
-- energy expenditure drop  
-- body composition changes  
-
-**User-Expressed Experience Language**  
-- menopause weight gain  
-- slower metabolism after 40  
-- feel out of control  
-- my metabolism is broken  
-- nothing works anymore  
-- body betrayal  
-- midlife fat storage  
-
-**Physiological Effects**  
-- visceral fat accumulation  
-- metabolic health  
-- midlife body changes  
-- hormones and metabolism  
-- menopause and fat distribution  
-
-**Solution-Oriented & Search Language**  
-- boost metabolism naturally  
-- manage weight in menopause  
-- reset metabolism after 50  
-- why metabolism changes  
-- how hormones affect weight  
+- menopause metabolism changes
+- why metabolism slows menopause
+- estrogen metabolism connection
+- hormonal metabolism shift
+- energy expenditure menopause
+- metabolic adaptation perimenopause
+- hunger signals menopause
+- leptin ghrelin menopause
+- body composition changes menopause
+- metabolism feels different
+- estrogen decline [shared across all]
+- metabolic slowdown [shared with Common Myths]
+- insulin resistance [shared with Insulin Resistance]
+- menopause weight gain [routes TO specific causes]
+- slow metabolism [routes TO specific subtopics]
 
 ---
 
@@ -809,54 +708,42 @@ In short, HRT helps create the hormonal environment that makes fat loss *possibl
 ---
 
 ### **Intent Patterns**
-- Can HRT help reduce weight gain during menopause?  
-- Does hormone therapy make it easier to lose fat?  
-- Will estrogen replacement help me lose belly fat?  
-- Does HRT improve metabolism or energy levels?  
-- Can taking hormones stop menopause-related weight gain?  
-- Is weight gain inevitable without hormone therapy?  
-- How does estrogen affect insulin sensitivity and fat storage?  
-- Do progesterone or testosterone influence metabolism or weight?  
-- Can hormone therapy reduce cravings or fatigue?  
-- Is HRT safe for women who want to manage their weight naturally?  
+PRIMARY INTENTS (unique to this subtopic):
+- Can HRT help me lose weight or prevent weight gain?
+- Does hormone replacement therapy improve metabolism?
+- Will estrogen therapy help with belly fat?
+- Can HRT make weight loss easier in menopause?
+- Does taking hormones reduce cravings or fatigue?
+- Is HRT worth it for weight management alone?
+- Can hormone therapy reverse metabolic slowdown?
+- Does HRT help with insulin sensitivity?
+- Will I gain weight if I stop HRT?
+- Can testosterone or progesterone help with weight?
+
+SECONDARY INTENTS (with disambiguation):
+- Does HRT help with weight? [+ specific to weight/metabolism]
+- Should I consider hormone therapy? [+ for metabolic reasons]
 
 ---
 
 ### **Keywords**
 
-**Core HRT Terms**  
-- HRT  
-- MHT  
-- hormone therapy  
-- estrogen replacement  
-- estradiol  
-- progesterone  
-- testosterone  
-
-**Metabolic Effects**  
-- metabolic rate  
-- insulin sensitivity  
-- fat distribution  
-- visceral fat reduction  
-- metabolic flexibility  
-- body composition changes with HRT  
-- estrogen therapy fat redistribution  
-
-**Weight, Energy & Symptoms**  
-- HRT and weight management  
-- hormone therapy metabolism benefits  
-- menopause belly fat HRT link  
-- energy and motivation  
-- sleep improvement with HRT  
-- fatigue and recovery  
-- balanced hormones and metabolism  
-
-**Search/User-Language**  
-- does HRT help weight loss  
-- hormones for belly fat  
-- HRT and energy boost  
-- can estrogen help metabolism  
-- is weight gain without HRT normal  
+- HRT weight management
+- hormone replacement therapy metabolism
+- estrogen therapy weight loss
+- HRT belly fat reduction
+- MHT metabolic effects
+- estradiol weight benefits
+- HRT insulin sensitivity
+- hormone therapy fat distribution
+- HRT energy and metabolism
+- testosterone metabolism women
+- progesterone weight effects
+- hormone therapy [general term]
+- metabolic rate HRT [shared with Overview]
+- fat distribution hormones [shared with Belly Fat]
+- HRT benefits [→ broader HRT content]
+- hormone therapy menopause [→ broader HRT content]
 
 ---
 
@@ -913,61 +800,43 @@ Would you like to know what the best diet in menopause looks like?
 ---
 
 ### **Intent Patterns**
-- What should I eat to lose weight in menopause?  
-- How can I reset or boost my metabolism with food?  
-- What kind of diet works best for menopause?  
-- Do I need fewer calories or smarter nutrition?  
-- How can I balance hormones naturally through food?  
-- How do I eat to reduce belly fat or bloating?  
-- What should I eat for steady energy and fewer cravings?  
-- Does protein really help metabolism and fat loss?  
-- How do I stop sugar cravings and mood swings in midlife?  
-- What are the best foods to support metabolism and hormones?  
-- How can I build balanced meals without strict dieting?  
-- What’s the best eating rhythm for metabolism after 40?  
-- Can timing my meals help regulate blood sugar or energy?  
-- How do fiber and healthy fats help with weight control?  
-- What are examples of balanced menopause-friendly meals?  
+PRIMARY INTENTS (unique to this subtopic):
+- What should I eat to lose weight in menopause?
+- How do I balance my meals for better metabolism?
+- What's the best diet for menopause weight loss?
+- How much protein do I need after 40?
+- What foods help balance hormones and blood sugar?
+- Should I eat more or less in menopause?
+- What's the ideal meal structure for midlife metabolism?
+- How do I stop cravings through better nutrition?
+- What foods support fat burning in perimenopause?
+- How can I eat to feel satisfied without gaining weight?
+
+SECONDARY INTENTS (with disambiguation):
+- What should I eat? [+ for weight loss in menopause]
+- How do I change my diet? [+ to support metabolism]
 
 ---
 
 ### **Keywords**
 
 **Core Nutrition Concepts**  
-- menopause diet  
-- metabolic reset  
-- balanced meals  
-- macronutrient balance  
-- protein intake  
-- fiber foods  
-- healthy fats  
-- anti-inflammatory diet  
-- blood sugar balance  
-- gut health  
-
-**Behavioral & Functional**  
-- craving control  
-- energy balance  
-- meal timing  
-- portion awareness  
-- hormone-friendly eating  
-- intuitive eating  
-- metabolic flexibility  
-
-**Casual Everyday**  
-- what to eat for menopause  
-- foods for metabolism  
-- diet that works after 40  
-- how to stop sugar cravings  
-- easy meals for menopause  
-- midlife nutrition plan  
-
-**Health & Linkage**  
-- hormone balance through food  
-- insulin sensitivity diet  
-- gut microbiome nutrition  
-- anti-inflammatory foods  
-- nutrition for metabolism support  
+- menopause diet plan
+- nutrition for menopause weight loss
+- balanced meals menopause
+- protein portions after 40
+- hormone-friendly eating
+- metabolic reset diet
+- blood sugar balance meals
+- anti-inflammatory foods menopause
+- fiber for menopause
+- meal structure midlife
+- satiety and fullness menopause
+- protein intake [shared with Muscle Loss Solutions]
+- blood sugar balance [shared with Insulin Resistance]
+- gut health nutrition [shared with Other Contributors]
+- menopause nutrition [→ broader nutrition content]
+- healthy eating menopause [→ general wellness]
 
 ---
 
@@ -1023,52 +892,42 @@ Would you like help building a bedtime or stress-recovery routine that supports 
 ---
 
 ### **Intent Patterns**
-- How do stress and sleep affect weight gain in menopause?  
-- Can poor sleep slow metabolism or cause cravings?  
-- Why does stress make me gain belly fat or retain weight?  
-- How can I improve recovery to support fat loss?  
-- What’s the connection between cortisol and midlife weight?  
-- How can I sleep better to reset hormones and metabolism?  
-- Why do I crave sugar or carbs when I’m tired or stressed?  
-- Can relaxation or mindfulness really help with weight loss?  
-- How does rest and recovery help hormone balance?  
-- What nighttime habits support fat burning and repair?  
+PRIMARY INTENTS (unique to this subtopic):
+- How does poor sleep affect weight loss in menopause?
+- Can improving sleep help me lose belly fat?
+- Why do I crave junk food when I'm tired?
+- How can I lower cortisol to support fat loss?
+- What's the connection between rest and metabolism?
+- Can stress management actually help me lose weight?
+- How do I build a bedtime routine for better metabolism?
+- Why does being well-rested make weight loss easier?
+- Can relaxation practices reduce belly fat?
+- How much sleep do I need for optimal fat burning?
+
+SECONDARY INTENTS (with disambiguation):
+- How does sleep affect weight? [+ specific to menopause metabolism]
+- Can stress block weight loss? [+ physiological mechanism]
 
 ---
 
 ### **Keywords**
 
-**Medical & Physiological**  
-- cortisol regulation  
-- insulin resistance  
-- metabolic slowdown  
-- sleep deprivation  
-- circadian rhythm  
-- autonomic balance  
-- HPA axis recovery  
-
-**Lifestyle & Behavioral**  
-- stress recovery  
-- sleep hygiene  
-- relaxation habits  
-- evening routines  
-- mind-body connection  
-- deep breathing  
-- restorative sleep  
-
-**Emotional & Mindset**  
-- fatigue and overwhelm  
-- rest as healing  
-- self-compassion  
-- stress resilience  
-- emotional eating triggers  
-
-**Outcome & Benefits**  
-- balance cortisol  
-- restore metabolism  
-- improve sleep quality  
-- reduce cravings  
-- boost recovery hormones  
+- sleep and weight loss menopause
+- cortisol and fat burning
+- bedtime routine metabolism
+- rest and recovery weight loss
+- sleep deprivation cravings
+- circadian rhythm fat loss
+- stress management weight loss
+- relaxation belly fat
+- deep sleep hormone balance
+- recovery and metabolism
+- tired cravings connection
+- cortisol regulation [shared with Cortisol Causes]
+- sleep quality [shared with Other Contributors]
+- stress and weight [shared with Cortisol]
+- sleep hygiene [→ broader sleep content]
+- stress management [→ broader wellness content]
 
 ---
 
@@ -1130,51 +989,40 @@ A calm, well-fed, and well-rested body burns fat more efficiently than a stresse
 ---
 
 ### **Intent Patterns**
-- Where should I start if I want to lose weight in menopause?  
-- What’s the first step to losing weight after 40 or 50?  
-- How can I begin a plan without feeling overwhelmed?  
-- What should I focus on first — food, exercise, or hormones?  
-- How can I reset my metabolism naturally and safely?  
-- What are the most important habits for midlife fat loss?  
-- How do I start losing weight when nothing seems to work?  
-- How can I build momentum and stay consistent?  
-- Is there a simple, realistic plan to start losing weight?  
-- How can I find balance between nutrition, sleep, and movement?  
-- What’s the best starting routine for beginners in menopause?  
+PRIMARY INTENTS (unique to this subtopic):
+- Where should I start if I want to lose weight in menopause?
+- What's the first step to take for midlife weight loss?
+- How do I begin without feeling overwhelmed?
+- What's the simplest way to start losing weight after 40?
+- Which habit should I change first?
+- How can I build momentum for weight loss?
+- What's a realistic first-week plan for beginners?
+- Should I start with food, exercise, or sleep?
+- How do I prioritize when everything seems important?
+- What's one thing I can do today to start losing weight?
+
+SECONDARY INTENTS (with disambiguation):
+- How do I start? [+ complete beginner perspective]
+- What's most important? [+ priority-setting query]
+
 
 ---
 
 ### **Keywords**
 
-**Medical & Physiological**  
-- metabolic reset  
-- hormonal balance  
-- insulin resistance  
-- muscle preservation  
-- fat oxidation  
-- energy regulation  
-
-**Lifestyle & Habits**  
-- nutrition foundation  
-- strength training start  
-- daily movement  
-- sleep and recovery  
-- stress regulation  
-- habit stacking  
-- realistic goals  
-
-**Mindset & Emotional**  
-- overwhelm  
-- motivation restart  
-- self-trust  
-- consistency mindset  
-- progress over perfection  
-
-**Outcome & Action Benefits**  
-- reset metabolism  
-- burn fat naturally  
-- stabilize hormones  
-- boost energy  
-- improve confidence  
+- where to start weight loss menopause
+- first step menopause weight loss
+- beginner plan midlife weight loss
+- simple start weight loss after 40
+- how to begin losing weight
+- prioritize weight loss habits
+- overwhelmed where to start
+- one thing to start today
+- realistic first week plan
+- weight loss momentum building
+- starting point menopause metabolism
+- habit stacking [shared with other solutions]
+- consistency mindset [shared with motivation content]
+- small wins [shared with behavioral content]
 
 ---

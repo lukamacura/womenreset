@@ -133,10 +133,10 @@ const llm = new ChatOpenAI({
   openAIApiKey: process.env.OPENAI_API_KEY,
 });
 
-// LLM for verbatim knowledge base output (low temperature for exact reproduction)
-const llmVerbatim = new ChatOpenAI({
+// LLM for knowledge base responses (moderate temperature for natural but grounded answers)
+const llmKnowledgeBase = new ChatOpenAI({
   modelName: "gpt-4o-mini",
-  temperature: 0.0, // Zero temperature for verbatim output
+  temperature: 0.35, // Moderate temperature for natural responses grounded in knowledge base
   openAIApiKey: process.env.OPENAI_API_KEY,
 });
 
@@ -147,10 +147,10 @@ const llmVerbatim = new ChatOpenAI({
 function calculateSimilarity(str1: string, str2: string): number {
   const words1 = new Set(str1.toLowerCase().split(/\s+/).filter(w => w.length > 2));
   const words2 = new Set(str2.toLowerCase().split(/\s+/).filter(w => w.length > 2));
-  
+
   const intersection = new Set([...words1].filter(w => words2.has(w)));
   const union = new Set([...words1, ...words2]);
-  
+
   return union.size > 0 ? intersection.size / union.size : 0;
 }
 
@@ -179,68 +179,181 @@ function extractQueryKeywords(query: string): string[] {
 }
 
 /**
- * Apply hybrid search: combine semantic similarity with keyword matching
- * Boosts results that match keywords from user query
+ * Calculate intent pattern match score
+ * Handles fuzzy matching and prioritizes PRIMARY INTENTS
+ */
+function calculateIntentPatternScore(
+  docIntentPatterns: string[],
+  userQuery: string
+): number {
+  if (docIntentPatterns.length === 0) return 0;
+
+  const queryLower = userQuery.toLowerCase();
+  let maxScore = 0;
+  let primaryIntentMatches = 0;
+
+  for (const pattern of docIntentPatterns) {
+    const patternLower = pattern.toLowerCase();
+    
+    // Check for exact or near-exact match
+    if (queryLower.includes(patternLower) || patternLower.includes(queryLower)) {
+      maxScore = Math.max(maxScore, 1.0);
+      if (pattern.includes('PRIMARY') || !pattern.includes('SECONDARY')) {
+        primaryIntentMatches++;
+      }
+      continue;
+    }
+
+    // Fuzzy matching: check if key words from pattern appear in query
+    const patternWords = patternLower
+      .split(/\s+/)
+      .filter(w => w.length > 3 && !['why', 'what', 'how', 'when', 'where', 'can', 'does', 'is', 'are'].includes(w));
+    
+    const matchingWords = patternWords.filter(word => queryLower.includes(word));
+    if (matchingWords.length > 0) {
+      const wordMatchScore = matchingWords.length / patternWords.length;
+      maxScore = Math.max(maxScore, wordMatchScore * 0.7); // Partial match gets lower score
+      
+      if (pattern.includes('PRIMARY') || !pattern.includes('SECONDARY')) {
+        primaryIntentMatches++;
+      }
+    }
+  }
+
+  // Boost score if PRIMARY intents match
+  if (primaryIntentMatches > 0) {
+    maxScore = Math.min(1.0, maxScore * 1.2);
+  }
+
+  return maxScore;
+}
+
+/**
+ * Calculate keyword match score with exact match weighting
+ */
+function calculateKeywordMatchScore(
+  docKeywords: string[],
+  queryKeywords: string[],
+  userQuery: string
+): number {
+  if (queryKeywords.length === 0 || docKeywords.length === 0) return 0;
+
+  const queryLower = userQuery.toLowerCase();
+  let exactMatches = 0;
+  let partialMatches = 0;
+
+  for (const queryKeyword of queryKeywords) {
+    for (const docKeyword of docKeywords) {
+      const docKwLower = docKeyword.toLowerCase();
+      const queryKwLower = queryKeyword.toLowerCase();
+
+      // Exact match (higher weight)
+      if (docKwLower === queryKwLower || 
+          queryLower.includes(docKwLower) || 
+          docKwLower.includes(queryKwLower)) {
+        exactMatches++;
+        break;
+      }
+      
+      // Partial match (lower weight)
+      if (docKwLower.includes(queryKwLower) || queryKwLower.includes(docKwLower)) {
+        partialMatches++;
+        break;
+      }
+    }
+  }
+
+  // Weight exact matches more heavily
+  const exactScore = (exactMatches / queryKeywords.length) * 0.8;
+  const partialScore = (partialMatches / queryKeywords.length) * 0.4;
+  
+  return Math.min(1.0, exactScore + partialScore);
+}
+
+/**
+ * Calculate content section relevance score based on query type
+ */
+function calculateSectionRelevanceScore(
+  contentSections: any,
+  userQuery: string
+): number {
+  if (!contentSections) return 0.5; // Default if no section info
+
+  let score = 0.5; // Base score
+
+  // How-to questions: prioritize Action Tips and Habit Strategy
+  if (/^(how|what should|what can|tell me how|show me)/i.test(userQuery)) {
+    if (contentSections.has_action_tips) score += 0.3;
+    if (contentSections.has_habit_strategy) score += 0.2;
+  }
+
+  // Why questions: prioritize Content
+  if (/^(why|what causes|what's happening|explain)/i.test(userQuery)) {
+    if (contentSections.has_content) score += 0.3;
+  }
+
+  // Motivation queries: prioritize Motivation Nudge
+  if (/(motivation|encouragement|support|feeling|discouraged|overwhelmed)/i.test(userQuery)) {
+    if (contentSections.has_motivation) score += 0.3;
+  }
+
+  // Follow-up questions: prioritize Follow-Up Questions section
+  if (/(next|follow|more|additional|what else)/i.test(userQuery)) {
+    if (contentSections.has_followup) score += 0.2;
+  }
+
+  return Math.min(1.0, score);
+}
+
+/**
+ * Enhanced hybrid search with re-ranking: combine semantic similarity with 
+ * intent patterns, keyword matching, and content section relevance
  */
 function applyHybridSearch(
   documents: Document[],
   userQuery: string
-): Document[] {
+): Array<{ doc: Document; score: number }> {
   const queryKeywords = extractQueryKeywords(userQuery);
-
-  if (queryKeywords.length === 0) {
-    // No keywords to match, return original order
-    return documents;
-  }
 
   // Score each document
   const scoredDocs = documents.map((doc, index) => {
-    // Base semantic similarity score (higher is better, typically 0-1)
-    // Since documents are already sorted by similarity, use reverse index as base score
-    const baseScore = 1 - (index / documents.length) * 0.5; // Normalize to 0.5-1.0 range
+    // Base semantic similarity score (0.4 weight)
+    // Since documents are already sorted by similarity, use reverse index
+    const semanticScore = 1 - (index / Math.max(documents.length, 1)) * 0.5; // Normalize to 0.5-1.0 range
 
-    // Get keywords from document metadata
+    // Get metadata
     const docKeywords = (doc.metadata?.keywords as string[]) || [];
     const docIntentPatterns = (doc.metadata?.intent_patterns as string[]) || [];
+    const contentSections = doc.metadata?.content_sections;
 
-    // Calculate keyword match score
-    let keywordMatches = 0;
-    const totalKeywords = queryKeywords.length;
+    // Intent pattern match score (0.3 weight)
+    const intentScore = calculateIntentPatternScore(docIntentPatterns, userQuery);
 
-    for (const queryKeyword of queryKeywords) {
-      // Check if keyword appears in document keywords (case-insensitive)
-      const keywordMatch = docKeywords.some(kw =>
-        kw.toLowerCase().includes(queryKeyword) ||
-        queryKeyword.includes(kw.toLowerCase())
-      );
+    // Keyword match score (0.2 weight)
+    const keywordScore = queryKeywords.length > 0 
+      ? calculateKeywordMatchScore(docKeywords, queryKeywords, userQuery)
+      : 0.5; // Default if no keywords
 
-      // Check if keyword appears in intent patterns (case-insensitive)
-      const patternMatch = docIntentPatterns.some(pattern =>
-        pattern.toLowerCase().includes(queryKeyword)
-      );
+    // Content section relevance score (0.1 weight)
+    const sectionScore = calculateSectionRelevanceScore(contentSections, userQuery);
 
-      if (keywordMatch || patternMatch) {
-        keywordMatches++;
-      }
-    }
-
-    // Keyword boost: up to 0.2 points for perfect keyword match
-    const keywordBoost = (keywordMatches / totalKeywords) * 0.2;
-
-    // Combined score
-    const finalScore = baseScore + keywordBoost;
+    // Combined weighted score
+    const finalScore = 
+      (semanticScore * 0.4) + 
+      (intentScore * 0.3) + 
+      (keywordScore * 0.2) + 
+      (sectionScore * 0.1);
 
     return {
       doc,
       score: finalScore,
-      keywordMatches,
     };
   });
 
-  // Sort by score (highest first) and return documents
+  // Sort by score (highest first)
   scoredDocs.sort((a, b) => b.score - a.score);
 
-  return scoredDocs.map(item => item.doc);
+  return scoredDocs;
 }
 
 // Base system prompt for menopause support
@@ -313,13 +426,20 @@ FOLLOW-UP STRATEGY:
 
 RESPONSE MODE RULES (CRITICAL - READ CAREFULLY):
 
-MODE 1: KNOWLEDGE BASE QUESTIONS (When "=== KNOWLEDGE BASE CONTEXT ===" section is present):
-- HIGHEST PRIORITY: Output the knowledge base content EXACTLY as written, word-for-word
-- Do NOT summarize, paraphrase, or modify the knowledge base content in any way
-- Do NOT add commentary, introduction, or additional text before or after the knowledge base content
-- Personalization is MINIMAL - you may add ONLY a very brief greeting (1 sentence max) if natural, but the core answer must be 100% verbatim
-- The knowledge base content IS your answer - do not generate alternative explanations
-- If the knowledge base content directly answers the question, use it verbatim with no modifications
+MODE 1: KNOWLEDGE BASE QUESTIONS (When knowledge base context is present):
+- Answer the user's question naturally and conversationally based on the knowledge base content
+- Use the knowledge base content as your ONLY source of information - do NOT add information not in the knowledge base
+- Synthesize information from all retrieved documents if multiple are provided, avoiding duplication
+- Maintain the structured format (Content, Action Tips, Motivation Nudge, etc.) when appropriate for the query type
+- Personalize with user context (name, profile, tracker data) when natural and relevant
+- Use markdown formatting for readability (headings, lists, emphasis, blockquotes)
+- Include relevant emojis from source content to maintain warmth
+- Do NOT copy verbatim - answer the question based on the content, adapting to the user's specific phrasing
+- For "how-to" questions: Emphasize Action Tips and Habit Strategy sections
+- For "why" questions: Emphasize Content section with explanations
+- For motivation queries: Include Motivation Nudge section
+- For follow-up questions: Reference Follow-Up Questions section when relevant
+- Create coherent answers that directly address the user's question while staying grounded in the knowledge base
 
 MODE 2: NORMAL CONVERSATION (When NO knowledge base context is provided):
 - Personalize your responses based on the user's profile, tracker data, and previous conversations
@@ -535,71 +655,87 @@ export async function POST(req: NextRequest) {
         queryName: "match_documents",
       });
 
-      // OPTIMIZATION: Retrieve only 1 document - system is well designed
-      // Only retrieve if query matches knowledge base intent patterns/keywords
+      // OPTIMIZATION: Retrieve 3-5 documents for better coverage and multi-document synthesis
       const retriever = vectorStore.asRetriever({
-        k: 1, // Retrieve only 1 document - well designed system
+        k: 5, // Retrieve top 5 documents by semantic similarity
         searchType: "similarity",
       });
 
       const relevantDocs = await retriever.getRelevantDocuments(userInput);
 
       if (relevantDocs.length > 0) {
-        // Check if the retrieved document is actually relevant to the query
-        // Only use knowledge base if query matches intent patterns or keywords
-        const topDoc = relevantDocs[0];
-        const docKeywords = (topDoc.metadata?.keywords as string[]) || [];
-        const docIntentPatterns = (topDoc.metadata?.intent_patterns as string[]) || [];
+        // Apply hybrid search re-ranking
+        const scoredDocs = applyHybridSearch(relevantDocs, userInput);
+
+        // Filter documents with score above threshold (0.5)
+        const RELEVANCE_THRESHOLD = 0.5;
+        const filteredDocs = scoredDocs.filter(item => item.score >= RELEVANCE_THRESHOLD);
+
+        // Check if we have any relevant documents
+        const hasMenopauseTerms = /(menopause|symptom|sleep|weight|metabolism|hormone|hot flash|night sweat|estrogen|progesterone|insulin|metabolic)/i.test(userInput);
         
-        // Extract query keywords
-        const queryKeywords = extractQueryKeywords(userInput);
-        const queryLower = userInput.toLowerCase();
-        
-        // Check if query matches intent patterns (exact or partial match)
-        const matchesIntentPattern = docIntentPatterns.some(pattern => {
-          const patternLower = pattern.toLowerCase();
-          // Check if query contains key parts of the intent pattern
-          const patternWords = patternLower.split(/\s+/).filter(w => w.length > 3);
-          return patternWords.some(word => queryLower.includes(word)) || 
-                 queryLower.includes(patternLower.substring(0, 20));
-        });
-        
-        // Check if query keywords match document keywords
-        const matchesKeywords = queryKeywords.some(qkw => 
-          docKeywords.some(dkw => 
-            dkw.toLowerCase().includes(qkw) || qkw.includes(dkw.toLowerCase())
-          )
-        );
-        
-        // Only use knowledge base if there's a clear match
-        // Require either intent pattern match OR keyword match with menopause-related terms
-        const hasMenopauseTerms = /(menopause|symptom|sleep|weight|metabolism|hormone|hot flash|night sweat|estrogen|progesterone)/i.test(userInput);
-        const isRelevant = matchesIntentPattern || (matchesKeywords && hasMenopauseTerms);
-        
-        if (!isRelevant) {
-          // Query doesn't match knowledge base - don't use it
+        if (filteredDocs.length === 0 && !hasMenopauseTerms) {
+          // No relevant documents and query doesn't seem menopause-related
           context = "";
         } else {
-          // Use the single retrieved document
-          const metadata = topDoc.metadata || {};
-          const topic = metadata.topic || '';
-          const subtopic = metadata.subtopic || '';
+          // Use top 3 documents (or all if less than 3) for synthesis
+          const topDocs = filteredDocs.length > 0 
+            ? filteredDocs.slice(0, 3).map(item => item.doc)
+            : scoredDocs.slice(0, 3).map(item => item.doc); // Fallback to top 3 even if below threshold
 
-          // Build context header if metadata exists
-          let formatted = '';
-          if (topic || subtopic) {
-            formatted = `[Topic: ${topic}${subtopic ? ` | Subtopic: ${subtopic}` : ''}]\n\n`;
+          // Group documents by topic for better organization
+          const docsByTopic = new Map<string, typeof topDocs>();
+          for (const doc of topDocs) {
+            const topic = (doc.metadata?.topic as string) || 'General';
+            if (!docsByTopic.has(topic)) {
+              docsByTopic.set(topic, []);
+            }
+            docsByTopic.get(topic)!.push(doc);
           }
 
-          // Add the clean content (already cleaned during ingestion)
-          formatted += topDoc.pageContent;
-
-          context = formatted;
+          // Build context from multiple documents
+          const contextParts: string[] = [];
           
-          // Store document ID for tracking
-          if (topDoc.metadata?.id) {
-            retrievedDocIds.push(topDoc.metadata.id as string);
+          for (const [topic, docs] of docsByTopic.entries()) {
+            // Add topic header if multiple topics
+            if (docsByTopic.size > 1) {
+              contextParts.push(`## ${topic}\n`);
+            }
+
+            // Add each document's content
+            for (const doc of docs) {
+              const metadata = doc.metadata || {};
+              const subtopic = metadata.subtopic || '';
+
+              // Add subtopic header if multiple subtopics in same topic
+              if (docs.length > 1 && subtopic) {
+                contextParts.push(`### ${subtopic}\n`);
+              } else if (subtopic && docsByTopic.size === 1) {
+                // Single topic, single subtopic - just add subtopic
+                contextParts.push(`### ${subtopic}\n`);
+              }
+
+              // Add document content
+              contextParts.push(doc.pageContent);
+
+              // Store document ID for tracking
+              if (doc.metadata?.id) {
+                retrievedDocIds.push(doc.metadata.id as string);
+              }
+
+              // Add separator between documents (except last)
+              if (docs.indexOf(doc) < docs.length - 1) {
+                contextParts.push('\n---\n');
+              }
+            }
+
+            // Add separator between topics (except last)
+            if (Array.from(docsByTopic.keys()).indexOf(topic) < docsByTopic.size - 1) {
+              contextParts.push('\n\n---\n\n');
+            }
           }
+
+          context = contextParts.join('\n');
         }
       }
     } else {
@@ -715,14 +851,14 @@ export async function POST(req: NextRequest) {
       if (isCasualGreeting(query)) {
         return false;
       }
-      
+
       // Must start with a question word or contain question mark
       const questionStarters = /^(why|what|how|when|where|can|could|should|does|do|is|are|tell me|explain|describe|what's|what is|why is|how do|how does)/i;
       const hasQuestionMark = /\?/.test(query);
-      
+
       // Must be asking about menopause-related topics
       const hasMenopauseTopic = /(menopause|symptom|sleep|weight|metabolism|hormone|hot flash|night sweat|estrogen|progesterone|insulin|metabolic)/i.test(query);
-      
+
       // Must be a question, not a statement or casual chat
       return (questionStarters.test(query) || hasQuestionMark) && hasMenopauseTopic;
     };
@@ -739,35 +875,35 @@ export async function POST(req: NextRequest) {
     const systemParts: string[] = [BASE_SYSTEM_PROMPT];
 
     if (hasKnowledgeBase) {
-      // KNOWLEDGE BASE MODE: Prioritize verbatim output
-      // Add knowledge base context FIRST with strongest instructions
+      // KNOWLEDGE BASE MODE: Answer-based synthesis
+      // Add knowledge base context with instructions for natural, grounded responses
       systemParts.push(`\n\n=== KNOWLEDGE BASE MODE ACTIVATED ===
-CRITICAL: You are now in COPY-ONLY MODE. Your ONLY job is to copy the text below EXACTLY.
+You have access to knowledge base content that answers the user's question. Use this content to provide a natural, conversational answer.
 
-RULES (NO EXCEPTIONS - HIGHEST PRIORITY):
-1. Copy the text below word-for-word, character-for-character
-2. Do NOT add any introduction, explanation, or commentary
-3. Do NOT rephrase, summarize, or modify ANY words
-4. Do NOT add information from your training data - ONLY use the text below
-5. Do NOT create new sections or reorganize content
-6. The text below IS the complete answer - just copy it exactly
-7. You may add ONE sentence greeting maximum (e.g., "Here's what I found:"), but then copy the text exactly
-8. If the text below answers the user's question, you MUST use it - do not generate alternative answers
-
-TEXT TO COPY EXACTLY:
+KNOWLEDGE BASE CONTENT:
 ${context.trim()}
 
-=== END TEXT TO COPY ===
-REMEMBER: COPY THE TEXT ABOVE EXACTLY. DO NOT MODIFY, PARAPHRASE, OR ADD TO IT.
-THIS IS THE ONLY SOURCE OF INFORMATION FOR THIS ANSWER.`);
+INSTRUCTIONS:
+- Answer the user's question naturally and conversationally based on the knowledge base content above
+- Use the knowledge base content as your ONLY source of information - do NOT add information not present in the content
+- If multiple documents are provided, synthesize information from all of them, avoiding duplication
+- Maintain the structured format (Content, Action Tips, Motivation Nudge, etc.) when appropriate for the query type
+- Personalize with user context when natural and relevant (use their name, reference their profile/tracker data)
+- Use markdown formatting for readability (headings, lists, emphasis, blockquotes)
+- Include relevant emojis from source content to maintain warmth
+- Do NOT copy verbatim - answer the question based on the content, adapting to the user's specific phrasing
+- For "how-to" questions: Emphasize Action Tips and Habit Strategy sections
+- For "why" questions: Emphasize Content section with explanations
+- For motivation queries: Include Motivation Nudge section
+- Create coherent answers that directly address the user's question while staying grounded in the knowledge base`);
 
-      // Add user context and tracker context AFTER knowledge base (for reference only, not for personalization)
+      // Add user context and tracker context for personalization
       if (userContext && userContext.trim()) {
-        systemParts.push(`\n${userContext}\nNote: Use this profile information ONLY for a brief greeting if natural. The main answer must be verbatim from knowledge base.`);
+        systemParts.push(`\n${userContext}\nNote: Use this profile information to personalize your response naturally when relevant.`);
       }
 
       if (trackerContext && trackerContext.trim()) {
-        systemParts.push(`\n${trackerContext}\nNote: This tracker data is for reference only. Do NOT incorporate it into the knowledge base answer.`);
+        systemParts.push(`\n${trackerContext}\nNote: Use this tracker data to personalize your response when relevant, but keep the knowledge base content as the primary source.`);
       }
     } else {
       // NORMAL CONVERSATION MODE: Full personalization enabled
@@ -803,7 +939,7 @@ IMPORTANT: The user is engaging in casual conversation, not asking for informati
     const systemMessage = systemParts.join("\n");
 
     // 8. Select appropriate LLM based on mode
-    const llmToUse = hasKnowledgeBase ? llmVerbatim : llm;
+    const llmToUse = hasKnowledgeBase ? llmKnowledgeBase : llm;
 
     // 9. Build messages array using LangChain message classes
     // CRITICAL: Messages must be in chronological order: [SystemMessage, ...History, CurrentUserInput]
@@ -820,23 +956,8 @@ IMPORTANT: The user is engaging in casual conversation, not asking for informati
     }
 
     // Add current user input LAST (most recent) - this ensures responses address current query immediately
-    if (hasKnowledgeBase) {
-      // OPTIMIZATION: For knowledge base mode, use stronger instruction format
-      // Put content in user message with explicit copy instruction
-      messages.push(new HumanMessage(
-        `User question: "${userInput}"\n\n` +
-        `CRITICAL INSTRUCTIONS:\n` +
-        `1. The text below contains the EXACT answer to the user's question\n` +
-        `2. Copy it EXACTLY as written - word for word, character for character\n` +
-        `3. Do NOT modify, rephrase, summarize, or add anything\n` +
-        `4. Do NOT use your training data - ONLY use the text below\n` +
-        `5. You may add ONE brief greeting sentence maximum, then copy the text exactly\n\n` +
-        `TEXT TO COPY:\n${context.trim()}\n\n` +
-        `REMEMBER: Copy the text above EXACTLY. This is the ONLY answer.`
-      ));
-    } else {
-      messages.push(new HumanMessage(userInput));
-    }
+    // For knowledge base mode, the context is already in the system message, so just use the user's question
+    messages.push(new HumanMessage(userInput));
 
     // 9. Create tools for function calling
     const tools = [

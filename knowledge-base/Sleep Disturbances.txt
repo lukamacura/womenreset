@@ -34,65 +34,48 @@ Would you like your *Sleep Recovery Roadmap* 💤 — a gentle, step-by-step gui
 ---
 
 ### **Intent Patterns**
-- Why can’t I sleep during menopause?  
-- Why do I wake up at night?  
-- Why do I wake up multiple times during the night?  
-- Why can’t I stay asleep even when I’m tired?  
-- Why is my sleep so fragmented or broken?  
-- Is insomnia normal in menopause?  
-- How do hormones affect my sleep?  
-- Does low estrogen cause poor sleep?  
-- What happens to sleep hormones after 40?  
-- Why is my sleep so light or restless lately?  
-- How can I fix my broken sleep?  
-- Does lack of sleep worsen menopause symptoms?  
-- Why is sleep so important in midlife?  
+PRIMARY INTENTS (educational/overview queries):
+- Why does menopause affect my sleep?
+- What's happening to my hormones that's disrupting sleep?
+- Is it normal to suddenly have sleep problems in my 40s/50s?
+- Why did my once-perfect sleep become unpredictable?
+- How do estrogen and progesterone affect sleep?
+- What's the science behind menopause insomnia?
+- Why does my sleep feel completely different since perimenopause?
+- Can hormonal changes cause chronic insomnia?
+- Is poor sleep temporary or permanent in menopause?
+- Why does sleep matter so much for menopause symptoms?
+
+SECONDARY INTENTS (general distress, needs routing):
+- Why can't I sleep during menopause? [+ route based on follow-up]
+- My sleep is broken – what's wrong? [+ needs symptom clarification]
+- Is this normal? [+ about sleep changes generally]
+
 
 ---
 
 ### **Keywords**
 
-**Scientific & Hormonal**  
-- estrogen and progesterone decline  
-- melatonin reduction  
-- cortisol rhythm disruption  
-- circadian rhythm change  
-- temperature regulation at night  
-- hormonal sleep disruption  
-- menopausal insomnia  
-
-**Emotional & Lifestyle**  
-- sleep frustration  
-- waking at 3am  
-- waking up at night  
-- multiple nighttime awakenings  
-- middle of the night waking  
-- light sleep  
-- tired but wired  
-- stress and screen time  
-- restlessness during sleep  
-
-**Symptom Language (Non-Sweat)**  
-- wake up without sweating  
-- nighttime alertness  
-- can’t stay asleep  
-- fragmented sleep  
-- broken sleep  
-- early waking  
-- 3 a.m. cortisol spike  
-
-**Outcome-Focused**  
-- restore deep sleep  
-- balance hormones  
-- reduce anxiety  
-- boost energy and focus  
-- support mood and weight  
-- sleep recovery roadmap  
+- why sleep changes menopause
+- menopause insomnia causes
+- hormones and sleep connection
+- estrogen progesterone sleep
+- melatonin decline menopause
+- sleep architecture changes
+- brain sleep center sensitivity
+- perimenopause sleep disruption science
+- is menopause insomnia normal
+- temporary vs permanent sleep changes
+- sleep disturbances menopause [hub term, shared across]
+- cortisol rhythm disruption [shared with 3 a.m., Exercise]
+- temperature regulation [shared with Bedroom Environment]
+- menopause sleep problems [routes FROM here to specific solutions]
+- insomnia menopause [routes FROM here based on symptoms] 
 
 ---
 
 
-## Sleep Disturbances in Menopause  
+   ## Sleep Disturbances in Menopause  
 ### Sleep Recovery Roadmap – Step-by-Step Plan
 
 **Persona:** menopause  
@@ -158,45 +141,46 @@ Would you like me to help you choose which step of the sleep roadmap to begin wi
 ---
 
 ### **Intent Patterns**
+
+PRIMARY INTENTS (roadmap/planning queries):
 - How can I sleep better during menopause?  
-- What’s step-by-step plan for better sleep?  
-- Where do I start if I can’t sleep?  
-- What are the stages of fixing menopause sleep problems?  
-- Can you give me a complete sleep roadmap?  
-- What are the natural options for sleep in menopause?  
+- How can I fix my sleep better during menopause?
+- How can I solve sleep issue during menopause?    
+- What's a complete plan to fix my sleep in menopause?
+- Where do I start with all these sleep problems?
+- Can you show me a step-by-step sleep recovery plan?
+- What are all the things I need to do to sleep better?
+- How do I rebuild my sleep from scratch?
+- What's the order I should tackle my sleep issues?
+- I'm overwhelmed – what's the full picture for sleep recovery?
+- Can you give me a structured approach to fixing sleep?
+- What's the roadmap from terrible sleep to deep rest?
+- How long will it take to fix my sleep completely?
+
+SECONDARY INTENTS (planning/structure focused):
+- How can I sleep better? [+ "give me the full plan"]
+- What should I do first? [+ comprehensive structure needed]
+
 
 ---
 
 ### **Keywords**
 
-**Structure & Navigation**  
-- sleep roadmap  
-- sleep plan menopause  
-- step by step guide  
-- sleep stages recovery  
-- sleep program for women 40+  
-
-**Scientific & Physiological**  
-- sleep regulation hormones  
-- circadian rhythm reset  
-- nervous system recovery  
-- cortisol balance  
-- melatonin timing  
-
-**Lifestyle & Behavioral**  
-- bedtime habits  
-- light exposure  
-- environment changes  
-- nutrition and supplements  
-- relaxation training  
-
-**Outcome-Focused**  
-- fall asleep faster  
-- stay asleep longer  
-- reduce night waking  
-- calm nervous system  
-- rebalance hormones  
-
+- sleep recovery roadmap menopause
+- sleep solution menopause
+- sleep fix menopause
+- step by step sleep plan
+- complete sleep guide menopause
+- sleep restoration program
+- structured sleep approach
+- sleep recovery stages
+- comprehensive sleep strategy
+- where to start sleep menopause
+- full sleep recovery plan
+- sleep rebuild program
+- sleep plan menopause [shared with Consistent Routine]
+- layered approach [conceptual]
+- sleep roadmap [primary hub term for this page]
 ---
 
 
@@ -263,65 +247,57 @@ Would you like to learn about the importance of morning sunlight for sleep?
 ---
 
 ### **Intent Patterns**
-- Why do I wake up at 3 a.m.?  
-- How can I fall back asleep after night waking?  
-- What should I do when I wake up hot and restless?  
-- How can I calm anxiety after waking up at night?  
-- What is the 3 a.m. Calm Reset technique?  
-- Does breathing or grounding help me sleep again?  
-- Why does cortisol wake me in the middle of the night?  
-- How do I stop panic during night waking?  
-- How can I manage night sweats and restlessness?  
-- What’s a quick way to get back to sleep?  
+PRIMARY INTENTS (specific to middle-of-night waking):
+- Why do I wake up between 2-4 a.m. every night?
+- What should I do when I wake up at 3 a.m. and can't fall back asleep?
+- How can I fall back asleep after waking in the middle of the night?
+- Why does my heart race when I wake up at night?
+- What's the best way to calm down during a night waking?
+- I wake up at 3 a.m. hot and anxious – what do I do?
+- How long should I stay in bed if I can't fall back asleep?
+- Why do I wake up at the exact same time every night?
+- Can I prevent waking up between 2-4 a.m.?
+- What's happening with my cortisol at 3 a.m.?
+
+SYMPTOM-SPECIFIC:
+- Why do I wake up with my mind racing at 3 a.m.?
+- Why do I wake up feeling panicked in the middle of the night?
+- What causes the 3 a.m. cortisol spike?
+- Is blood sugar causing me to wake at 3 a.m.?
+
+
 
 ---
 
 ### **Keywords**
 
-**Formal / Medical**  
-- nocturnal cortisol spike  
-- blood sugar dip  
-- temperature dysregulation  
-- parasympathetic recovery  
-- night awakening physiology  
-
-**Casual Everyday**  
-- 3 a.m. wake-up  
-- can’t fall back asleep  
-- wake up sweating  
-- night anxiety  
-- middle of the night restlessness  
-
-**Symptom-Linked**  
-- hot flashes at night  
-- heart racing after waking  
-- restless mind  
-- panic during night waking  
-- insomnia in menopause  
-
-**Behavioral / Habit**  
-- keep lights dim  
-- cool body temperature  
-- slow exhale breathing  
-- gentle body grounding  
-- avoid clock watching  
-
-**Outcome-Based**  
-- fall back asleep faster  
-- reduce cortisol and anxiety  
-- stabilize body temperature  
-- shorten awake periods  
-- feel calmer overnight  
+- 3 a.m. wake up
+- wake between 2-4 a.m.
+- middle of the night waking
+- nocturnal cortisol spike
+- can't fall back asleep middle night
+- 3 a.m. anxiety
+- same time every night waking
+- middle insomnia menopause
+- night waking reset technique
+- cooling breath night waking
+- grounding technique 3 a.m.
+- calm reset protocol
+- return to sleep method
+- cortisol spike night [shared with Nutrition if blood sugar related]
+- temperature dysregulation [shared with Bedroom if heat primary]
+- night anxiety [shared with Lifestyle/Bedtime if pre-sleep anxiety]
+- wake up at night [routes based on time/symptom]
 
 ---
 
 
    ## Sleep Disturbances in Menopause  
-### Solutions – Additional Tips
+### Solutions – Tracking & Awareneness
 
 **Persona:** menopause  
 **Topic:** Sleep Disturbances in Menopause  
-**Subtopic:** Solutions – Additional Tips
+**Subtopic:** Solutions – Tracking & Awareneness
 
 ---
 
@@ -352,55 +328,45 @@ Would you like to learn about Non-Sleep Deep Rest?
 ---
 
 ### **Intent Patterns**
-- Should I track my sleep?  
-- Do sleep journals help?  
-- Are wearables useful for menopause sleep?  
-- Can mindfulness or breathing improve sleep?  
-- Does stress management help insomnia?  
-- How do I manage daily habits for better sleep?  
-- Can support groups help with sleep consistency?  
-- How can I make tracking less stressful?  
-- Do breathing techniques calm night anxiety?  
-- What simple habits make sleep easier every day?  
+PRIMARY INTENTS (tracking/awareness focused):
+- Should I track my sleep during menopause?
+- Do sleep journals actually help with insomnia?
+- Are sleep tracking devices worth it for menopause?
+- How can I identify my sleep patterns and triggers?
+- What should I write in a sleep journal?
+- Can tracking my sleep make my anxiety worse?
+- How do I know what's causing my sleep problems?
+- Should I use a Fitbit or Oura ring for sleep tracking?
+- Can mindfulness help me understand my sleep better?
+- What patterns should I look for in my sleep data?
+
+AWARENESS-SPECIFIC:
+- How can I tell if caffeine is disrupting my sleep?
+- How do I know if stress is keeping me awake?
+- What clues tell me why I'm not sleeping?
+
+
 
 ---
 
 ### **Keywords**
 
-**Formal / Medical**  
-- sleep tracking  
-- sleep diary  
-- cognitive awareness  
-- mindfulness and cortisol regulation  
-- relaxation response training  
-
-**Casual Everyday**  
-- sleep journal  
-- track my sleep  
-- use smartwatch or app  
-- mindfulness for sleep  
-- breathing before bed  
-
-**Symptom-Linked**  
-- stress keeps me awake  
-- racing thoughts  
-- anxious about sleep  
-- irregular patterns  
-- can’t relax before bed  
-
-**Behavioral / Habit**  
-- write down bedtime and wake time  
-- track triggers and patterns  
-- practice 4-7-8 breathing  
-- join supportive communities  
-- reflect on calm moments  
-
-**Outcome-Based**  
-- greater self-awareness  
-- less stress around sleep  
-- predictable rest  
-- confidence in recovery  
-- improved mood and focus  
+- sleep tracking menopause
+- sleep journal menopause
+- sleep diary insomnia
+- track sleep patterns
+- sleep awareness tools
+- identify sleep triggers
+- sleep data interpretation
+- wearables for sleep menopause
+- Fitbit Oura sleep tracking
+- mindfulness sleep awareness
+- pattern recognition sleep
+- sleep trigger identification
+- tracking anxiety about sleep
+- sleep patterns [general term, contextual]
+- stress and sleep [shared with Lifestyle/Bedtime]
+- improve sleep awareness [concept] 
 
 ---
 
@@ -443,63 +409,38 @@ Would you like to learn about *Lifestyle & Bedtime Routine* — small calm habit
 ---
 
 ### **Intent Patterns**
-- How should I set up my bedroom for better sleep?  
-- What’s the best temperature for sleep?  
-- Why do I wake up hot at night?  
-- How can I stay comfortable during night sweats?  
-- Does bedding affect sleep quality?  
-- What kind of sheets help with overheating?  
-- Should I use a fan or cooling mattress?  
-- Do blackout curtains help with deep sleep?  
-- Is white noise good for falling asleep?  
-- What’s the ideal bedroom setup for menopause?  
-- How can I make my bedroom feel more relaxing?  
-- Does clutter or light affect my sleep?  
-- What’s the best pillow or mattress type for comfort?  
-- Can temperature swings cause insomnia?  
-- Is it better to sleep with a window open?  
+PRIMARY INTENTS (environment/temperature focused):
+
+- What's the best room temperature for menopause sleep?
+- How can I keep my bedroom cool enough for sleep?
+- What bedding helps with waking up at night?
+- Does my mattress affect if I wake up at night?
+- Should I use a fan or AC for better sleep?
+- How can I make my bedroom darker for deeper sleep?
+- Does room temperature really matter for sleep?
+
+
+
+
 
 ---
 
 ### **Keywords**
 
-**Formal / Medical**  
-- thermoregulation  
-- sleep environment optimization  
-- core body temperature  
-- night sweats management  
-- thermal comfort  
-- environmental noise and sleep quality  
-
-**Casual Everyday**  
-- bedroom temperature  
-- sleep comfort setup  
-- cool bedding  
-- breathable pajamas  
-- white noise machine  
-- blackout curtains  
-- sleep-friendly bedroom  
-
-**Symptom-Linked**  
-- night sweats  
-- hot flashes in bed  
-- waking up drenched  
-- can’t sleep when hot  
-- restless nights from heat  
-
-**Behavioral / Habit**  
-- set thermostat between 18–20°C  
-- use moisture-wicking fabrics  
-- air out bedroom daily  
-- block outside light  
-- reduce clutter before sleep  
-
-**Outcome-Based**  
-- deeper sleep  
-- fewer awakenings  
-- cooler body temperature  
-- relaxed nervous system  
-- improved sleep efficiency  
+- bedroom temperature menopause
+- optimal sleep temperature 65-68F
+- room setup for night sweats
+- cooling mattress topper
+- moisture-wicking sheets
+- breathable bedding menopause
+- cooling pillow night sweats
+- blackout curtains deep sleep
+- bedroom fan for sleep
+- thermoregulation bedroom
+- mattress for hot sleepers
+- cotton vs bamboo sheets sleep
+- bedroom cooling strategies
+- ventilation sleep quality
 
 ---
 
@@ -542,60 +483,45 @@ Would you like help designing a simple, realistic sleep–wake schedule that fit
 ---
 
 ### **Intent Patterns**
-- How can I fix my sleep schedule in menopause?  
-- Why does a regular bedtime help?  
-- What is the best sleep routine?  
-- Should I wake up at the same time every day?  
-- How do I reset my body clock?  
-- Can inconsistent sleep make menopause worse?  
-- Does sleeping in on weekends hurt sleep rhythm?  
-- How do I create a regular sleep routine?  
-- Can naps disrupt my nighttime sleep?  
-- What time should I go to bed and wake up?  
-- Why do I feel groggy when I sleep longer?  
-- Does consistency matter more than sleep duration?  
-- Can my body relearn good sleep habits?  
-- How long does it take to reset a sleep pattern?  
-- How do I stay consistent when I travel?  
+PRIMARY INTENTS (schedule/routine consistency focused):
+- Why does going to bed at different times mess up my sleep?
+- Should I wake up at the same time even on weekends?
+- How do I reset my sleep schedule in menopause?
+- What happens if I sleep in on weekends?
+- How long does it take to fix an irregular sleep schedule?
+- Why do I feel groggy when I sleep longer than usual?
+- Can my body relearn a good sleep rhythm?
+- What time should I go to bed and wake up?
+- Is it better to go to bed early or wake up early?
+- How do I stick to a sleep schedule when I travel?
+
+CIRCADIAN-SPECIFIC:
+- How do I retrain my circadian rhythm?
+- Why is my sleep schedule all over the place?
+- What's social jet lag and is it affecting me?
+
 
 ---
 
 ### **Keywords**
 
-**Formal / Medical**  
-- circadian rhythm entrainment  
-- sleep-wake consistency  
-- melatonin timing  
-- cortisol rhythm stabilization  
-- chronobiology of sleep  
-
-**Casual Everyday**  
-- sleep schedule reset  
-- bedtime routine  
-- wake-up time habit  
-- sleep rhythm  
-- morning and night routine  
-
-**Symptom-Linked**  
-- can’t fall asleep same time  
-- wake up early or too late  
-- weekend sleep jet lag  
-- fatigue from irregular sleep  
-- body clock confusion  
-
-**Behavioral / Habit**  
-- set fixed bedtime and wake time  
-- avoid long naps  
-- get morning sunlight daily  
-- keep same routine on weekends  
-- wind down before bed  
-
-**Outcome-Based**  
-- more stable energy  
-- better mood  
-- improved sleep quality  
-- balanced hormones  
-- predictable rest  
+- consistent sleep schedule menopause
+- same bedtime every night
+- wake same time daily
+- sleep-wake consistency
+- circadian rhythm entrainment
+- fix irregular sleep schedule
+- reset sleep timing
+- weekend sleep jet lag
+- social jet lag menopause
+- consistent wake time benefits
+- sleep schedule discipline
+- body clock retraining
+- regular sleep-wake cycle
+- circadian rhythm [shared with Morning Sunlight, Overview]
+- sleep timing [general term]
+- melatonin timing [shared with Morning Sunlight]
+- sleep routine [broad term]
 
 ---
 
@@ -638,66 +564,46 @@ Would you like to learn a relaxation technique to help you wind down before bed?
 ---
 
 ### **Intent Patterns**
-- Why should I avoid screens at night?  
-- How does blue light affect sleep?  
-- What’s the best lighting for evening relaxation?  
-- Do phones and tablets keep me awake?  
-- When should I turn off screens before bed?  
-- Do I need blue-light glasses?  
-- Can I use night mode on my phone instead?  
-- Does TV light affect melatonin?  
-- How bright should my lights be before bed?  
-- What type of bulbs are best for sleep?  
-- Does reading on a tablet harm sleep?  
-- Can I use candles or amber lights at night?  
-- What happens if I scroll before sleeping?  
-- Is it okay to use a lamp before bed?  
-- How does evening light delay melatonin?  
+PRIMARY INTENTS (evening light/screen focused):
+- Why can't I fall asleep after looking at my phone?
+- How does blue light from screens affect my sleep?
+- When should I stop using screens before bed?
+- Do blue light glasses actually work for sleep?
+- Can I use my phone at night if I use night mode?
+- Why does scrolling before bed make it harder to fall asleep?
+- What type of lighting should I use in the evening?
+- Should I avoid TV before bed?
+- How bright should my lights be after sunset?
+- Does reading on a tablet disrupt sleep more than paper books?
+
+LIGHT-SPECIFIC:
+- What color light bulbs are best for evening?
+- Can amber lights help me fall asleep faster?
+- Does watching TV in the dark affect melatonin?
+
+
 
 ---
 
 ### **Keywords**
 
-**Formal / Medical**  
-- melatonin suppression  
-- blue wavelength exposure  
-- circadian phase delay  
-- screen-induced insomnia  
-- retinal light sensitivity  
-- evening photoreceptor stimulation  
-
-**Casual Everyday**  
-- avoid screens before bed  
-- blue light and sleep  
-- night mode on phone  
-- dim lights at night  
-- amber lamps in evening  
-- best lighting for sleep  
-
-**Slang / Abbreviations**  
-- blue-light filter  
-- night-shift mode  
-- screen detox  
-- light hygiene hack  
-
-**Symptom-Linked**  
-- can’t fall asleep after screen time  
-- mind alert at night  
-- wired but tired feeling  
-- light keeping me awake  
-
-**Behavioral / Habit**  
-- turn off screens 60 minutes before bed  
-- use amber or red lighting after sunset  
-- wear blue-light blocking glasses  
-- avoid bright overhead lights  
-- keep TV off in the bedroom  
-
-**Outcome-Based**  
-- fall asleep faster  
-- increase natural melatonin  
-- improve sleep quality  
-- wake up refreshed  
+- evening light hygiene
+- blue light disrupts sleep
+- screen time before bed
+- phone affects melatonin
+- blue light glasses sleep
+- night mode effectiveness
+- scrolling before bed insomnia
+- amber light evening
+- dim lights after sunset
+- TV light suppresses melatonin
+- avoid screens 60 minutes before bed
+- melatonin suppression blue light
+- reading tablet vs book sleep
+- evening lighting recommendations
+- melatonin production [shared with Morning Sunlight, Overview]
+- circadian phase delay [shared with Morning Sunlight]
+- light and sleep [general]
 
 ---
 
@@ -740,62 +646,47 @@ Would you like a personalized movement plan that supports both your energy durin
 ---
 
 ### **Intent Patterns**
-- What exercise helps me sleep better in menopause?  
-- Does working out improve sleep?  
-- When is the best time to exercise for better sleep?  
-- Can exercise reduce night sweats?  
-- Does yoga or stretching help with insomnia?  
-- Should I avoid intense workouts in the evening?  
-- What type of relaxation helps me sleep?  
-- How does movement affect cortisol and melatonin?  
-- Is morning or afternoon exercise better for sleep?  
-- Can strength training balance hormones and improve rest?  
-- Does overexercising make sleep worse?  
-- Can breathing exercises help me fall asleep?  
-- How does exercise affect menopause fatigue?  
-- Can walking improve my sleep quality?  
-- What’s the connection between stress and exercise in menopause?  
+PRIMARY INTENTS (exercise timing/type focused):
+- When is the best time to exercise for better sleep?
+- Can working out too late keep me awake?
+- Why do I feel wired after evening workouts?
+- Does morning exercise help me sleep at night?
+- What type of exercise is best for menopause sleep?
+- Can yoga or stretching before bed help me fall asleep?
+- Does strength training improve sleep quality?
+- Why does intense exercise make my insomnia worse?
+- How much exercise do I need for better sleep?
+- Can overtraining disrupt my sleep?
+
+RELAXATION-SPECIFIC:
+- What breathing exercises help me fall asleep?
+- Does the 4-7-8 breathing technique work?
+- Can yoga nidra replace sleep?
+- What's the best evening stretching routine?
+
+
 
 ---
 
 ### **Keywords**
 
-**Formal / Medical**  
-- cortisol rhythm regulation  
-- melatonin secretion timing  
-- exercise timing and sleep quality  
-- autonomic balance  
-- strength training benefits menopause  
-- parasympathetic activation through yoga  
-
-**Casual Everyday**  
-- exercise for sleep  
-- movement and rest  
-- best time to work out  
-- relaxation before bed  
-- yoga for menopause sleep  
-- gentle stretching at night  
-
-**Symptom-Linked**  
-- can’t fall asleep after workout  
-- wired but tired  
-- low energy all day  
-- night sweats after exercise  
-- stress and insomnia  
-
-**Behavioral / Habit**  
-- exercise earlier in the day  
-- do light stretching before bed  
-- try yoga nidra or NSDR  
-- combine breathing and movement  
-- avoid intense cardio at night  
-
-**Outcome-Based**  
-- fall asleep faster  
-- reduce cortisol levels  
-- boost serotonin and melatonin  
-- improve mood and energy  
-- support hormonal balance  
+- exercise timing for sleep
+- morning workout better sleep
+- evening workout keeps me awake
+- wired after exercise night
+- strength training sleep benefits
+- yoga for menopause sleep
+- stretching before bed
+- 4-7-8 breathing sleep
+- overtraining disrupts sleep
+- exercise-induced insomnia
+- parasympathetic activation yoga
+- cortisol and exercise timing
+- gentle movement evening
+- intense workout sleep disruption
+- cortisol regulation [shared with 3 a.m. Reset, Overview]
+- relaxation response [shared with NSDR, Lifestyle]
+- exercise and sleep [general]
 
 ---
 
@@ -838,59 +729,46 @@ Want to know about the best supplements and food for sleep?
 ---
 
 ### **Intent Patterns**
-- What’s the best bedtime routine for menopause sleep?  
-- How can I calm down before bed?  
-- What habits help me fall asleep faster?  
-- Should I read or stretch before sleeping?  
-- What are relaxing things to do at night?  
-- How do I stop overthinking when I go to bed?  
-- Can breathing exercises make it easier to fall asleep?  
-- Is meditation good before bed?  
-- How do I switch off from work or stress at night?  
-- What’s a good evening ritual for women over 40?  
-- Can listening to calm music help me fall asleep?  
-- How do I create a relaxing bedtime routine at home?  
+PRIMARY INTENTS (pre-sleep routine/wind-down focused):
+- What should I do in the hour before bed to fall asleep easier?
+- How can I stop my mind from racing when I go to bed?
+- What's a good relaxing bedtime routine for menopause?
+- Why can't I "switch off" at night?
+- What calming activities help prepare for sleep?
+- Should I read or meditate before bed?
+- How can I create a peaceful transition to sleep?
+- Why do I feel anxious as soon as I lie down?
+- What's the best way to unwind after a stressful day?
+- Can journaling before bed help me sleep?
+
+ROUTINE-BUILDING:
+- How do I build a consistent evening routine?
+- What's a realistic 30-minute wind-down routine?
+- Should I do the same things every night before bed?
+
 
 ---
 
 ### **Keywords**
 
-**Formal / Medical**  
-- pre-sleep arousal reduction  
-- autonomic nervous system relaxation  
-- stress reduction techniques  
-- bedtime behavioral interventions  
-- sleep hygiene behaviors  
-- psychophysiological insomnia management  
-
-**Casual Everyday**  
-- night routine ideas  
-- how to relax before bed  
-- wind-down routine for sleep  
-- evening self-care habits  
-- things to do before sleeping  
-- ways to fall asleep faster  
-
-**Symptom-Linked**  
-- mind racing at night  
-- trouble switching off  
-- can’t relax before bed  
-- stress keeping me awake  
-- anxious thoughts at bedtime  
-
-**Behavioral / Habit**  
-- set a no-screen rule before bed  
-- create a relaxation routine  
-- use journaling to clear your mind  
-- stretch gently before sleep  
-- listen to calming sounds  
-
-**Outcome-Based**  
-- fall asleep faster  
-- wake up calmer  
-- reduce anxiety at bedtime  
-- relax muscles and mind  
-- sleep more deeply  
+- bedtime routine menopause
+- wind-down routine sleep
+- pre-sleep rituals
+- mind racing at bedtime
+- can't switch off night
+- relaxing activities before bed
+- bedtime anxiety menopause
+- journaling before sleep
+- calming evening habits
+- peaceful transition to sleep
+- unwind after stress
+- bedtime relaxation sequence
+- consistent evening routine
+- 30-minute wind-down
+- relaxation techniques [shared with NSDR, Exercise]
+- stress reduction [shared with Exercise]
+- nervous system calm [shared with multiple]
+- bedtime routine [general]
 
 ---
 
@@ -933,70 +811,47 @@ Would you like to focus on improving your evening light habits?
 ---
 
 ### **Intent Patterns**
-- How does morning sunlight improve sleep?  
-- Why is sunlight important for circadian rhythm?  
-- Does going outside early help me sleep better at night?  
-- How much morning sunlight do I need?  
-- What time should I go outside for best results?  
-- Can I get the same benefit from a window?  
-- Does cloudy weather still help?  
-- How long should I stay in the sun to boost energy?  
-- Can sunlight exposure reduce insomnia or hot flashes?  
-- Does morning light affect melatonin levels?  
-- Is light therapy a good alternative if I can’t go outside?  
-- How can I build a morning light habit?  
-- Should I combine sunlight with morning exercise?  
-- Is sunlight more effective than supplements for sleep?  
-- Can sunlight exposure help mood and hormones too?  
+PRIMARY INTENTS (morning light/circadian reset focused):
+- Why am I tired all day but wide awake at night?
+- How does morning sunlight help me sleep at night?
+- When should I go outside for morning light?
+- How much sunlight do I need in the morning?
+- Can I get morning light through a window?
+- Does morning light really set my sleep timer?
+- What if it's cloudy – should I still go outside?
+- Is a light therapy lamp as good as real sunlight?
+- How does morning light affect my energy levels?
+- Why do I feel groggy all morning?
+
+CIRCADIAN-SPECIFIC:
+- How does light reset my circadian rhythm?
+- What's the connection between morning light and melatonin at night?
+- Can morning light fix my delayed sleep phase?
+
+
 
 ---
 
 ### **Keywords**
 
-**Formal / Medical**  
-- circadian rhythm entrainment  
-- cortisol awakening response  
-- melatonin suppression  
-- photoperiod exposure  
-- retinal light stimulation  
-- SCN activation  
-- light therapy for insomnia  
-
-**Casual Everyday**  
-- morning light exposure  
-- sunlight and sleep connection  
-- early daylight routine  
-- morning walk for energy  
-- best time for sunlight  
-- light exposure habits  
-
-**Slang / Abbreviations**  
-- sunlight reset  
-- morning light hack  
-- circadian boost  
-- daylight fix  
-- wake-up light trick  
-
-**Symptom-Linked**  
-- can’t fall asleep at night  
-- wake up groggy  
-- low morning energy  
-- irregular sleep rhythm  
-- insomnia and light deficiency  
-
-**Behavioral / Habit**  
-- get outside within an hour of waking  
-- stand in daylight for 10–20 minutes  
-- walk or stretch outdoors  
-- open curtains fully  
-- avoid sunglasses during first light exposure  
-
-**Outcome-Based**  
-- reset internal body clock  
-- boost morning alertness  
-- sleep better at night  
-- balance cortisol and melatonin  
-- improve overall energy  
+- morning sunlight sleep benefits
+- tired all day wired at night
+- circadian reset morning light
+- sunlight within first hour waking
+- morning light melatonin timing
+- outdoor light morning routine
+- 10,000 lux light therapy
+- morning light energy boost
+- groggy all morning fix
+- wake up groggy menopause
+- delayed sleep phase morning light
+- cortisol awakening response
+- morning light through window ineffective
+- cloudy day still get light
+- circadian rhythm [shared with Consistent Routine, Overview]
+- melatonin timing [shared with Consistent Routine]
+- cortisol rhythm [shared with 3 a.m. Reset]
+- morning light and sleep [general]
 
 ---
 
@@ -1039,61 +894,46 @@ Would you like to know how exercise helps you sleep better in menopause?
 ---
 
 ### **Intent Patterns**
-- What is NSDR?  
-- How does NSDR help with sleep?  
-- Can I do NSDR if I can’t fall asleep?  
-- Is NSDR the same as yoga nidra?  
-- How long should NSDR last?  
-- Does NSDR replace actual sleep?  
-- How often should I practice NSDR?  
-- Can NSDR reduce cortisol or anxiety?  
-- What’s the best time to do NSDR?  
-- Does NSDR improve focus or energy?  
-- Is there scientific evidence for NSDR?  
-- How can I learn NSDR?  
-- Can NSDR help during night wakings?  
-- Is NSDR good for menopause symptoms?  
-- Can NSDR improve hormonal balance?  
+PRIMARY INTENTS (NSDR-specific):
+- What is NSDR and how does it help sleep?
+- Can NSDR replace actual sleep when I can't fall asleep?
+- How do I practice NSDR when I wake up at 3 a.m.?
+- What's the difference between NSDR and meditation?
+- Is NSDR the same as yoga nidra?
+- How long should an NSDR session last?
+- Can NSDR help me relax during the day?
+- Does NSDR lower cortisol?
+- Where can I find guided NSDR audio?
+- Can NSDR help if I have sleep anxiety?
+
+TECHNIQUE-SPECIFIC:
+- How often should I practice NSDR?
+- Can I do NSDR in the middle of the night?
+- Will NSDR help me fall back asleep?
+
 
 ---
 
 ### **Keywords**
 
-**Formal / Medical**  
-- non-sleep deep rest  
-- yoga nidra  
-- parasympathetic activation  
-- cortisol regulation  
-- autonomic nervous system reset  
-- stress recovery protocol  
-
-**Casual Everyday**  
-- guided relaxation  
-- deep rest practice  
-- audio sleep meditation  
-- mental recharge  
-- nervous system calm  
-
-**Symptom-Linked**  
-- can’t fall asleep  
-- waking up anxious  
-- restless mind at night  
-- fatigue and burnout  
-- tension before sleep  
-
-**Behavioral / Habit**  
-- listen to NSDR audio daily  
-- practice deep rest during day naps  
-- pair breath with awareness  
-- lie flat or recline comfortably  
-- avoid checking phone after session  
-
-**Outcome-Based**  
-- reset cortisol rhythm  
-- reduce stress and anxiety  
-- retrain relaxation response  
-- improve sleep onset  
-- enhance energy and focus  
+- non-sleep deep rest NSDR
+- yoga nidra sleep
+- NSDR guided audio
+- NSDR vs meditation
+- NSDR for insomnia
+- NSDR 3 a.m. waking
+- NSDR cortisol reduction
+- parasympathetic activation NSDR
+- NSDR daily practice
+- body scan relaxation
+- NSDR replace sleep
+- NSDR sleep anxiety
+- NSDR technique menopause
+- guided relaxation NSDR
+- deep relaxation [general concept]
+- nervous system reset [shared with multiple]
+- cortisol regulation [shared with multiple]
+- relaxation techniques [very general]  
 
 ---
 
@@ -1138,66 +978,48 @@ Would you like a simple list of bedtime-friendly meals?
 ---
 
 ### **Intent Patterns**
-- What should I eat to sleep better in menopause?  
-- What foods help sleep?  
-- What should I avoid before bed?  
-- Can magnesium help with sleep?  
-- Does protein at dinner affect sleep?  
-- What vitamins or minerals support sleep?  
-- Is melatonin safe for menopause?  
-- Do herbal teas help with insomnia?  
-- What are the best bedtime snacks?  
-- Does caffeine cause night waking?  
-- Should I eat carbs before bed?  
-- Does alcohol affect sleep quality?  
-- Is tart cherry juice good for sleep?  
-- How can I stabilize blood sugar at night?  
-- What supplements are safe for sleep?  
+PRIMARY INTENTS (food/supplement/timing focused):
+- What should I eat for dinner to sleep better?
+- Why do I wake up at 3 a.m. hungry or shaky?
+- Can blood sugar affect my sleep in menopause?
+- What supplements help with menopause insomnia?
+- Is magnesium good for sleep?
+- Should I take melatonin for menopause sleep problems?
+- Does caffeine really affect my sleep even in the morning?
+- Why does alcohol make me wake up at night?
+- What foods help me stay asleep through the night?
+- Can eating too close to bedtime disrupt sleep?
+
+SUPPLEMENT-SPECIFIC:
+- What's the best type of magnesium for sleep?
+- Is 5-HTP safe for menopause sleep?
+- Do herbal teas like chamomile actually work?
+- Should I try tart cherry juice for melatonin?
+
+
 
 ---
 
 ### **Keywords**
 
-**Formal / Medical**  
-- magnesium glycinate  
-- tryptophan  
-- melatonin  
-- glycine  
-- GABA  
-- 5-HTP  
-- blood glucose regulation  
-- circadian metabolism  
-- caffeine metabolism  
-- nutrient cofactors for melatonin synthesis  
-
-**Casual Everyday**  
-- foods that help sleep  
-- magnesium for sleep  
-- what to eat before bed  
-- bedtime snacks for relaxation  
-- herbal teas for sleep  
-- sleep supplements  
-
-**Symptom-Linked**  
-- can’t fall asleep after eating  
-- waking at 3 a.m.  
-- cravings at night  
-- hot flashes after wine  
-- restless sleep after sugar  
-
-**Behavioral / Habit**  
-- limit caffeine after noon  
-- avoid heavy meals before bed  
-- eat balanced dinner with protein and carbs  
-- include calming teas or supplements  
-- reduce alcohol in the evening  
-
-**Outcome-Based**  
-- steady blood sugar  
-- calmer nervous system  
-- easier sleep onset  
-- fewer night wakings  
-- more stable mood  
+- dinner for better sleep
+- wake up 3 a.m. hungry
+- blood sugar night waking
+- magnesium glycinate sleep
+- melatonin menopause insomnia
+- caffeine disrupts sleep timing
+- alcohol fragments sleep
+- supplements for menopause sleep
+- chamomile tea sleep
+- tart cherry juice melatonin
+- 5-HTP sleep menopause
+- glycine for sleep
+- GABA supplements sleep
+- protein dinner sleep quality
+- avoid eating close to bedtime
+- blood sugar regulation [might share with metabolic content]
+- cortisol spike [shared with 3 a.m. Reset if blood sugar related]
+- nutrition and sleep [general]
 
 ---
 
@@ -1240,53 +1062,38 @@ Would you like me to walk you through *Sleep Recovery Roadmap* which shows how a
 ---
 
 ### **Intent Patterns**
-- What if lifestyle changes don’t fix my sleep?  
-- Can HRT help with insomnia?  
-- Does hormone therapy improve sleep?  
-- What is CBT-I and how does it work?  
-- What are non-hormonal options for menopause insomnia?  
-- Can I take natural sleep supplements safely?  
-- Is there prescription medicine for night sweats and sleep?  
-- When should I talk to my doctor about poor sleep?  
-- What medications are safe for menopause sleep?  
-- Are sleeping pills addictive?  
-- Can magnesium or melatonin replace prescription meds?  
-- How long does HRT take to improve sleep?  
-- What if I can’t take hormones?  
-- Does therapy help with sleep anxiety?  
-- What’s the safest approach to restoring sleep?  
+PRIMARY INTENTS (medical/clinical treatment focused):
+- When should I talk to my doctor about my sleep problems?
+- Can HRT help with insomnia and night sweats?
+- What is CBT-I and does it work for menopause insomnia?
+- Are sleeping pills safe for menopause?
+- What are non-hormonal options for severe insomnia?
+- Does hormone therapy improve sleep quality?
+- What if lifestyle changes haven't fixed my sleep?
+- Can I take prescription sleep medication long-term?
+- What's the safest treatment for persistent night sweats?
+
+MEDICAL DECISION-MAKING:
+- Should I try HRT or CBT-I first?
+- Can I combine HRT with other sleep treatments?
+- When is insomnia serious enough for medical help?
+
+
 
 ---
 
 ### **Keywords**
 
-**Casual Everyday**  
-- HRT and sleep help  
-- doctor treatment for insomnia  
-- natural sleep remedies  
-- therapy for sleep problems  
-- safe sleep medications  
-- menopause sleep support  
-
-**Symptom-Linked**  
-- night sweats disrupting sleep  
-- waking up hourly  
-- persistent insomnia  
-- hot flashes at night  
-- sleep anxiety  
-
-**Behavioral / Habit**  
-- track sleep before appointments  
-- discuss options with doctor  
-- review medication side effects  
-- combine therapy with lifestyle tools  
-- adjust dosage under supervision  
-
-**Outcome-Based**  
-- sleep through the night  
-- fewer hot flashes  
-- balanced hormones  
-- calmer nervous system  
-- stable mood and energy  
+- HRT for insomnia menopause
+- hormone therapy improves sleep
+- CBT-I menopause insomnia
+- cognitive behavioral therapy insomnia
+- non-hormonal insomnia treatment
+- when to see doctor sleep menopause
+- severe insomnia medical help
+- HRT night sweats sleep
+- combine HRT with sleep therapy
+- refractory insomnia menopause
+- treatment for insomnia [general]
 
 ---

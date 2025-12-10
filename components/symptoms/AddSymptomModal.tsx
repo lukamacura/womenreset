@@ -328,7 +328,7 @@ export default function AddSymptomModal({
             type="submit"
             form="symptom-form"
             disabled={isSubmitting || !name.trim()}
-            className="flex-1 rounded-lg bg-linear-to-r from-orange-500 to-rose-500 px-4 py-3 sm:py-2.5 text-base font-bold text-white transition-colors active:bg-primary/80 hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
+            className="flex-1 rounded-lg bg-linear-to-r from-rose-500 to-pink-500 px-4 py-3 sm:py-2.5 text-base font-bold text-white transition-colors active:bg-primary/80 hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
           >
             {isSubmitting ? "Saving..." : editingEntry ? "Update Symptom" : "Save Symptom"}
           </button>

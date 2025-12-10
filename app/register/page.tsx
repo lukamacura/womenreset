@@ -420,10 +420,10 @@ export default function RegisterPage() {
             </div>
           )}
 
-          <p className="mt-6 text-sm text-muted-foreground">
+          <p className="mt-6 text-md text-muted-foreground">
             Already have an account?{" "}
             <Link
-              className="underline underline-offset-4 hover:opacity-80"
+              className="bg-pink-300 text-pink-800 rounded-md px-2 py-1 font-bold underline-offset-4 hover:opacity-80"
               href="/login"
             >
               Log in

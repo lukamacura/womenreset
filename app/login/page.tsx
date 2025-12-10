@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
 import { useEffect, useMemo, useState, Suspense } from "react";
@@ -203,9 +204,9 @@ function LoginForm() {
         </div>
       )}
 
-      <p className="mt-6 text-sm text-muted-foreground">
+      <p className="mt-6 text-md text-muted-foreground">
         Don’t have an account? {" "}
-        <Link href="/register" className="underline underline-offset-4 hover:opacity-80">
+        <Link href="/register" className="bg-pink-300 text-pink-800 rounded-md px-2 py-1 font-bold underline-offset-4 hover:opacity-80">
           Sign up
         </Link>
       </p>

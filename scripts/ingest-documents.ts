@@ -412,17 +412,17 @@ async function loadDocuments(): Promise<Document[]> {
     return documents;
   }
   
-  // Get all .md files from the knowledge-base directory
-  const files = fs.readdirSync(kbDir).filter(f => f.endsWith('.md'));
+  // Get all .md and .txt files from the knowledge-base directory
+  const files = fs.readdirSync(kbDir).filter(f => f.endsWith('.md') || f.endsWith('.txt'));
   
   if (files.length === 0) {
-    console.warn(`⚠️  No markdown files found in ${kbDir}`);
+    console.warn(`⚠️  No markdown or text files found in ${kbDir}`);
     return documents;
   }
   
-  console.log(`📄 Found ${files.length} markdown file(s) to process`);
+  console.log(`📄 Found ${files.length} file(s) to process`);
   
-  // Process each markdown file
+  // Process each file
   for (const file of files) {
     try {
       const filePath = path.join(kbDir, file);

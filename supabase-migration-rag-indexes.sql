@@ -26,3 +26,6 @@ ON documents USING GIN ((metadata->'keywords'));
 -- 4. Improved query performance for hybrid search implementations
 
 
+
+
+
