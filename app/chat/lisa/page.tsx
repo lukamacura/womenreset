@@ -236,7 +236,7 @@ function CopyButton({ text }: { text: string }) {
           setTimeout(() => setCopied(false), 1200);
         } catch { }
       }}
-      className="absolute right-3 top-3 inline-flex items-center gap-2 rounded-lg border-2 bg-white px-3 py-2 text-sm font-semibold shadow-md transition-all hover:bg-pink-50 focus:outline-none focus:ring-2 focus:ring-pink-300"
+      className="absolute right-3 top-3 inline-flex items-center gap-2 rounded-lg border-2 bg-white px-3 py-2 text-sm font-semibold shadow-md transition-all hover:bg-primary-light/50 focus:outline-none focus:ring-2 focus:ring-primary/30"
       style={{ borderColor: THEME.pink[300], color: THEME.text[800] }}
       aria-label="Copy code"
     >
@@ -1877,7 +1877,7 @@ function ChatPageInner() {
             setMenuOpen(false);
           }
         }}
-        className="inline-flex mb-4 w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-pink-400 text-white px-3 py-2 text-sm font-semibold transition-all active:bg-pink-500 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-pink-300 touch-manipulation shadow-md"
+        className="btn-primary inline-flex mb-4 w-full cursor-pointer items-center justify-center gap-2 px-3 py-2 text-sm active:scale-[0.98] touch-manipulation shadow-md"
         title="New chat"
         aria-label="Start a new chat"
       >
@@ -1899,7 +1899,7 @@ function ChatPageInner() {
           <div
             key={s.id}
             className={`group relative flex cursor-pointer items-start gap-2 rounded-lg px-3 py-2 text-sm transition-all active:scale-[0.98] touch-manipulation ${s.id === activeId
-                ? "bg-pink-300 shadow-sm"
+                ? "bg-primary-light shadow-sm"
                 : "bg-white/60 active:bg-white/80 hover:bg-white/70"
               }`}
             onClick={() => {
@@ -2112,7 +2112,7 @@ function ChatPageInner() {
                 <h2 className="text-2xl font-bold" style={{ color: THEME.text[900] }}>History</h2>
                 <button
                   onClick={() => setMenuOpen(false)}
-                  className="cursor-pointer p-3 rounded-lg transition-all hover:bg-pink-100 focus:outline-none focus:ring-2 focus:ring-pink-300"
+                  className="cursor-pointer p-3 rounded-lg transition-all hover:bg-primary-light/50 focus:outline-none focus:ring-2 focus:ring-primary/30"
                   aria-label="Close menu"
                   style={{ color: THEME.text[800] }}
                 >
@@ -2126,11 +2126,11 @@ function ChatPageInner() {
           {/* Main */}
           <main className="flex min-w-0 flex-1 flex-col transition-all duration-500 ease-in-out lg:pl-72">
             {/* Top bar (mobile) */}
-            <div className="fixed w-full z-100 top-0 flex items-center justify-between  px-4 py-2 lg:hidden bg-pink-200/30 backdrop-blur-lg " style={{
+            <div className="fixed w-full z-100 top-0 flex items-center justify-between  px-4 py-2 lg:hidden bg-primary-light/30 backdrop-blur-lg " style={{
             }}>
               <button
                 onClick={() => setMenuOpen(true)}
-                className="p-2 rounded-lg transition-all active:bg-pink-100 focus:outline-none focus:ring-2 focus:ring-pink-300 touch-manipulation"
+                className="p-2 rounded-lg transition-all active:bg-primary-light/50 focus:outline-none focus:ring-2 focus:ring-primary/30 touch-manipulation"
                 aria-label="Open history"
                 style={{ color: THEME.text[800] }}
               >
@@ -2139,7 +2139,7 @@ function ChatPageInner() {
 
               <button
                 onClick={() => router.push('/dashboard')}
-                className="cursor-pointer p-2 rounded-lg transition-all active:bg-pink-100 focus:outline-none focus:ring-2 focus:ring-pink-300 touch-manipulation"
+                className="cursor-pointer p-2 rounded-lg transition-all active:bg-primary-light/50 focus:outline-none focus:ring-2 focus:ring-primary/30 touch-manipulation"
                 aria-label="Close chat"
                 style={{ color: THEME.text[800] }}
               >
@@ -2151,7 +2151,7 @@ function ChatPageInner() {
             <div className="hidden lg:flex fixed top-0 right-0 z-50 items-center justify-end p-6">
               <button
                 onClick={() => router.push('/dashboard')}
-                className="cursor-pointer p-2 rounded-lg transition-all hover:bg-pink-100 active:bg-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-300"
+                className="cursor-pointer p-2 rounded-lg transition-all hover:bg-primary-light/50 active:bg-primary-light focus:outline-none focus:ring-2 focus:ring-primary/30"
                 aria-label="Close chat"
                 style={{ color: THEME.text[800] }}
               >

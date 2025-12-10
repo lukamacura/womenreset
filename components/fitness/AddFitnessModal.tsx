@@ -181,9 +181,9 @@ export default function AddFitnessModal({
           <div>
             <label
               htmlFor="exerciseName"
-              className="mb-1.5 sm:mb-2 block text-sm font-medium text-foreground"
+              className="mb-1.5 sm:mb-2 block text-sm font-medium text-navy"
             >
-              Exercise Name <span className="text-rose-500">*</span>
+              Exercise Name <span className="text-primary-dark">*</span>
             </label>
             <input
               id="exerciseName"
@@ -192,14 +192,14 @@ export default function AddFitnessModal({
               onChange={(e) => setExerciseName(e.target.value)}
               required
               placeholder="e.g., Running, Weight lifting, Yoga"
-              className="w-full rounded-lg border border-foreground/15 bg-background px-3 sm:px-4 py-2.5 sm:py-3 text-base focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 touch-manipulation"
+              className="w-full rounded-lg border border-primary-light bg-background px-3 sm:px-4 py-2.5 sm:py-3 text-base focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 touch-manipulation"
             />
           </div>
 
           {/* Exercise Type */}
           <div>
             <label className="mb-2 sm:mb-3 block text-sm font-medium text-foreground">
-              Exercise Type <span className="text-rose-500">*</span>
+              Exercise Type <span className="text-primary-dark">*</span>
             </label>
             <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
               {/* Cardio */}
@@ -434,7 +434,7 @@ export default function AddFitnessModal({
             <div>
               <label
                 htmlFor="durationMinutes"
-                className="mb-1.5 sm:mb-2 block text-sm font-medium text-foreground"
+                className="mb-1.5 sm:mb-2 block text-sm font-medium text-navy"
               >
                 Duration (min) <span className="text-xs sm:text-sm font-normal text-muted-foreground">(optional)</span>
               </label>
@@ -454,7 +454,7 @@ export default function AddFitnessModal({
             <div>
               <label
                 htmlFor="caloriesBurned"
-                className="mb-1.5 sm:mb-2 block text-sm font-medium text-foreground"
+                className="mb-1.5 sm:mb-2 block text-sm font-medium text-navy"
               >
                 Calories <span className="text-xs sm:text-sm font-normal text-muted-foreground">(optional)</span>
               </label>
@@ -475,9 +475,9 @@ export default function AddFitnessModal({
           <div>
             <label
               htmlFor="performedAt"
-              className="mb-1.5 sm:mb-2 block text-sm font-medium text-foreground"
+              className="mb-1.5 sm:mb-2 block text-sm font-medium text-navy"
             >
-              Date & Time <span className="text-rose-500">*</span>
+              Date & Time <span className="text-primary-dark">*</span>
             </label>
             <input
               id="performedAt"
@@ -493,7 +493,7 @@ export default function AddFitnessModal({
           <div>
             <label
               htmlFor="notes"
-              className="mb-1.5 sm:mb-2 block text-sm font-medium text-foreground"
+              className="mb-1.5 sm:mb-2 block text-sm font-medium text-navy"
             >
               Notes <span className="text-xs sm:text-sm font-normal text-muted-foreground">(optional)</span>
             </label>
@@ -509,7 +509,7 @@ export default function AddFitnessModal({
 
           {/* Error Message */}
           {error && (
-            <div className="rounded-lg border border-rose-400/30 bg-rose-500/10 p-2.5 sm:p-3 text-sm text-rose-300">
+            <div className="rounded-lg border border-error/30 bg-error/10 p-2.5 sm:p-3 text-sm text-error">
               {error}
             </div>
           )}
@@ -529,7 +529,7 @@ export default function AddFitnessModal({
             type="submit"
             form="fitness-form"
             disabled={isSubmitting || !exerciseName.trim()}
-            className="flex-1 rounded-lg bg-linear-to-r from-rose-500 to-pink-500 px-4 py-3 sm:py-2.5 text-base font-bold text-white transition-colors active:bg-primary/80 hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
+            className="btn-primary flex-1 px-4 py-3 sm:py-2.5 text-base disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
           >
             {isSubmitting
               ? editingEntry

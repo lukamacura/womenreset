@@ -199,14 +199,14 @@ function LoginForm() {
       </form>
 
       {err && (
-        <div role="alert" className="mt-4 rounded-xl border border-rose-400/30 bg-rose-500/10 p-3 text-sm text-rose-300">
+        <div role="alert" className="mt-4 rounded-xl border border-error/30 bg-error/10 p-3 text-sm text-error">
           {err}
         </div>
       )}
 
       <p className="mt-6 text-md text-muted-foreground">
         Don’t have an account? {" "}
-        <Link href="/register" className="bg-pink-300 text-pink-800 rounded-md px-2 py-1 font-bold underline-offset-4 hover:opacity-80">
+        <Link href="/register" className="bg-primary-light text-primary-dark rounded-md px-2 py-1 font-bold underline-offset-4 hover:opacity-80">
           Sign up
         </Link>
       </p>

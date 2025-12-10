@@ -414,7 +414,7 @@ export default function RegisterPage() {
           {err && (
             <div
               role="alert"
-              className="mt-4 rounded-xl border border-rose-400/30 bg-rose-500/10 p-3 text-sm text-rose-300"
+              className="mt-4 rounded-xl border border-error/30 bg-error/10 p-3 text-sm text-error"
             >
               {err}
             </div>
@@ -423,7 +423,7 @@ export default function RegisterPage() {
           <p className="mt-6 text-md text-muted-foreground">
             Already have an account?{" "}
             <Link
-              className="bg-pink-300 text-pink-800 rounded-md px-2 py-1 font-bold underline-offset-4 hover:opacity-80"
+              className="bg-primary-light text-primary-dark rounded-md px-2 py-1 font-bold underline-offset-4 hover:opacity-80"
               href="/login"
             >
               Log in
@@ -713,7 +713,7 @@ export default function RegisterPage() {
           {err && (
             <div
               role="alert"
-              className="rounded-xl border border-rose-400/30 bg-rose-500/10 p-3 text-sm text-rose-300"
+              className="rounded-xl border border-error/30 bg-error/10 p-3 text-sm text-error"
             >
               {err}
             </div>

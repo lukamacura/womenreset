@@ -24,11 +24,11 @@ const Navbar: React.FC<NavbarProps> = ({ isAuthenticated }) => {
       )}
 
       <div className="fixed left-0 right-0 top-0 z-50 flex justify-center pt-3 sm:pt-4 px-3 sm:px-4">
-        <nav className="flex w-full max-w-[780px] items-center justify-between rounded-full bg-linear-to-r from-slate-500/80 to-slate-600/80 px-4 sm:px-5 py-2.5 sm:py-2 shadow-lg backdrop-blur-lg border border-white/25">
+        <nav className="flex w-full max-w-[780px] items-center justify-between rounded-full bg-linear-to-r from-navy/80 to-navy-dark/80 px-4 sm:px-5 py-2.5 sm:py-2 shadow-lg backdrop-blur-lg border border-white/25">
           {/* Left: Logo + Brand */}
           <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-pink-300 shadow-md">
-              <div className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded-full border-2 border-pink-600" />
+            <div className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-primary-light shadow-md">
+              <div className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded-full border-2 border-primary-dark" />
             </div>
             <span className="text-xs sm:text-sm font-semibold tracking-wide text-white">
               MenoLisa
@@ -39,25 +39,25 @@ const Navbar: React.FC<NavbarProps> = ({ isAuthenticated }) => {
           <div className="hidden items-center gap-6 lg:gap-8 text-sm lg:text-base font-medium text-white/80 lg:flex">
             <Link
               href="/"
-              className="transition-colors duration-200 hover:text-white"
+              className="transition-colors duration-200 text-white! hover:text-white"
             >
               Home
             </Link>
             <Link
               href="/about"
-              className="transition-colors duration-200 hover:text-white"
+              className="transition-colors duration-200 text-white! hover:text-white"
             >
               About
             </Link>
             <Link
               href="/pricing"
-              className="transition-colors duration-200 hover:text-white"
+              className="transition-colors duration-200 text-white! hover:text-white"
             >
               Pricing
             </Link>
             <Link
               href="/community"
-              className="transition-colors duration-200 hover:text-white"
+              className="transition-colors duration-200 text-white! hover:text-white"
             >
               Community
             </Link>
@@ -68,7 +68,7 @@ const Navbar: React.FC<NavbarProps> = ({ isAuthenticated }) => {
             {isAuthenticated ? (
               <Link
                 href="/dashboard"
-                className="rounded-full bg-pink-400 px-5 py-1.5 text-sm font-semibold text-slate-900 shadow-md border border-pink-200 transition-all duration-200 hover:bg-pink-300 hover:translate-y-px"
+                className="btn-primary px-5 py-1.5 text-sm shadow-md"
               >
                 Dashboard
               </Link>
@@ -76,13 +76,13 @@ const Navbar: React.FC<NavbarProps> = ({ isAuthenticated }) => {
               <>
                 <Link
                   href="/login"
-                  className="font-medium text-white/80 transition-colors duration-200 hover:text-white text-sm"
+                  className="font-medium text-white! transition-colors duration-200 hover:text-white text-sm"
                 >
                   Log in
                 </Link>
                 <Link
                   href="/register"
-                  className="rounded-full bg-pink-400 px-5 py-1.5 text-sm font-semibold text-slate-900 shadow-md border border-pink-200 transition-all duration-200 hover:bg-pink-300 hover:translate-y-px"
+                  className="btn-primary px-5 py-1.5 text-sm shadow-md"
                 >
                   Sign up
                 </Link>
@@ -108,7 +108,7 @@ const Navbar: React.FC<NavbarProps> = ({ isAuthenticated }) => {
 
       {/* Mobile Menu */}
       <div
-        className={`fixed top-22 sm:top-20 left-3 right-3 z-40 rounded-2xl bg-linear-to-br from-slate-600/95 to-slate-700/95 backdrop-blur-lg border border-white/25 shadow-2xl transition-transform duration-300 ease-in-out lg:hidden ${
+        className={`fixed top-22 sm:top-20 left-3 right-3 z-40 rounded-2xl bg-linear-to-br from-navy/95 to-navy-dark/95 backdrop-blur-lg border border-white/25 shadow-2xl transition-transform duration-300 ease-in-out lg:hidden ${
           mobileMenuOpen ? "translate-y-0 opacity-100" : "-translate-y-4 opacity-0 pointer-events-none"
         }`}
       >
@@ -146,7 +146,7 @@ const Navbar: React.FC<NavbarProps> = ({ isAuthenticated }) => {
             <Link
               href="/dashboard"
               onClick={() => setMobileMenuOpen(false)}
-              className="px-4 py-3 rounded-lg bg-pink-400 text-slate-900 font-semibold text-center transition-colors active:bg-pink-300 touch-manipulation"
+              className="btn-primary px-4 py-3 text-center touch-manipulation"
             >
               Dashboard
             </Link>
@@ -162,7 +162,7 @@ const Navbar: React.FC<NavbarProps> = ({ isAuthenticated }) => {
               <Link
                 href="/register"
                 onClick={() => setMobileMenuOpen(false)}
-                className="px-4 py-3 rounded-lg bg-pink-400 text-slate-900 font-semibold text-center transition-colors active:bg-pink-300 touch-manipulation"
+                className="btn-primary px-4 py-3 text-center touch-manipulation"
               >
                 Sign up
               </Link>

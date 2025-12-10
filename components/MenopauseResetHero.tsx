@@ -51,17 +51,17 @@ export default function MenopauseResetHero(props: MenopauseResetProps) {
   return (
     <section className="relative overflow-hidden">
       {/* Background */}
-      <div aria-hidden className="absolute inset-0 -z-10 bg-linear-to-b from-pink-400 via-pink-200 to-pink-100" />
+      <div aria-hidden className="absolute inset-0 -z-10 bg-linear-to-b from-primary via-primary-light to-primary-light/50" />
 
       <div className="mx-auto max-w-6xl px-6 py-16 lg:py-24 text-center">
         {/* Eyebrow + Title */}
-        <span className="inline-flex items-center gap-2 rounded-full border border-rose-200/70 bg-white px-3 py-1 text-xs font-medium uppercase tracking-wide text-rose-700 shadow-sm">
+        <span className="inline-flex items-center gap-2 rounded-full border border-primary-light/70 bg-white px-3 py-1 text-xs font-medium uppercase tracking-wide text-primary-dark shadow-sm">
           <Sparkles className="h-3.5 w-3.5" aria-hidden /> {copy.eyebrow}
         </span>
-        <h1 className="mt-4 text-balance text-3xl font-semibold tracking-tight text-zinc-900 sm:text-4xl md:text-5xl">
+        <h1 className="mt-4 text-balance text-3xl font-semibold tracking-tight text-navy sm:text-4xl md:text-5xl">
           {copy.problemTitle}
         </h1>
-        <p className="mx-auto mt-4 max-w-2xl text-pretty text-zinc-600">
+        <p className="mx-auto mt-4 max-w-2xl text-pretty text-navy/70">
           {copy.problemIntro}
         </p>
 
@@ -69,7 +69,7 @@ export default function MenopauseResetHero(props: MenopauseResetProps) {
         <ul className="mx-auto mt-8 flex max-w-3xl flex-wrap items-center justify-center gap-3">
           {pills.map(({ Icon, label }) => (
             <li key={label}>
-              <span className="inline-flex items-center gap-2 rounded-full border border-rose-200/80 bg-white px-3 py-1 text-sm text-zinc-700 shadow-sm">
+              <span className="inline-flex items-center gap-2 rounded-full border border-primary-light/80 bg-white px-3 py-1 text-sm text-navy shadow-sm">
                 <Icon className="h-4 w-4" aria-hidden />
                 {label}
               </span>
@@ -92,7 +92,7 @@ export default function MenopauseResetHero(props: MenopauseResetProps) {
         <div className="mt-2">
           <a
           href="/register"
-            className="cursor-pointer inline-flex items-center gap-2 rounded-2xl bg-rose-600 px-6 py-3 text-base font-bold text-white shadow-lg transition hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-300"
+            className="btn-primary cursor-pointer inline-flex items-center gap-2 px-6 py-3 text-base shadow-lg"
           >
             <Sparkles className="h-4 w-4" /> {copy.ctaPrimaryText}
           </a>

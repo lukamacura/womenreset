@@ -166,9 +166,9 @@ export default function AddSymptomModal({
           <div>
             <label
               htmlFor="name"
-              className="mb-1.5 sm:mb-2 block text-sm font-medium text-foreground"
+              className="mb-1.5 sm:mb-2 block text-sm font-medium text-navy"
             >
-              Symptom Name <span className="text-rose-500">*</span>
+              Symptom Name <span className="text-primary-dark">*</span>
             </label>
             <input
               id="name"
@@ -177,14 +177,14 @@ export default function AddSymptomModal({
               onChange={(e) => setName(e.target.value)}
               required
               placeholder="e.g., Hot flashes, Headache, Fatigue"
-              className="w-full rounded-lg border border-foreground/15 bg-background px-3 sm:px-4 py-2.5 sm:py-3 text-base focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 touch-manipulation"
+              className="w-full rounded-lg border border-primary-light bg-background px-3 sm:px-4 py-2.5 sm:py-3 text-base focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 touch-manipulation"
             />
           </div>
 
           {/* Severity */}
           <div>
-            <label className="mb-2 sm:mb-3 block text-sm font-medium text-foreground">
-              Severity <span className="text-rose-500">*</span>
+            <label className="mb-2 sm:mb-3 block text-sm font-medium text-navy">
+              Severity <span className="text-primary-dark">*</span>
             </label>
             <div className="grid grid-cols-3 gap-2 sm:gap-3">
               {/* Low */}
@@ -195,19 +195,19 @@ export default function AddSymptomModal({
                   group relative flex flex-col items-center gap-1.5 sm:gap-2 rounded-lg sm:rounded-xl border-2 p-2.5 sm:p-4 transition-all duration-200 touch-manipulation
                   ${
                     severity === "low"
-                      ? "border-green-500 bg-green-50 shadow-md"
-                      : "border-foreground/15 bg-background/60 active:border-green-300 active:bg-green-50/50"
+                      ? "border-shamrock bg-shamrock-light shadow-md"
+                      : "border-foreground/15 bg-background/60 active:border-shamrock-light active:bg-shamrock-light/50"
                   }
                 `}
               >
                 <Smile
                   className={`h-7 w-7 sm:h-10 sm:w-10 ${
-                    severity === "low" ? "text-green-600" : "text-green-500"
+                    severity === "low" ? "text-shamrock-dark" : "text-shamrock"
                   }`}
                 />
                 <span
                   className={`text-xs sm:text-sm font-semibold ${
-                    severity === "low" ? "text-green-700" : "text-foreground/70"
+                    severity === "low" ? "text-shamrock-dark" : "text-foreground/70"
                   }`}
                 >
                   Low
@@ -222,19 +222,19 @@ export default function AddSymptomModal({
                   group relative flex flex-col items-center gap-1.5 sm:gap-2 rounded-lg sm:rounded-xl border-2 p-2.5 sm:p-4 transition-all duration-200 touch-manipulation
                   ${
                     severity === "medium"
-                      ? "border-yellow-500 bg-yellow-50 shadow-md"
-                      : "border-foreground/15 bg-background/60 active:border-yellow-300 active:bg-yellow-50/50"
+                      ? "border-warning bg-warning/20 shadow-md"
+                      : "border-foreground/15 bg-background/60 active:border-warning active:bg-warning/20"
                   }
                 `}
               >
                 <Meh
                   className={`h-7 w-7 sm:h-10 sm:w-10 ${
-                    severity === "medium" ? "text-yellow-600" : "text-yellow-500"
+                    severity === "medium" ? "text-warning" : "text-warning/80"
                   }`}
                 />
                 <span
                   className={`text-xs sm:text-sm font-semibold ${
-                    severity === "medium" ? "text-yellow-700" : "text-foreground/70"
+                    severity === "medium" ? "text-warning" : "text-foreground/70"
                   }`}
                 >
                   Medium
@@ -249,19 +249,19 @@ export default function AddSymptomModal({
                   group relative flex flex-col items-center gap-1.5 sm:gap-2 rounded-lg sm:rounded-xl border-2 p-2.5 sm:p-4 transition-all duration-200 touch-manipulation
                   ${
                     severity === "high"
-                      ? "border-red-500 bg-red-50 shadow-md"
-                      : "border-foreground/15 bg-background/60 active:border-red-300 active:bg-red-50/50"
+                      ? "border-error bg-error/20 shadow-md"
+                      : "border-foreground/15 bg-background/60 active:border-error active:bg-error/20"
                   }
                 `}
               >
                 <Frown
                   className={`h-7 w-7 sm:h-10 sm:w-10 ${
-                    severity === "high" ? "text-red-600" : "text-red-500"
+                    severity === "high" ? "text-error" : "text-error/80"
                   }`}
                 />
                 <span
                   className={`text-xs sm:text-sm font-semibold ${
-                    severity === "high" ? "text-red-700" : "text-foreground/70"
+                    severity === "high" ? "text-error" : "text-foreground/70"
                   }`}
                 >
                   High
@@ -274,9 +274,9 @@ export default function AddSymptomModal({
           <div>
             <label
               htmlFor="occurredAt"
-              className="mb-1.5 sm:mb-2 block text-sm font-medium text-foreground"
+              className="mb-1.5 sm:mb-2 block text-sm font-medium text-navy"
             >
-              Date & Time <span className="text-rose-500">*</span>
+              Date & Time <span className="text-primary-dark">*</span>
             </label>
             <input
               id="occurredAt"
@@ -284,7 +284,7 @@ export default function AddSymptomModal({
               value={occurredAt}
               onChange={(e) => setOccurredAt(e.target.value)}
               required
-              className="w-full rounded-lg border border-foreground/15 bg-background px-3 sm:px-4 py-2.5 sm:py-3 text-base focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 touch-manipulation"
+              className="w-full rounded-lg border border-primary-light bg-background px-3 sm:px-4 py-2.5 sm:py-3 text-base focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 touch-manipulation"
             />
           </div>
 
@@ -292,7 +292,7 @@ export default function AddSymptomModal({
           <div>
             <label
               htmlFor="notes"
-              className="mb-1.5 sm:mb-2 block text-sm font-medium text-foreground"
+              className="mb-1.5 sm:mb-2 block text-sm font-medium text-navy"
             >
               Notes <span className="text-xs sm:text-sm font-normal text-muted-foreground">(optional)</span>
             </label>
@@ -302,13 +302,13 @@ export default function AddSymptomModal({
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
               placeholder="Any additional details..."
-              className="w-full rounded-lg border border-foreground/15 bg-background px-3 sm:px-4 py-2 sm:py-2.5 text-base focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none touch-manipulation"
+              className="w-full rounded-lg border border-primary-light bg-background px-3 sm:px-4 py-2 sm:py-2.5 text-base focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none touch-manipulation"
             />
           </div>
 
           {/* Error Message */}
           {error && (
-            <div className="rounded-lg border border-rose-400/30 bg-rose-500/10 p-2.5 sm:p-3 text-sm text-rose-300">
+            <div className="rounded-lg border border-error/30 bg-error/10 p-2.5 sm:p-3 text-sm text-error">
               {error}
             </div>
           )}
@@ -328,7 +328,7 @@ export default function AddSymptomModal({
             type="submit"
             form="symptom-form"
             disabled={isSubmitting || !name.trim()}
-            className="flex-1 rounded-lg bg-linear-to-r from-rose-500 to-pink-500 px-4 py-3 sm:py-2.5 text-base font-bold text-white transition-colors active:bg-primary/80 hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
+            className="btn-primary flex-1 px-4 py-3 sm:py-2.5 text-base disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
           >
             {isSubmitting ? "Saving..." : editingEntry ? "Update Symptom" : "Save Symptom"}
           </button>

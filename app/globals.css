@@ -1,20 +1,55 @@
 @import "tailwindcss";
 
-/* Tailwind v4 tokeni */
+/* Tailwind v4 tokens */
 @theme {
-  /* font tokeni koje Tailwind koristi */
+  /* font tokens Tailwind uses */
   --font-sans: var(--font-satoshi), system-ui, sans-serif;
   --font-display: var(--font-playfair), serif;
-  /* poseban token za pisani font */
   --font-script: var(--font-script), cursive;
 
-  /* default (light) boje — ZADAJ IH OVDE, ne preko var(--primary) */
-  --color-background: #ffe9ef;
-  --color-foreground: #111111;
-  --color-primary: #fc809f; /* postojana vrednost u light */
+  /* Brand Colors - Primary (Pink) */
+  --color-primary: #FF7B9C;
+  --color-primary-light: #FFC3D0;
+  --color-primary-dark: #E36280;
+
+  /* Brand Colors - Navy */
+  --color-navy: #1D3557;
+  --color-navy-light: #4E6583;
+  --color-navy-dark: #0F1E33;
+
+  /* Brand Colors - Blue */
+  --color-blue: #3E92CC;
+  --color-blue-light: #89C4EA;
+  --color-blue-dark: #2B6A94;
+
+  /* Brand Colors - Gold */
+  --color-gold: #F9DB6D;
+  --color-gold-light: #FFF1B5;
+  --color-gold-dark: #D9B44D;
+
+  /* Brand Colors - Green */
+  --color-green: #499F68;
+  --color-green-light: #7CCF99;
+  --color-green-dark: #2F6B46;
+
+  /* Semantic Colors */
+  --color-success: #499F68;
+  --color-success-dark: #2F6B46;
+  --color-error: #D64545;
+  --color-warning: #E8B63A;
+  --color-info: #3E92CC;
+  --color-info-dark: #2B6A94;
+
+  /* Background & Foreground */
+  --color-background: #FFF5F7; /* Very soft pink tint */
+  --color-foreground: #1A1A1A; /* Neutral dark gray for body text */
+
+  /* Typography Colors */
+  --color-headline: #1D3557; /* Navy for headlines */
+  --color-link: #E36280; /* Pink Dark for links */
 }
 
-/* Globalni rendering tweaks – van dark media upita */
+/* Global rendering tweaks */
 :root {
   font-synthesis-weight: none;
   text-rendering: optimizeLegibility;
@@ -27,31 +62,146 @@
   --font-playfair: "Playfair Display", "Times New Roman", serif;
   /* npr. Dancing Script, ali možeš da promeniš po želji */
   --font-script: "Dancing Script", "Segoe Script", cursive;
-}
 
-/* Dark tema — PREPIŠI tokene koje želiš u dark */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-background: #ffe9ef;
-    --color-foreground: #111111;
-    --color-primary: #fc809f; /* može ista ili druga */
-  }
-}
-
-/* pomoćne CSS varijable ako ih koristiš drugde */
-:root {
+  /* helper aliases */
   --background: var(--color-background);
   --foreground: var(--color-foreground);
+
+  --PRIMARY: var(--color-primary);
+  --PRIMARY_LIGHT: var(--color-primary-light);
+  --PRIMARY_DARK: var(--color-primary-dark);
+
+  --NAVY: var(--color-navy);
+  --NAVY_LIGHT: var(--color-navy-light);
+  --NAVY_DARK: var(--color-navy-dark);
+
+  --BLUE: var(--color-blue);
+  --BLUE_LIGHT: var(--color-blue-light);
+  --BLUE_DARK: var(--color-blue-dark);
+
+  --GOLD: var(--color-gold);
+  --GOLD_LIGHT: var(--color-gold-light);
+  --GOLD_DARK: var(--color-gold-dark);
+
+  --GREEN: var(--color-green);
+  --GREEN_LIGHT: var(--color-green-light);
+  --GREEN_DARK: var(--color-green-dark);
 }
+
+/* LIGHT ONLY – nema više dark media query-ja */
 
 body {
   background: var(--color-background);
   color: var(--color-foreground);
-  /* Satoshi kao default font za ceo sajt */
   font-family: var(--font-satoshi), system-ui, sans-serif;
 }
 
-/* Tailwind v4 utility za pisani font (koristiš: className="font-script") */
+/* Tailwind v4 utility za pisani font (className="font-script") */
 @utility font-script {
   font-family: var(--font-script);
+}
+
+/* Button Styles */
+.btn-primary,
+.btn-navy,
+.btn-blue,
+.btn-gold,
+.btn-green {
+  border-radius: 8px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.btn-primary {
+  background-color: var(--PRIMARY_LIGHT);
+  color: var(--PRIMARY_DARK);
+}
+
+.btn-primary:hover {
+  background-color: var(--PRIMARY);
+  color: #fff;
+}
+
+.btn-navy {
+  background-color: var(--NAVY_LIGHT);
+  color: var(--NAVY_DARK);
+}
+
+.btn-navy:hover {
+  background-color: var(--NAVY);
+  color: #fff;
+}
+
+.btn-blue {
+  background-color: var(--BLUE_LIGHT);
+  color: var(--BLUE_DARK);
+}
+
+.btn-blue:hover {
+  background-color: var(--BLUE);
+  color: #fff;
+}
+
+.btn-gold {
+  background-color: var(--GOLD_LIGHT);
+  color: var(--GOLD_DARK);
+}
+
+.btn-gold:hover {
+  background-color: var(--GOLD);
+  color: var(--NAVY);
+}
+
+.btn-green {
+  background-color: var(--GREEN_LIGHT);
+  color: var(--GREEN_DARK);
+}
+
+.btn-green:hover {
+  background-color: var(--GREEN);
+  color: #fff;
+}
+
+/* Link Styles */
+a {
+  color: var(--color-link);
+  text-decoration: none;
+}
+
+
+/* Typography */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: var(--color-headline);
+}
+
+/* Form Elements */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="datetime-local"],
+input[type="date"],
+input[type="time"],
+input[type="number"],
+textarea,
+select {
+  border: 1px solid var(--PRIMARY_LIGHT);
+  border-radius: 6px;
+}
+
+/* real focus ring using box-shadow instead of Tailwind ring props */
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--PRIMARY);
+  box-shadow: 0 0 0 2px rgba(255, 123, 156, 0.25); /* soft pink ring */
+}
+
+label {
+  color: var(--NAVY);
 }

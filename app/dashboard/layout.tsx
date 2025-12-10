@@ -103,7 +103,7 @@ export default function DashboardLayout({
   }, [pathname]);
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col pt-18">
       {/* Top Navigation */}
       <nav className="top-0 z-10 border-b border-foreground/10 bg-background/80 backdrop-blur-sm">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -112,7 +112,7 @@ export default function DashboardLayout({
             <div className="relative lg:hidden" ref={dropdownRef}>
               <button
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold bg-primary/20 text-pink-800 transition-colors duration-200 w-full min-w-[200px]"
+                className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold bg-primary-light text-primary-dark transition-colors duration-200 w-full min-w-[200px]"
               >
                 <ActiveIcon className="h-5 w-5" />
                 <span className="flex-1 text-left">{activeItem.label}</span>
@@ -141,13 +141,12 @@ export default function DashboardLayout({
                           handleNavClick(item, e);
                         }}
                         className={`
-                          flex items-center gap-3 px-4 py-3 text-sm font-medium
-                          transition-colors duration-200
+                          flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors duration-200
                           ${isActive
                             ? "bg-primary/20 text-foreground"
                             : isDisabled
                             ? "text-muted-foreground/50 cursor-not-allowed opacity-50"
-                            : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
+                            : "text-foreground! hover:bg-foreground/5"
                           }
                         `}
                       >
@@ -186,10 +185,10 @@ export default function DashboardLayout({
                     className={`
                       flex items-center gap-2 rounded-lg px-4 py-2 font-medium text-sm transition-colors duration-200
                       ${isActive
-                        ? "bg-pink-800/15 text-pink-800 font-semibold"
+                        ? "bg-primary-light text-primary-dark font-semibold"
                         : isDisabled
                         ? "text-muted-foreground/50 cursor-not-allowed opacity-50"
-                        : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
+                        : "text-foreground! hover:bg-foreground/5"
                       }
                     `}
                   >

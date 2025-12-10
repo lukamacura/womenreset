@@ -100,7 +100,7 @@ export default function MagicLinkClient() {
         </div>
       )}
       {err && (
-        <div role="alert" className="mt-4 rounded-xl border border-rose-400/30 bg-rose-500/10 p-3 text-sm text-rose-300">
+        <div role="alert" className="mt-4 rounded-xl border border-error/30 bg-error/10 p-3 text-sm text-error">
           {err}
         </div>
       )}

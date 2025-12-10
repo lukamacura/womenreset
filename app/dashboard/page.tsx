@@ -59,8 +59,8 @@ function TrialStatusCard({
   };
 }) {
   return (
-    <div className="relative overflow-hidden rounded-2xl bg-linear-to-br from-purple-50 via-pink-50/50 to-white border-2 border-pink-200/50 p-6 lg:p-8 shadow-lg">
-      <div className="absolute top-0 right-0 w-64 h-64 bg-linear-to-br from-purple-400/20 to-pink-400/20 rounded-full blur-3xl" />
+    <div className="relative overflow-hidden rounded-2xl bg-linear-to-br from-blue-bell-light/30 via-primary-light/30 to-white border-2 border-primary-light/50 p-6 lg:p-8 shadow-lg">
+      <div className="absolute top-0 right-0 w-64 h-64 bg-linear-to-br from-blue-bell/20 to-primary/20 rounded-full blur-3xl" />
       <div className="relative">
         <div className="flex items-start justify-between mb-4">
           <div className="flex-1 min-w-0">
@@ -79,7 +79,7 @@ function TrialStatusCard({
           <div
             className={`rounded-full px-3 py-1.5 text-xs font-semibold shrink-0 ml-2 ${
               trial.expired
-                ? "bg-rose-500/20 text-rose-700"
+                ? "bg-error/20 text-error"
                 : "bg-green-500/20 text-green-700"
             }`}
           >
@@ -98,8 +98,8 @@ function TrialStatusCard({
             <div
               className={`h-full bg-linear-to-r transition-[width] duration-500 ${
                 trial.expired
-                  ? "from-rose-500 to-rose-600"
-                  : "from-pink-500 to-pink-600"
+                  ? "from-error to-error"
+                  : "from-primary to-primary-dark"
               }`}
               style={{ width: `${Math.max(0, Math.min(100, trial.progressPct))}%` }}
             />
@@ -134,15 +134,15 @@ function SymptomsOverviewCard({
   return (
     <Link
       href="/dashboard/symptoms"
-      className="group relative overflow-hidden block h-full rounded-2xl bg-linear-to-br from-pink-50 via-pink-100/50 to-white border-2 border-pink-200/50 p-6 shadow-lg transition-all hover:shadow-xl hover:scale-[1.02]"
-    >
-      <div className="absolute top-0 right-0 w-32 h-32 bg-linear-to-br from-pink-400/20 to-transparent rounded-full blur-2xl" />
+      className="group relative overflow-hidden block h-full rounded-2xl bg-linear-to-br from-primary-light/30 via-primary-light/20 to-white border-2 border-primary-light/50 p-6 shadow-lg transition-all hover:shadow-xl hover:scale-[1.02]"
+      >
+      <div className="absolute top-0 right-0 w-32 h-32 bg-linear-to-br from-primary/20 to-transparent rounded-full blur-2xl" />
       <div className="relative">
         <div className="flex items-start justify-between mb-4">
-          <div className="p-3 rounded-xl bg-linear-to-br from-pink-500 to-pink-600 shadow-md">
+          <div className="p-3 rounded-xl bg-linear-to-br from-primary to-primary-dark shadow-md">
             <Activity className="h-6 w-6 text-white" />
           </div>
-          <ArrowRight className="h-5 w-5 text-pink-500 transition-transform group-hover:translate-x-1" />
+          <ArrowRight className="h-5 w-5 text-primary transition-transform group-hover:translate-x-1" />
         </div>
         <div>
           <h3 className="text-base font-medium text-muted-foreground mb-1">Symptom Tracker</h3>
@@ -199,8 +199,8 @@ function RecentSymptomsCard({
   };
 
   return (
-    <div className="relative overflow-hidden rounded-2xl bg-linear-to-br from-white via-pink-50/30 to-white border-2 border-pink-200/50 p-6 shadow-lg">
-      <div className="absolute top-0 right-0 w-40 h-40 bg-linear-to-br from-pink-300/10 to-transparent rounded-full blur-3xl" />
+    <div className="relative overflow-hidden rounded-2xl bg-linear-to-br from-white via-primary-light/20 to-white border-2 border-primary-light/50 p-6 shadow-lg">
+      <div className="absolute top-0 right-0 w-40 h-40 bg-linear-to-br from-primary-light/10 to-transparent rounded-full blur-3xl" />
       <div className="relative">
         <div className="flex items-center justify-between mb-5">
           <h3 className="text-lg font-bold text-foreground">Recent Symptoms</h3>
@@ -235,7 +235,7 @@ function RecentSymptomsCard({
             {recentSymptoms.map((symptom) => (
               <div
                 key={symptom.id}
-                className="group rounded-xl border border-foreground/10 bg-white/60 p-4 hover:border-pink-300/50 hover:shadow-md transition-all duration-200"
+                className="group rounded-xl border border-foreground/10 bg-white/60 p-4 hover:border-primary-light hover:shadow-md transition-all duration-200"
               >
                 <div className="flex items-center gap-3">
                   <div 
@@ -261,7 +261,7 @@ function RecentSymptomsCard({
                         e.stopPropagation();
                         onDelete(symptom);
                       }}
-                      className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-rose-500/10 hover:text-rose-600 shrink-0"
+                      className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-primary-light/50 hover:text-primary-dark shrink-0"
                       aria-label="Delete symptom"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -443,7 +443,7 @@ function RecentNutritionCard({
                     e.stopPropagation();
                     onDelete(entry);
                   }}
-                  className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-rose-500/10 hover:text-rose-600 shrink-0"
+                      className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-primary-light/50 hover:text-primary-dark shrink-0"
                   aria-label="Delete nutrition entry"
                 >
                   <Trash2 className="h-4 w-4" />
@@ -629,7 +629,7 @@ function RecentFitnessCard({
                     e.stopPropagation();
                     onDelete(entry);
                   }}
-                  className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-rose-500/10 hover:text-rose-600 shrink-0"
+                      className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-primary-light/50 hover:text-primary-dark shrink-0"
                   aria-label="Delete fitness entry"
                 >
                   <Trash2 className="h-4 w-4" />
@@ -1167,9 +1167,9 @@ export default function DashboardPage() {
   if (err) {
     return (
       <main className="mx-auto max-w-7xl p-6 sm:p-8">
-        <div role="alert" className="rounded-xl border border-rose-400/30 bg-rose-500/10 p-4">
-          <div className="font-semibold text-rose-300 text-lg">Error</div>
-          <p className="mt-1 text-base text-rose-200/90">{err}</p>
+        <div role="alert" className="rounded-xl border border-error/30 bg-error/10 p-4">
+          <div className="font-semibold text-error text-lg">Error</div>
+          <p className="mt-1 text-base text-error/90">{err}</p>
           <div className="mt-4 flex gap-2">
             <button
               onClick={() => router.refresh()}

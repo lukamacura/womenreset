@@ -166,9 +166,9 @@ export default function AddNutritionModal({
           <div>
             <label
               htmlFor="foodItem"
-              className="mb-1.5 sm:mb-2 block text-sm font-medium text-foreground"
+              className="mb-1.5 sm:mb-2 block text-sm font-medium text-navy"
             >
-              Food Item <span className="text-rose-500">*</span>
+              Food Item <span className="text-primary-dark">*</span>
             </label>
             <input
               id="foodItem"
@@ -177,14 +177,14 @@ export default function AddNutritionModal({
               onChange={(e) => setFoodItem(e.target.value)}
               required
               placeholder="e.g., Grilled chicken salad, Oatmeal with berries"
-              className="w-full rounded-lg border border-foreground/15 bg-background px-3 sm:px-4 py-2.5 sm:py-3 text-base focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 touch-manipulation"
+              className="w-full rounded-lg border border-primary-light bg-background px-3 sm:px-4 py-2.5 sm:py-3 text-base focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 touch-manipulation"
             />
           </div>
 
           {/* Meal Type */}
           <div>
             <label className="mb-2 sm:mb-3 block text-sm font-medium text-foreground">
-              Meal Type <span className="text-rose-500">*</span>
+              Meal Type <span className="text-primary-dark">*</span>
             </label>
             <div className="grid grid-cols-2 gap-2 sm:gap-3">
               {/* Breakfast */}
@@ -301,7 +301,7 @@ export default function AddNutritionModal({
           <div>
             <label
               htmlFor="calories"
-              className="mb-1.5 sm:mb-2 block text-sm font-medium text-foreground"
+              className="mb-1.5 sm:mb-2 block text-sm font-medium text-navy"
             >
               Calories <span className="text-xs sm:text-sm font-normal text-muted-foreground">(optional)</span>
             </label>
@@ -321,9 +321,9 @@ export default function AddNutritionModal({
           <div>
             <label
               htmlFor="consumedAt"
-              className="mb-1.5 sm:mb-2 block text-sm font-medium text-foreground"
+              className="mb-1.5 sm:mb-2 block text-sm font-medium text-navy"
             >
-              Date & Time <span className="text-rose-500">*</span>
+              Date & Time <span className="text-primary-dark">*</span>
             </label>
             <input
               id="consumedAt"
@@ -339,7 +339,7 @@ export default function AddNutritionModal({
           <div>
             <label
               htmlFor="notes"
-              className="mb-1.5 sm:mb-2 block text-sm font-medium text-foreground"
+              className="mb-1.5 sm:mb-2 block text-sm font-medium text-navy"
             >
               Notes <span className="text-xs sm:text-sm font-normal text-muted-foreground">(optional)</span>
             </label>
@@ -355,7 +355,7 @@ export default function AddNutritionModal({
 
           {/* Error Message */}
           {error && (
-            <div className="rounded-lg border border-rose-400/30 bg-rose-500/10 p-2.5 sm:p-3 text-sm text-rose-300">
+            <div className="rounded-lg border border-error/30 bg-error/10 p-2.5 sm:p-3 text-sm text-error">
               {error}
             </div>
           )}
@@ -375,7 +375,7 @@ export default function AddNutritionModal({
             type="submit"
             form="nutrition-form"
             disabled={isSubmitting || !foodItem.trim()}
-            className="flex-1 rounded-lg bg-linear-to-r from-rose-500 to-pink-500 px-4 py-3 sm:py-2.5 text-base font-bold text-white transition-colors active:bg-primary/80 hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
+            className="btn-primary flex-1 px-4 py-3 sm:py-2.5 text-base disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
           >
             {isSubmitting
               ? editingEntry

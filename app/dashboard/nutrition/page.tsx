@@ -175,7 +175,7 @@ export default function NutritionPage() {
         </div>
         <button
           onClick={() => setIsModalOpen(true)}
-          className="inline-flex font-bold text-lg justify-center items-center gap-2 rounded-lg bg-linear-to-r from-rose-500 to-pink-500 cursor-pointer px-5 py-2.5 text-white shadow-md transition-all hover:bg-primary/90 hover:translate-y-px"
+          className="btn-primary inline-flex font-bold text-lg justify-center items-center gap-2 cursor-pointer px-5 py-2.5 shadow-md hover:translate-y-px"
         >
           <ForkKnifeCrossed className="h-5 w-5" />
           Add meal
@@ -186,10 +186,10 @@ export default function NutritionPage() {
       {error && (
         <div
           role="alert"
-          className="rounded-xl border border-rose-400/30 bg-rose-500/10 p-4"
+          className="rounded-xl border border-error/30 bg-error/10 p-4"
         >
-          <div className="font-semibold text-rose-300 text-lg">Error</div>
-          <p className="mt-1 text-base text-rose-200/90">{error}</p>
+          <div className="font-semibold text-error text-lg">Error</div>
+          <p className="mt-1 text-base text-error/90">{error}</p>
           <button
             onClick={fetchNutrition}
             className="mt-4 inline-flex items-center rounded-lg bg-foreground/10 px-3 py-2 text-base hover:bg-foreground/15"

@@ -3,17 +3,36 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowBigRight } from "lucide-react";
-import { useTrialStatus } from "@/lib/useTrialStatus";
+import { supabase } from "@/lib/supabaseClient";
 
-export default function LisaSwipeButton() {
+export default function HomeSwipeButton() {
   const router = useRouter();
-  const trialStatus = useTrialStatus();
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState(0);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const dragStartRef = useRef(0);
   const dragOffsetRef = useRef(0);
   const SWIPE_THRESHOLD = 80; // Minimum swipe distance to trigger
+
+  // Check authentication status
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setIsAuthenticated(!!user);
+    };
+
+    checkAuth();
+
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAuthenticated(!!session?.user);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     e.preventDefault();
@@ -41,9 +60,13 @@ export default function LisaSwipeButton() {
   const handleTouchEnd = (e: React.TouchEvent) => {
     e.preventDefault();
     const finalOffset = dragOffsetRef.current;
-    if (finalOffset >= SWIPE_THRESHOLD && !trialStatus.expired) {
-      // Swipe successful - navigate to Lisa
-      router.push("/chat/lisa");
+    if (finalOffset >= SWIPE_THRESHOLD) {
+      // Swipe successful - navigate based on auth status
+      if (isAuthenticated) {
+        router.push("/chat/lisa");
+      } else {
+        router.push("/register");
+      }
     }
     setIsDragging(false);
     setDragOffset(0);
@@ -61,7 +84,7 @@ export default function LisaSwipeButton() {
 
   // Inject glow animation styles
   useEffect(() => {
-    const styleId = 'lisa-swipe-button-glow-styles';
+    const styleId = 'home-swipe-button-glow-styles';
     if (document.getElementById(styleId)) return;
 
     const style = document.createElement('style');
@@ -69,16 +92,16 @@ export default function LisaSwipeButton() {
     style.textContent = `
       @keyframes pulseGlow {
         0%, 100% {
-          box-shadow: 0 0 30px rgba(244, 63, 94, 0.7),
-                      0 0 60px rgba(244, 63, 94, 0.5),
-                      0 0 90px rgba(244, 63, 94, 0.4),
-                      0 0 120px rgba(244, 63, 94, 0.3);
+          box-shadow: 0 0 30px rgba(255, 123, 156, 0.7),
+                      0 0 60px rgba(255, 123, 156, 0.5),
+                      0 0 90px rgba(255, 123, 156, 0.4),
+                      0 0 120px rgba(255, 123, 156, 0.3);
         }
         50% {
-          box-shadow: 0 0 50px rgba(244, 63, 94, 0.9),
-                      0 0 100px rgba(244, 63, 94, 0.7),
-                      0 0 150px rgba(244, 63, 94, 0.5),
-                      0 0 200px rgba(244, 63, 94, 0.4);
+          box-shadow: 0 0 50px rgba(255, 123, 156, 0.9),
+                      0 0 100px rgba(255, 123, 156, 0.7),
+                      0 0 150px rgba(255, 123, 156, 0.5),
+                      0 0 200px rgba(255, 123, 156, 0.4);
         }
       }
     `;
@@ -111,8 +134,13 @@ export default function LisaSwipeButton() {
     const handleMouseUpWrapper = (e: MouseEvent) => {
       e.preventDefault();
       const finalOffset = dragOffsetRef.current;
-      if (finalOffset >= SWIPE_THRESHOLD && !trialStatus.expired) {
-        router.push("/chat/lisa");
+      if (finalOffset >= SWIPE_THRESHOLD) {
+        // Navigate based on auth status
+        if (isAuthenticated) {
+          router.push("/chat/lisa");
+        } else {
+          router.push("/register");
+        }
       }
       setIsDragging(false);
       setDragOffset(0);
@@ -125,24 +153,19 @@ export default function LisaSwipeButton() {
       document.removeEventListener("mousemove", handleMouseMoveWrapper);
       document.removeEventListener("mouseup", handleMouseUpWrapper);
     };
-  }, [isDragging, router, trialStatus.expired]);
+  }, [isDragging, router, isAuthenticated]);
 
   // Click handler as fallback
   const handleClick = () => {
-    // Block navigation if trial is expired
-    if (trialStatus.expired) {
-      return;
-    }
     // Only navigate if we didn't just complete a drag
     if (dragOffsetRef.current === 0 && !isDragging) {
-      router.push("/chat/lisa");
+      if (isAuthenticated) {
+        router.push("/chat/lisa");
+      } else {
+        router.push("/register");
+      }
     }
   };
-
-  // Hide button if trial is expired
-  if (trialStatus.expired) {
-    return null;
-  }
 
   // Calculate progress for color transition (0 to 1)
   const swipeProgress = Math.min(dragOffset / SWIPE_THRESHOLD, 1);
@@ -166,7 +189,7 @@ export default function LisaSwipeButton() {
       const spread4 = 120 + (intensity * 200);
       
       return {
-        boxShadow: `0 0 ${spread1}px rgba(244, 63, 94, ${baseOpacity}), 0 0 ${spread2}px rgba(244, 63, 94, ${baseOpacity * 0.8}), 0 0 ${spread3}px rgba(244, 63, 94, ${baseOpacity * 0.6}), 0 0 ${spread4}px rgba(244, 63, 94, ${baseOpacity * 0.4})`,
+        boxShadow: `0 0 ${spread1}px rgba(255, 123, 156, ${baseOpacity}), 0 0 ${spread2}px rgba(255, 123, 156, ${baseOpacity * 0.8}), 0 0 ${spread3}px rgba(255, 123, 156, ${baseOpacity * 0.6}), 0 0 ${spread4}px rgba(255, 123, 156, ${baseOpacity * 0.4})`,
         animation: 'none' as const
       };
     }
@@ -178,10 +201,20 @@ export default function LisaSwipeButton() {
     };
   };
 
+  // Determine label text based on auth status
+  const getLabelText = () => {
+    if (isAuthenticated === null) {
+      return "Swipe to get started";
+    }
+    return isAuthenticated 
+      ? "Swipe to chat with Lisa" 
+      : "Swipe to sign up";
+  };
+
   return (
     <div className="fixed bottom-0 left-1/2 -translate-x-1/2 z-20 mb-4 sm:mb-6 select-none">
       {/* Outer Container - Fixed and Centered */}
-      <div className="flex items-center justify-center bg-gray-900 rounded-full shadow-lg overflow-visible min-w-[280px] sm:min-w-[320px] px-5 pr-7 py-4 gap-4">
+      <div className="flex items-center justify-center bg-navy rounded-full shadow-lg overflow-visible min-w-[280px] sm:min-w-[320px] px-5 pr-7 py-4 gap-4">
           {/* Swipeable Circular Button */}
           <button
             ref={buttonRef}
@@ -196,13 +229,13 @@ export default function LisaSwipeButton() {
               WebkitTransform: `translateX(${dragOffset}px)`,
               transition: isDragging ? 'none' : 'transform 0.3s ease-out'
             }}
-            aria-label="Swipe to open Lisa chat"
+            aria-label={getLabelText()}
           >
             <div 
               className={`flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full transition-all duration-200 ${getBackgroundColor()} ${swipeProgress > 0.5 ? 'scale-110' : ''} group-hover:scale-105`}
               style={{
                 backgroundColor: swipeProgress > 0 
-                  ? `rgb(${244 - Math.floor(swipeProgress * 54)}, ${63 - Math.floor(swipeProgress * 45)}, ${94 - Math.floor(swipeProgress * 34)})`
+                  ? `rgb(${255 - Math.floor(swipeProgress * 28)}, ${123 - Math.floor(swipeProgress * 25)}, ${156 - Math.floor(swipeProgress * 28)})`
                   : undefined,
                 transition: isDragging 
                   ? 'background-color 0.1s ease-out, transform 0.1s ease-out, box-shadow 0.1s ease-out' 
@@ -222,8 +255,8 @@ export default function LisaSwipeButton() {
           </button>
           
           {/* Text Label - Fixed in place */}
-          <span className="text-sm sm:text-base font-medium text-gray-200 whitespace-nowrap">
-            Swipe to open Lisa chat
+          <span className="text-sm sm:text-base font-medium text-white whitespace-nowrap">
+            {getLabelText()}
           </span>
         </div>
       </div>

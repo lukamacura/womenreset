@@ -227,7 +227,7 @@ export default function FitnessList({
                       handleDelete(entry.id);
                     }}
                     disabled={deletingId === entry.id}
-                    className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-rose-500/10 hover:text-rose-600 disabled:opacity-50"
+                    className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-primary-light/50 hover:text-primary-dark disabled:opacity-50"
                     aria-label="Delete fitness entry"
                   >
                     <Trash2 className="h-4 w-4" />
