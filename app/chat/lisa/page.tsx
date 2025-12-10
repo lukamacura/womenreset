@@ -62,6 +62,16 @@ const THEME = {
     500: "#E879F9",
     600: "#D946EF",
   },
+  rose: {
+    50: "#FFF1F2",
+    100: "#FFE4E6",
+    200: "#FECDD3",
+    300: "#FDA4AF",
+    400: "#FB7185",
+    500: "#F43F5E",
+    600: "#E11D48",
+    700: "#BE123C",
+  },
   text: {
     900: "#1F2937",  // High contrast dark text
     800: "#374151",  // Dark text
@@ -708,7 +718,7 @@ function renderMarkdownText(text: string) {
               fontSize: '1.125rem',
               lineHeight: '1.7',
               color: THEME.text[900],
-              fontWeight: 400,
+              fontWeight: 500,
               letterSpacing: '0.01em',
               textShadow: '0 1px 2px rgba(0, 0, 0, 0.02)',
               WebkitFontSmoothing: 'antialiased',
@@ -1385,7 +1395,7 @@ function ChatPageInner() {
     if (!el) return;
     if (!input || input.trim() === "") {
       // Reset to normal height when input is empty
-      el.style.height = "44px";
+      el.style.height = "64px";
     } else {
       el.style.height = "0px";
       el.style.height = Math.min(200, el.scrollHeight) + "px";
@@ -1995,10 +2005,11 @@ function ChatPageInner() {
           }
         }
         #composer::placeholder {
-          color: #6B7280;
+          color: #9CA3AF;
           opacity: 1;
           line-height: 1.5;
           vertical-align: middle;
+          font-weight: 500;
         }
         #composer {
           display: flex;
@@ -2031,15 +2042,16 @@ function ChatPageInner() {
             `,
           }}
         >
-          {/* Subtle texture overlay */}
+          {/* Grid texture overlay - like graph paper */}
           <div
-            className="absolute inset-0 opacity-30"
+            className="absolute inset-0 opacity-40"
             style={{
               backgroundImage: `
-                radial-gradient(circle at 2px 2px, rgba(236, 72, 153, 0.15) 1px, transparent 0),
-                radial-gradient(circle at 8px 8px, rgba(168, 85, 247, 0.1) 1px, transparent 0)
+                linear-gradient(rgba(236, 72, 153, 0.2) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(236, 72, 153, 0.2) 1px, transparent 1px),
+                radial-gradient(circle at 2px 2px, rgba(168, 85, 247, 0.15) 1px, transparent 0)
               `,
-              backgroundSize: '20px 20px, 16px 16px',
+              backgroundSize: '40px 40px, 40px 40px, 20px 20px',
             }}
           />
           {/* Soft cloud-like shapes */}
@@ -2188,21 +2200,22 @@ function ChatPageInner() {
                         }`}
                     >
                       <div
-                        className={`rounded-2xl px-4 py-3 text-base leading-relaxed sm:px-5 sm:py-4 sm:text-lg transition-all backdrop-blur-sm ${isUser
-                            ? "ml-auto max-w-full bg-linear-to-r from-orange-200/90 to-pink-200/90 backdrop-blur-lg sm:max-w-[80%] shadow-lg"
-                            : "max-w-full sm:max-w-[80%] bg-rose-100/90 backdrop-blur-lg ring-1 ring-rose-200 shadow-lg"
+                        className={`rounded-2xl px-4 py-3 text-base leading-relaxed sm:px-5 sm:py-4 sm:text-lg transition-all ${isUser
+                            ? "ml-auto max-w-full sm:max-w-[80%] shadow-lg"
+                            : "max-w-full sm:max-w-[80%] shadow-lg"
                           }`}
                         style={{
                           lineHeight: '1.4',
                           ...(isUser
                             ? {
                               color: THEME.text[900],
-                              boxShadow: "0 4px 16px rgba(236, 72, 153, 0.25)",
+                              backgroundColor: '#ff9cad',
+                              boxShadow: "0 4px 16px rgba(251, 113, 133, 0.4)",
                             }
                             : {
                               color: THEME.text[900],
-                              borderColor: THEME.pink[200],
-                              boxShadow: "0 4px 16px rgba(0, 0, 0, 0.12)",
+                              backgroundColor: '#fff',
+                              boxShadow: "0 4px 16px rgba(236, 72, 153, 0.4)",
                             })
                         }}
                       >
@@ -2294,11 +2307,11 @@ function ChatPageInner() {
                   const id = activeId ?? await newChat();
                   // Reset textarea height immediately
                   if (textareaRef.current) {
-                    textareaRef.current.style.height = "44px";
+                    textareaRef.current.style.height = "64px";
                   }
                   void sendToAPI(text, id);
                 }}
-                className="mx-auto flex w-full max-w-4xl items-end gap-2 sm:gap-3 px-2 py-3 sm:px-0 sm:py-2"
+                className="mx-auto flex w-full max-w-4xl items-end gap-3 sm:gap-4 px-4 py-4 sm:px-6 sm:py-5"
               >
                 <div className="relative flex w-full items-center">
                   <label htmlFor="composer" className="sr-only">
@@ -2322,28 +2335,42 @@ function ChatPageInner() {
                       }}
                       aria-label="Type your message"
                       placeholder="Ask anything..."
-                      className="w-full bg-pink-400/10 backdrop-blur-lg resize-none overflow-hidden text-md font-bold rounded-2xl border-0 px-4 py-3 pr-14 sm:px-5 sm:py-auto sm:pr-16 outline-none transition-all touch-manipulation"
+                      className="w-full backdrop-blur-lg resize-none overflow-hidden text-base sm:text-lg font-semibold rounded-3xl border-2 px-5 py-4 pr-16 sm:px-6 sm:py-5 sm:pr-20 outline-none transition-all touch-manipulation shadow-md"
+                      style={{
+                        minHeight: '64px',
+                        backgroundColor: 'rgba(255, 255, 255, 0.98)',
+                        backgroundImage: `
+                          linear-gradient(rgba(236, 72, 153, 0.06) 1px, transparent 1px),
+                          linear-gradient(90deg, rgba(236, 72, 153, 0.06) 1px, transparent 1px),
+                          radial-gradient(circle at 2px 2px, rgba(168, 85, 247, 0.05) 1px, transparent 0)
+                        `,
+                        backgroundSize: '30px 30px, 30px 30px, 20px 20px',
+                        borderColor: THEME.pink[300],
+                        color: THEME.text[900],
+                      }}
                     />
 
                   </div>
                 </div>
 
-                <button
-                  type="submit"
-                  disabled={!input.trim() || loading}
-                  className="inline-flex h-11 w-11 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-full text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 focus:outline-none touch-manipulation shadow-lg"
-                  style={{
-                    backgroundColor: input.trim() ? '#ff637e' : '#E5E7EB',
-                    color: input.trim() ? '#FFFFFF' : '#9CA3AF',
-                  }}
-                  aria-label="Send message"
-                >
-                  {loading ? (
-                    <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 animate-spin" />
-                  ) : (
-                    <Send className="h-5 w-5 sm:h-6 sm:w-6" />
-                  )}
-                </button>
+                {input.trim() && (
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="inline-flex h-14 w-14 sm:h-16 sm:w-16 shrink-0 items-center justify-center rounded-full text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 focus:outline-none touch-manipulation shadow-lg"
+                    style={{
+                      backgroundColor: THEME.pink[500],
+                      color: '#FFFFFF',
+                    }}
+                    aria-label="Send message"
+                  >
+                    {loading ? (
+                      <Loader2 className="h-6 w-6 sm:h-7 sm:w-7 animate-spin" />
+                    ) : (
+                      <Send className="h-6 w-6 sm:h-7 sm:w-7" />
+                    )}
+                  </button>
+                )}
 
               </form>
             </footer>
