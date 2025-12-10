@@ -36,28 +36,28 @@ const Navbar: React.FC<NavbarProps> = ({ isAuthenticated }) => {
           </Link>
 
           {/* Desktop: Center Nav links */}
-          <div className="hidden items-center gap-6 lg:gap-8 text-sm lg:text-base font-medium text-white/80 lg:flex">
+          <div className="hidden items-center gap-6 lg:gap-8 text-sm lg:text-base font-medium text-white! lg:flex">
             <Link
               href="/"
-              className="transition-colors duration-200 text-white! hover:text-white"
+              className="transition-colors duration-200  hover:text-white"
             >
               Home
             </Link>
             <Link
               href="/about"
-              className="transition-colors duration-200 text-white! hover:text-white"
+              className="transition-colors duration-200  hover:text-white"
             >
               About
             </Link>
             <Link
               href="/pricing"
-              className="transition-colors duration-200 text-white! hover:text-white"
+              className="transition-colors duration-200  hover:text-white"
             >
               Pricing
             </Link>
             <Link
               href="/community"
-              className="transition-colors duration-200 text-white! hover:text-white"
+              className="transition-colors duration-200  hover:text-white"
             >
               Community
             </Link>
@@ -116,28 +116,28 @@ const Navbar: React.FC<NavbarProps> = ({ isAuthenticated }) => {
           <Link
             href="/"
             onClick={() => setMobileMenuOpen(false)}
-            className="px-4 py-3 rounded-lg text-white font-medium transition-colors hover:bg-white/10 active:bg-white/20 touch-manipulation"
+            className="px-4 py-3 rounded-lg text-white! font-medium transition-colors hover:bg-white/10 active:bg-white/20 touch-manipulation"
           >
             Home
           </Link>
           <Link
             href="/about"
             onClick={() => setMobileMenuOpen(false)}
-            className="px-4 py-3 rounded-lg text-white font-medium transition-colors hover:bg-white/10 active:bg-white/20 touch-manipulation"
+            className="px-4 py-3 rounded-lg text-white! font-medium transition-colors hover:bg-white/10 active:bg-white/20 touch-manipulation"
           >
             About
           </Link>
           <Link
             href="/pricing"
             onClick={() => setMobileMenuOpen(false)}
-            className="px-4 py-3 rounded-lg text-white font-medium transition-colors hover:bg-white/10 active:bg-white/20 touch-manipulation"
+            className="px-4 py-3 rounded-lg text-white! font-medium transition-colors hover:bg-white/10 active:bg-white/20 touch-manipulation"
           >
             Pricing
           </Link>
           <Link
             href="/community"
             onClick={() => setMobileMenuOpen(false)}
-            className="px-4 py-3 rounded-lg text-white font-medium transition-colors hover:bg-white/10 active:bg-white/20 touch-manipulation"
+            className="px-4 py-3 rounded-lg text-white! font-medium transition-colors hover:bg-white/10 active:bg-white/20 touch-manipulation"
           >
             Community
           </Link>
@@ -155,7 +155,7 @@ const Navbar: React.FC<NavbarProps> = ({ isAuthenticated }) => {
               <Link
                 href="/login"
                 onClick={() => setMobileMenuOpen(false)}
-                className="px-4 py-3 rounded-lg text-white font-medium transition-colors hover:bg-white/10 active:bg-white/20 touch-manipulation text-center"
+                className="px-4 py-3 rounded-lg text-white! font-medium transition-colors hover:bg-white/10 active:bg-white/20 touch-manipulation text-center"
               >
                 Log in
               </Link>

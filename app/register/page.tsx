@@ -299,7 +299,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <main className="relative mx-auto max-w-md p-6 sm:p-8">
+    <main className="relative overflow-hidden mx-auto max-w-md p-6 sm:p-8">
       {/* background accents */}
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 opacity-40">
         <div className="absolute -top-24 -left-24 h-56 w-56 rounded-full bg-primary/20 blur-3xl" />

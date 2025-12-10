@@ -63,7 +63,7 @@ export default async function RootLayout({
       <body className="min-h-screen flex flex-col font-sans bg-background text-foreground">
         <ConditionalNavbar isAuthenticated={!!user} />
 
-        <main className="flex-1 w-full bg-background">{children}</main>
+        <main className="flex-1 w-full bg-background p-0 m-0">{children}</main>
       </body>
     </html>
   );
