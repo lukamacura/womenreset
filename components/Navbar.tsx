@@ -36,28 +36,28 @@ const Navbar: React.FC<NavbarProps> = ({ isAuthenticated }) => {
           </Link>
 
           {/* Desktop: Center Nav links */}
-          <div className="hidden items-center gap-6 lg:gap-8 text-sm lg:text-base font-medium text-white! lg:flex">
+          <div className="hidden items-center gap-6 lg:gap-8 text-sm lg:text-base font-medium lg:flex">
             <Link
               href="/"
-              className="transition-colors duration-200  hover:text-white"
+              className="transition-colors duration-200 text-white!  hover:text-white"
             >
               Home
             </Link>
             <Link
               href="/about"
-              className="transition-colors duration-200  hover:text-white"
+              className="transition-colors duration-200 text-white!  hover:text-white"
             >
               About
             </Link>
             <Link
               href="/pricing"
-              className="transition-colors duration-200  hover:text-white"
+              className="transition-colors duration-200 text-white!  hover:text-white"
             >
               Pricing
             </Link>
             <Link
               href="/community"
-              className="transition-colors duration-200  hover:text-white"
+              className="transition-colors duration-200 text-white!  hover:text-white"
             >
               Community
             </Link>
