@@ -9,7 +9,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Loader2,
   Menu,
@@ -1186,7 +1186,6 @@ function hydrate(raw: string | null): Conversation[] | null {
   }
 }
 
-const lisaImages = ["/lisa.png", "/lisa2.png", "/lisa3.png", "/lisa4.png", "/lisa5.png"];
 
 /* ===== Toast Notification Component ===== */
 function ToastNotificationComponent({ notification, onDismiss }: { notification: ToastNotification; onDismiss: () => void }) {
@@ -1279,8 +1278,6 @@ function ChatPageInner() {
   const [streamingContent, setStreamingContent] = useState<string>("");
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [isLisaThinking, setIsLisaThinking] = useState(false);
-  const [lisaImageIndex, setLisaImageIndex] = useState(0);
   const [notifications, setNotifications] = useState<ToastNotification[]>([]);
 
   // ✅ auth user id (no localStorage)
@@ -1306,23 +1303,6 @@ function ChatPageInner() {
     };
   }, []);
 
-  // Animate through Lisa images when sending/thinking
-  useEffect(() => {
-    if (!isLisaThinking) {
-      // Reset to first image when not thinking
-      setLisaImageIndex(0);
-      return;
-    }
-
-    // Start animation when thinking
-    let currentIndex = 0;
-    const interval = setInterval(() => {
-      currentIndex = (currentIndex + 1) % lisaImages.length;
-      setLisaImageIndex(currentIndex);
-    }, 500); // Change image every 500ms for fast animation (2s total for 4 images)
-
-    return () => clearInterval(interval);
-  }, [isLisaThinking]);
 
 
   // Chat list refs (auto-scroll)
@@ -1585,7 +1565,6 @@ function ChatPageInner() {
       setInput("");
       setLoading(true);
       setIsStreaming(true);
-      setIsLisaThinking(true);
       setStreamingContent("");
       setStreamingMessageId(id);
       setStickToBottom(true);
@@ -1740,7 +1719,6 @@ function ChatPageInner() {
                       setStreamingMessageId(null);
                       setIsStreaming(false);
                       setLoading(false);
-                      setIsLisaThinking(false);
                       return;
                     } else if (data.type === "error") {
                       throw new Error(data.error || "Streaming error");
@@ -1783,7 +1761,6 @@ function ChatPageInner() {
             setStreamingMessageId(null);
             setIsStreaming(false);
             setLoading(false);
-            setIsLisaThinking(false);
           }
         } else {
           // Non-streaming response (fallback)
@@ -1811,7 +1788,6 @@ function ChatPageInner() {
           setStreamingMessageId(null);
           setIsStreaming(false);
           setLoading(false);
-          setIsLisaThinking(false);
         }
       } catch (e: any) {
         const safeMsg = String(e?.message || "unknown error").replace(
@@ -1826,7 +1802,6 @@ function ChatPageInner() {
         setStreamingMessageId(null);
         setIsStreaming(false);
         setLoading(false);
-        setIsLisaThinking(false);
       }
     },
     [activeId, sessions, upsertAndAppendMessage, userId, addNotification, trialStatus.expired, router],
@@ -2170,20 +2145,18 @@ function ChatPageInner() {
                 paddingBottom: '120px',
               }}
             >
-              {/* Fixed background character image positioned at center */}
+              {/* Fixed background video positioned at center */}
               <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-0">
                 <div className="relative w-[400px] h-[400px] sm:w-[500px] sm:h-[500px] md:w-[600px] md:h-[600px]">
-                  {lisaImages.map((src, index) => (
-                    <Image
-                      key={src}
-                      src={src}
-                      alt={`Lisa ${index + 1}`}
-                      width={600}
-                      height={600}
-                      className={`absolute inset-0 w-full h-full object-contain transition-opacity duration-500 ease-in-out ${index === lisaImageIndex ? "opacity-100" : "opacity-0"
-                        }`}
-                    />
-                  ))}
+                  <video
+                    src="/test2.webm"
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    className="w-full h-full object-contain opacity-60"
+                    aria-hidden="true"
+                  />
                 </div>
               </div>
 
@@ -2309,7 +2282,7 @@ function ChatPageInner() {
                   }
                   void sendToAPI(text, id);
                 }}
-                className="mx-auto flex w-full max-w-4xl items-end gap-3 sm:gap-4 px-4 py-4 sm:px-6 sm:py-5"
+                className="mx-auto flex w-full max-w-4xl items-end px-4 py-4 sm:px-6 sm:py-5"
               >
                 <div className="relative flex w-full items-center">
                   <label htmlFor="composer" className="sr-only">
@@ -2333,35 +2306,44 @@ function ChatPageInner() {
                       }}
                       aria-label="Type your message"
                       placeholder="Ask anything..."
-                      className="w-full backdrop-blur-lg resize-none overflow-hidden text-base sm:text-lg font-semibold rounded-full border-2 px-5 py-4 pr-16 sm:px-6 sm:py-5 sm:pr-20 outline-none transition-all touch-manipulation shadow-md"
+                      className={`w-full bg-white  resize-none overflow-hidden text-base sm:text-lg font-semibold rounded-full px-5 py-4 sm:px-6 sm:py-5 outline-none touch-manipulation shadow-md transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${input.trim() ? 'pr-14 sm:pr-16' : 'pr-5'}`}
                       style={{
                         minHeight: '64px',
-                        borderColor: THEME.pink[300],
                         color: THEME.text[900],
                       }}
                     />
 
+                    <AnimatePresence mode="wait">
+                      {input.trim() && (
+                        <motion.button
+                          type="submit"
+                          disabled={loading}
+                          initial={{ opacity: 0, scale: 0.5 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.5 }}
+                          transition={{
+                            type: "spring",
+                            stiffness: 400,
+                            damping: 25,
+                            mass: 0.8,
+                          }}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-full text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 focus:outline-none touch-manipulation shadow-lg z-10"
+                          style={{
+                            backgroundColor: THEME.pink[500],
+                            color: '#FFFFFF',
+                          }}
+                          aria-label="Send message"
+                        >
+                          {loading ? (
+                            <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin" />
+                          ) : (
+                            <Send className="h-4 w-4 sm:h-5 sm:w-5" />
+                          )}
+                        </motion.button>
+                      )}
+                    </AnimatePresence>
                   </div>
                 </div>
-
-                {input.trim() && (
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="inline-flex h-14 w-14 sm:h-16 sm:w-16 shrink-0 items-center justify-center rounded-full text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 focus:outline-none touch-manipulation shadow-lg"
-                    style={{
-                      backgroundColor: THEME.pink[500],
-                      color: '#FFFFFF',
-                    }}
-                    aria-label="Send message"
-                  >
-                    {loading ? (
-                      <Loader2 className="h-6 w-6 sm:h-7 sm:w-7 animate-spin" />
-                    ) : (
-                      <Send className="h-6 w-6 sm:h-7 sm:w-7" />
-                    )}
-                  </button>
-                )}
 
               </form>
             </footer>
