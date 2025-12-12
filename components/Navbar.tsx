@@ -24,7 +24,7 @@ const Navbar: React.FC<NavbarProps> = ({ isAuthenticated }) => {
       )}
 
       <div className="fixed left-0 right-0 top-0 z-50 flex justify-center pt-3 sm:pt-4 px-3 sm:px-4">
-        <nav className="flex w-full max-w-[780px] items-center justify-between rounded-full bg-linear-to-r from-navy/80 to-navy-dark/80 px-4 sm:px-5 py-2.5 sm:py-2 shadow-lg backdrop-blur-lg border border-white/25">
+        <nav className="flex w-full max-w-[780px] items-center justify-between rounded-full bg-gray-900 px-4 sm:px-5 py-2.5 sm:py-2 shadow-lg backdrop-blur-lg border border-white/25">
           {/* Left: Logo + Brand */}
           <Link href="/" className="flex items-center gap-2">
             <div className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-primary-light shadow-md">

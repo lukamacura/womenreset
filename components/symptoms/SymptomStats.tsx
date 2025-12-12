@@ -80,7 +80,7 @@ export default function SymptomStats({
               relative px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer flex items-center gap-2
               ${
                 dateRange === range
-                  ? "bg-linear-to-r from-primary to-primary-dark text-white shadow-lg shadow-primary/30 scale-105"
+                  ? "bg-primary-light text-primary-dark shadow-lg shadow-primary/30 scale-105"
                   : "bg-white/60 text-muted-foreground hover:bg-white/80 hover:text-foreground border border-foreground/10"
               }
             `}
@@ -94,15 +94,15 @@ export default function SymptomStats({
       {/* Modern Stats Cards with Visual Progress */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {/* Total Symptoms Card */}
-        <div className="group relative overflow-hidden rounded-2xl bg-linear-to-br from-primary-light/30 via-primary-light/20 to-white border-2 border-primary-light/50 p-6 shadow-lg hover:shadow-xl transition-all duration-300">
+        <div className="group relative overflow-hidden rounded-2xl bg-linear-to-br from-orange-50 via-orange-100/50 to-white border-2 border-orange-200/50 p-6 shadow-lg hover:shadow-xl transition-all duration-300">
           <div className="absolute top-0 right-0 w-32 h-32 bg-linear-to-br from-primary/20 to-transparent rounded-full blur-2xl" />
           
           <div className="relative">
             <div className="flex items-center justify-between mb-4">
-              <div className="p-3 rounded-xl bg-linear-to-br from-primary to-primary-dark shadow-md">
+              <div className="p-3 rounded-xl bg-linear-to-br from-orange-500 to-orange-800 shadow-md">
                 <Heart className="h-6 w-6 text-white" />
               </div>
-              <TrendingUp className="h-5 w-5 text-primary" />
+              <TrendingUp className="h-5 w-5 text-orange-500" />
             </div>
             
             <div className="mb-3">
@@ -119,9 +119,9 @@ export default function SymptomStats({
 
             {/* Progress Bar */}
             <div className="mt-4">
-              <div className="h-2 w-full bg-primary-light rounded-full overflow-hidden">
+              <div className="h-2 w-full bg-orange-100 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-linear-to-r from-primary to-primary-dark rounded-full transition-all duration-500 ease-out"
+                  className="h-full bg-linear-to-r from-orange-500 to-orange-800 rounded-full transition-all duration-500 ease-out"
                   style={{ width: `${symptomsProgress}%` }}
                 />
               </div>
@@ -179,9 +179,6 @@ export default function SymptomStats({
         
         <div className="relative">
           <div className="flex items-center gap-2 mb-5">
-            <div className="p-2 rounded-lg bg-linear-to-br from-gold to-primary">
-              <ActivityIcon className="h-5 w-5 text-white" />
-            </div>
             <h3 className="text-lg font-bold text-foreground">Most Frequent Symptoms</h3>
           </div>
 
@@ -193,7 +190,7 @@ export default function SymptomStats({
                   <div key={item.name} className="space-y-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="p-1.5 rounded-lg bg-foreground/5">
+                        <div className="p-1.5 rounded-lg bg-red-100">
                           <AlertCircle className="h-5 w-5 text-red-500" />
                         </div>
                         <div>

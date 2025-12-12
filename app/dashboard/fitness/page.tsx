@@ -147,10 +147,20 @@ export default function FitnessPage() {
   // Show loading state while checking trial status
   if (trialStatus.loading) {
     return (
-      <div className="mx-auto max-w-7xl p-6 sm:p-8">
-        <div className="text-center py-12">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
-          <p className="mt-4 text-muted-foreground">Loading...</p>
+      <div className="mx-auto max-w-7xl p-6 sm:p-8 space-y-8">
+        <div className="animate-pulse">
+          <div className="h-10 w-64 bg-foreground/10 rounded mb-4" />
+          <div className="h-6 w-96 bg-foreground/10 rounded mb-8" />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-32 bg-foreground/10 rounded-xl" />
+            ))}
+          </div>
+          <div className="space-y-3">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="h-20 bg-foreground/10 rounded-xl" />
+            ))}
+          </div>
         </div>
       </div>
     );
@@ -228,6 +238,9 @@ export default function FitnessPage() {
           isLoading={isLoading}
         />
       </section>
+
+      {/* Bottom padding for scroll animations */}
+      <div className="h-32" />
 
       {/* Add/Edit Fitness Modal */}
       <AddFitnessModal

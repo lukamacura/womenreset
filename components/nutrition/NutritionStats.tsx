@@ -122,7 +122,7 @@ export default function NutritionStats({
               relative px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer flex items-center gap-2
               ${
                 dateRange === range
-                  ? "bg-linear-to-r from-primary to-primary-dark text-white shadow-lg shadow-primary/30 scale-105"
+                  ? "bg-primary-light text-primary-dark shadow-lg shadow-primary/30 scale-105"
                   : "bg-white/60 text-muted-foreground hover:bg-white/80 hover:text-foreground border border-foreground/10"
               }
             `}
@@ -136,15 +136,15 @@ export default function NutritionStats({
       {/* Modern Stats Cards with Visual Progress */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {/* Total Entries Card */}
-        <div className="group relative overflow-hidden rounded-2xl bg-linear-to-br from-primary-light/30 via-primary-light/20 to-white border-2 border-primary-light/50 p-6 shadow-lg hover:shadow-xl transition-all duration-300">
+        <div className="group relative overflow-hidden rounded-2xl bg-linear-to-br from-green-50 via-green-100/50 to-white border-2 border-green-200/50 p-6 shadow-lg hover:shadow-xl transition-all duration-300">
           <div className="absolute top-0 right-0 w-32 h-32 bg-linear-to-br from-primary/20 to-transparent rounded-full blur-2xl" />
           
           <div className="relative">
             <div className="flex items-center justify-between mb-4">
-              <div className="p-3 rounded-xl bg-linear-to-br from-primary to-primary-dark shadow-md">
+              <div className="p-3 rounded-xl bg-linear-to-br from-green-500 to-green-600 shadow-md">
                 <UtensilsCrossed className="h-6 w-6 text-white" />
               </div>
-              <TrendingUp className="h-5 w-5 text-primary" />
+              <TrendingUp className="h-5 w-5 text-green-500" />
             </div>
             
             <div className="mb-3">
@@ -161,9 +161,9 @@ export default function NutritionStats({
 
             {/* Progress Bar */}
             <div className="mt-4">
-              <div className="h-2 w-full bg-primary-light rounded-full overflow-hidden">
+                <div className="h-2 w-full bg-green-100 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-linear-to-r from-primary to-primary-dark rounded-full transition-all duration-500 ease-out"
+                  className="h-full bg-linear-to-r from-green-500 to-green-600 rounded-full transition-all duration-500 ease-out"
                   style={{ width: `${entriesProgress}%` }}
                 />
               </div>
@@ -223,9 +223,7 @@ export default function NutritionStats({
         
         <div className="relative">
           <div className="flex items-center gap-2 mb-5">
-            <div className="p-2 rounded-lg bg-linear-to-br from-gold to-primary">
-              <Activity className="h-5 w-5 text-white" />
-            </div>
+
             <h3 className="text-lg font-bold text-foreground">Most Frequent Meal Types</h3>
           </div>
 

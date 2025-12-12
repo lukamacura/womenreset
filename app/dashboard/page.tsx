@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
@@ -35,6 +35,148 @@ function Skeleton({ className }: { className?: string }) {
   return <div className={classNames("animate-pulse rounded-xl bg-foreground/10", className)} />;
 }
 
+// Optimized Animated Card Component (for overview cards and sections)
+function AnimatedCard({
+  children,
+  index = 0,
+  className = "",
+  delay = 0,
+}: {
+  children: React.ReactNode;
+  index?: number;
+  className?: string;
+  delay?: number;
+}) {
+  const [isVisible, setIsVisible] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setIsVisible(true);
+            observer.unobserve(entry.target);
+            // Remove will-change after animation completes
+            setTimeout(() => {
+              if (cardRef.current) {
+                cardRef.current.style.willChange = "auto";
+              }
+            }, 600 + delay + index * 50);
+          }
+        });
+      },
+      {
+        threshold: 0.05,
+        rootMargin: "0px 0px -30px 0px",
+      }
+    );
+
+    const currentRef = cardRef.current;
+    if (currentRef) {
+      observer.observe(currentRef);
+    }
+
+    return () => {
+      if (currentRef) {
+        observer.unobserve(currentRef);
+      }
+    };
+  }, [delay, index]);
+
+  const totalDelay = delay + index * 50;
+
+  return (
+    <div
+      ref={cardRef}
+      className={classNames(
+        "transition-all duration-600 ease-out",
+        isVisible
+          ? "opacity-100 translate-y-0 scale-100"
+          : "opacity-0 translate-y-4 scale-98",
+        className
+      )}
+      style={{
+        transitionDelay: isVisible ? `${totalDelay}ms` : "0ms",
+        willChange: isVisible ? "auto" : "transform, opacity",
+        transform: isVisible 
+          ? "translate3d(0, 0, 0) scale(1)" 
+          : "translate3d(0, 16px, 0) scale(0.98)",
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+// Optimized Animated List Item Component
+function AnimatedListItem({
+  children,
+  index,
+  className = "",
+}: {
+  children: React.ReactNode;
+  index: number;
+  className?: string;
+}) {
+  const [isVisible, setIsVisible] = useState(false);
+  const itemRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setIsVisible(true);
+            observer.unobserve(entry.target);
+            // Remove will-change after animation completes
+            setTimeout(() => {
+              if (itemRef.current) {
+                itemRef.current.style.willChange = "auto";
+              }
+            }, 500 + index * 80);
+          }
+        });
+      },
+      {
+        threshold: 0.05,
+        rootMargin: "0px 0px -40px 0px",
+      }
+    );
+
+    const currentRef = itemRef.current;
+    if (currentRef) {
+      observer.observe(currentRef);
+    }
+
+    return () => {
+      if (currentRef) {
+        observer.unobserve(currentRef);
+      }
+    };
+  }, [index]);
+
+  return (
+    <div
+      ref={itemRef}
+      className={classNames(
+        "transition-all duration-500 ease-out",
+        isVisible
+          ? "opacity-100 translate-y-0"
+          : "opacity-0 translate-y-6",
+        className
+      )}
+      style={{
+        transitionDelay: isVisible ? `${index * 80}ms` : "0ms",
+        willChange: isVisible ? "auto" : "transform, opacity",
+        transform: isVisible ? "translate3d(0, 0, 0)" : "translate3d(0, 24px, 0)",
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
 // ---------------------------
 // Types
 // ---------------------------
@@ -59,7 +201,8 @@ function TrialStatusCard({
   };
 }) {
   return (
-    <div className="relative overflow-hidden rounded-2xl bg-linear-to-br from-blue-bell-light/30 via-primary-light/30 to-white border-2 border-primary-light/50 p-6 lg:p-8 shadow-lg">
+    <AnimatedCard index={0} delay={0}>
+      <div className="relative overflow-hidden rounded-2xl bg-linear-to-br from-blue-bell-light/30 via-primary-light/30 to-white border-2 border-primary-light/50 p-6 lg:p-8 shadow-lg transition-all duration-300 hover:shadow-xl">
       <div className="absolute top-0 right-0 w-64 h-64 bg-linear-to-br from-blue-bell/20 to-primary/20 rounded-full blur-3xl" />
       <div className="relative">
         <div className="flex items-start justify-between mb-4">
@@ -118,7 +261,8 @@ function TrialStatusCard({
           </div>
         )}
       </div>
-    </div>
+      </div>
+    </AnimatedCard>
   );
 }
 
@@ -132,17 +276,18 @@ function SymptomsOverviewCard({
   isLoading: boolean;
 }) {
   return (
-    <Link
-      href="/dashboard/symptoms"
-      className="group relative overflow-hidden block h-full rounded-2xl bg-linear-to-br from-primary-light/30 via-primary-light/20 to-white border-2 border-primary-light/50 p-6 shadow-lg transition-all hover:shadow-xl hover:scale-[1.02]"
-      >
-      <div className="absolute top-0 right-0 w-32 h-32 bg-linear-to-br from-primary/20 to-transparent rounded-full blur-2xl" />
+    <AnimatedCard index={1} delay={100}>
+      <Link
+        href="/dashboard/symptoms"
+        className="group relative overflow-hidden block h-full rounded-2xl bg-linear-to-br from-orange-50 via-orange-100/50 to-white border-2 border-orange-200/50 p-6 shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-[1.02]"
+        >
+      <div className="absolute top-0 right-0 w-32 h-32 bg-linear-to-br from-orange-400/20 to-transparent rounded-full blur-2xl" />
       <div className="relative">
         <div className="flex items-start justify-between mb-4">
-          <div className="p-3 rounded-xl bg-linear-to-br from-primary to-primary-dark shadow-md">
+          <div className="p-3 rounded-xl bg-linear-to-br from-orange-500 to-orange-800 shadow-md">
             <Activity className="h-6 w-6 text-white" />
           </div>
-          <ArrowRight className="h-5 w-5 text-primary transition-transform group-hover:translate-x-1" />
+          <ArrowRight className="h-5 w-5 text-orange-500 transition-transform group-hover:translate-x-1" />
         </div>
         <div>
           <h3 className="text-base font-medium text-muted-foreground mb-1">Symptom Tracker</h3>
@@ -153,14 +298,15 @@ function SymptomsOverviewCard({
               <span className="text-4xl font-extrabold text-foreground tracking-tight">
                 {totalSymptoms}
               </span>
-              <span className="text-sm text-muted-foreground">
+              <span className="text-sm text-foreground/50 font-bold">
                 {totalSymptoms === 1 ? "symptom" : "symptoms"}
               </span>
             </div>
           )}
         </div>
       </div>
-    </Link>
+      </Link>
+    </AnimatedCard>
   );
 }
 
@@ -179,9 +325,9 @@ function RecentSymptomsCard({
   const recentSymptoms = symptoms.slice(0, 5);
 
   const getSeverityIcon = (severity: number) => {
-    if (severity <= 3) return <Smile className="h-4 w-4 text-green-600" />;
-    if (severity <= 6) return <Meh className="h-4 w-4 text-yellow-600" />;
-    return <Frown className="h-4 w-4 text-red-600" />;
+    if (severity <= 3) return <Smile className="h-3.5 w-3.5" />;
+    if (severity <= 6) return <Meh className="h-3.5 w-3.5" />;
+    return <Frown className="h-3.5 w-3.5" />;
   };
 
   const getSeverityLabel = (severity: number) => {
@@ -190,17 +336,10 @@ function RecentSymptomsCard({
     return "High";
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-    });
-  };
-
   return (
-    <div className="relative overflow-hidden rounded-2xl bg-linear-to-br from-white via-primary-light/20 to-white border-2 border-primary-light/50 p-6 shadow-lg">
-      <div className="absolute top-0 right-0 w-40 h-40 bg-linear-to-br from-primary-light/10 to-transparent rounded-full blur-3xl" />
+    <AnimatedCard index={4} delay={300}>
+      <div className="relative overflow-hidden rounded-2xl bg-linear-to-br from-white via-primary-light/20 to-white border-2 border-primary-light/50 p-6 shadow-lg transition-all duration-300 hover:shadow-xl">
+      <div className="absolute top-0 right-0 w-40 h-40 bg-linear-to-br from-green-100 to-transparent rounded-full blur-3xl" />
       <div className="relative">
         <div className="flex items-center justify-between mb-5">
           <h3 className="text-lg font-bold text-foreground">Recent Symptoms</h3>
@@ -232,48 +371,83 @@ function RecentSymptomsCard({
           </div>
         ) : (
           <div className="space-y-3">
-            {recentSymptoms.map((symptom) => (
-              <div
-                key={symptom.id}
-                className="group rounded-xl border border-foreground/10 bg-white/60 p-4 hover:border-primary-light hover:shadow-md transition-all duration-200"
-              >
-                <div className="flex items-center gap-3">
-                  <div 
-                    className="flex-1 min-w-0 cursor-pointer flex items-center gap-3"
-                    onClick={() => onEdit?.(symptom)}
+            {recentSymptoms.map((symptom, index) => {
+              const formatDateTime = (dateString: string) => {
+                const date = new Date(dateString);
+                return {
+                  date: date.toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  }),
+                  time: date.toLocaleTimeString("en-US", {
+                    hour: "numeric",
+                    minute: "2-digit",
+                    hour12: true,
+                  }),
+                };
+              };
+              const { date, time } = formatDateTime(symptom.occurred_at);
+              const severityColor = symptom.severity <= 3 
+                ? "bg-green-500/20 text-green-700" 
+                : symptom.severity <= 6 
+                ? "bg-yellow-500/20 text-yellow-700" 
+                : "bg-red-500/20 text-red-700";
+
+              return (
+                <AnimatedListItem key={symptom.id} index={index}>
+                  <div
+                    className="group rounded-xl border border-foreground/10 bg-background/60 p-4 transition-colors hover:border-foreground/20"
                   >
-                    <div className="shrink-0">{getSeverityIcon(symptom.severity)}</div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-sm font-semibold text-foreground truncate">
+                  <div className="flex items-start justify-between gap-4">
+                    <div 
+                      className="flex-1 min-w-0 cursor-pointer"
+                      onClick={() => onEdit?.(symptom)}
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <h3 className="text-base font-semibold text-foreground truncate">
                           {symptom.name}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
+                        </h3>
+                        <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium shrink-0 ${severityColor}`}>
+                          {getSeverityIcon(symptom.severity)}
                           {getSeverityLabel(symptom.severity)}
                         </span>
                       </div>
-                      <span className="text-xs text-muted-foreground">{formatDate(symptom.occurred_at)}</span>
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                        <span>{date}</span>
+                        <span>•</span>
+                        <span>{time}</span>
+                      </div>
+                      {symptom.notes && (
+                        <p className="mt-2 text-sm text-foreground/80 line-clamp-2">
+                          {symptom.notes}
+                        </p>
+                      )}
                     </div>
+                    {onDelete && (
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDelete(symptom);
+                          }}
+                          className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-primary-light/50 hover:text-primary-dark"
+                          aria-label="Delete symptom"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    )}
                   </div>
-                  {onDelete && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDelete(symptom);
-                      }}
-                      className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-primary-light/50 hover:text-primary-dark shrink-0"
-                      aria-label="Delete symptom"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
+                  </div>
+                </AnimatedListItem>
+              );
+            })}
           </div>
         )}
       </div>
-    </div>
+      </div>
+    </AnimatedCard>
   );
 }
 
@@ -286,17 +460,18 @@ function NutritionOverviewCard({
   isLoading: boolean;
 }) {
   return (
-    <Link
-      href="/dashboard/nutrition"
-      className="group relative overflow-hidden block h-full rounded-2xl bg-linear-to-br from-orange-50 via-orange-100/50 to-white border-2 border-orange-200/50 p-6 shadow-lg transition-all hover:shadow-xl hover:scale-[1.02]"
-    >
-      <div className="absolute top-0 right-0 w-32 h-32 bg-linear-to-br from-orange-400/20 to-transparent rounded-full blur-2xl" />
+    <AnimatedCard index={2} delay={150}>
+      <Link
+        href="/dashboard/nutrition"
+        className="group relative overflow-hidden block h-full rounded-2xl bg-linear-to-br from-green-100/30 via-green-200/20 to-white border-2 border-primary-light/50 p-6 shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-[1.02]"
+      >
+      <div className="absolute top-0 right-0 w-32 h-32 bg-linear-to-br from-primary/20 to-transparent rounded-full blur-2xl" />
       <div className="relative">
         <div className="flex items-start justify-between mb-4">
-          <div className="p-3 rounded-xl bg-linear-to-br from-orange-500 to-orange-600 shadow-md">
+          <div className="p-3 rounded-xl bg-linear-to-br from-green-500 to-green-800 shadow-md">
             <UtensilsCrossed className="h-6 w-6 text-white" />
           </div>
-          <ArrowRight className="h-5 w-5 text-orange-500 transition-transform group-hover:translate-x-1" />
+          <ArrowRight className="h-5 w-5 text-primary transition-transform group-hover:translate-x-1" />
         </div>
         <div>
           <h3 className="text-base font-medium text-muted-foreground mb-1">Nutrition Tracker</h3>
@@ -307,14 +482,15 @@ function NutritionOverviewCard({
               <span className="text-4xl font-extrabold text-foreground tracking-tight">
                 {totalNutrition}
               </span>
-              <span className="text-sm text-muted-foreground">
+              <span className="text-sm text-foreground/50 font-bold">
                 {totalNutrition === 1 ? "entry" : "entries"}
               </span>
             </div>
           )}
         </div>
       </div>
-    </Link>
+      </Link>
+    </AnimatedCard>
   );
 }
 
@@ -366,16 +542,9 @@ function RecentNutritionCard({
     }
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-    });
-  };
-
   return (
-    <div className="relative overflow-hidden rounded-2xl bg-linear-to-br from-white via-orange-50/30 to-white border-2 border-orange-200/50 p-6 shadow-lg">
+    <AnimatedCard index={5} delay={350}>
+      <div className="relative overflow-hidden rounded-2xl bg-linear-to-br from-white via-orange-50/30 to-white border-2 border-orange-200/50 p-6 shadow-lg transition-all duration-300 hover:shadow-xl">
       <div className="absolute top-0 right-0 w-40 h-40 bg-linear-to-br from-orange-300/10 to-transparent rounded-full blur-3xl" />
       <div className="relative">
         <div className="flex items-center justify-between mb-5">
@@ -406,56 +575,91 @@ function RecentNutritionCard({
             Start tracking →
           </Link>
         </div>
-      ) : (
+        ) : (
         <div className="space-y-3">
-          {recentNutrition.map((entry) => (
-            <div
-              key={entry.id}
-              className="group rounded-xl border border-foreground/10 bg-white/60 p-4 hover:border-orange-300/50 hover:shadow-md transition-all duration-200"
-            >
-              <div className="flex items-center gap-3">
-              <div 
-                className="flex-1 min-w-0 cursor-pointer flex items-center gap-3"
-                onClick={() => onEdit?.(entry)}
-              >
-                <div className="shrink-0">
-                  {getMealTypeIcon(entry.meal_type)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-sm font-medium text-foreground truncate">
-                      {entry.food_item}
-                    </span>
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-xs font-medium ${getMealTypeColor(
-                        entry.meal_type
-                      )}`}
-                    >
-                      {formatMealType(entry.meal_type)}
-                    </span>
-                  </div>
-                  <span className="text-xs text-muted-foreground">{formatDate(entry.consumed_at)}</span>
-                </div>
-              </div>
-              {onDelete && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDelete(entry);
-                  }}
-                      className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-primary-light/50 hover:text-primary-dark shrink-0"
-                  aria-label="Delete nutrition entry"
+          {recentNutrition.map((entry, index) => {
+            const formatDateTime = (dateString: string) => {
+              const date = new Date(dateString);
+              return {
+                date: date.toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                }),
+                time: date.toLocaleTimeString("en-US", {
+                  hour: "numeric",
+                  minute: "2-digit",
+                  hour12: true,
+                }),
+              };
+            };
+            const { date, time } = formatDateTime(entry.consumed_at);
+            const mealTypeColor = getMealTypeColor(entry.meal_type);
+            const mealTypeLabel = formatMealType(entry.meal_type);
+
+            return (
+              <AnimatedListItem key={entry.id} index={index}>
+                <div
+                  className="group rounded-xl border border-foreground/10 bg-background/60 p-4 transition-colors hover:border-foreground/20"
                 >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              )}
-              </div>
-            </div>
-          ))}
+                <div className="flex items-start justify-between gap-4">
+                  <div 
+                    className="flex-1 min-w-0 cursor-pointer"
+                    onClick={() => onEdit?.(entry)}
+                  >
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
+                      <h3 className="text-base font-semibold text-foreground truncate">
+                        {entry.food_item}
+                      </h3>
+                      <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
+                        <span
+                          className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${mealTypeColor}`}
+                        >
+                          {getMealTypeIcon(entry.meal_type)}
+                          {mealTypeLabel}
+                        </span>
+                        {entry.calories !== null && (
+                          <span className="text-xs text-muted-foreground font-medium">
+                            {entry.calories} cal
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                      <span>{date}</span>
+                      <span>•</span>
+                      <span>{time}</span>
+                    </div>
+                    {entry.notes && (
+                      <p className="mt-2 text-sm text-foreground/80 line-clamp-2">
+                        {entry.notes}
+                      </p>
+                    )}
+                  </div>
+                  {onDelete && (
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDelete(entry);
+                        }}
+                        className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-primary-light/50 hover:text-primary-dark"
+                        aria-label="Delete nutrition entry"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+                </div>
+              </AnimatedListItem>
+            );
+          })}
         </div>
       )}
       </div>
-    </div>
+      </div>
+    </AnimatedCard>
   );
 }
 
@@ -468,14 +672,15 @@ function FitnessOverviewCard({
   isLoading: boolean;
 }) {
   return (
-    <Link
-      href="/dashboard/fitness"
-      className="group relative overflow-hidden block h-full rounded-2xl bg-linear-to-br from-blue-50 via-blue-100/50 to-white border-2 border-blue-200/50 p-6 shadow-lg transition-all hover:shadow-xl hover:scale-[1.02]"
-    >
+    <AnimatedCard index={3} delay={200}>
+      <Link
+        href="/dashboard/fitness"
+        className="group relative overflow-hidden block h-full rounded-2xl bg-linear-to-br from-blue-50 via-blue-100/50 to-white border-2 border-blue-200/50 p-6 shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-[1.02]"
+      >
       <div className="absolute top-0 right-0 w-32 h-32 bg-linear-to-br from-blue-400/20 to-transparent rounded-full blur-2xl" />
       <div className="relative">
         <div className="flex items-start justify-between mb-4">
-          <div className="p-3 rounded-xl bg-linear-to-br from-blue-500 to-blue-600 shadow-md">
+          <div className="p-3 rounded-xl bg-linear-to-br from-blue-500 to-blue-800 shadow-md">
             <Dumbbell className="h-6 w-6 text-white" />
           </div>
           <ArrowRight className="h-5 w-5 text-blue-500 transition-transform group-hover:translate-x-1" />
@@ -489,14 +694,15 @@ function FitnessOverviewCard({
               <span className="text-4xl font-extrabold text-foreground tracking-tight">
                 {totalFitness}
               </span>
-              <span className="text-sm text-muted-foreground">
+              <span className="text-sm text-foreground/50 font-bold">
                 {totalFitness === 1 ? "workout" : "workouts"}
               </span>
             </div>
           )}
         </div>
       </div>
-    </Link>
+      </Link>
+    </AnimatedCard>
   );
 }
 
@@ -552,16 +758,9 @@ function RecentFitnessCard({
     }
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-    });
-  };
-
   return (
-    <div className="relative overflow-hidden rounded-2xl bg-linear-to-br from-white via-blue-50/30 to-white border-2 border-blue-200/50 p-6 shadow-lg">
+    <AnimatedCard index={6} delay={400}>
+      <div className="relative overflow-hidden rounded-2xl bg-linear-to-br from-white via-blue-50/30 to-white border-2 border-blue-200/50 p-6 shadow-lg transition-all duration-300 hover:shadow-xl">
       <div className="absolute top-0 right-0 w-40 h-40 bg-linear-to-br from-blue-300/10 to-transparent rounded-full blur-3xl" />
       <div className="relative">
         <div className="flex items-center justify-between mb-5">
@@ -592,56 +791,117 @@ function RecentFitnessCard({
             Start tracking →
           </Link>
         </div>
-      ) : (
+        ) : (
         <div className="space-y-3">
-          {recentFitness.map((entry) => (
-            <div
-              key={entry.id}
-              className="group rounded-xl border border-foreground/10 bg-white/60 p-4 hover:border-blue-300/50 hover:shadow-md transition-all duration-200"
-            >
-              <div className="flex items-center gap-3">
-              <div 
-                className="flex-1 min-w-0 cursor-pointer flex items-center gap-3"
-                onClick={() => onEdit?.(entry)}
-              >
-                <div className="shrink-0">
-                  {getExerciseTypeIcon(entry.exercise_type)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-sm font-medium text-foreground truncate">
-                      {entry.exercise_name}
-                    </span>
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-xs font-medium ${getExerciseTypeColor(
-                        entry.exercise_type
-                      )}`}
-                    >
-                      {formatExerciseType(entry.exercise_type)}
-                    </span>
-                  </div>
-                  <span className="text-xs text-muted-foreground">{formatDate(entry.performed_at)}</span>
-                </div>
-              </div>
-              {onDelete && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDelete(entry);
-                  }}
-                      className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-primary-light/50 hover:text-primary-dark shrink-0"
-                  aria-label="Delete fitness entry"
+          {recentFitness.map((entry, index) => {
+            const formatDateTime = (dateString: string) => {
+              const date = new Date(dateString);
+              return {
+                date: date.toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                }),
+                time: date.toLocaleTimeString("en-US", {
+                  hour: "numeric",
+                  minute: "2-digit",
+                  hour12: true,
+                }),
+              };
+            };
+            const { date, time } = formatDateTime(entry.performed_at);
+            const exerciseTypeColor = getExerciseTypeColor(entry.exercise_type);
+            const exerciseTypeLabel = formatExerciseType(entry.exercise_type);
+            const getIntensityColor = (intensity: string | null) => {
+              if (!intensity) return "";
+              switch (intensity.toLowerCase()) {
+                case "low":
+                  return "bg-green-500/20 text-green-700";
+                case "medium":
+                  return "bg-yellow-500/20 text-yellow-700";
+                case "high":
+                  return "bg-red-500/20 text-red-700";
+                default:
+                  return "";
+              }
+            };
+            const intensityColor = getIntensityColor(entry.intensity);
+
+            return (
+              <AnimatedListItem key={entry.id} index={index}>
+                <div
+                  className="group rounded-xl border border-foreground/10 bg-background/60 p-4 transition-colors hover:border-foreground/20"
                 >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              )}
-              </div>
-            </div>
-          ))}
+                <div className="flex items-start justify-between gap-4">
+                  <div 
+                    className="flex-1 min-w-0 cursor-pointer"
+                    onClick={() => onEdit?.(entry)}
+                  >
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
+                      <h3 className="text-base font-semibold text-foreground truncate">
+                        {entry.exercise_name}
+                      </h3>
+                      <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
+                        <span
+                          className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${exerciseTypeColor}`}
+                        >
+                          {getExerciseTypeIcon(entry.exercise_type)}
+                          {exerciseTypeLabel}
+                        </span>
+                        {entry.intensity && (
+                          <span
+                            className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${intensityColor}`}
+                          >
+                            {entry.intensity.charAt(0).toUpperCase() + entry.intensity.slice(1)}
+                          </span>
+                        )}
+                        {entry.duration_minutes !== null && (
+                          <span className="text-xs text-muted-foreground font-medium">
+                            {entry.duration_minutes} min
+                          </span>
+                        )}
+                        {entry.calories_burned !== null && (
+                          <span className="text-xs text-muted-foreground font-medium">
+                            {entry.calories_burned} cal
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                      <span>{date}</span>
+                      <span>•</span>
+                      <span>{time}</span>
+                    </div>
+                    {entry.notes && (
+                      <p className="mt-2 text-sm text-foreground/80 line-clamp-2">
+                        {entry.notes}
+                      </p>
+                    )}
+                  </div>
+                  {onDelete && (
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDelete(entry);
+                        }}
+                        className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-primary-light/50 hover:text-primary-dark"
+                        aria-label="Delete fitness entry"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+                </div>
+              </AnimatedListItem>
+            );
+          })}
         </div>
       )}
       </div>
-    </div>
+      </div>
+    </AnimatedCard>
   );
 }
 

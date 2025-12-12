@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef, memo } from "react";
 import { Trash2, Heart, Dumbbell, StretchHorizontal, Trophy, Activity } from "lucide-react";
+import DeleteConfirmationDialog from "@/components/DeleteConfirmationDialog";
 
 export type Fitness = {
   id: string;
@@ -29,20 +30,36 @@ export default function FitnessList({
   onEdit,
   isLoading = false,
 }: FitnessListProps) {
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteDialog, setDeleteDialog] = useState<{
+    isOpen: boolean;
+    id: string | null;
+    name: string;
+    isLoading: boolean;
+  }>({
+    isOpen: false,
+    id: null,
+    name: "",
+    isLoading: false,
+  });
 
-  const handleDelete = async (id: string) => {
-    if (!onDelete) return;
-    
-    if (!confirm("Are you sure you want to delete this fitness entry?")) {
-      return;
-    }
+  const handleDeleteClick = (entry: Fitness) => {
+    setDeleteDialog({
+      isOpen: true,
+      id: entry.id,
+      name: entry.exercise_name,
+      isLoading: false,
+    });
+  };
 
-    setDeletingId(id);
+  const handleDeleteConfirm = async () => {
+    if (!deleteDialog.id || !onDelete) return;
+
+    setDeleteDialog((prev) => ({ ...prev, isLoading: true }));
     try {
-      await onDelete(id);
-    } finally {
-      setDeletingId(null);
+      await onDelete(deleteDialog.id);
+      setDeleteDialog({ isOpen: false, id: null, name: "", isLoading: false });
+    } catch (err) {
+      setDeleteDialog((prev) => ({ ...prev, isLoading: false }));
     }
   };
 
@@ -114,16 +131,124 @@ export default function FitnessList({
     };
   };
 
+  // Global map to track which items have animated (persists across re-renders)
+  const animatedItemsMap = useRef<Set<string>>(new Set());
+
+  // Animated List Item Component - memoized to prevent unnecessary re-renders
+  const AnimatedListItem = memo(function AnimatedListItem({
+    children,
+    index,
+    itemId,
+  }: {
+    children: React.ReactNode;
+    index: number;
+    itemId: string;
+  }) {
+    const [isVisible, setIsVisible] = useState(() => animatedItemsMap.current.has(itemId));
+    const itemRef = useRef<HTMLDivElement>(null);
+    const observerRef = useRef<IntersectionObserver | null>(null);
+    const cleanupTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const hasSetupRef = useRef(false);
+
+    useEffect(() => {
+      // If already animated, skip setup
+      if (animatedItemsMap.current.has(itemId) || hasSetupRef.current) {
+        return;
+      }
+
+      const currentRef = itemRef.current;
+      if (!currentRef) return;
+
+      hasSetupRef.current = true;
+
+      // Check if element is already in viewport on mount
+      const checkViewport = () => {
+        const rect = currentRef.getBoundingClientRect();
+        return rect.top < window.innerHeight + 50 && rect.bottom > -50;
+      };
+
+      const triggerAnimation = () => {
+        if (animatedItemsMap.current.has(itemId)) return;
+        
+        animatedItemsMap.current.add(itemId);
+        setIsVisible(true);
+        
+        // Clean up will-change after animation completes
+        const delay = 500 + index * 80;
+        cleanupTimeoutRef.current = setTimeout(() => {
+          if (itemRef.current) {
+            itemRef.current.style.willChange = "auto";
+          }
+        }, delay);
+      };
+
+      if (checkViewport()) {
+        // Animate immediately if already in view
+        triggerAnimation();
+        return;
+      }
+
+      // Create observer only once
+      observerRef.current = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting && !animatedItemsMap.current.has(itemId)) {
+              triggerAnimation();
+              // Immediately disconnect observer to prevent retriggering
+              if (observerRef.current) {
+                observerRef.current.disconnect();
+                observerRef.current = null;
+              }
+            }
+          });
+        },
+        {
+          threshold: 0.01,
+          rootMargin: "50px 0px 50px 0px",
+        }
+      );
+
+      observerRef.current.observe(currentRef);
+
+      return () => {
+        if (cleanupTimeoutRef.current) {
+          clearTimeout(cleanupTimeoutRef.current);
+        }
+        if (observerRef.current && currentRef) {
+          observerRef.current.unobserve(currentRef);
+          observerRef.current = null;
+        }
+        hasSetupRef.current = false;
+      };
+    }, [itemId, index]); // Include itemId and index in deps
+
+    const delay = isVisible ? index * 80 : 0;
+
+    return (
+      <div
+        ref={itemRef}
+        className={`transition-all duration-500 ease-out ${!isVisible ? "will-change-transform" : ""}`}
+        style={{
+          opacity: isVisible ? 1 : 0,
+          transform: isVisible ? "translate3d(0, 0, 0)" : "translate3d(0, 24px, 0)",
+          transitionDelay: `${delay}ms`,
+        }}
+      >
+        {children}
+      </div>
+    );
+  });
+
   if (isLoading) {
     return (
       <div className="space-y-3">
-        {[1, 2, 3].map((i) => (
+        {[1, 2, 3, 4, 5].map((i) => (
           <div
             key={i}
             className="animate-pulse rounded-xl border border-foreground/10 bg-background/60 p-4"
           >
-            <div className="h-4 w-32 bg-foreground/10 rounded mb-2" />
-            <div className="h-3 w-24 bg-foreground/10 rounded" />
+            <div className="h-5 w-48 bg-foreground/10 rounded mb-3" />
+            <div className="h-4 w-32 bg-foreground/10 rounded" />
           </div>
         ))}
       </div>
@@ -159,32 +284,33 @@ export default function FitnessList({
   }
 
   return (
-    <div className="space-y-3">
-      {fitness.map((entry) => {
-        const { date, time } = formatDateTime(entry.performed_at);
-        const exerciseTypeColor = getExerciseTypeColor(entry.exercise_type);
-        const exerciseTypeLabel = formatExerciseType(entry.exercise_type);
-        const intensityColor = getIntensityColor(entry.intensity);
+    <>
+      <div className="space-y-3">
+        {fitness.map((entry, index) => {
+          const { date, time } = formatDateTime(entry.performed_at);
+          const exerciseTypeColor = getExerciseTypeColor(entry.exercise_type);
+          const exerciseTypeLabel = formatExerciseType(entry.exercise_type);
+          const intensityColor = getIntensityColor(entry.intensity);
 
-        return (
-          <div
-            key={entry.id}
-            className="group rounded-xl border border-foreground/10 bg-background/60 p-4 transition-colors hover:border-foreground/20"
-          >
+          return (
+            <AnimatedListItem key={entry.id} index={index} itemId={entry.id}>
+              <div
+                className="group rounded-xl border border-foreground/10 bg-background/60 p-4 transition-colors hover:border-foreground/20"
+              >
             <div className="flex items-start justify-between gap-4">
               <div 
                 className="flex-1 min-w-0 cursor-pointer"
                 onClick={() => onEdit?.(entry)}
               >
-                <div className="flex items-center gap-3 mb-2">
+                <div className="flex items-center gap-2 mb-2 flex-wrap">
                   <h3 className="text-base font-semibold text-foreground truncate">
                     {entry.exercise_name}
                   </h3>
                   <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
-                    {getExerciseTypeIcon(entry.exercise_type)}
                     <span
-                      className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${exerciseTypeColor}`}
+                      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${exerciseTypeColor}`}
                     >
+                      {getExerciseTypeIcon(entry.exercise_type)}
                       {exerciseTypeLabel}
                     </span>
                     {entry.intensity && (
@@ -224,10 +350,9 @@ export default function FitnessList({
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleDelete(entry.id);
+                      handleDeleteClick(entry);
                     }}
-                    disabled={deletingId === entry.id}
-                    className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-primary-light/50 hover:text-primary-dark disabled:opacity-50"
+                    className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-primary-light/50 hover:text-primary-dark"
                     aria-label="Delete fitness entry"
                   >
                     <Trash2 className="h-4 w-4" />
@@ -235,10 +360,22 @@ export default function FitnessList({
                 </div>
               )}
             </div>
-          </div>
-        );
-      })}
-    </div>
+              </div>
+            </AnimatedListItem>
+          );
+        })}
+      </div>
+
+      <DeleteConfirmationDialog
+        isOpen={deleteDialog.isOpen}
+        onClose={() => setDeleteDialog({ isOpen: false, id: null, name: "", isLoading: false })}
+        onConfirm={handleDeleteConfirm}
+        title="Delete Workout?"
+        message="Are you sure you want to delete this workout? This action cannot be undone."
+        itemName={deleteDialog.name}
+        isLoading={deleteDialog.isLoading}
+      />
+    </>
   );
 }
 

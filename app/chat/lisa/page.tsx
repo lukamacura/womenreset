@@ -2293,11 +2293,9 @@ function ChatPageInner() {
             </section>
 
             {/* Composer */}
-            <footer className="fixed bottom-0 left-0 right-0 z-20 backdrop-blur-md safe-area-inset-bottom lg:left-72" style={{
-              backdropFilter: 'blur(10px)',
+            <footer className="fixed bottom-0 left-0 right-0 z-20 safe-area-inset-bottom lg:left-72" style={{
               borderColor: THEME.pink[300],
               paddingBottom: 'env(safe-area-inset-bottom, 0)',
-              backgroundColor: 'transparent',
             }}>
               <form
                 onSubmit={async (e) => {
@@ -2335,16 +2333,9 @@ function ChatPageInner() {
                       }}
                       aria-label="Type your message"
                       placeholder="Ask anything..."
-                      className="w-full backdrop-blur-lg resize-none overflow-hidden text-base sm:text-lg font-semibold rounded-3xl border-2 px-5 py-4 pr-16 sm:px-6 sm:py-5 sm:pr-20 outline-none transition-all touch-manipulation shadow-md"
+                      className="w-full backdrop-blur-lg resize-none overflow-hidden text-base sm:text-lg font-semibold rounded-full border-2 px-5 py-4 pr-16 sm:px-6 sm:py-5 sm:pr-20 outline-none transition-all touch-manipulation shadow-md"
                       style={{
                         minHeight: '64px',
-                        backgroundColor: 'rgba(255, 255, 255, 0.98)',
-                        backgroundImage: `
-                          linear-gradient(rgba(236, 72, 153, 0.06) 1px, transparent 1px),
-                          linear-gradient(90deg, rgba(236, 72, 153, 0.06) 1px, transparent 1px),
-                          radial-gradient(circle at 2px 2px, rgba(168, 85, 247, 0.05) 1px, transparent 0)
-                        `,
-                        backgroundSize: '30px 30px, 30px 30px, 20px 20px',
                         borderColor: THEME.pink[300],
                         color: THEME.text[900],
                       }}

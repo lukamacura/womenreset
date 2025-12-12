@@ -12,25 +12,7 @@
   --color-primary-light: #FFC3D0;
   --color-primary-dark: #E36280;
 
-  /* Brand Colors - Navy */
-  --color-navy: #1D3557;
-  --color-navy-light: #4E6583;
-  --color-navy-dark: #0F1E33;
 
-  /* Brand Colors - Blue */
-  --color-blue: #3E92CC;
-  --color-blue-light: #89C4EA;
-  --color-blue-dark: #2B6A94;
-
-  /* Brand Colors - Gold */
-  --color-gold: #F9DB6D;
-  --color-gold-light: #FFF1B5;
-  --color-gold-dark: #D9B44D;
-
-  /* Brand Colors - Green */
-  --color-green: #499F68;
-  --color-green-light: #7CCF99;
-  --color-green-dark: #2F6B46;
 
   /* Semantic Colors */
   --color-success: #499F68;
@@ -42,7 +24,7 @@
 
   /* Background & Foreground */
   --color-background: #FFF5F7; /* Very soft pink tint */
-  --color-foreground: #1A1A1A; /* Neutral dark gray for body text */
+  --color-foreground: #1D3557; /* Neutral dark gray for body text */
 
   /* Typography Colors */
   --color-headline: #1D3557; /* Navy for headlines */
@@ -113,8 +95,8 @@ body {
 }
 
 .btn-primary {
-  background-color: var(--PRIMARY_LIGHT);
-  color: var(--PRIMARY_DARK);
+  background-color: var(--PRIMARY_DARK);
+  color: var(--background);
 }
 
 .btn-primary:hover {

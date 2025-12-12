@@ -8,6 +8,34 @@ import { supabase } from "@/lib/supabaseClient";
 import LisaSwipeButton from "@/components/LisaSwipeButton";
 import { useTrialStatus } from "@/lib/useTrialStatus";
 
+// Animated Navigation Item Component
+function AnimatedNavItem({
+  children,
+  delay = 0,
+}: {
+  children: React.ReactNode;
+  delay?: number;
+}) {
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsVisible(true), delay);
+    return () => clearTimeout(timer);
+  }, [delay]);
+
+  return (
+    <div
+      className={`transition-all duration-500 ease-out ${
+        isVisible
+          ? "opacity-100 translate-y-0"
+          : "opacity-0 -translate-y-2"
+      }`}
+    >
+      {children}
+    </div>
+  );
+}
+
 export default function DashboardLayout({
   children,
 }: {
@@ -170,7 +198,7 @@ export default function DashboardLayout({
 
             {/* Desktop Navigation Links */}
             <div className="hidden lg:flex items-center gap-1">
-              {navItems.map((item) => {
+              {navItems.map((item, index) => {
                 const Icon = item.icon;
                 const isActive =
                   pathname === item.href ||
@@ -178,23 +206,24 @@ export default function DashboardLayout({
 
                 const isDisabled = item.requiresActiveTrial && trialStatus.expired;
                 return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={(e) => handleNavClick(item, e)}
-                    className={`
-                      flex items-center gap-2 rounded-lg px-4 py-2 font-medium text-sm transition-colors duration-200
-                      ${isActive
-                        ? "bg-primary-light text-primary-dark font-semibold"
-                        : isDisabled
-                        ? "text-muted-foreground/50 cursor-not-allowed opacity-50"
-                        : "text-foreground! hover:bg-foreground/5"
-                      }
-                    `}
-                  >
-                    <Icon className="h-6 w-6" />
-                    <span>{item.label}</span>
-                  </Link>
+                  <AnimatedNavItem key={item.href} delay={index * 50}>
+                    <Link
+                      href={item.href}
+                      onClick={(e) => handleNavClick(item, e)}
+                      className={`
+                        flex items-center gap-2 rounded-lg px-4 py-2 font-medium text-sm transition-all duration-300
+                        ${isActive
+                          ? "bg-primary-light text-primary-dark font-semibold scale-105"
+                          : isDisabled
+                          ? "text-muted-foreground/50 cursor-not-allowed opacity-50"
+                          : "text-foreground! hover:bg-foreground/5 hover:scale-105"
+                        }
+                      `}
+                    >
+                      <Icon className="h-6 w-6 transition-transform duration-300" />
+                      <span>{item.label}</span>
+                    </Link>
+                  </AnimatedNavItem>
                 );
               })}
             </div>

@@ -142,7 +142,7 @@ export default function FitnessStats({
               relative px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer flex items-center gap-2
               ${
                 dateRange === range
-                  ? "bg-linear-to-r from-primary to-primary-dark text-white shadow-lg shadow-primary/30 scale-105"
+                  ? "bg-primary-light text-primary-dark shadow-lg shadow-primary/30 scale-105"
                   : "bg-white/60 text-muted-foreground hover:bg-white/80 hover:text-foreground border border-foreground/10"
               }
             `}
@@ -286,9 +286,7 @@ export default function FitnessStats({
         
         <div className="relative">
           <div className="flex items-center gap-2 mb-5">
-            <div className="p-2 rounded-lg bg-linear-to-br from-gold to-primary">
-              <Activity className="h-5 w-5 text-white" />
-            </div>
+
             <h3 className="text-lg font-bold text-foreground">Most Frequent Exercise Types</h3>
           </div>
 
@@ -298,7 +296,7 @@ export default function FitnessStats({
                 const percentage = stats.totalCount > 0 ? (item.count / stats.totalCount) * 100 : 0;
                 return (
                   <div key={item.exerciseType} className="space-y-2">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between"> 
                       <div className="flex items-center gap-3">
                         <div className="p-1.5 rounded-lg bg-foreground/5">
                           {getExerciseTypeIcon(item.exerciseType)}
