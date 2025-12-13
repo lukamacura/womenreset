@@ -5,6 +5,8 @@
  * This script loads knowledge base documents and ingests them into Supabase
  * for vector search with section-based chunking and structured metadata.
  * 
+ * Supports both YAML frontmatter and Markdown formats.
+ * 
  * Usage:
  *   npx tsx scripts/ingest-documents.ts
  * 
@@ -62,12 +64,47 @@ interface ParsedSection {
   content_sections: ContentSections;
 }
 
+type FileFormat = 'yaml' | 'markdown';
+
+/**
+ * Detect file format based on content
+ */
+function detectFormat(content: string): FileFormat {
+  // YAML format starts with --- and has key: value pairs
+  if (content.trim().startsWith('---') && content.includes('persona:') && content.includes('content_text:')) {
+    return 'yaml';
+  }
+  // Markdown format has ## headings and **Persona:** format
+  if (content.includes('##') && content.includes('**Persona:**')) {
+    return 'markdown';
+  }
+  // Default to markdown for backward compatibility
+  return 'markdown';
+}
+
+/**
+ * Parse YAML frontmatter sections
+ */
+function parseYAMLSections(content: string): string[] {
+  const sections: string[] = [];
+  // Split by --- separators (YAML frontmatter delimiters)
+  const parts = content.split(/^---$/gm).filter(p => p.trim().length > 0);
+  
+  for (const part of parts) {
+    const trimmed = part.trim();
+    // Only process sections that have persona, topic, and subtopic
+    if (trimmed.includes('persona:') && trimmed.includes('topic:') && trimmed.includes('subtopic:')) {
+      sections.push(trimmed);
+    }
+  }
+  
+  return sections;
+}
+
 /**
  * Parse markdown file into sections based on ## headings
  */
 function parseMarkdownSections(content: string): string[] {
-  // Split by ## headings (major topic sections)
-  // Handle both Windows (\r\n) and Unix (\n) line endings
   const sections: string[] = [];
   const lines = content.split(/\r?\n/);
   let currentSection: string[] = [];
@@ -97,11 +134,28 @@ function parseMarkdownSections(content: string): string[] {
 }
 
 /**
- * Extract metadata (Persona, Topic, Subtopic) from section
+ * Extract metadata from YAML format
  */
-function extractMetadata(section: string): SectionMetadata | null {
-  // Match metadata lines - handle Windows (\r\n) and Unix (\n) line endings
-  // Match everything after the colon until end of line (including trailing spaces)
+function extractYAMLMetadata(section: string): SectionMetadata | null {
+  const personaMatch = section.match(/^persona:\s*["']?([^"'\n]+)["']?/m);
+  const topicMatch = section.match(/^topic:\s*["']?([^"'\n]+)["']?/m);
+  const subtopicMatch = section.match(/^subtopic:\s*["']?([^"'\n]+)["']?/m);
+  
+  if (!personaMatch || !topicMatch || !subtopicMatch) {
+    return null;
+  }
+  
+  return {
+    persona: personaMatch[1].trim(),
+    topic: topicMatch[1].trim(),
+    subtopic: subtopicMatch[1].trim(),
+  };
+}
+
+/**
+ * Extract metadata from Markdown format
+ */
+function extractMarkdownMetadata(section: string): SectionMetadata | null {
   const personaMatch = section.match(/\*\*Persona:\*\*\s*([^\r\n]+?)(?:\s*[\r\n]|$)/);
   const topicMatch = section.match(/\*\*Topic:\*\*\s*([^\r\n]+?)(?:\s*[\r\n]|$)/);
   const subtopicMatch = section.match(/\*\*Subtopic:\*\*\s*([^\r\n]+?)(?:\s*[\r\n]|$)/);
@@ -118,11 +172,212 @@ function extractMetadata(section: string): SectionMetadata | null {
 }
 
 /**
- * Parse Intent Patterns section into array
+ * Extract content from YAML format
  */
-function parseIntentPatterns(section: string): string[] {
+function extractYAMLContent(section: string): { content: string; contentSections: ContentSections } {
+  const contentSections: ContentSections = {
+    has_content: false,
+    has_action_tips: false,
+    has_motivation: false,
+    has_followup: false,
+    has_habit_strategy: false,
+  };
+  
+  const contentParts: string[] = [];
+  
+  // Extract content_text (main content)
+  const contentTextMatch = section.match(/^content_text:\s*\|\s*\n([\s\S]*?)(?=^[a-z_]+:|$)/m);
+  if (contentTextMatch) {
+    let content = contentTextMatch[1].trim();
+    // Remove leading indentation (YAML block scalar)
+    content = content.split('\n').map(line => line.replace(/^\s{2,}/, '')).join('\n').trim();
+    if (content) {
+      contentSections.has_content = true;
+      contentParts.push(content);
+    }
+  }
+  
+  // Extract action_tips
+  const actionTipsMatch = section.match(/^action_tips:\s*\n([\s\S]*?)(?=^[a-z_]+:|$)/m);
+  if (actionTipsMatch) {
+    const tips = actionTipsMatch[1].trim();
+    // Extract bullet points
+    const tipLines = tips.split('\n').filter(line => line.trim().startsWith('-'));
+    if (tipLines.length > 0) {
+      contentSections.has_action_tips = true;
+      contentParts.push(tipLines.map(line => line.trim().replace(/^-\s*["']?/, '').replace(/["']?$/, '')).join('\n'));
+    }
+  }
+  
+  // Extract motivation_nudge
+  const motivationMatch = section.match(/^motivation_nudge:\s*(?:\|\s*\n)?([\s\S]*?)(?=^[a-z_]+:|$)/m);
+  if (motivationMatch) {
+    let motivation = motivationMatch[1].trim();
+    // Handle both single-line and multi-line YAML
+    if (motivation.includes('\n')) {
+      motivation = motivation.split('\n').map(line => line.replace(/^\s{2,}/, '')).join('\n').trim();
+    }
+    motivation = motivation.replace(/^["']|["']$/g, '').trim();
+    if (motivation) {
+      contentSections.has_motivation = true;
+      contentParts.push(motivation);
+    }
+  }
+  
+  // Extract habit_strategy
+  const habitStrategyMatch = section.match(/^habit_strategy:\s*\n([\s\S]*?)(?=^[a-z_]+:|$)/m);
+  if (habitStrategyMatch) {
+    const strategy = habitStrategyMatch[1].trim();
+    // Extract the principle, explanation, example, and habit_tip
+    const strategyParts: string[] = [];
+    const principleMatch = strategy.match(/^\s*principle:\s*["']?([^"'\n]+)["']?/m);
+    const explanationMatch = strategy.match(/^\s*explanation:\s*["']?([^"'\n]+)["']?/m);
+    const exampleMatch = strategy.match(/^\s*example:\s*["']?([^"'\n]+)["']?/m);
+    const tipMatch = strategy.match(/^\s*habit_tip:\s*["']?([^"'\n]+)["']?/m);
+    
+    if (principleMatch) strategyParts.push(`Principle: ${principleMatch[1].trim()}`);
+    if (explanationMatch) strategyParts.push(`Explanation: ${explanationMatch[1].trim()}`);
+    if (exampleMatch) strategyParts.push(`Example: ${exampleMatch[1].trim()}`);
+    if (tipMatch) strategyParts.push(`Tip: ${tipMatch[1].trim()}`);
+    
+    if (strategyParts.length > 0) {
+      contentSections.has_habit_strategy = true;
+      contentParts.push(strategyParts.join('\n'));
+    }
+  }
+  
+  // Track follow_up_question but DO NOT include it in content
+  const followUpMatch = section.match(/^follow_up_question:\s*(?:\|\s*\n)?([\s\S]*?)(?=^[a-z_]+:|$)/m);
+  if (followUpMatch) {
+    contentSections.has_followup = true;
+    // Explicitly NOT adding to contentParts - this should not be in the content
+  }
+  
+  const content = contentParts.join('\n\n').trim();
+  
+  return { content, contentSections };
+}
+
+/**
+ * Extract content from Markdown format
+ */
+function extractMarkdownContent(section: string): { content: string; contentSections: ContentSections } {
+  const contentSections: ContentSections = {
+    has_content: false,
+    has_action_tips: false,
+    has_motivation: false,
+    has_followup: false,
+    has_habit_strategy: false,
+  };
+  
+  const contentParts: string[] = [];
+  
+  // Define the content sections we want to extract
+  const contentSectionPatterns = [
+    { 
+      pattern: /###\s*\*\*Content\*\*\s*\n([\s\S]*?)(?=###|---\s*$|$)/i, 
+      key: 'has_content' as keyof ContentSections 
+    },
+    { 
+      pattern: /###\s*\*\*Action Tips?\*\*\s*\n([\s\S]*?)(?=###|---\s*$|$)/i, 
+      key: 'has_action_tips' as keyof ContentSections 
+    },
+    { 
+      pattern: /###\s*\*\*Motivation Nudge\*\*\s*\n([\s\S]*?)(?=###|---\s*$|$)/i, 
+      key: 'has_motivation' as keyof ContentSections 
+    },
+    { 
+      pattern: /###\s*\*\*Habit Strategy[\s\S]*?\*\*\s*\n([\s\S]*?)(?=###|---\s*$|$)/i, 
+      key: 'has_habit_strategy' as keyof ContentSections 
+    },
+  ];
+  
+  // Extract each content section
+  for (const { pattern, key } of contentSectionPatterns) {
+    const match = section.match(pattern);
+    if (match) {
+      const extractedContent = match[1];
+      if (extractedContent && extractedContent.trim()) {
+        contentSections[key] = true;
+        let cleaned = extractedContent.trim();
+        // Remove any trailing separators
+        cleaned = cleaned.replace(/\n*---\s*$/g, '');
+        // Remove excessive whitespace
+        cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
+        if (cleaned) {
+          contentParts.push(cleaned);
+        }
+      }
+    }
+  }
+  
+  // Track follow_up_question but DO NOT include it in content
+  const followUpMatch = section.match(/###\s*\*\*Follow-Up (Question|Questions)\*\*\s*\n([\s\S]*?)(?=###|---\s*$|$)/i);
+  if (followUpMatch) {
+    contentSections.has_followup = true;
+    // Explicitly NOT adding to contentParts - this should not be in the content
+  }
+  
+  // Combine all content parts
+  let content = contentParts.join('\n\n').trim();
+  
+  // If no content sections were found, try to extract any text after removing metadata
+  if (!content) {
+    // Remove section header (##)
+    content = section.replace(/^##\s+.*?\n/g, '');
+    // Remove metadata lines
+    content = content.replace(/\*\*Persona:\*\*.*?\n/g, '');
+    content = content.replace(/\*\*Topic:\*\*.*?\n/g, '');
+    content = content.replace(/\*\*Subtopic:\*\*.*?\n/g, '');
+    // Remove Intent Patterns section
+    content = content.replace(/###\s*\*\*Intent Patterns?\*\*\s*\n[\s\S]*?(?=###|---\s*$|$)/i, '');
+    // Remove Keywords section
+    content = content.replace(/###\s*\*\*Keywords?\*\*\s*\n[\s\S]*?(?=###|---\s*$|$)/i, '');
+    // Remove section headers (###)
+    content = content.replace(/^###\s+.*?\n/gm, '');
+    // Clean up
+    content = content.replace(/^---\s*$/gm, '');
+    content = content.replace(/\n{3,}/g, '\n\n');
+    content = content.trim();
+  }
+  
+  return { content, contentSections };
+}
+
+/**
+ * Parse Intent Patterns from YAML format
+ */
+function parseYAMLIntentPatterns(section: string): string[] {
   const patterns: string[] = [];
-  const intentPatternsMatch = section.match(/###\s*\*\*Intent Patterns?\*\*\s*\n([\s\S]*?)(?=###|$)/);
+  const intentPatternsMatch = section.match(/^intent_patterns:\s*\n([\s\S]*?)(?=^[a-z_]+:|$)/m);
+  
+  if (!intentPatternsMatch) {
+    return patterns;
+  }
+  
+  const patternsText = intentPatternsMatch[1];
+  const lines = patternsText.split('\n');
+  
+  for (const line of lines) {
+    const trimmed = line.trim();
+    // Match bullet points (- or •)
+    if (trimmed.match(/^[-•]\s+/)) {
+      const pattern = trimmed.replace(/^[-•]\s+/, '').replace(/^["']|["']$/g, '').trim();
+      if (pattern) {
+        patterns.push(pattern);
+      }
+    }
+  }
+  
+  return patterns;
+}
+
+/**
+ * Parse Intent Patterns from Markdown format
+ */
+function parseMarkdownIntentPatterns(section: string): string[] {
+  const patterns: string[] = [];
+  const intentPatternsMatch = section.match(/###\s*\*\*Intent Patterns?\*\*\s*\n([\s\S]*?)(?=###|---\s*$|$)/);
   
   if (!intentPatternsMatch) {
     return patterns;
@@ -146,9 +401,41 @@ function parseIntentPatterns(section: string): string[] {
 }
 
 /**
- * Parse Keywords section into flat array
+ * Parse Keywords from YAML format
  */
-function parseKeywords(section: string): string[] {
+function parseYAMLKeywords(section: string): string[] {
+  const keywords: string[] = [];
+  const keywordsMatch = section.match(/^keywords:\s*\n([\s\S]*?)(?=^[a-z_]+:|$)/m);
+  
+  if (!keywordsMatch) {
+    return keywords;
+  }
+  
+  const keywordsText = keywordsMatch[1];
+  const lines = keywordsText.split('\n');
+  
+  for (const line of lines) {
+    const trimmed = line.trim();
+    // Skip subcategory headers (like **Scientific & Hormonal** or just category names)
+    if (trimmed.match(/^\*\*/) || trimmed.match(/^[A-Z][a-z]+:/)) {
+      continue;
+    }
+    // Match bullet points (- or •)
+    if (trimmed.match(/^[-•]\s+/)) {
+      const keyword = trimmed.replace(/^[-•]\s+/, '').replace(/^["']|["']$/g, '').trim();
+      if (keyword) {
+        keywords.push(keyword);
+      }
+    }
+  }
+  
+  return keywords;
+}
+
+/**
+ * Parse Keywords from Markdown format
+ */
+function parseMarkdownKeywords(section: string): string[] {
   const keywords: string[] = [];
   const keywordsMatch = section.match(/###\s*\*\*Keywords?\*\*\s*\n([\s\S]*?)(?=###|---\s*$|$)/);
   
@@ -175,96 +462,6 @@ function parseKeywords(section: string): string[] {
   }
   
   return keywords;
-}
-
-/**
- * Clean content by extracting ONLY actual content sections
- * Removes: section headers, metadata, Intent Patterns, Keywords
- * Keeps: Content, Action Tips, Motivation Nudge, Follow-Up Question, Habit Strategy
- */
-function cleanContent(section: string): { content: string; contentSections: ContentSections } {
-  // Track which content sections exist
-  const contentSections: ContentSections = {
-    has_content: false,
-    has_action_tips: false,
-    has_motivation: false,
-    has_followup: false,
-    has_habit_strategy: false,
-  };
-  
-  // Extract only the content sections we want to keep
-  const contentParts: string[] = [];
-  
-  // Define the content sections we want to extract
-  const contentSectionPatterns = [
-    { 
-      pattern: /###\s*\*\*Content\*\*\s*\n([\s\S]*?)(?=###|---\s*$|$)/i, 
-      key: 'has_content' as keyof ContentSections 
-    },
-    { 
-      pattern: /###\s*\*\*Action Tips?\*\*\s*\n([\s\S]*?)(?=###|---\s*$|$)/i, 
-      key: 'has_action_tips' as keyof ContentSections 
-    },
-    { 
-      pattern: /###\s*\*\*Motivation Nudge\*\*\s*\n([\s\S]*?)(?=###|---\s*$|$)/i, 
-      key: 'has_motivation' as keyof ContentSections 
-    },
-    { 
-      pattern: /###\s*\*\*Follow-Up (Question|Questions)\*\*\s*\n([\s\S]*?)(?=###|---\s*$|$)/i, 
-      key: 'has_followup' as keyof ContentSections 
-    },
-    { 
-      pattern: /###\s*\*\*Habit Strategy[\s\S]*?\*\*\s*\n([\s\S]*?)(?=###|---\s*$|$)/i, 
-      key: 'has_habit_strategy' as keyof ContentSections 
-    },
-  ];
-  
-  // Extract each content section
-  for (const { pattern, key } of contentSectionPatterns) {
-    const match = section.match(pattern);
-    if (match) {
-      // Get the captured content (group 1 or 2 depending on pattern)
-      const extractedContent = match[1] || match[2];
-      if (extractedContent && extractedContent.trim()) {
-        contentSections[key] = true;
-        // Clean up the extracted content
-        let cleaned = extractedContent.trim();
-        // Remove any trailing separators
-        cleaned = cleaned.replace(/\n*---\s*$/g, '');
-        // Remove excessive whitespace
-        cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
-        if (cleaned) {
-          contentParts.push(cleaned);
-        }
-      }
-    }
-  }
-  
-  // Combine all content parts
-  let content = contentParts.join('\n\n').trim();
-  
-  // If no content sections were found, try to extract any text after removing metadata
-  // This is a fallback for sections that might not follow the standard format
-  if (!content) {
-    // Remove section header (##)
-    content = section.replace(/^##\s+.*?\n/g, '');
-    // Remove metadata lines
-    content = content.replace(/\*\*Persona:\*\*.*?\n/g, '');
-    content = content.replace(/\*\*Topic:\*\*.*?\n/g, '');
-    content = content.replace(/\*\*Subtopic:\*\*.*?\n/g, '');
-    // Remove Intent Patterns section
-    content = content.replace(/###\s*\*\*Intent Patterns?\*\*\s*\n[\s\S]*?(?=###|---\s*$|$)/i, '');
-    // Remove Keywords section
-    content = content.replace(/###\s*\*\*Keywords?\*\*\s*\n[\s\S]*?(?=###|---\s*$|$)/i, '');
-    // Remove section headers (###)
-    content = content.replace(/^###\s+.*?\n/gm, '');
-    // Clean up
-    content = content.replace(/^---\s*$/gm, '');
-    content = content.replace(/\n{3,}/g, '\n\n');
-    content = content.trim();
-  }
-  
-  return { content, contentSections };
 }
 
 /**
@@ -374,19 +571,36 @@ function chunkContentIfNeeded(content: string, maxTokens: number = 2000, maxChar
  * Parse a single section into structured format
  * May return multiple documents if content needs to be chunked
  */
-function parseSection(section: string, _source: string, _sectionIndex: number): ParsedSection[] {
-  const metadata = extractMetadata(section);
-  if (!metadata) {
-    // Skip sections without proper metadata
-    return [];
+function parseSection(section: string, format: FileFormat, _source: string, _sectionIndex: number): ParsedSection[] {
+  let metadata: SectionMetadata | null;
+  let content: string;
+  let contentSections: ContentSections;
+  let intent_patterns: string[];
+  let keywords: string[];
+  
+  if (format === 'yaml') {
+    metadata = extractYAMLMetadata(section);
+    if (!metadata) {
+      return [];
+    }
+    const contentResult = extractYAMLContent(section);
+    content = contentResult.content;
+    contentSections = contentResult.contentSections;
+    intent_patterns = parseYAMLIntentPatterns(section);
+    keywords = parseYAMLKeywords(section);
+  } else {
+    metadata = extractMarkdownMetadata(section);
+    if (!metadata) {
+      return [];
+    }
+    const contentResult = extractMarkdownContent(section);
+    content = contentResult.content;
+    contentSections = contentResult.contentSections;
+    intent_patterns = parseMarkdownIntentPatterns(section);
+    keywords = parseMarkdownKeywords(section);
   }
   
-  const { content, contentSections } = cleanContent(section);
-  const intent_patterns = parseIntentPatterns(section);
-  const keywords = parseKeywords(section);
-  
   // Split content into chunks if it's too large
-  // Reduced to 2000 tokens (~8,000 chars) to stay well under 10,240 char limit for Supabase UI
   const contentChunks = chunkContentIfNeeded(content, 2000, 10000);
   
   return contentChunks.map((chunk, chunkIndex) => ({
@@ -428,13 +642,17 @@ async function loadDocuments(): Promise<Document[]> {
       const filePath = path.join(kbDir, file);
       const content = fs.readFileSync(filePath, 'utf-8');
       
-      // Parse into sections
-      const sections = parseMarkdownSections(content);
+      // Detect file format
+      const format = detectFormat(content);
+      console.log(`   📑 ${file}: Format detected: ${format.toUpperCase()}`);
+      
+      // Parse into sections based on format
+      const sections = format === 'yaml' ? parseYAMLSections(content) : parseMarkdownSections(content);
       console.log(`   📑 ${file}: Found ${sections.length} section(s)`);
       
       let sectionIndex = 0;
       for (const section of sections) {
-        const parsedSections = parseSection(section, file, sectionIndex);
+        const parsedSections = parseSection(section, format, file, sectionIndex);
         
         for (const parsed of parsedSections) {
           if (parsed && parsed.content.trim().length > 0) {

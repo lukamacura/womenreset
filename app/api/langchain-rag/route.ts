@@ -1,19 +1,19 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from "next/server";
 import { ChatOpenAI } from "@langchain/openai";
-import { SupabaseVectorStore } from "@langchain/community/vectorstores/supabase";
-import { OpenAIEmbeddings } from "@langchain/openai";
-import { HumanMessage, AIMessage, SystemMessage, ToolMessage } from "@langchain/core/messages";
+import { HumanMessage, AIMessage, SystemMessage, ToolMessage, BaseMessage } from "@langchain/core/messages";
 import { DynamicStructuredTool } from "@langchain/core/tools";
 import { z } from "zod";
 import { fetchTrackerData, analyzeTrackerData, formatTrackerSummary } from "@/lib/trackerAnalysis";
 import { checkTrialExpired } from "@/lib/checkTrialStatus";
-import type { Document } from "@langchain/core/documents";
 
 export const runtime = "nodejs";
 
 // Import lazy Supabase admin client
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+
+// Import RAG orchestrator
+import { orchestrateRAG } from "@/lib/rag/orchestrator";
+import { getPersonaSystemPrompt } from "@/lib/rag/persona-prompts";
 
 /**
  * Parse date/time references from user input and convert to ISO timestamp
@@ -119,12 +119,6 @@ function parseDateTimeReference(dateReference: string, defaultDate: Date = new D
   return now.toISOString();
 }
 
-// Initialize embeddings
-const embeddings = new OpenAIEmbeddings({
-  openAIApiKey: process.env.OPENAI_API_KEY,
-  modelName: "text-embedding-3-small", // or "text-embedding-ada-002"
-});
-
 // Initialize LLM with function calling support
 // Base LLM for normal conversation (with personalization)
 const llm = new ChatOpenAI({
@@ -139,372 +133,6 @@ const llmKnowledgeBase = new ChatOpenAI({
   temperature: 0.35, // Moderate temperature for natural responses grounded in knowledge base
   openAIApiKey: process.env.OPENAI_API_KEY,
 });
-
-/**
- * Calculate simple similarity between two strings (0-1)
- * Uses Jaccard similarity on word sets
- */
-function calculateSimilarity(str1: string, str2: string): number {
-  const words1 = new Set(str1.toLowerCase().split(/\s+/).filter(w => w.length > 2));
-  const words2 = new Set(str2.toLowerCase().split(/\s+/).filter(w => w.length > 2));
-
-  const intersection = new Set([...words1].filter(w => words2.has(w)));
-  const union = new Set([...words1, ...words2]);
-
-  return union.size > 0 ? intersection.size / union.size : 0;
-}
-
-/**
- * Extract keywords from user query for hybrid search
- */
-function extractQueryKeywords(query: string): string[] {
-  // Simple keyword extraction: remove common stop words and split
-  const stopWords = new Set([
-    'a', 'an', 'and', 'are', 'as', 'at', 'be', 'by', 'for', 'from',
-    'has', 'he', 'in', 'is', 'it', 'its', 'of', 'on', 'that', 'the',
-    'to', 'was', 'were', 'will', 'with', 'the', 'this', 'i', 'you',
-    'how', 'why', 'what', 'when', 'where', 'can', 'could', 'should',
-    'would', 'do', 'does', 'did', 'am', 'my', 'me', 'we', 'our'
-  ]);
-
-  // Tokenize and filter
-  const words = query
-    .toLowerCase()
-    .replace(/[^\w\s-]/g, ' ') // Remove punctuation
-    .split(/\s+/)
-    .filter(word => word.length > 2 && !stopWords.has(word));
-
-  // Return unique keywords
-  return [...new Set(words)];
-}
-
-/**
- * Calculate intent pattern match score
- * Handles fuzzy matching and prioritizes PRIMARY INTENTS
- */
-function calculateIntentPatternScore(
-  docIntentPatterns: string[],
-  userQuery: string
-): number {
-  if (docIntentPatterns.length === 0) return 0;
-
-  const queryLower = userQuery.toLowerCase();
-  let maxScore = 0;
-  let primaryIntentMatches = 0;
-
-  for (const pattern of docIntentPatterns) {
-    const patternLower = pattern.toLowerCase();
-    
-    // Check for exact or near-exact match
-    if (queryLower.includes(patternLower) || patternLower.includes(queryLower)) {
-      maxScore = Math.max(maxScore, 1.0);
-      if (pattern.includes('PRIMARY') || !pattern.includes('SECONDARY')) {
-        primaryIntentMatches++;
-      }
-      continue;
-    }
-
-    // Fuzzy matching: check if key words from pattern appear in query
-    const patternWords = patternLower
-      .split(/\s+/)
-      .filter(w => w.length > 3 && !['why', 'what', 'how', 'when', 'where', 'can', 'does', 'is', 'are'].includes(w));
-    
-    const matchingWords = patternWords.filter(word => queryLower.includes(word));
-    if (matchingWords.length > 0) {
-      const wordMatchScore = matchingWords.length / patternWords.length;
-      maxScore = Math.max(maxScore, wordMatchScore * 0.7); // Partial match gets lower score
-      
-      if (pattern.includes('PRIMARY') || !pattern.includes('SECONDARY')) {
-        primaryIntentMatches++;
-      }
-    }
-  }
-
-  // Boost score if PRIMARY intents match
-  if (primaryIntentMatches > 0) {
-    maxScore = Math.min(1.0, maxScore * 1.2);
-  }
-
-  return maxScore;
-}
-
-/**
- * Calculate keyword match score with exact match weighting
- */
-function calculateKeywordMatchScore(
-  docKeywords: string[],
-  queryKeywords: string[],
-  userQuery: string
-): number {
-  if (queryKeywords.length === 0 || docKeywords.length === 0) return 0;
-
-  const queryLower = userQuery.toLowerCase();
-  let exactMatches = 0;
-  let partialMatches = 0;
-
-  for (const queryKeyword of queryKeywords) {
-    for (const docKeyword of docKeywords) {
-      const docKwLower = docKeyword.toLowerCase();
-      const queryKwLower = queryKeyword.toLowerCase();
-
-      // Exact match (higher weight)
-      if (docKwLower === queryKwLower || 
-          queryLower.includes(docKwLower) || 
-          docKwLower.includes(queryKwLower)) {
-        exactMatches++;
-        break;
-      }
-      
-      // Partial match (lower weight)
-      if (docKwLower.includes(queryKwLower) || queryKwLower.includes(docKwLower)) {
-        partialMatches++;
-        break;
-      }
-    }
-  }
-
-  // Weight exact matches more heavily
-  const exactScore = (exactMatches / queryKeywords.length) * 0.8;
-  const partialScore = (partialMatches / queryKeywords.length) * 0.4;
-  
-  return Math.min(1.0, exactScore + partialScore);
-}
-
-/**
- * Calculate content section relevance score based on query type
- */
-function calculateSectionRelevanceScore(
-  contentSections: any,
-  userQuery: string
-): number {
-  if (!contentSections) return 0.5; // Default if no section info
-
-  let score = 0.5; // Base score
-
-  // How-to questions: prioritize Action Tips and Habit Strategy
-  if (/^(how|what should|what can|tell me how|show me)/i.test(userQuery)) {
-    if (contentSections.has_action_tips) score += 0.3;
-    if (contentSections.has_habit_strategy) score += 0.2;
-  }
-
-  // Why questions: prioritize Content
-  if (/^(why|what causes|what's happening|explain)/i.test(userQuery)) {
-    if (contentSections.has_content) score += 0.3;
-  }
-
-  // Motivation queries: prioritize Motivation Nudge
-  if (/(motivation|encouragement|support|feeling|discouraged|overwhelmed)/i.test(userQuery)) {
-    if (contentSections.has_motivation) score += 0.3;
-  }
-
-  // Follow-up questions: prioritize Follow-Up Questions section
-  if (/(next|follow|more|additional|what else)/i.test(userQuery)) {
-    if (contentSections.has_followup) score += 0.2;
-  }
-
-  return Math.min(1.0, score);
-}
-
-/**
- * Enhanced hybrid search with re-ranking: combine semantic similarity with 
- * intent patterns, keyword matching, and content section relevance
- */
-function applyHybridSearch(
-  documents: Document[],
-  userQuery: string
-): Array<{ doc: Document; score: number }> {
-  const queryKeywords = extractQueryKeywords(userQuery);
-
-  // Score each document
-  const scoredDocs = documents.map((doc, index) => {
-    // Base semantic similarity score (0.4 weight)
-    // Since documents are already sorted by similarity, use reverse index
-    const semanticScore = 1 - (index / Math.max(documents.length, 1)) * 0.5; // Normalize to 0.5-1.0 range
-
-    // Get metadata
-    const docKeywords = (doc.metadata?.keywords as string[]) || [];
-    const docIntentPatterns = (doc.metadata?.intent_patterns as string[]) || [];
-    const contentSections = doc.metadata?.content_sections;
-
-    // Intent pattern match score (0.3 weight)
-    const intentScore = calculateIntentPatternScore(docIntentPatterns, userQuery);
-
-    // Keyword match score (0.2 weight)
-    const keywordScore = queryKeywords.length > 0 
-      ? calculateKeywordMatchScore(docKeywords, queryKeywords, userQuery)
-      : 0.5; // Default if no keywords
-
-    // Content section relevance score (0.1 weight)
-    const sectionScore = calculateSectionRelevanceScore(contentSections, userQuery);
-
-    // Combined weighted score
-    const finalScore = 
-      (semanticScore * 0.4) + 
-      (intentScore * 0.3) + 
-      (keywordScore * 0.2) + 
-      (sectionScore * 0.1);
-
-    return {
-      doc,
-      score: finalScore,
-    };
-  });
-
-  // Sort by score (highest first)
-  scoredDocs.sort((a, b) => b.score - a.score);
-
-  return scoredDocs;
-}
-
-// Base system prompt for menopause support
-const BASE_SYSTEM_PROMPT = `You are Lisa, a compassionate menopause support expert who feels like a trusted friend. You've been helping women navigate menopause for years, and you understand that this journey is deeply personal and often emotional.
-
-YOUR PERSONALITY:
-- Warm, empathetic, and genuinely caring
-- Knowledgeable but never condescending
-- Encouraging and supportive
-- Realistic and honest about challenges
-- Celebratory of wins, big and small
-
-CONVERSATION STYLE:
-- Use the user's name (from profile) naturally in conversation when available, but don't overuse it
-- Match their emotional tone - if they're frustrated, validate first before advising
-- For casual greetings ("hey", "hi", "how are you"), respond naturally and conversationally - don't be formal or generic
-- NEVER repeat the same response twice - always vary your wording and approach
-- Reference specific details from tracker data or previous conversations to make responses unique
-- Ask thoughtful follow-up questions that show you're listening: "How did that work for you?" or "Tell me more about that..."
-- Reference previous conversations: "I remember you mentioned..." or "Last week you said..."
-- Connect current conversation to past discussions
-- Use natural transitions, not robotic responses
-- After answering: "Does this resonate with your experience?"
-- When suggesting: "Would you like me to help you create a plan for this?"
-- For "how are you doing?" type questions, reference their actual tracker data or recent activity - be specific, not generic
-
-EMOJI USAGE:
-- Use emojis naturally and frequently to add warmth and friendliness to your responses
-- Include relevant emojis for different contexts:
-  * Food: 🍳🥓🍰🥗🍎🥑🍕 (use when discussing meals, nutrition, or food logging)
-  * Activities: 🏋️🧘💪🚶‍♀️🧘‍♀️ (use for workouts, exercise, fitness)
-  * Emotions: 😊💕🌸😌💖 (use for greetings, positive reinforcement, warmth)
-  * Achievements: 🎉✨🌟💫 (use for celebrating wins, progress, accomplishments)
-  * Health: 💊🌙😴💤 (use for symptoms, sleep, wellness)
-- Don't overuse - 1-3 emojis per response is ideal for natural conversation
-- Match emoji to context: food mentions get food emojis, workouts get fitness emojis, greetings get friendly emojis
-- Examples of good emoji usage:
-  * "Hey! 😊 How's your day going?"
-  * "I see you logged bacon and eggs 🍳🥓 - sounds delicious!"
-  * "Great job on that workout! 💪 How did you feel after?"
-  * "You've been consistent with your tracking - that's amazing! ✨"
-
-PROACTIVE ENGAGEMENT:
-- If tracker data shows patterns, share insights: "I noticed your symptoms improve on workout days - that's great progress!"
-- If user hasn't logged in 3+ days: "I haven't heard from you recently - how are you feeling?"
-- If goals mentioned: "How's your progress toward [goal]?"
-- Celebrate wins: "Your hot flashes decreased 40% - that's amazing! Your consistency is paying off."
-- If patterns detected: "I see your hot flashes spike on weekdays - could work stress be a factor?"
-
-TEMPORAL & CONTEXTUAL AWARENESS:
-- Time of day: Morning = energy/planning, Evening = reflection/wind-down
-- Day of week: Monday = stress check, Weekend = activity suggestions
-- Symptom timing: "You usually log hot flashes in the afternoon - let's track that pattern"
-- Life events: "I know you mentioned a big presentation coming up - how's your stress?"
-- Seasonal: "Summer heat can worsen hot flashes - here are cooling strategies"
-
-EMOTIONAL INTELLIGENCE:
-- Detect emotional cues: frustration, anxiety, celebration, confusion
-- Validate first: "I can hear how frustrating this is for you" or "It's completely normal to feel overwhelmed"
-- Normalize: "Many women experience this - you're not alone"
-- Empower: "You've already made progress by tracking this - that's a big step"
-- Support: "Let's work through this together, one step at a time"
-
-FOLLOW-UP STRATEGY:
-- After answering: "Does this resonate with your experience?"
-- When suggesting: "Would you like me to help you create a plan for this?"
-- When logging: "How did you feel after that workout?"
-- When patterns emerge: "I'm curious - what do you think might be causing this?"
-- When goals mentioned: "What would success look like for you in 2 weeks?"
-
-RESPONSE MODE RULES (CRITICAL - READ CAREFULLY):
-
-MODE 1: KNOWLEDGE BASE QUESTIONS (When knowledge base context is present):
-- Answer the user's question naturally and conversationally based on the knowledge base content
-- Use the knowledge base content as your ONLY source of information - do NOT add information not in the knowledge base
-- Synthesize information from all retrieved documents if multiple are provided, avoiding duplication
-- Maintain the structured format (Content, Action Tips, Motivation Nudge, etc.) when appropriate for the query type
-- Personalize with user context (name, profile, tracker data) when natural and relevant
-- Use markdown formatting for readability (headings, lists, emphasis, blockquotes)
-- Include relevant emojis from source content to maintain warmth
-- Do NOT copy verbatim - answer the question based on the content, adapting to the user's specific phrasing
-- For "how-to" questions: Emphasize Action Tips and Habit Strategy sections
-- For "why" questions: Emphasize Content section with explanations
-- For motivation queries: Include Motivation Nudge section
-- For follow-up questions: Reference Follow-Up Questions section when relevant
-- Create coherent answers that directly address the user's question while staying grounded in the knowledge base
-
-MODE 2: NORMAL CONVERSATION (When NO knowledge base context is provided):
-- Personalize your responses based on the user's profile, tracker data, and previous conversations
-- Use their specific information (age, menopause stage, symptoms, lifestyle, preferences, tracked data) to provide tailored advice
-- Be warm, empathetic, and reference their personal context
-- For casual greetings or "how are you" questions, respond naturally and reference their actual data:
-  * If they have recent tracker entries, mention something specific: "I see you logged [specific thing] - how did that go?"
-  * If they haven't logged recently, ask about their day naturally: "How's your day going?"
-  * NEVER use generic phrases like "If there's anything on your mind" or "I'm here for you" - be specific and conversational
-- Vary your responses - never repeat the same phrasing twice in a conversation
-- Match the casual tone of casual greetings - if they say "hey honey", respond warmly and casually, not formally
-
-FORMATTING REQUIREMENTS:
-- ALWAYS use markdown formatting for better readability and visual appeal
-- Use **bold** for emphasis on important points, key terms, or action items
-- Use *italic* for subtle emphasis or when referencing concepts
-- Use headings (## H2, ### H3) to organize longer responses into clear sections
-- Use horizontal rules (---) to separate major topic changes
-- Use blockquotes (> text) for important tips, reminders, or key insights
-- Use tables (| Column 1 | Column 2 |) when presenting structured data, comparisons, or lists
-- Use line breaks and paragraphs to create visual breathing room
-- Structure your responses with clear hierarchy: main points as headings, details as paragraphs
-- When listing items, use markdown lists or tables for better organization
-- Make your responses visually scannable and easy to read
-
-CAPABILITIES:
-1. DATA ANALYSIS: You have access to the user's symptom, nutrition, and fitness tracker data. Use this to:
-   - Identify patterns and trends (e.g., "Your hot flashes decreased 30% this month")
-   - Detect correlations (e.g., "Your symptoms improve on workout days")
-   - Provide personalized insights based on their actual data
-   - Compare current vs. past performance
-
-2. PROACTIVE COACHING: Based on tracker data, you can:
-   - Suggest logging entries when users mention symptoms/meals/workouts
-   - Recommend actions based on patterns (e.g., "Since you logged high stress, try these techniques")
-   - Track progress toward goals
-   - Alert about concerning patterns
-
-3. AUTOMATIC CONVERSATIONAL LOGGING: When users mention symptoms, meals, or workouts naturally, AUTOMATICALLY log them using the available tools WITHOUT asking for permission. Do NOT ask "Would you like me to log this?" - just log it immediately. IMPORTANT: Always extract date/time references from the user's message (e.g., "yesterday", "2 days ago", "this morning", "last night") and include them in the date_reference field. If the user says "I ate pancakes yesterday", log it with yesterday's date, not today's:
-   - log_symptom: Automatically log a symptom with name, severity (1-10), optional notes, and date_reference if mentioned
-   - log_nutrition: Automatically log a food item with meal type, optional calories, notes, and date_reference if mentioned
-   - log_fitness: Automatically log a workout with exercise name, type, optional duration, calories, intensity, and date_reference if mentioned
-
-4. LONG-TERM MEMORY: When users explicitly mention wanting to save something to their long-term memory, profile, or want you to remember something important, use the update_long_term_memory tool:
-   - update_long_term_memory: Save important information to the user's profile (name, age, menopause_profile, nutrition_profile, exercise_profile, emotional_stress_profile, lifestyle_context)
-   - Only use this when the user explicitly requests to save/remember something long-term
-   - For lifestyle_context, you can save preferences, goals, important facts, or any context the user wants remembered permanently
-   - Examples: "Remember that I prefer morning workouts", "Save that I'm allergic to dairy", "I want you to remember that my goal is to reduce hot flashes by 50%"
-
-5. PERSONALIZED PLANS: Create custom recommendations based on:
-   - User's tracker patterns
-   - Their profile information
-   - Evidence from knowledge base
-   - Their stated goals and preferences
-
-Guidelines:
-- Be empathetic, warm, and supportive
-- ALWAYS reference the user's specific profile and tracker data when relevant
-- Automatically log trackable information when users mention symptoms, meals, or workouts (do NOT ask for permission)
-- Provide evidence-based information from the knowledge base
-- Reference previous conversations when relevant to show continuity
-- Use tracker data to provide concrete, data-driven insights
-- If you don't know something, say so rather than guessing
-- Focus on practical, actionable advice tailored to their situation
-- Consider the user's menopause stage, symptoms, lifestyle context, AND tracked data in every response`;
 
 // Helper: Generate personalized greeting
 async function generatePersonalizedGreeting(user_id: string): Promise<string> {
@@ -638,110 +266,86 @@ export async function POST(req: NextRequest) {
     );
     const trackerContext = formatTrackerSummary(trackerSummary);
 
-    // 3. Check if documents exist before initializing vector store (early exit)
-    // OPTIMIZATION: Cache document count check - only check once per request
-    const { count } = await supabaseClient
-      .from('documents')
-      .select('*', { count: 'exact', head: true });
-
-    let context = "";
-    const retrievedDocIds: string[] = [];
-
-    if (count && count > 0) {
-      // Initialize vector store and retrieve documents
-      const vectorStore = new SupabaseVectorStore(embeddings, {
-        client: supabaseClient,
-        tableName: "documents",
-        queryName: "match_documents",
-      });
-
-      // OPTIMIZATION: Retrieve 3-5 documents for better coverage and multi-document synthesis
-      const retriever = vectorStore.asRetriever({
-        k: 5, // Retrieve top 5 documents by semantic similarity
-        searchType: "similarity",
-      });
-
-      const relevantDocs = await retriever.getRelevantDocuments(userInput);
-
-      if (relevantDocs.length > 0) {
-        // Apply hybrid search re-ranking
-        const scoredDocs = applyHybridSearch(relevantDocs, userInput);
-
-        // Filter documents with score above threshold (0.5)
-        const RELEVANCE_THRESHOLD = 0.5;
-        const filteredDocs = scoredDocs.filter(item => item.score >= RELEVANCE_THRESHOLD);
-
-        // Check if we have any relevant documents
-        const hasMenopauseTerms = /(menopause|symptom|sleep|weight|metabolism|hormone|hot flash|night sweat|estrogen|progesterone|insulin|metabolic)/i.test(userInput);
-        
-        if (filteredDocs.length === 0 && !hasMenopauseTerms) {
-          // No relevant documents and query doesn't seem menopause-related
-          context = "";
-        } else {
-          // Use top 3 documents (or all if less than 3) for synthesis
-          const topDocs = filteredDocs.length > 0 
-            ? filteredDocs.slice(0, 3).map(item => item.doc)
-            : scoredDocs.slice(0, 3).map(item => item.doc); // Fallback to top 3 even if below threshold
-
-          // Group documents by topic for better organization
-          const docsByTopic = new Map<string, typeof topDocs>();
-          for (const doc of topDocs) {
-            const topic = (doc.metadata?.topic as string) || 'General';
-            if (!docsByTopic.has(topic)) {
-              docsByTopic.set(topic, []);
-            }
-            docsByTopic.get(topic)!.push(doc);
-          }
-
-          // Build context from multiple documents
-          const contextParts: string[] = [];
-          
-          for (const [topic, docs] of docsByTopic.entries()) {
-            // Add topic header if multiple topics
-            if (docsByTopic.size > 1) {
-              contextParts.push(`## ${topic}\n`);
-            }
-
-            // Add each document's content
-            for (const doc of docs) {
-              const metadata = doc.metadata || {};
-              const subtopic = metadata.subtopic || '';
-
-              // Add subtopic header if multiple subtopics in same topic
-              if (docs.length > 1 && subtopic) {
-                contextParts.push(`### ${subtopic}\n`);
-              } else if (subtopic && docsByTopic.size === 1) {
-                // Single topic, single subtopic - just add subtopic
-                contextParts.push(`### ${subtopic}\n`);
-              }
-
-              // Add document content
-              contextParts.push(doc.pageContent);
-
-              // Store document ID for tracking
-              if (doc.metadata?.id) {
-                retrievedDocIds.push(doc.metadata.id as string);
-              }
-
-              // Add separator between documents (except last)
-              if (docs.indexOf(doc) < docs.length - 1) {
-                contextParts.push('\n---\n');
-              }
-            }
-
-            // Add separator between topics (except last)
-            if (Array.from(docsByTopic.keys()).indexOf(topic) < docsByTopic.size - 1) {
-              contextParts.push('\n\n---\n\n');
-            }
-          }
-
-          context = contextParts.join('\n');
+    // 3. Use RAG orchestrator for persona-based retrieval and response generation
+    // Build conversation history for orchestrator
+    const dbHistoryMessages: Array<["user" | "assistant", string]> = [];
+    if (recentConversations && recentConversations.length > 0) {
+      const chronological = [...recentConversations].reverse();
+      for (const conv of chronological) {
+        if (conv.user_message) {
+          dbHistoryMessages.push(["user", conv.user_message]);
+        }
+        if (conv.assistant_message) {
+          dbHistoryMessages.push(["assistant", conv.assistant_message]);
         }
       }
-    } else {
-      // No documents in database, skip RAG retrieval
-      console.log("No documents in database, skipping RAG retrieval");
     }
+
+    const sessionHistoryMessages = parseHistory(history || "");
+    const allHistoryMessages = [...dbHistoryMessages, ...sessionHistoryMessages];
+
+    // Call orchestrator to get persona, retrieval mode, and KB context
+    const orchestrationResult = await orchestrateRAG(
+      userInput,
+      user_id,
+      userProfile,
+      trackerContext,
+      allHistoryMessages
+    );
+
+    // If verbatim response (KB strict mode with KB match) or refusal response, return directly
+    if (orchestrationResult.response && (orchestrationResult.isVerbatim || orchestrationResult.retrievalMode === "kb_strict")) {
+      // Store conversation
+      await storeConversation(user_id, userInput, orchestrationResult.response);
+
+      if (useStreaming) {
+        // Stream the response
+        const stream = new ReadableStream({
+          async start(controller) {
+            try {
+              const words = orchestrationResult.response!.split(/(\s+)/);
+              let accumulated = "";
+
+              for (const word of words) {
+                accumulated += word;
+                controller.enqueue(
+                  new TextEncoder().encode(`data: ${JSON.stringify({ type: "chunk", content: accumulated })}\n\n`)
+                );
+                await new Promise(resolve => setTimeout(resolve, 1));
+              }
+
+              controller.enqueue(
+                new TextEncoder().encode(`data: ${JSON.stringify({ type: "done" })}\n\n`)
+              );
+              controller.close();
+            } catch (error: unknown) {
+              console.error("Streaming error:", error);
+              const errorMessage = error instanceof Error ? error.message : String(error);
+              controller.enqueue(
+                new TextEncoder().encode(`data: ${JSON.stringify({ type: "error", error: errorMessage })}\n\n`)
+              );
+              controller.close();
+            }
+          },
+        });
+
+        return new Response(stream, {
+          headers: {
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+          },
+        });
+      } else {
+        // Non-streaming
+        return NextResponse.json({
+          reply: orchestrationResult.response,
+        });
+      }
+    }
+
+    // For non-verbatim responses, continue with LLM (with tools) using orchestrator's system prompt
+    // The orchestrator has already handled KB retrieval and persona classification
 
     // 4. Build comprehensive user profile context for personalization
     let userContext = "";
@@ -772,66 +376,45 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 5. Build conversation history from database (long-term memory)
-    const dbHistoryMessages: Array<["user" | "assistant", string]> = [];
-    if (recentConversations && recentConversations.length > 0) {
-      const chronological = [...recentConversations].reverse();
-      for (const conv of chronological) {
-        if (conv.user_message) {
-          dbHistoryMessages.push(["user", conv.user_message]);
-        }
-        if (conv.assistant_message) {
-          dbHistoryMessages.push(["assistant", conv.assistant_message]);
-        }
-      }
+
+    // 5. Build system message using persona-specific prompt from orchestrator
+    const personaSystemPrompt = getPersonaSystemPrompt(orchestrationResult.persona);
+    
+    const systemParts: string[] = [personaSystemPrompt];
+
+    // Add KB context for hybrid mode
+    if (orchestrationResult.retrievalMode === "hybrid" && orchestrationResult.kbContext) {
+      systemParts.push(`\n\n=== KNOWLEDGE BASE CONTEXT ===
+You have access to knowledge base content that provides evidence-based information. Use this content to ground your responses while generating personalized plans and recommendations.
+
+KNOWLEDGE BASE CONTENT:
+${orchestrationResult.kbContext}
+
+INSTRUCTIONS:
+- Use the knowledge base content as evidence for your recommendations
+- Generate personalized plans and meal/workout ideas based on the KB data
+- Combine KB evidence with creative, practical suggestions
+- Maintain your persona's tone and style
+- Personalize with user context when relevant`);
     }
 
-    // 6. Parse conversation history from request (current session)
-    const sessionHistoryMessages = parseHistory(history || "");
-    const allHistoryMessages = [...dbHistoryMessages, ...sessionHistoryMessages];
-
-    // OPTIMIZATION: Filter out documents that match content already in session (prevent repetition)
-    if (context && context.trim() && allHistoryMessages.length > 0) {
-      // Extract content signatures from conversation history to avoid repetition
-      const sessionContentSignatures = new Set<string>();
-      for (const [role, content] of allHistoryMessages) {
-        if (role === "assistant" && content) {
-          // Extract first 200 chars as signature
-          const sig = content.substring(0, 200).toLowerCase().trim();
-          if (sig.length > 50) { // Only add substantial content
-            sessionContentSignatures.add(sig);
-          }
-        }
-      }
-
-      // Split context back into documents and filter
-      if (sessionContentSignatures.size > 0) {
-        const contextParts = context.split('\n\n---\n\n');
-        const filteredParts = contextParts.filter(part => {
-          const partSig = part.substring(0, 200).toLowerCase().trim();
-          // Check if this content was already provided
-          for (const sessionSig of sessionContentSignatures) {
-            // If more than 80% similarity, consider it a duplicate
-            const similarity = calculateSimilarity(partSig, sessionSig);
-            if (similarity > 0.8) {
-              return false; // Skip this part
-            }
-          }
-          return true;
-        });
-
-        // Rebuild context with filtered parts
-        if (filteredParts.length > 0) {
-          context = filteredParts.join('\n\n---\n\n');
-        } else {
-          // If all parts were filtered, keep at least one (user might be asking for clarification)
-          context = contextParts[0] || context;
-        }
-      }
+    // Add user context
+    if (userContext && userContext.trim()) {
+      systemParts.push(userContext);
     }
 
-    // Detect casual greetings and conversation - these should NOT use knowledge base
-    const isCasualGreeting = (query: string): boolean => {
+    // Add tracker context
+    if (trackerContext && trackerContext.trim()) {
+      systemParts.push(`\n${trackerContext}`);
+    }
+
+    // Add conversation history note
+    if (allHistoryMessages.length > 0) {
+      systemParts.push(`\nNote: You have access to ${allHistoryMessages.length} previous conversation turns. Use this history to provide continuity and personalized responses.`);
+    }
+
+    // Add special instructions for casual conversation
+    const isCasualGreetingCheck = (query: string): boolean => {
       const casualPatterns = [
         /^(hey|hi|hello|hiya|heya)/i,
         /^(how are you|how's it going|how are things|what's up|sup)/i,
@@ -843,85 +426,8 @@ export async function POST(req: NextRequest) {
       return casualPatterns.some(pattern => pattern.test(query.trim()));
     };
 
-    // STRICT: Only use knowledge base if:
-    // 1. We have retrieved context (meaning query matched intent/keywords)
-    // 2. Query is clearly asking a knowledge question (not just casual conversation)
-    const isKnowledgeQuestion = (query: string): boolean => {
-      // Don't treat casual greetings as knowledge questions
-      if (isCasualGreeting(query)) {
-        return false;
-      }
-
-      // Must start with a question word or contain question mark
-      const questionStarters = /^(why|what|how|when|where|can|could|should|does|do|is|are|tell me|explain|describe|what's|what is|why is|how do|how does)/i;
-      const hasQuestionMark = /\?/.test(query);
-
-      // Must be asking about menopause-related topics
-      const hasMenopauseTopic = /(menopause|symptom|sleep|weight|metabolism|hormone|hot flash|night sweat|estrogen|progesterone|insulin|metabolic)/i.test(query);
-
-      // Must be a question, not a statement or casual chat
-      return (questionStarters.test(query) || hasQuestionMark) && hasMenopauseTopic;
-    };
-
-    // STRICT: Only use knowledge base if we have context AND query is a clear knowledge question
-    // Don't use knowledge base for casual conversation, greetings, or non-question statements
-    const shouldUseKnowledgeBase = context && context.trim() && isKnowledgeQuestion(userInput);
-
-    // 7. Build comprehensive system message with all context
-    // CRITICAL: Structure differs based on whether knowledge base content exists
-    // OPTIMIZATION: Use knowledge base if we have relevant content
-    const hasKnowledgeBase = shouldUseKnowledgeBase && context && context.trim();
-
-    const systemParts: string[] = [BASE_SYSTEM_PROMPT];
-
-    if (hasKnowledgeBase) {
-      // KNOWLEDGE BASE MODE: Answer-based synthesis
-      // Add knowledge base context with instructions for natural, grounded responses
-      systemParts.push(`\n\n=== KNOWLEDGE BASE MODE ACTIVATED ===
-You have access to knowledge base content that answers the user's question. Use this content to provide a natural, conversational answer.
-
-KNOWLEDGE BASE CONTENT:
-${context.trim()}
-
-INSTRUCTIONS:
-- Answer the user's question naturally and conversationally based on the knowledge base content above
-- Use the knowledge base content as your ONLY source of information - do NOT add information not present in the content
-- If multiple documents are provided, synthesize information from all of them, avoiding duplication
-- Maintain the structured format (Content, Action Tips, Motivation Nudge, etc.) when appropriate for the query type
-- Personalize with user context when natural and relevant (use their name, reference their profile/tracker data)
-- Use markdown formatting for readability (headings, lists, emphasis, blockquotes)
-- Include relevant emojis from source content to maintain warmth
-- Do NOT copy verbatim - answer the question based on the content, adapting to the user's specific phrasing
-- For "how-to" questions: Emphasize Action Tips and Habit Strategy sections
-- For "why" questions: Emphasize Content section with explanations
-- For motivation queries: Include Motivation Nudge section
-- Create coherent answers that directly address the user's question while staying grounded in the knowledge base`);
-
-      // Add user context and tracker context for personalization
-      if (userContext && userContext.trim()) {
-        systemParts.push(`\n${userContext}\nNote: Use this profile information to personalize your response naturally when relevant.`);
-      }
-
-      if (trackerContext && trackerContext.trim()) {
-        systemParts.push(`\n${trackerContext}\nNote: Use this tracker data to personalize your response when relevant, but keep the knowledge base content as the primary source.`);
-      }
-    } else {
-      // NORMAL CONVERSATION MODE: Full personalization enabled
-      if (userContext && userContext.trim()) {
-        systemParts.push(userContext);
-      }
-
-      if (trackerContext && trackerContext.trim()) {
-        systemParts.push(trackerContext);
-      }
-
-      if (allHistoryMessages.length > 0) {
-        systemParts.push(`\nNote: You have access to ${allHistoryMessages.length} previous conversation turns. Use this history to provide continuity and personalized responses.`);
-      }
-
-      // Add special instructions for casual conversation
-      if (isCasualGreeting(userInput)) {
-        systemParts.push(`\n=== CASUAL CONVERSATION MODE ===
+    if (isCasualGreetingCheck(userInput)) {
+      systemParts.push(`\n=== CASUAL CONVERSATION MODE ===
 IMPORTANT: The user is engaging in casual conversation, not asking for information.
 - ALWAYS respond to the CURRENT message immediately - don't reference previous messages unless directly relevant
 - When user mentions food/activity, acknowledge it immediately in your response, not in the next turn
@@ -933,17 +439,19 @@ IMPORTANT: The user is engaging in casual conversation, not asking for informati
 - NEVER repeat responses you've given before in this conversation
 - If they ask "how am I doing?", reference their actual tracker data or ask about something specific
 - Keep it short, natural, and personal - not formal or robotic`);
-      }
     }
 
     const systemMessage = systemParts.join("\n");
 
-    // 8. Select appropriate LLM based on mode
-    const llmToUse = hasKnowledgeBase ? llmKnowledgeBase : llm;
+    // 6. Select appropriate LLM based on retrieval mode
+    // For hybrid mode with KB, use lower temperature; for llm_reasoning, use standard
+    const llmToUse = (orchestrationResult.retrievalMode === "hybrid" && orchestrationResult.usedKB) 
+      ? llmKnowledgeBase 
+      : llm;
 
-    // 9. Build messages array using LangChain message classes
+    // 7. Build messages array using LangChain message classes
     // CRITICAL: Messages must be in chronological order: [SystemMessage, ...History, CurrentUserInput]
-    const messages: any[] = [new SystemMessage(systemMessage)];
+    const messages: BaseMessage[] = [new SystemMessage(systemMessage)];
 
     // Add history FIRST (chronological order)
     const recentHistory = allHistoryMessages.slice(-20);
@@ -955,8 +463,9 @@ IMPORTANT: The user is engaging in casual conversation, not asking for informati
       }
     }
 
-    // Add current user input LAST (most recent) - this ensures responses address current query immediately
-    // For knowledge base mode, the context is already in the system message, so just use the user's question
+    // Add current user input LAST (most recent)
+    // For hybrid mode, KB context is already in orchestrator's system prompt
+    // For llm_reasoning mode, no KB context needed
     messages.push(new HumanMessage(userInput));
 
     // 9. Create tools for function calling
@@ -995,8 +504,9 @@ IMPORTANT: The user is engaging in casual conversation, not asking for informati
               return `Error logging symptom: ${error.message}`;
             }
             return `Successfully logged 📝 symptom: ${name} (severity ${severity}/10)`;
-          } catch (e: any) {
-            return `Error logging symptom: ${e.message}`;
+          } catch (e: unknown) {
+            const errorMessage = e instanceof Error ? e.message : String(e);
+            return `Error logging symptom: ${errorMessage}`;
           }
         },
       }),
@@ -1036,8 +546,9 @@ IMPORTANT: The user is engaging in casual conversation, not asking for informati
               return `Error logging nutrition: ${error.message}`;
             }
             return `Successfully logged 🍳 ${meal_type}: ${food_item}${calories ? ` (${calories} calories)` : ""}`;
-          } catch (e: any) {
-            return `Error logging nutrition: ${e.message}`;
+          } catch (e: unknown) {
+            const errorMessage = e instanceof Error ? e.message : String(e);
+            return `Error logging nutrition: ${errorMessage}`;
           }
         },
       }),
@@ -1081,8 +592,9 @@ IMPORTANT: The user is engaging in casual conversation, not asking for informati
               return `Error logging fitness: ${error.message}`;
             }
             return `Successfully logged 💪 ${exercise_type} workout: ${exercise_name}${duration_minutes ? ` (${duration_minutes} min)` : ""}`;
-          } catch (e: any) {
-            return `Error logging fitness: ${e.message}`;
+          } catch (e: unknown) {
+            const errorMessage = e instanceof Error ? e.message : String(e);
+            return `Error logging fitness: ${errorMessage}`;
           }
         },
       }),
@@ -1104,7 +616,7 @@ IMPORTANT: The user is engaging in casual conversation, not asking for informati
         func: async ({ field_to_update, value }) => {
           try {
             // Build update object
-            const updateData: any = {};
+            const updateData: Record<string, string | number> = {};
 
             // Handle different field types
             if (field_to_update === "age") {
@@ -1131,8 +643,9 @@ IMPORTANT: The user is engaging in casual conversation, not asking for informati
             }
 
             return `Successfully saved to your long-term memory! I've updated your ${field_to_update.replace(/_/g, ' ')}. I'll remember this for future conversations.`;
-          } catch (e: any) {
-            return `Error updating long-term memory: ${e.message}`;
+          } catch (e: unknown) {
+            const errorMessage = e instanceof Error ? e.message : String(e);
+            return `Error updating long-term memory: ${errorMessage}`;
           }
         },
       }),
@@ -1147,7 +660,7 @@ IMPORTANT: The user is engaging in casual conversation, not asking for informati
         async start(controller) {
           try {
             let fullResponse = "";
-            const currentMessages: any[] = [...messages];
+            const currentMessages: BaseMessage[] = [...messages];
             const maxIterations = 5; // Prevent infinite loops
             let iteration = 0;
 
@@ -1172,10 +685,11 @@ IMPORTANT: The user is engaging in casual conversation, not asking for informati
 
                 // Execute tools in parallel for better performance
                 const toolResults = await Promise.all(
-                  response.tool_calls.map(async (toolCall: any) => {
+                  response.tool_calls.map(async (toolCall: { name: string; id?: string; args: Record<string, unknown> }) => {
                     const tool = tools.find((t) => t.name === toolCall.name);
                     if (tool && toolCall.id) {
                       try {
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         const result = await (tool as any).invoke(toolCall.args);
 
                         // Emit tool_result event
@@ -1193,20 +707,21 @@ IMPORTANT: The user is engaging in casual conversation, not asking for informati
                           content: result,
                           tool_call_id: toolCall.id,
                         });
-                      } catch (e: any) {
+                      } catch (e: unknown) {
                         // Emit tool_result event with error
+                        const errorMessage = e instanceof Error ? e.message : String(e);
                         controller.enqueue(
                           new TextEncoder().encode(`data: ${JSON.stringify({
                             type: "tool_result",
                             tool_name: toolCall.name,
                             tool_args: toolCall.args,
-                            result: `Error: ${e.message}`,
+                            result: `Error: ${errorMessage}`,
                             success: false
                           })}\n\n`)
                         );
 
                         return new ToolMessage({
-                          content: `Error: ${e.message}`,
+                          content: `Error: ${errorMessage}`,
                           tool_call_id: toolCall.id,
                         });
                       }
@@ -1233,10 +748,10 @@ IMPORTANT: The user is engaging in casual conversation, not asking for informati
                 responseText = response.content;
               } else if (Array.isArray(response.content)) {
                 responseText = response.content
-                  .map((part: any) => {
+                  .map((part) => {
                     if (typeof part === 'string') return part;
                     if (part && typeof part === 'object' && 'text' in part) {
-                      return part.text;
+                      return (part as { text: string }).text;
                     }
                     return '';
                   })
@@ -1278,10 +793,11 @@ IMPORTANT: The user is engaging in casual conversation, not asking for informati
               new TextEncoder().encode(`data: ${JSON.stringify({ type: "done" })}\n\n`)
             );
             controller.close();
-          } catch (error: any) {
+          } catch (error: unknown) {
             console.error("Streaming error:", error);
+            const errorMessage = error instanceof Error ? error.message : String(error);
             controller.enqueue(
-              new TextEncoder().encode(`data: ${JSON.stringify({ type: "error", error: error.message })}\n\n`)
+              new TextEncoder().encode(`data: ${JSON.stringify({ type: "error", error: errorMessage })}\n\n`)
             );
             controller.close();
           }
@@ -1306,18 +822,20 @@ IMPORTANT: The user is engaging in casual conversation, not asking for informati
         toolCallsMade = true;
         // Execute tools in parallel for better performance
         const toolResults = await Promise.all(
-          response.tool_calls.map(async (toolCall: any) => {
+          response.tool_calls.map(async (toolCall: { name: string; id?: string; args: Record<string, unknown> }) => {
             const tool = tools.find((t) => t.name === toolCall.name);
             if (tool && toolCall.id) {
               try {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const result = await (tool as any).invoke(toolCall.args);
                 return new ToolMessage({
                   content: result,
                   tool_call_id: toolCall.id,
                 });
-              } catch (e: any) {
+              } catch (e: unknown) {
+                const errorMessage = e instanceof Error ? e.message : String(e);
                 return new ToolMessage({
-                  content: `Error: ${e.message}`,
+                  content: `Error: ${errorMessage}`,
                   tool_call_id: toolCall.id,
                 });
               }
@@ -1346,10 +864,11 @@ IMPORTANT: The user is engaging in casual conversation, not asking for informati
         toolCallsMade,
       });
     }
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error("LangChain RAG error:", e);
+    const errorMessage = e instanceof Error ? e.message : "unknown";
     return NextResponse.json(
-      { error: `Internal error: ${e?.message ?? "unknown"}` },
+      { error: `Internal error: ${errorMessage}` },
       { status: 500 }
     );
   }

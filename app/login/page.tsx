@@ -192,7 +192,7 @@ function LoginForm() {
         {/* Optional: Magic link */}
         <Link
           href={{ pathname: "/magic-link", query: email ? { email } : {} }}
-          className="block w-full text-center rounded-xl border border-foreground/15 px-4 py-2.5 text-sm font-medium hover:bg-foreground/5"
+          className="block w-full text-center rounded-xl border border-foreground/15 px-4 py-2.5 text-sm font-medium bg-[#fae3e5] hover:bg-foreground/5"
         >
           Continue with magic link
         </Link>
