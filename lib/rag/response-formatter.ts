@@ -15,7 +15,8 @@ function stripEnhancementText(content: string): string {
   // - "This section answers questions about: ..." (required if intents exist)
   // - Optional space + "Key topic(s): ..." (if keywords exist)
   // - Followed by "\n\n" and then the actual content
-  const enhancementPattern = /^This section answers questions about:.*?(?: Key topic(?:s)?:.*?)?\n\n/s;
+  // Using [\s\S] instead of . with /s flag for ES2017 compatibility
+  const enhancementPattern = /^This section answers questions about:[\s\S]*?(?: Key topic(?:s)?:[\s\S]*?)?\n\n/;
   const cleaned = content.replace(enhancementPattern, '');
   
   // If pattern didn't match, return original content
