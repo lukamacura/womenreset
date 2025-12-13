@@ -200,19 +200,60 @@ function extractYAMLContent(section: string): { content: string; contentSections
     }
   }
   
-  // Extract action_tips
-  const actionTipsMatch = section.match(/^action_tips:\s*\n([\s\S]*?)(?=^[a-z_]+:|$)/m);
-  if (actionTipsMatch) {
-    const tips = actionTipsMatch[1].trim();
-    // Extract bullet points
-    const tipLines = tips.split('\n').filter(line => line.trim().startsWith('-'));
-    if (tipLines.length > 0) {
-      contentSections.has_action_tips = true;
-      contentParts.push(tipLines.map(line => line.trim().replace(/^-\s*["']?/, '').replace(/["']?$/, '')).join('\n'));
+  // Extract action_tips - include ALL bullet points
+  // Process section line by line to find action_tips block and capture ALL tips
+  const lines = section.split('\n');
+  let inActionTips = false;
+  const tipLines: string[] = [];
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+    
+    // Check if we've reached the action_tips field
+    if (trimmed === 'action_tips:' || trimmed.startsWith('action_tips:')) {
+      inActionTips = true;
+      continue;
+    }
+    
+    // If we're in the action_tips block
+    if (inActionTips) {
+      // Check if we've hit the next YAML field (starts with lowercase/underscore + colon, not indented)
+      // A field is at the start of a line (no or minimal indentation - 0-2 spaces)
+      if (trimmed && /^[a-z_]+:/.test(trimmed)) {
+        const indentMatch = line.match(/^(\s*)/);
+        const indent = indentMatch ? indentMatch[1].length : 0;
+        // If indent is 0-2, it's a new top-level field, so we're done
+        if (indent <= 2) {
+          break;
+        }
+      }
+      
+      // Capture ALL lines that are bullet points (start with - or •)
+      if (trimmed.startsWith('-') || trimmed.startsWith('•')) {
+        tipLines.push(trimmed);
+      }
     }
   }
   
-  // Extract motivation_nudge
+  if (tipLines.length > 0) {
+    contentSections.has_action_tips = true;
+    // Remove bullet marker and quotes, keep the content
+    const cleanedTips = tipLines.map(line => {
+      let cleaned = line.trim();
+      // Remove bullet marker (- or •) and any following whitespace
+      cleaned = cleaned.replace(/^[-•]\s+/, '');
+      // Remove surrounding quotes (single or double)
+      cleaned = cleaned.replace(/^["']|["']$/g, '');
+      return cleaned.trim();
+    }).filter(tip => tip.length > 0); // Remove any empty strings
+    
+    if (cleanedTips.length > 0) {
+      contentParts.push(cleanedTips.join('\n'));
+    }
+  }
+  
+  // Extract motivation_nudge - content only, no label
   const motivationMatch = section.match(/^motivation_nudge:\s*(?:\|\s*\n)?([\s\S]*?)(?=^[a-z_]+:|$)/m);
   if (motivationMatch) {
     let motivation = motivationMatch[1].trim();
@@ -227,21 +268,22 @@ function extractYAMLContent(section: string): { content: string; contentSections
     }
   }
   
-  // Extract habit_strategy
+  // Extract habit_strategy - content only, no labels like "Principle:", "Explanation:"
   const habitStrategyMatch = section.match(/^habit_strategy:\s*\n([\s\S]*?)(?=^[a-z_]+:|$)/m);
   if (habitStrategyMatch) {
     const strategy = habitStrategyMatch[1].trim();
-    // Extract the principle, explanation, example, and habit_tip
+    // Extract the principle, explanation, example, and habit_tip WITHOUT labels
     const strategyParts: string[] = [];
     const principleMatch = strategy.match(/^\s*principle:\s*["']?([^"'\n]+)["']?/m);
     const explanationMatch = strategy.match(/^\s*explanation:\s*["']?([^"'\n]+)["']?/m);
     const exampleMatch = strategy.match(/^\s*example:\s*["']?([^"'\n]+)["']?/m);
     const tipMatch = strategy.match(/^\s*habit_tip:\s*["']?([^"'\n]+)["']?/m);
     
-    if (principleMatch) strategyParts.push(`Principle: ${principleMatch[1].trim()}`);
-    if (explanationMatch) strategyParts.push(`Explanation: ${explanationMatch[1].trim()}`);
-    if (exampleMatch) strategyParts.push(`Example: ${exampleMatch[1].trim()}`);
-    if (tipMatch) strategyParts.push(`Tip: ${tipMatch[1].trim()}`);
+    // Add content without labels
+    if (principleMatch) strategyParts.push(principleMatch[1].trim());
+    if (explanationMatch) strategyParts.push(explanationMatch[1].trim());
+    if (exampleMatch) strategyParts.push(exampleMatch[1].trim());
+    if (tipMatch) strategyParts.push(tipMatch[1].trim());
     
     if (strategyParts.length > 0) {
       contentSections.has_habit_strategy = true;
@@ -249,11 +291,19 @@ function extractYAMLContent(section: string): { content: string; contentSections
     }
   }
   
-  // Track follow_up_question but DO NOT include it in content
+  // Extract follow_up_question - include it in content
   const followUpMatch = section.match(/^follow_up_question:\s*(?:\|\s*\n)?([\s\S]*?)(?=^[a-z_]+:|$)/m);
   if (followUpMatch) {
-    contentSections.has_followup = true;
-    // Explicitly NOT adding to contentParts - this should not be in the content
+    let followUp = followUpMatch[1].trim();
+    // Handle both single-line and multi-line YAML
+    if (followUp.includes('\n')) {
+      followUp = followUp.split('\n').map(line => line.replace(/^\s{2,}/, '')).join('\n').trim();
+    }
+    followUp = followUp.replace(/^["']|["']$/g, '').trim();
+    if (followUp) {
+      contentSections.has_followup = true;
+      contentParts.push(followUp);
+    }
   }
   
   const content = contentParts.join('\n\n').trim();
@@ -275,7 +325,7 @@ function extractMarkdownContent(section: string): { content: string; contentSect
   
   const contentParts: string[] = [];
   
-  // Define the content sections we want to extract
+  // Define the content sections we want to extract (without section headers/labels)
   const contentSectionPatterns = [
     { 
       pattern: /###\s*\*\*Content\*\*\s*\n([\s\S]*?)(?=###|---\s*$|$)/i, 
@@ -295,7 +345,7 @@ function extractMarkdownContent(section: string): { content: string; contentSect
     },
   ];
   
-  // Extract each content section
+  // Extract each content section (content only, no headers/labels)
   for (const { pattern, key } of contentSectionPatterns) {
     const match = section.match(pattern);
     if (match) {
@@ -307,6 +357,17 @@ function extractMarkdownContent(section: string): { content: string; contentSect
         cleaned = cleaned.replace(/\n*---\s*$/g, '');
         // Remove excessive whitespace
         cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
+        
+        // For Habit Strategy, remove labels like "**Strategy:**", "**Principle:**", etc.
+        if (key === 'has_habit_strategy') {
+          cleaned = cleaned.replace(/\*\*Strategy:\*\*\s*/gi, '');
+          cleaned = cleaned.replace(/\*\*Principle:\*\*\s*/gi, '');
+          cleaned = cleaned.replace(/\*\*Explanation:\*\*\s*/gi, '');
+          cleaned = cleaned.replace(/\*\*Example:\*\*\s*/gi, '');
+          cleaned = cleaned.replace(/\*\*Habit Tip:\*\*\s*/gi, '');
+          cleaned = cleaned.replace(/\*\*Tip:\*\*\s*/gi, '');
+        }
+        
         if (cleaned) {
           contentParts.push(cleaned);
         }
@@ -314,11 +375,18 @@ function extractMarkdownContent(section: string): { content: string; contentSect
     }
   }
   
-  // Track follow_up_question but DO NOT include it in content
+  // Extract follow_up_question - include it in content
   const followUpMatch = section.match(/###\s*\*\*Follow-Up (Question|Questions)\*\*\s*\n([\s\S]*?)(?=###|---\s*$|$)/i);
   if (followUpMatch) {
-    contentSections.has_followup = true;
-    // Explicitly NOT adding to contentParts - this should not be in the content
+    let followUp = followUpMatch[2].trim();
+    // Remove any trailing separators
+    followUp = followUp.replace(/\n*---\s*$/g, '');
+    // Remove excessive whitespace
+    followUp = followUp.replace(/\n{3,}/g, '\n\n');
+    if (followUp) {
+      contentSections.has_followup = true;
+      contentParts.push(followUp);
+    }
   }
   
   // Combine all content parts
