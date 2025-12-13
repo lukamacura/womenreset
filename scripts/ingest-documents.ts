@@ -1,17 +1,20 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * Document Ingestion Script for LangChain RAG
  * 
  * This script loads knowledge base documents and ingests them into Supabase
- * for vector search with section-based chunking and structured metadata.
+ * for vector search. Each section becomes ONE document (one complete answer).
+ * 
+ * Optimizations:
+ * - Intents and keywords are included in content column for better vector search
+ * - Each section = 1 document (no chunking unless extremely large)
+ * - Metadata preserved for re-ranking (intents, keywords, content_sections)
  * 
  * Supports both YAML frontmatter and Markdown formats.
  * 
  * Usage:
- *   npx tsx scripts/ingest-documents.ts
+ *   npx tsx scripts/ingest-documents.ts [--clear]
  * 
- * Or with ts-node:
- *   ts-node scripts/ingest-documents.ts
+ * Use --clear flag to delete existing documents before re-ingestion.
  */
 
 // Load environment variables from .env.local or .env
@@ -349,7 +352,7 @@ function extractMarkdownContent(section: string): { content: string; contentSect
  */
 function parseYAMLIntentPatterns(section: string): string[] {
   const patterns: string[] = [];
-  const intentPatternsMatch = section.match(/^intent_patterns:\s*\n([\s\S]*?)(?=^[a-z_]+:|$)/m);
+  const intentPatternsMatch = section.match(/^intent_patterns:\s*\n([\s\S]*?)(?=^[a-z_]+:|^---$|$)/m);
   
   if (!intentPatternsMatch) {
     return patterns;
@@ -360,6 +363,10 @@ function parseYAMLIntentPatterns(section: string): string[] {
   
   for (const line of lines) {
     const trimmed = line.trim();
+    // Skip empty lines and headers
+    if (!trimmed || trimmed.match(/^(PRIMARY|SECONDARY)\s+INTENTS?/i)) {
+      continue;
+    }
     // Match bullet points (- or •)
     if (trimmed.match(/^[-•]\s+/)) {
       const pattern = trimmed.replace(/^[-•]\s+/, '').replace(/^["']|["']$/g, '').trim();
@@ -377,7 +384,7 @@ function parseYAMLIntentPatterns(section: string): string[] {
  */
 function parseMarkdownIntentPatterns(section: string): string[] {
   const patterns: string[] = [];
-  const intentPatternsMatch = section.match(/###\s*\*\*Intent Patterns?\*\*\s*\n([\s\S]*?)(?=###|---\s*$|$)/);
+  const intentPatternsMatch = section.match(/###\s*\*\*Intent Patterns?\*\*\s*\n([\s\S]*?)(?=###|---\s*$|$)/i);
   
   if (!intentPatternsMatch) {
     return patterns;
@@ -388,11 +395,21 @@ function parseMarkdownIntentPatterns(section: string): string[] {
   
   for (const line of lines) {
     const trimmed = line.trim();
+    // Skip empty lines
+    if (!trimmed) {
+      continue;
+    }
+    // Skip headers like "PRIMARY INTENTS (educational/overview queries):" or "SECONDARY INTENTS"
+    if (trimmed.match(/^(PRIMARY|SECONDARY)\s+INTENTS?/i)) {
+      continue;
+    }
     // Match bullet points (- or •)
     if (trimmed.match(/^[-•]\s+/)) {
       const pattern = trimmed.replace(/^[-•]\s+/, '').trim();
-      if (pattern) {
-        patterns.push(pattern);
+      // Remove any trailing notes like "[+ route based on follow-up]"
+      const cleanPattern = pattern.replace(/\s*\[\+.*?\]\s*$/, '').trim();
+      if (cleanPattern) {
+        patterns.push(cleanPattern);
       }
     }
   }
@@ -405,7 +422,7 @@ function parseMarkdownIntentPatterns(section: string): string[] {
  */
 function parseYAMLKeywords(section: string): string[] {
   const keywords: string[] = [];
-  const keywordsMatch = section.match(/^keywords:\s*\n([\s\S]*?)(?=^[a-z_]+:|$)/m);
+  const keywordsMatch = section.match(/^keywords:\s*\n([\s\S]*?)(?=^[a-z_]+:|^---$|$)/m);
   
   if (!keywordsMatch) {
     return keywords;
@@ -416,8 +433,8 @@ function parseYAMLKeywords(section: string): string[] {
   
   for (const line of lines) {
     const trimmed = line.trim();
-    // Skip subcategory headers (like **Scientific & Hormonal** or just category names)
-    if (trimmed.match(/^\*\*/) || trimmed.match(/^[A-Z][a-z]+:/)) {
+    // Skip subcategory headers (like "Exercise Physiology:" or **Scientific & Hormonal**)
+    if (trimmed.match(/^\*\*/) || trimmed.match(/^[A-Z][a-zA-Z\s&]+:\s*$/)) {
       continue;
     }
     // Match bullet points (- or •)
@@ -448,8 +465,8 @@ function parseMarkdownKeywords(section: string): string[] {
   
   for (const line of lines) {
     const trimmed = line.trim();
-    // Skip subcategory headers (like **Scientific & Hormonal**)
-    if (trimmed.match(/^\*\*/)) {
+    // Skip subcategory headers (like **Scientific & Hormonal** or "Exercise Physiology:")
+    if (trimmed.match(/^\*\*/) || trimmed.match(/^[A-Z][a-zA-Z\s&]+:\s*$/)) {
       continue;
     }
     // Match bullet points (- or •)
@@ -568,6 +585,66 @@ function chunkContentIfNeeded(content: string, maxTokens: number = 2000, maxChar
 }
 
 /**
+ * Enhance content with intents and keywords for better vector search
+ * Prepends intents and keywords naturally to the content for optimal semantic matching
+ * This makes intents and keywords part of the vector search, not just re-ranking
+ */
+function enhanceContentWithMetadata(
+  content: string,
+  intent_patterns: string[],
+  keywords: string[]
+): string {
+  const enhancementParts: string[] = [];
+  
+  // Add intent patterns as natural language context (most important for matching)
+  if (intent_patterns.length > 0) {
+    // Clean intent patterns (remove PRIMARY/SECONDARY markers, trim quotes)
+    const cleanedIntents = intent_patterns
+      .map(ip => ip.replace(/\s*(PRIMARY|SECONDARY)\s*/gi, '').replace(/^["']|["']$/g, '').trim())
+      .filter(ip => ip.length > 0);
+    
+    if (cleanedIntents.length > 0) {
+      // Include all intents (they're designed to match user queries)
+      // Format as natural language questions/statements
+      if (cleanedIntents.length === 1) {
+        enhancementParts.push(`This section answers questions about: ${cleanedIntents[0]}.`);
+      } else if (cleanedIntents.length <= 5) {
+        // For 2-5 intents, list them all
+        const lastIntent = cleanedIntents[cleanedIntents.length - 1];
+        const others = cleanedIntents.slice(0, -1);
+        enhancementParts.push(`This section answers questions about: ${others.join(', ')}, and ${lastIntent}.`);
+      } else {
+        // For many intents, include top 5 and indicate more
+        enhancementParts.push(`This section answers questions about: ${cleanedIntents.slice(0, 5).join(', ')}, and related topics.`);
+      }
+    }
+  }
+  
+  // Add keywords as topic context (supplements intents)
+  if (keywords.length > 0) {
+    const uniqueKeywords = [...new Set(keywords)].filter(k => k.length > 0);
+    if (uniqueKeywords.length > 0) {
+      // Include top 15 keywords for better semantic coverage
+      const displayKeywords = uniqueKeywords.slice(0, 15);
+      if (displayKeywords.length === 1) {
+        enhancementParts.push(`Key topic: ${displayKeywords[0]}.`);
+      } else if (displayKeywords.length <= 10) {
+        enhancementParts.push(`Key topics: ${displayKeywords.join(', ')}.`);
+      } else {
+        enhancementParts.push(`Key topics: ${displayKeywords.slice(0, 10).join(', ')}, and more.`);
+      }
+    }
+  }
+  
+  // Combine enhancements with original content
+  if (enhancementParts.length > 0) {
+    return `${enhancementParts.join(' ')}\n\n${content}`;
+  }
+  
+  return content;
+}
+
+/**
  * Parse a single section into structured format
  * May return multiple documents if content needs to be chunked
  */
@@ -600,16 +677,31 @@ function parseSection(section: string, format: FileFormat, _source: string, _sec
     keywords = parseMarkdownKeywords(section);
   }
   
-  // Split content into chunks if it's too large
-  const contentChunks = chunkContentIfNeeded(content, 2000, 10000);
+  // Enhance content with intents and keywords for better vector search
+  // This makes intents and keywords part of the semantic search, not just re-ranking
+  const enhancedContent = enhanceContentWithMetadata(content, intent_patterns, keywords);
   
-  return contentChunks.map((chunk, chunkIndex) => ({
-    metadata,
-    content: chunk,
-    intent_patterns: chunkIndex === 0 ? intent_patterns : [], // Only include patterns in first chunk
-    keywords, // Include keywords in all chunks
-    content_sections: contentSections,
-  }));
+  // CRITICAL: Each section = 1 complete answer, so NO chunking
+  // Only chunk if content is extremely large (exceeds embedding model limits)
+  // Using very high limits to preserve section integrity
+  const MAX_TOKENS_PER_SECTION = 6000; // High limit to avoid chunking (model max is 8192)
+  const MAX_CHARS_PER_SECTION = 24000; // High limit for Supabase (well below 10,240 UI limit)
+  
+  const contentChunks = chunkContentIfNeeded(enhancedContent, MAX_TOKENS_PER_SECTION, MAX_CHARS_PER_SECTION);
+  
+  // Return one document per section (chunking only as last resort for extremely large sections)
+  return contentChunks.map((chunk, chunkIndex) => {
+    // Only first chunk gets full intent patterns (subsequent chunks are rare edge cases)
+    const chunkIntentPatterns = chunkIndex === 0 ? intent_patterns : [];
+    
+    return {
+      metadata,
+      content: chunk,
+      intent_patterns: chunkIntentPatterns,
+      keywords, // Keywords included in all chunks for context
+      content_sections: contentSections,
+    };
+  });
 }
 
 /**
@@ -690,10 +782,54 @@ async function loadDocuments(): Promise<Document[]> {
 }
 
 /**
- * Ingest documents into Supabase vector store
+ * Clear all existing documents from the database
+ * Use this before re-ingestion to ensure clean state
  */
-async function ingestDocuments() {
+async function clearExistingDocuments(): Promise<void> {
   try {
+    console.log("🗑️  Clearing existing documents from database...");
+    
+    // Get count first
+    const { count } = await supabase
+      .from('documents')
+      .select('*', { count: 'exact', head: true });
+    
+    if (count === 0) {
+      console.log("   No existing documents to clear");
+      return;
+    }
+    
+    console.log(`   Found ${count} existing document(s)`);
+    
+    // Delete all documents - using a condition that always matches
+    // Using .neq with a value that will never match ensures all rows are deleted
+    const { error } = await supabase
+      .from('documents')
+      .delete()
+      .neq('id', '00000000-0000-0000-0000-000000000001'); // This matches all UUIDs (none will equal this)
+    
+    if (error) {
+      throw error;
+    }
+    
+    console.log("✅ Existing documents cleared");
+  } catch (error) {
+    console.error("❌ Error clearing documents:", error);
+    throw error;
+  }
+}
+
+/**
+ * Ingest documents into Supabase vector store
+ * @param clearFirst - If true, clears existing documents before ingestion (default: false)
+ */
+async function ingestDocuments(clearFirst: boolean = false) {
+  try {
+    // Clear existing documents if requested
+    if (clearFirst) {
+      await clearExistingDocuments();
+    }
+    
     console.log("🔄 Loading documents...");
     const documents = await loadDocuments();
     console.log(`📚 Loaded ${documents.length} document sections`);
@@ -704,8 +840,9 @@ async function ingestDocuments() {
     }
 
     // Validate documents and filter out those that are too large
+    // Using high limits to preserve section integrity (each section = 1 answer)
     const MAX_TOKENS = 8000; // Hard limit with safety buffer (model max is 8192)
-    const MAX_CHARS = 10000; // Character limit to prevent Supabase UI display issues (10,240 is the limit)
+    const MAX_CHARS = 24000; // High limit - sections should stay intact (Supabase text limit is much higher)
     const validDocuments: Document[] = [];
     let skippedDocuments = 0;
 
@@ -827,9 +964,17 @@ if (require.main === module) {
     process.exit(1);
   }
 
-  ingestDocuments()
+  // Check for --clear flag to clear existing documents first
+  const clearFirst = process.argv.includes('--clear') || process.argv.includes('-c');
+  
+  if (clearFirst) {
+    console.log("⚠️  --clear flag detected: Will delete all existing documents before ingestion\n");
+  }
+
+  ingestDocuments(clearFirst)
     .then(() => {
       console.log("\n✨ Ingestion complete!");
+      console.log("\n💡 Tip: Use --clear flag to clear existing documents before re-ingestion");
       process.exit(0);
     })
     .catch((error) => {

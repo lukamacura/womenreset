@@ -273,8 +273,25 @@ export async function retrieveFromKB(
     // Apply hybrid search re-ranking
     const scoredDocs = applyHybridSearch(docsToUse, query);
 
+    // Log scoring details before filtering
+    if (scoredDocs.length > 0) {
+      console.log(`[KB Retrieval] Scoring results (before threshold filter):`);
+      scoredDocs.slice(0, 5).forEach((item, idx) => {
+        const doc = item.doc;
+        const topic = doc.metadata?.topic as string || 'Unknown';
+        const subtopic = doc.metadata?.subtopic as string || 'Unknown';
+        console.log(`  [${idx + 1}] Score: ${item.score.toFixed(3)} | Topic: ${topic} | Subtopic: ${subtopic}`);
+      });
+      console.log(`[KB Retrieval] Threshold: ${similarityThreshold}`);
+    }
+
     // Filter by threshold
     const filteredDocs = scoredDocs.filter(item => item.score >= similarityThreshold);
+
+    if (filteredDocs.length < scoredDocs.length && scoredDocs.length > 0) {
+      const topScore = scoredDocs[0].score;
+      console.log(`[KB Retrieval] Filtered: ${filteredDocs.length}/${scoredDocs.length} docs passed threshold (top score: ${topScore.toFixed(3)})`);
+    }
 
     // Convert to KBEntry format
     const kbEntries: KBEntry[] = filteredDocs.map(({ doc, score }) => {

@@ -5,34 +5,38 @@
 import type { KBEntry } from "./types";
 
 /**
+ * Strip enhancement text from content (intents/keywords prefix added during ingestion)
+ * Enhancement is kept in content for vector search but should not be shown to users
+ * 
+ * Format: "This section answers questions about: [intents]. Key topic(s): [keywords].\n\n[actual content]"
+ */
+function stripEnhancementText(content: string): string {
+  // Pattern matches:
+  // - "This section answers questions about: ..." (required if intents exist)
+  // - Optional space + "Key topic(s): ..." (if keywords exist)
+  // - Followed by "\n\n" and then the actual content
+  const enhancementPattern = /^This section answers questions about:.*?(?: Key topic(?:s)?:.*?)?\n\n/s;
+  const cleaned = content.replace(enhancementPattern, '');
+  
+  // If pattern didn't match, return original content
+  // (in case content doesn't have enhancement, or format changed)
+  return cleaned || content;
+}
+
+/**
  * Format verbatim KB response for kb_strict mode
- * Returns content as-is (already well-formatted)
+ * Returns ONLY the top entry (one complete answer) with enhancement text stripped
+ * Each section = 1 complete answer, so we only return the best match
  */
 export function formatVerbatimResponse(kbEntries: KBEntry[]): string {
   if (kbEntries.length === 0) {
     return "";
   }
 
-  // For verbatim responses, return the top entry's content directly
-  // Content is already well-formatted from ingestion
+  // For verbatim responses, return ONLY the top entry (highest scoring)
+  // Each section is one complete answer, so we don't combine multiple entries
   const topEntry = kbEntries[0];
-  let response = topEntry.content;
-
-  // If multiple entries, combine them with separators
-  if (kbEntries.length > 1) {
-    const additionalEntries = kbEntries.slice(1);
-    const additionalContent = additionalEntries
-      .map(entry => {
-        // Add subtopic header if different from first entry
-        if (entry.metadata.subtopic !== topEntry.metadata.subtopic) {
-          return `\n\n### ${entry.metadata.subtopic}\n\n${entry.content}`;
-        }
-        return `\n\n---\n\n${entry.content}`;
-      })
-      .join('');
-
-    response += additionalContent;
-  }
+  const response = stripEnhancementText(topEntry.content);
 
   return response.trim();
 }
@@ -92,4 +96,6 @@ export function formatKBContextForLLM(kbEntries: KBEntry[]): string {
 
   return contextParts.join('\n').trim();
 }
+
+
 

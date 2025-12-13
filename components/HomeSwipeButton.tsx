@@ -214,7 +214,7 @@ export default function HomeSwipeButton() {
   return (
     <div className="fixed bottom-0 left-1/2 -translate-x-1/2 z-20 mb-4 sm:mb-6 select-none">
       {/* Outer Container - Fixed and Centered */}
-      <div className="flex items-center justify-center bg-navy rounded-full shadow-lg overflow-visible min-w-[280px] sm:min-w-[320px] px-5 pr-7 py-4 gap-4">
+      <div className="flex items-center bg-gray-900 justify-center bg-navy rounded-full shadow-lg overflow-visible min-w-[280px] sm:min-w-[320px] px-5 pr-7 py-4 gap-4">
           {/* Swipeable Circular Button */}
           <button
             ref={buttonRef}

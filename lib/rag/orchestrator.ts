@@ -7,7 +7,6 @@ import { classifyPersona } from "./persona-classifier";
 import { validateMenopauseQuery, generateRefusalResponse } from "./safety-validator";
 import { retrieveFromKB } from "./retrieval";
 import { formatVerbatimResponse, formatKBContextForLLM } from "./response-formatter";
-import { getPersonaSystemPrompt } from "./persona-prompts";
 
 // Note: LLM calls are handled in the route to support tools (log_symptom, etc.)
 // The orchestrator only handles KB retrieval and persona classification
@@ -35,7 +34,7 @@ function getRetrievalMode(persona: Persona): RetrievalMode {
 export async function orchestrateRAG(
   userQuery: string,
   userId: string,
-  userProfile?: any,
+  userProfile?: unknown,
   trackerContext?: string,
   conversationHistory?: Array<["user" | "assistant", string]>
 ): Promise<OrchestrationResult> {
@@ -45,6 +44,10 @@ export async function orchestrateRAG(
     
     // Step 2: Determine retrieval mode
     const retrievalMode = getRetrievalMode(persona);
+
+    console.log(`[RAG Orchestrator] Query: "${userQuery}"`);
+    console.log(`[RAG Orchestrator] Classified persona: ${persona}`);
+    console.log(`[RAG Orchestrator] Retrieval mode: ${retrievalMode}`);
 
     // Step 3: Handle based on retrieval mode
     if (retrievalMode === "kb_strict") {
@@ -70,18 +73,40 @@ export async function orchestrateRAG(
 /**
  * Handle kb_strict mode (Menopause Specialist)
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function handleKBStrictMode(
   userQuery: string,
   persona: Persona,
-  userProfile?: any,
-  trackerContext?: string,
-  conversationHistory?: Array<["user" | "assistant", string]>
+  _userProfile?: unknown,
+  _trackerContext?: string,
+  _conversationHistory?: Array<["user" | "assistant", string]>
 ): Promise<OrchestrationResult> {
-  // Try KB retrieval first with higher threshold for strict mode
-  const retrievalResult = await retrieveFromKB(userQuery, persona, 3, 0.78);
+  console.log(`[KB Strict Mode] Active for query: "${userQuery}"`);
+  
+  // Try KB retrieval first with threshold for strict mode
+  // Lowered to 0.55 to catch relevant documents that score 0.55-0.60 (e.g., "Why do i pee so often?" with 0.580)
+  const similarityThreshold = 0.55;
+  console.log(`[KB Strict Mode] Retrieving with threshold: ${similarityThreshold}`);
+  
+  const retrievalResult = await retrieveFromKB(userQuery, persona, 3, similarityThreshold);
+
+  // Log retrieval results
+  console.log(`[KB Strict Mode] Retrieval results:`);
+  console.log(`  - Has match: ${retrievalResult.hasMatch}`);
+  console.log(`  - KB entries found: ${retrievalResult.kbEntries.length}`);
+  if (retrievalResult.topScore !== undefined) {
+    console.log(`  - Top score: ${retrievalResult.topScore.toFixed(3)}`);
+  }
+  if (retrievalResult.kbEntries.length > 0) {
+    console.log(`  - Entry scores: ${retrievalResult.kbEntries.map(e => (e.similarity ?? 0).toFixed(3)).join(', ')}`);
+    retrievalResult.kbEntries.forEach((entry, idx) => {
+      console.log(`    [${idx + 1}] Score: ${(entry.similarity ?? 0).toFixed(3)}, Topic: ${entry.metadata.topic}, Subtopic: ${entry.metadata.subtopic}`);
+    });
+  }
 
   if (retrievalResult.hasMatch && retrievalResult.kbEntries.length > 0) {
     // KB match found - return verbatim
+    console.log(`[KB Strict Mode] ✅ VERBATIM RESPONSE triggered (score >= ${similarityThreshold})`);
     const verbatimResponse = formatVerbatimResponse(retrievalResult.kbEntries);
     
     return {
@@ -94,10 +119,18 @@ async function handleKBStrictMode(
     };
   }
 
+  // No KB match - log why
+  if (retrievalResult.topScore !== undefined) {
+    console.log(`[KB Strict Mode] ❌ No verbatim response (top score ${retrievalResult.topScore.toFixed(3)} < threshold ${similarityThreshold})`);
+  } else {
+    console.log(`[KB Strict Mode] ❌ No verbatim response (no KB entries found)`);
+  }
+
   // No KB match - check if query is allowed/refused
   const validation = validateMenopauseQuery(userQuery);
 
   if (validation === "refused") {
+    console.log(`[KB Strict Mode] Query refused, returning refusal response`);
     // Return polite refusal
     return {
       response: generateRefusalResponse(userQuery),
@@ -110,6 +143,7 @@ async function handleKBStrictMode(
   // Allowed - return empty response, route will handle LLM with tools
   // For refused queries, we already returned the refusal response above
   // This case is for allowed queries that need LLM generation
+  console.log(`[KB Strict Mode] Query allowed, falling back to LLM generation`);
   return {
     persona,
     retrievalMode: "kb_strict",
@@ -120,20 +154,34 @@ async function handleKBStrictMode(
 /**
  * Handle hybrid mode (Nutrition Coach, Exercise Trainer)
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function handleHybridMode(
   userQuery: string,
   persona: Persona,
-  userProfile?: any,
-  trackerContext?: string,
-  conversationHistory?: Array<["user" | "assistant", string]>
+  _userProfile?: unknown,
+  _trackerContext?: string,
+  _conversationHistory?: Array<["user" | "assistant", string]>
 ): Promise<OrchestrationResult> {
+  console.log(`[Hybrid Mode] Active for query: "${userQuery}"`);
+  
   // Retrieve KB entries with lower threshold for hybrid mode
-  const retrievalResult = await retrieveFromKB(userQuery, persona, 5, 0.5);
+  const similarityThreshold = 0.5;
+  const retrievalResult = await retrieveFromKB(userQuery, persona, 5, similarityThreshold);
+
+  console.log(`[Hybrid Mode] Retrieval results:`);
+  console.log(`  - Has match: ${retrievalResult.hasMatch}`);
+  console.log(`  - KB entries found: ${retrievalResult.kbEntries.length}`);
+  if (retrievalResult.topScore !== undefined) {
+    console.log(`  - Top score: ${retrievalResult.topScore.toFixed(3)}`);
+  }
 
   // For hybrid mode, return KB context for route to use with LLM (with tools)
   let kbContext = "";
   if (retrievalResult.hasMatch && retrievalResult.kbEntries.length > 0) {
     kbContext = formatKBContextForLLM(retrievalResult.kbEntries);
+    console.log(`[Hybrid Mode] KB context provided to LLM (${retrievalResult.kbEntries.length} entries)`);
+  } else {
+    console.log(`[Hybrid Mode] No KB context (will use LLM only)`);
   }
 
   return {
@@ -148,12 +196,13 @@ async function handleHybridMode(
 /**
  * Handle llm_reasoning mode (Empathy Companion)
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function handleLLMReasoningMode(
-  userQuery: string,
+  _userQuery: string,
   persona: Persona,
-  userProfile?: any,
-  trackerContext?: string,
-  conversationHistory?: Array<["user" | "assistant", string]>
+  _userProfile?: unknown,
+  _trackerContext?: string,
+  _conversationHistory?: Array<["user" | "assistant", string]>
 ): Promise<OrchestrationResult> {
   // For llm_reasoning mode, return empty response, route will handle LLM with tools
   return {
@@ -162,5 +211,4 @@ async function handleLLMReasoningMode(
     usedKB: false,
   };
 }
-
 
