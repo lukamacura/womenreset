@@ -51,3 +51,4 @@ export interface OrchestrationResult {
   isVerbatim?: boolean; // True if response is verbatim KB content (no LLM)
   kbContext?: string; // KB context for hybrid mode (to be passed to LLM)
 }
+

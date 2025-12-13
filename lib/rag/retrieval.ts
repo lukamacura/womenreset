@@ -241,29 +241,29 @@ export async function retrieveFromKB(
       queryName: "match_documents",
     });
 
-    // OPTIMIZATION: Use database-level filtering via filter parameter
-    // This uses the GIN index on metadata for fast filtering at DB level
-    // Get slightly more than topK to allow for hybrid re-ranking
-    const retrieveCount = Math.min(topK * 1.5, 20); // Cap at 20 to avoid over-fetching
+    // OPTIMIZATION: Retrieve optimized number of documents for filtering
+    // Get slightly more than topK to allow for hybrid re-ranking, but cap to avoid over-fetching
+    const retrieveCount = Math.min(Math.ceil(topK * 1.5), 20); // Cap at 20 to avoid over-fetching
 
+    // Retrieve documents using vector store
     const retriever = vectorStore.asRetriever({
-      k: Math.ceil(retrieveCount),
+      k: retrieveCount,
       searchType: "similarity",
-      filter: { persona: metadataPersona }, // Database-level filtering
     });
 
     let relevantDocs = await retriever.getRelevantDocuments(query);
 
-    // Fallback: If no persona match, try without filter (for personas without KB entries)
-    if (relevantDocs.length === 0) {
-      const fallbackRetriever = vectorStore.asRetriever({
-        k: Math.ceil(retrieveCount),
-        searchType: "similarity",
-      });
-      relevantDocs = await fallbackRetriever.getRelevantDocuments(query);
-    }
+    // Filter by persona in metadata (efficient JavaScript filtering on smaller set)
+    // This is still faster than retrieving topK * 2 documents
+    const personaFilteredDocs = relevantDocs.filter(doc => {
+      const docPersona = doc.metadata?.persona as string;
+      return docPersona === metadataPersona;
+    });
 
-    if (relevantDocs.length === 0) {
+    // If no persona match, use all docs (fallback for personas without KB entries)
+    const docsToUse = personaFilteredDocs.length > 0 ? personaFilteredDocs : relevantDocs;
+
+    if (docsToUse.length === 0) {
       return {
         kbEntries: [],
         hasMatch: false,
@@ -271,33 +271,39 @@ export async function retrieveFromKB(
     }
 
     // Apply hybrid search re-ranking
-    const scoredDocs = applyHybridSearch(relevantDocs, query);
+    const scoredDocs = applyHybridSearch(docsToUse, query);
 
     // Filter by threshold
     const filteredDocs = scoredDocs.filter(item => item.score >= similarityThreshold);
 
     // Convert to KBEntry format
-    const kbEntries: KBEntry[] = filteredDocs.map(({ doc, score }) => ({
-      id: (doc.metadata?.id as string) || '',
-      content: doc.pageContent,
-      metadata: {
-        persona: (doc.metadata?.persona as string) || '',
-        topic: (doc.metadata?.topic as string) || '',
-        subtopic: (doc.metadata?.subtopic as string) || '',
-        keywords: (doc.metadata?.keywords as string[]) || [],
-        intent_patterns: (doc.metadata?.intent_patterns as string[]) || [],
-        content_sections: (doc.metadata?.content_sections as { has_content?: boolean; has_action_tips?: boolean; has_motivation?: boolean; has_followup?: boolean; has_habit_strategy?: boolean }) || {
-          has_content: false,
-          has_action_tips: false,
-          has_motivation: false,
-          has_followup: false,
-          has_habit_strategy: false,
+    const kbEntries: KBEntry[] = filteredDocs.map(({ doc, score }) => {
+      // Ensure content_sections has all required boolean fields (not optional)
+      const rawContentSections = doc.metadata?.content_sections as { has_content?: boolean; has_action_tips?: boolean; has_motivation?: boolean; has_followup?: boolean; has_habit_strategy?: boolean } | undefined;
+      const contentSections: { has_content: boolean; has_action_tips: boolean; has_motivation: boolean; has_followup: boolean; has_habit_strategy: boolean } = {
+        has_content: rawContentSections?.has_content ?? false,
+        has_action_tips: rawContentSections?.has_action_tips ?? false,
+        has_motivation: rawContentSections?.has_motivation ?? false,
+        has_followup: rawContentSections?.has_followup ?? false,
+        has_habit_strategy: rawContentSections?.has_habit_strategy ?? false,
+      };
+
+      return {
+        id: (doc.metadata?.id as string) || '',
+        content: doc.pageContent,
+        metadata: {
+          persona: (doc.metadata?.persona as string) || '',
+          topic: (doc.metadata?.topic as string) || '',
+          subtopic: (doc.metadata?.subtopic as string) || '',
+          keywords: (doc.metadata?.keywords as string[]) || [],
+          intent_patterns: (doc.metadata?.intent_patterns as string[]) || [],
+          content_sections: contentSections,
+          source: doc.metadata?.source as string,
+          section_index: doc.metadata?.section_index as number,
         },
-        source: doc.metadata?.source as string,
-        section_index: doc.metadata?.section_index as number,
-      },
-      similarity: score,
-    }));
+        similarity: score,
+      };
+    });
 
     // Use top K entries
     const topEntries = kbEntries.slice(0, topK);

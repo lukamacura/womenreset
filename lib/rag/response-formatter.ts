@@ -92,3 +92,4 @@ export function formatKBContextForLLM(kbEntries: KBEntry[]): string {
 
   return contextParts.join('\n').trim();
 }
+

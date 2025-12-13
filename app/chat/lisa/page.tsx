@@ -2306,10 +2306,11 @@ function ChatPageInner() {
                       }}
                       aria-label="Type your message"
                       placeholder="Ask anything..."
-                      className={`w-full bg-white  resize-none overflow-hidden text-base sm:text-lg font-semibold rounded-full px-5 py-4 sm:px-6 sm:py-5 outline-none touch-manipulation shadow-md transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${input.trim() ? 'pr-14 sm:pr-16' : 'pr-5'}`}
+                      className={`w-full bg-white  resize-none overflow-hidden text-base sm:text-lg font-bold px-5 py-4 sm:px-6 sm:py-5 outline-none touch-manipulation shadow-md transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${input.trim() ? 'pr-14 sm:pr-16' : 'pr-5'}`}
                       style={{
                         minHeight: '64px',
                         color: THEME.text[900],
+                        borderRadius: '25px',
                       }}
                     />
 
