@@ -33,13 +33,15 @@ export interface KBEntry {
     source?: string;
     section_index?: number;
   };
-  similarity?: number;
+  similarity?: number; // Final hybrid score (for ranking)
+  semanticSimilarity?: number; // Raw semantic similarity from vector search (for threshold gating)
 }
 
 export interface RetrievalResult {
   kbEntries: KBEntry[];
   hasMatch: boolean;
-  topScore?: number;
+  topScore?: number; // Final hybrid score
+  topSemanticScore?: number; // Top semantic similarity score (for threshold gating)
 }
 
 export interface OrchestrationResult {
@@ -51,6 +53,7 @@ export interface OrchestrationResult {
   isVerbatim?: boolean; // True if response is verbatim KB content (no LLM)
   kbContext?: string; // KB context for hybrid mode (to be passed to LLM)
 }
+
 
 
 

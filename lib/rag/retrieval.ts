@@ -304,6 +304,30 @@ function mapPersonaToMetadata(persona: Persona): string {
 }
 
 /**
+ * Calculate adaptive hybrid threshold based on top semantic score
+ * When semantic scores are high, we trust them more and lower hybrid threshold requirement
+ * This prevents good semantic matches from being rejected due to metadata scoring
+ */
+function calculateAdaptiveHybridThreshold(
+  topSemanticScore: number,
+  baseHybridThreshold: number
+): number {
+  if (topSemanticScore >= 0.58) {
+    // Very high semantic similarity (0.58+) - trust it heavily, lower hybrid requirement significantly
+    return Math.max(0.44, baseHybridThreshold - 0.10);
+  } else if (topSemanticScore >= 0.54) {
+    // High semantic similarity (0.54-0.58) - lower hybrid requirement
+    // This catches cases like semantic 0.541 with hybrid 0.456
+    return Math.max(0.45, baseHybridThreshold - 0.08);
+  } else if (topSemanticScore >= 0.52) {
+    // Good semantic similarity (0.52-0.54) - slightly lower hybrid requirement
+    return Math.max(0.47, baseHybridThreshold - 0.05);
+  }
+  // Default: use base threshold
+  return baseHybridThreshold;
+}
+
+/**
  * Retrieve KB entries with OPTIMIZED database-level filtering and actual similarity scores
  * 
  * IMPROVEMENTS:
@@ -403,11 +427,37 @@ export async function retrieveFromKB(
       // Apply hybrid search re-ranking with actual similarity scores
       const scoredDocs = applyHybridSearch(documentsWithScores, query);
       
-      // Filter by threshold
-      const filteredDocs = scoredDocs.filter(item => item.score >= similarityThreshold);
+      // Log scoring details for debugging (fallback path)
+      if (scoredDocs.length > 0) {
+        console.log(`[KB Retrieval] Scoring results (fallback path, before threshold filter):`);
+        scoredDocs.slice(0, 5).forEach((item, idx) => {
+          const doc = item.doc;
+          const topic = doc.metadata?.topic as string || 'Unknown';
+          const subtopic = doc.metadata?.subtopic as string || 'Unknown';
+          console.log(`  [${idx + 1}] Final Score: ${item.score.toFixed(3)} | Semantic: ${item.similarity.toFixed(3)} | Topic: ${topic} | Subtopic: ${subtopic}`);
+        });
+      }
       
-      // Convert to KBEntry format
-      const kbEntries: KBEntry[] = filteredDocs.slice(0, topK).map(({ doc, score }) => {
+      // IMPROVED: Use semantic similarity as primary gate, hybrid score for ranking
+      const semanticThreshold = Math.max(0.5, similarityThreshold - 0.1);
+      const semanticallyValid = scoredDocs.filter(item => item.similarity >= semanticThreshold);
+      const adaptiveHybridThreshold = calculateAdaptiveHybridThreshold(scoredDocs.length > 0 ? scoredDocs[0].similarity : 0, similarityThreshold);
+      const filteredDocs = semanticallyValid.filter(item => item.score >= adaptiveHybridThreshold);
+      
+      if (scoredDocs.length > 0) {
+        const topSemantic = scoredDocs[0].similarity;
+        const topHybrid = scoredDocs[0].score;
+        console.log(`[KB Retrieval] Threshold filtering (fallback path):`);
+        console.log(`  - Semantic threshold: ${semanticThreshold.toFixed(3)} (primary gate)`);
+        console.log(`  - Hybrid threshold: ${adaptiveHybridThreshold.toFixed(3)} (adaptive, base: ${similarityThreshold.toFixed(3)})`);
+        console.log(`  - Top semantic score: ${topSemantic.toFixed(3)}`);
+        console.log(`  - Top hybrid score: ${topHybrid.toFixed(3)}`);
+        console.log(`  - Semantically valid: ${semanticallyValid.length}/${scoredDocs.length}`);
+        console.log(`  - Passed both thresholds: ${filteredDocs.length}/${scoredDocs.length}`);
+      }
+
+      // Convert to KBEntry format with both scores
+      const kbEntries: KBEntry[] = filteredDocs.slice(0, topK).map(({ doc, score, similarity }) => {
         const rawContentSections = doc.metadata?.content_sections as Partial<ContentSections> | undefined;
         const contentSections: ContentSections = {
           has_content: rawContentSections?.has_content ?? false,
@@ -430,7 +480,8 @@ export async function retrieveFromKB(
             source: doc.metadata?.source as string,
             section_index: doc.metadata?.section_index as number,
           },
-          similarity: score,
+          similarity: score, // Hybrid score
+          semanticSimilarity: similarity, // Semantic score
         };
       });
 
@@ -438,6 +489,7 @@ export async function retrieveFromKB(
         kbEntries,
         hasMatch: kbEntries.length > 0,
         topScore: kbEntries[0]?.similarity,
+        topSemanticScore: kbEntries[0]?.semanticSimilarity,
       };
     }
 
@@ -472,16 +524,41 @@ export async function retrieveFromKB(
       console.log(`[KB Retrieval] Threshold: ${similarityThreshold}`);
     }
 
-    // Filter by threshold
-    const filteredDocs = scoredDocs.filter(item => item.score >= similarityThreshold);
+    // IMPROVED: Use semantic similarity as primary gate, hybrid score for ranking
+    // This ensures high-quality semantic matches aren't rejected due to metadata scoring
+    const semanticThreshold = Math.max(0.5, similarityThreshold - 0.1);
 
-    if (filteredDocs.length < scoredDocs.length && scoredDocs.length > 0) {
-      const topScore = scoredDocs[0].score;
-      console.log(`[KB Retrieval] Filtered: ${filteredDocs.length}/${scoredDocs.length} docs passed threshold (top score: ${topScore.toFixed(3)})`);
+    // First filter by semantic similarity (primary gate)
+    const semanticallyValid = scoredDocs.filter(item => item.similarity >= semanticThreshold);
+
+    // Calculate adaptive hybrid threshold based on top semantic score
+    const topSemanticScore = scoredDocs.length > 0 ? scoredDocs[0].similarity : 0;
+    const adaptiveHybridThreshold = calculateAdaptiveHybridThreshold(topSemanticScore, similarityThreshold);
+
+    // Then filter by adaptive hybrid score (secondary filter)
+    const filteredDocs = semanticallyValid.filter(item => item.score >= adaptiveHybridThreshold);
+
+    // Enhanced logging
+    if (scoredDocs.length > 0) {
+      const topSemantic = scoredDocs[0].similarity;
+      const topHybrid = scoredDocs[0].score;
+      console.log(`[KB Retrieval] Threshold filtering:`);
+      console.log(`  - Semantic threshold: ${semanticThreshold.toFixed(3)} (primary gate)`);
+      console.log(`  - Hybrid threshold: ${adaptiveHybridThreshold.toFixed(3)} (adaptive, base: ${similarityThreshold.toFixed(3)})`);
+      console.log(`  - Top semantic score: ${topSemantic.toFixed(3)}`);
+      console.log(`  - Top hybrid score: ${topHybrid.toFixed(3)}`);
+      console.log(`  - Semantically valid: ${semanticallyValid.length}/${scoredDocs.length}`);
+      console.log(`  - Passed both thresholds: ${filteredDocs.length}/${scoredDocs.length}`);
+      
+      if (filteredDocs.length === 0 && semanticallyValid.length > 0) {
+        console.log(`[KB Retrieval] ⚠️  Semantic match found but hybrid score too low`);
+        console.log(`  - Top semantic: ${topSemantic.toFixed(3)} (passed)`);
+        console.log(`  - Top hybrid: ${topHybrid.toFixed(3)} (failed threshold ${adaptiveHybridThreshold.toFixed(3)})`);
+      }
     }
 
-    // Convert to KBEntry format
-    const kbEntries: KBEntry[] = filteredDocs.slice(0, topK).map(({ doc, score }) => {
+    // Convert to KBEntry format with both scores
+    const kbEntries: KBEntry[] = filteredDocs.slice(0, topK).map(({ doc, score, similarity }) => {
       const rawContentSections = doc.metadata?.content_sections as Partial<ContentSections> | undefined;
       const contentSections: ContentSections = {
         has_content: rawContentSections?.has_content ?? false,
@@ -504,14 +581,16 @@ export async function retrieveFromKB(
           source: doc.metadata?.source as string,
           section_index: doc.metadata?.section_index as number,
         },
-        similarity: score,
+        similarity: score, // Hybrid score for ranking
+        semanticSimilarity: similarity, // Raw semantic similarity for threshold gating
       };
     });
 
     return {
       kbEntries,
       hasMatch: kbEntries.length > 0,
-      topScore: kbEntries[0]?.similarity,
+      topScore: kbEntries[0]?.similarity, // Hybrid score
+      topSemanticScore: kbEntries[0]?.semanticSimilarity, // Semantic score
     };
   } catch (error) {
     console.error("Error retrieving from KB:", error);

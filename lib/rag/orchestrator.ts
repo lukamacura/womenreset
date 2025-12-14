@@ -73,7 +73,6 @@ export async function orchestrateRAG(
 /**
  * Handle kb_strict mode (Menopause Specialist)
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function handleKBStrictMode(
   userQuery: string,
   persona: Persona,
@@ -83,30 +82,46 @@ async function handleKBStrictMode(
 ): Promise<OrchestrationResult> {
   console.log(`[KB Strict Mode] Active for query: "${userQuery}"`);
   
-  // Try KB retrieval first with threshold for strict mode
-  // Lowered to 0.55 to catch relevant documents that score 0.55-0.60 (e.g., "Why do i pee so often?" with 0.580)
-  const similarityThreshold = 0.55;
-  console.log(`[KB Strict Mode] Retrieving with threshold: ${similarityThreshold}`);
+  // IMPROVED: Dual threshold system - semantic similarity as primary gate
+  // Semantic threshold: 0.50 (primary gate - ensures good semantic match)
+  // Hybrid threshold: 0.52 (secondary filter - ensures good overall relevance)
+  // This prevents good semantic matches from being rejected due to metadata scoring
+  const semanticThreshold = 0.50;
+  const hybridThreshold = 0.52;
+  console.log(`[KB Strict Mode] Retrieving with dual thresholds:`);
+  console.log(`  - Semantic threshold: ${semanticThreshold} (primary gate)`);
+  console.log(`  - Hybrid threshold: ${hybridThreshold} (secondary filter)`);
   
-  const retrievalResult = await retrieveFromKB(userQuery, persona, 3, similarityThreshold);
+  const retrievalResult = await retrieveFromKB(userQuery, persona, 3, hybridThreshold);
 
-  // Log retrieval results
+  // Enhanced logging with semantic and hybrid scores
   console.log(`[KB Strict Mode] Retrieval results:`);
   console.log(`  - Has match: ${retrievalResult.hasMatch}`);
   console.log(`  - KB entries found: ${retrievalResult.kbEntries.length}`);
   if (retrievalResult.topScore !== undefined) {
-    console.log(`  - Top score: ${retrievalResult.topScore.toFixed(3)}`);
+    console.log(`  - Top hybrid score: ${retrievalResult.topScore.toFixed(3)}`);
+  }
+  if (retrievalResult.topSemanticScore !== undefined) {
+    console.log(`  - Top semantic score: ${retrievalResult.topSemanticScore.toFixed(3)}`);
   }
   if (retrievalResult.kbEntries.length > 0) {
-    console.log(`  - Entry scores: ${retrievalResult.kbEntries.map(e => (e.similarity ?? 0).toFixed(3)).join(', ')}`);
+    console.log(`  - Entry details:`);
     retrievalResult.kbEntries.forEach((entry, idx) => {
-      console.log(`    [${idx + 1}] Score: ${(entry.similarity ?? 0).toFixed(3)}, Topic: ${entry.metadata.topic}, Subtopic: ${entry.metadata.subtopic}`);
+      const hybridScore = (entry.similarity ?? 0).toFixed(3);
+      const semanticScore = (entry.semanticSimilarity ?? 0).toFixed(3);
+      console.log(`    [${idx + 1}] Hybrid: ${hybridScore} | Semantic: ${semanticScore} | Topic: ${entry.metadata.topic} | Subtopic: ${entry.metadata.subtopic}`);
     });
   }
 
-  if (retrievalResult.hasMatch && retrievalResult.kbEntries.length > 0) {
+  // IMPROVED: Check both semantic and hybrid thresholds
+  const hasSemanticMatch = retrievalResult.topSemanticScore !== undefined && retrievalResult.topSemanticScore >= semanticThreshold;
+  const hasHybridMatch = retrievalResult.topScore !== undefined && retrievalResult.topScore >= hybridThreshold;
+  
+  if (retrievalResult.hasMatch && retrievalResult.kbEntries.length > 0 && hasSemanticMatch && hasHybridMatch) {
     // KB match found - return verbatim
-    console.log(`[KB Strict Mode] ✅ VERBATIM RESPONSE triggered (score >= ${similarityThreshold})`);
+    console.log(`[KB Strict Mode] ✅ VERBATIM RESPONSE triggered`);
+    console.log(`  - Semantic: ${retrievalResult.topSemanticScore!.toFixed(3)} >= ${semanticThreshold} ✓`);
+    console.log(`  - Hybrid: ${retrievalResult.topScore!.toFixed(3)} >= ${hybridThreshold} ✓`);
     const verbatimResponse = formatVerbatimResponse(retrievalResult.kbEntries);
     
     return {
@@ -119,9 +134,17 @@ async function handleKBStrictMode(
     };
   }
 
-  // No KB match - log why
-  if (retrievalResult.topScore !== undefined) {
-    console.log(`[KB Strict Mode] ❌ No verbatim response (top score ${retrievalResult.topScore.toFixed(3)} < threshold ${similarityThreshold})`);
+  // No KB match - detailed logging of why
+  if (retrievalResult.topSemanticScore !== undefined || retrievalResult.topScore !== undefined) {
+    const semanticStatus = hasSemanticMatch ? '✓' : '✗';
+    const hybridStatus = hasHybridMatch ? '✓' : '✗';
+    console.log(`[KB Strict Mode] ❌ No verbatim response:`);
+    if (retrievalResult.topSemanticScore !== undefined) {
+      console.log(`  - Semantic: ${retrievalResult.topSemanticScore.toFixed(3)} ${semanticStatus} (threshold: ${semanticThreshold})`);
+    }
+    if (retrievalResult.topScore !== undefined) {
+      console.log(`  - Hybrid: ${retrievalResult.topScore.toFixed(3)} ${hybridStatus} (threshold: ${hybridThreshold})`);
+    }
   } else {
     console.log(`[KB Strict Mode] ❌ No verbatim response (no KB entries found)`);
   }
@@ -154,7 +177,6 @@ async function handleKBStrictMode(
 /**
  * Handle hybrid mode (Nutrition Coach, Exercise Trainer)
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function handleHybridMode(
   userQuery: string,
   persona: Persona,
@@ -168,11 +190,64 @@ async function handleHybridMode(
   const similarityThreshold = 0.5;
   const retrievalResult = await retrieveFromKB(userQuery, persona, 5, similarityThreshold);
 
+  // IMPROVED: Dual threshold system for hybrid mode verbatim responses
+  // Slightly lower thresholds than kb_strict since hybrid mode is more flexible
+  // Semantic threshold: 0.50 (primary gate - ensures good semantic match)
+  // Hybrid threshold: adaptive (already applied in retrieval, typically 0.44-0.50)
+  const semanticThreshold = 0.50;
+  
   console.log(`[Hybrid Mode] Retrieval results:`);
   console.log(`  - Has match: ${retrievalResult.hasMatch}`);
   console.log(`  - KB entries found: ${retrievalResult.kbEntries.length}`);
   if (retrievalResult.topScore !== undefined) {
-    console.log(`  - Top score: ${retrievalResult.topScore.toFixed(3)}`);
+    console.log(`  - Top hybrid score: ${retrievalResult.topScore.toFixed(3)}`);
+  }
+  if (retrievalResult.topSemanticScore !== undefined) {
+    console.log(`  - Top semantic score: ${retrievalResult.topSemanticScore.toFixed(3)}`);
+  }
+  if (retrievalResult.kbEntries.length > 0) {
+    console.log(`  - Entry details:`);
+    retrievalResult.kbEntries.forEach((entry, idx) => {
+      const hybridScore = (entry.similarity ?? 0).toFixed(3);
+      const semanticScore = (entry.semanticSimilarity ?? 0).toFixed(3);
+      console.log(`    [${idx + 1}] Hybrid: ${hybridScore} | Semantic: ${semanticScore} | Topic: ${entry.metadata.topic} | Subtopic: ${entry.metadata.subtopic}`);
+    });
+  }
+
+  // IMPROVED: Check for verbatim response opportunity (strong KB match)
+  // For hybrid mode, we use adaptive threshold from retrieval (already applied)
+  // So if entries passed retrieval filters, they're good candidates for verbatim
+  const hasSemanticMatch = retrievalResult.topSemanticScore !== undefined && retrievalResult.topSemanticScore >= semanticThreshold;
+  const hasGoodHybridMatch = retrievalResult.topScore !== undefined && retrievalResult.topScore >= 0.45; // Adaptive threshold already applied, just verify it's reasonable
+  
+  if (retrievalResult.hasMatch && retrievalResult.kbEntries.length > 0 && hasSemanticMatch && hasGoodHybridMatch) {
+    // Strong KB match found - return verbatim response
+    console.log(`[Hybrid Mode] ✅ VERBATIM RESPONSE triggered`);
+    console.log(`  - Semantic: ${retrievalResult.topSemanticScore!.toFixed(3)} >= ${semanticThreshold} ✓`);
+    console.log(`  - Hybrid: ${retrievalResult.topScore!.toFixed(3)} >= 0.45 ✓`);
+    const verbatimResponse = formatVerbatimResponse(retrievalResult.kbEntries);
+    
+    return {
+      response: verbatimResponse,
+      persona,
+      retrievalMode: "hybrid",
+      usedKB: true,
+      kbEntries: retrievalResult.kbEntries,
+      isVerbatim: true,
+    };
+  }
+
+  // No strong match - use KB context with LLM (hybrid approach)
+  if (retrievalResult.topSemanticScore !== undefined || retrievalResult.topScore !== undefined) {
+    const semanticStatus = hasSemanticMatch ? '✓' : '✗';
+    const hybridStatus = hasGoodHybridMatch ? '✓' : '✗';
+    console.log(`[Hybrid Mode] No verbatim response (using hybrid LLM approach):`);
+    if (retrievalResult.topSemanticScore !== undefined) {
+      console.log(`  - Semantic: ${retrievalResult.topSemanticScore.toFixed(3)} ${semanticStatus} (threshold: ${semanticThreshold})`);
+    }
+    if (retrievalResult.topScore !== undefined) {
+      console.log(`  - Hybrid: ${retrievalResult.topScore.toFixed(3)} ${hybridStatus} (threshold: 0.45)`);
+    }
   }
 
   // For hybrid mode, return KB context for route to use with LLM (with tools)
@@ -196,7 +271,6 @@ async function handleHybridMode(
 /**
  * Handle llm_reasoning mode (Empathy Companion)
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function handleLLMReasoningMode(
   _userQuery: string,
   persona: Persona,
