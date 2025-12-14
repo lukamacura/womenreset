@@ -8,13 +8,14 @@
  * - Intents and keywords are included in content column for better vector search
  * - Each section = 1 document (no chunking unless extremely large)
  * - Metadata preserved for re-ranking (intents, keywords, content_sections)
+ * - Intent patterns are repeated at the start for maximum semantic matching accuracy
  * 
  * Supports both YAML frontmatter and Markdown formats.
  * 
  * Usage:
- *   npx tsx scripts/ingest-documents.ts [--clear]
+ *   npx tsx scripts/ingest-documents.ts
  * 
- * Use --clear flag to delete existing documents before re-ingestion.
+ * Note: Database is always cleared before ingestion to ensure clean state.
  */
 
 // Load environment variables from .env.local or .env
@@ -73,20 +74,33 @@ type FileFormat = 'yaml' | 'markdown';
  * Detect file format based on content
  */
 function detectFormat(content: string): FileFormat {
-  // YAML format starts with --- and has key: value pairs
-  if (content.trim().startsWith('---') && content.includes('persona:') && content.includes('content_text:')) {
+  const trimmed = content.trim();
+  
+  // YAML format: has YAML-style key-value pairs (persona:, topic:, content_text:)
+  // Can start with --- or directly with persona:
+  const hasYAMLMarkers = trimmed.includes('persona:') && 
+                         trimmed.includes('topic:') && 
+                         trimmed.includes('content_text:');
+  
+  // Markdown format: has ## headings and **Persona:** format
+  const hasMarkdownMarkers = trimmed.includes('##') && trimmed.includes('**Persona:**');
+  
+  if (hasYAMLMarkers) {
     return 'yaml';
   }
-  // Markdown format has ## headings and **Persona:** format
-  if (content.includes('##') && content.includes('**Persona:**')) {
+  if (hasMarkdownMarkers) {
     return 'markdown';
   }
+  
   // Default to markdown for backward compatibility
   return 'markdown';
 }
 
 /**
  * Parse YAML frontmatter sections
+ * Handles files that start with --- or directly with persona:
+ * - If file starts with ---, first split result is empty (filtered out), second is first section
+ * - If file doesn't start with ---, first split result is the first section (everything before first ---)
  */
 function parseYAMLSections(content: string): string[] {
   const sections: string[] = [];
@@ -189,10 +203,11 @@ function extractYAMLContent(section: string): { content: string; contentSections
   const contentParts: string[] = [];
   
   // Extract content_text (main content)
-  const contentTextMatch = section.match(/^content_text:\s*\|\s*\n([\s\S]*?)(?=^[a-z_]+:|$)/m);
+  // Improved regex: matches content_text with | marker, captures until next field or end of section
+  const contentTextMatch = section.match(/^content_text:\s*\|\s*\n([\s\S]*?)(?=^(?:[a-z_]+:|---$|\Z))/m);
   if (contentTextMatch) {
     let content = contentTextMatch[1].trim();
-    // Remove leading indentation (YAML block scalar)
+    // Remove leading indentation (YAML block scalar - typically 2 spaces)
     content = content.split('\n').map(line => line.replace(/^\s{2,}/, '')).join('\n').trim();
     if (content) {
       contentSections.has_content = true;
@@ -220,6 +235,11 @@ function extractYAMLContent(section: string): { content: string; contentSections
     if (inActionTips) {
       // Check if we've hit the next YAML field (starts with lowercase/underscore + colon, not indented)
       // A field is at the start of a line (no or minimal indentation - 0-2 spaces)
+      // Also check for section separator (---)
+      if (trimmed === '---') {
+        break; // Section separator found
+      }
+      
       if (trimmed && /^[a-z_]+:/.test(trimmed)) {
         const indentMatch = line.match(/^(\s*)/);
         const indent = indentMatch ? indentMatch[1].length : 0;
@@ -254,7 +274,8 @@ function extractYAMLContent(section: string): { content: string; contentSections
   }
   
   // Extract motivation_nudge - content only, no label
-  const motivationMatch = section.match(/^motivation_nudge:\s*(?:\|\s*\n)?([\s\S]*?)(?=^[a-z_]+:|$)/m);
+  // Improved regex: handles both single-line (quoted) and multi-line (|) formats, captures until next field or end
+  const motivationMatch = section.match(/^motivation_nudge:\s*(?:\|\s*\n)?([\s\S]*?)(?=^(?:[a-z_]+:|---$|\Z))/m);
   if (motivationMatch) {
     let motivation = motivationMatch[1].trim();
     // Handle both single-line and multi-line YAML
@@ -269,7 +290,8 @@ function extractYAMLContent(section: string): { content: string; contentSections
   }
   
   // Extract habit_strategy - content only, no labels like "Principle:", "Explanation:"
-  const habitStrategyMatch = section.match(/^habit_strategy:\s*\n([\s\S]*?)(?=^[a-z_]+:|$)/m);
+  // Improved regex: captures until next field or end of section
+  const habitStrategyMatch = section.match(/^habit_strategy:\s*\n([\s\S]*?)(?=^(?:[a-z_]+:|---$|\Z))/m);
   if (habitStrategyMatch) {
     const strategy = habitStrategyMatch[1].trim();
     // Extract the principle, explanation, example, and habit_tip WITHOUT labels
@@ -292,7 +314,8 @@ function extractYAMLContent(section: string): { content: string; contentSections
   }
   
   // Extract follow_up_question - include it in content
-  const followUpMatch = section.match(/^follow_up_question:\s*(?:\|\s*\n)?([\s\S]*?)(?=^[a-z_]+:|$)/m);
+  // Improved regex: handles both single-line (quoted) and multi-line (|) formats, captures until next field or end
+  const followUpMatch = section.match(/^follow_up_question:\s*(?:\|\s*\n)?([\s\S]*?)(?=^(?:[a-z_]+:|---$|\Z))/m);
   if (followUpMatch) {
     let followUp = followUpMatch[1].trim();
     // Handle both single-line and multi-line YAML
@@ -417,10 +440,12 @@ function extractMarkdownContent(section: string): { content: string; contentSect
 
 /**
  * Parse Intent Patterns from YAML format
+ * Handles edge cases and validates results
  */
 function parseYAMLIntentPatterns(section: string): string[] {
   const patterns: string[] = [];
-  const intentPatternsMatch = section.match(/^intent_patterns:\s*\n([\s\S]*?)(?=^[a-z_]+:|^---$|$)/m);
+  // Improved regex: captures until next field, section separator, or end of section
+  const intentPatternsMatch = section.match(/^intent_patterns:\s*\n([\s\S]*?)(?=^(?:[a-z_]+:|---$|\Z))/m);
   
   if (!intentPatternsMatch) {
     return patterns;
@@ -437,8 +462,16 @@ function parseYAMLIntentPatterns(section: string): string[] {
     }
     // Match bullet points (- or •)
     if (trimmed.match(/^[-•]\s+/)) {
-      const pattern = trimmed.replace(/^[-•]\s+/, '').replace(/^["']|["']$/g, '').trim();
-      if (pattern) {
+      let pattern = trimmed.replace(/^[-•]\s+/, '').replace(/^["']|["']$/g, '').trim();
+      
+      // Remove trailing notes in brackets like "[+ route based on follow-up]"
+      pattern = pattern.replace(/\s*\[\+.*?\]\s*$/, '').trim();
+      
+      // Remove any trailing parentheses with notes
+      pattern = pattern.replace(/\s*\([^)]*\)\s*$/, '').trim();
+      
+      // Validate: pattern must be non-empty and have at least 3 characters
+      if (pattern && pattern.length >= 3) {
         patterns.push(pattern);
       }
     }
@@ -449,6 +482,7 @@ function parseYAMLIntentPatterns(section: string): string[] {
 
 /**
  * Parse Intent Patterns from Markdown format
+ * Handles edge cases and validates results
  */
 function parseMarkdownIntentPatterns(section: string): string[] {
   const patterns: string[] = [];
@@ -473,11 +507,20 @@ function parseMarkdownIntentPatterns(section: string): string[] {
     }
     // Match bullet points (- or •)
     if (trimmed.match(/^[-•]\s+/)) {
-      const pattern = trimmed.replace(/^[-•]\s+/, '').trim();
+      let pattern = trimmed.replace(/^[-•]\s+/, '').trim();
+      
+      // Remove surrounding quotes if present
+      pattern = pattern.replace(/^["']|["']$/g, '').trim();
+      
       // Remove any trailing notes like "[+ route based on follow-up]"
-      const cleanPattern = pattern.replace(/\s*\[\+.*?\]\s*$/, '').trim();
-      if (cleanPattern) {
-        patterns.push(cleanPattern);
+      pattern = pattern.replace(/\s*\[\+.*?\]\s*$/, '').trim();
+      
+      // Remove any trailing parentheses with notes
+      pattern = pattern.replace(/\s*\([^)]*\)\s*$/, '').trim();
+      
+      // Validate: pattern must be non-empty and have at least 3 characters
+      if (pattern && pattern.length >= 3) {
+        patterns.push(pattern);
       }
     }
   }
@@ -490,7 +533,8 @@ function parseMarkdownIntentPatterns(section: string): string[] {
  */
 function parseYAMLKeywords(section: string): string[] {
   const keywords: string[] = [];
-  const keywordsMatch = section.match(/^keywords:\s*\n([\s\S]*?)(?=^[a-z_]+:|^---$|$)/m);
+  // Improved regex: captures until next field, section separator, or end of section
+  const keywordsMatch = section.match(/^keywords:\s*\n([\s\S]*?)(?=^(?:[a-z_]+:|---$|\Z))/m);
   
   if (!keywordsMatch) {
     return keywords;
@@ -654,17 +698,27 @@ function chunkContentIfNeeded(content: string, maxTokens: number = 2000, maxChar
 
 /**
  * Enhance content with intents and keywords for better vector search
- * Prepends intents and keywords naturally to the content for optimal semantic matching
- * This makes intents and keywords part of the vector search, not just re-ranking
+ * Optimized for maximum semantic matching accuracy by:
+ * - Adding topic/subtopic explicitly at the start
+ * - Repeating intent patterns 2-3 times for emphasis (embedding models weight repeated patterns)
+ * - Including ALL intent patterns (they're designed to match user queries exactly)
+ * - Adding keywords for additional semantic coverage
  */
 function enhanceContentWithMetadata(
   content: string,
   intent_patterns: string[],
-  keywords: string[]
+  keywords: string[],
+  topic: string,
+  subtopic: string
 ): string {
   const enhancementParts: string[] = [];
   
-  // Add intent patterns as natural language context (most important for matching)
+  // Add topic and subtopic explicitly at the start for context
+  enhancementParts.push(`Topic: ${topic}. Subtopic: ${subtopic}.`);
+  enhancementParts.push(''); // Empty line for readability
+  
+  // Add intent patterns - repeat 2-3 times for maximum semantic matching
+  // Embedding models weight repeated patterns more heavily
   if (intent_patterns.length > 0) {
     // Clean intent patterns (remove PRIMARY/SECONDARY markers, trim quotes)
     const cleanedIntents = intent_patterns
@@ -672,19 +726,30 @@ function enhanceContentWithMetadata(
       .filter(ip => ip.length > 0);
     
     if (cleanedIntents.length > 0) {
-      // Include all intents (they're designed to match user queries)
-      // Format as natural language questions/statements
-      if (cleanedIntents.length === 1) {
-        enhancementParts.push(`This section answers questions about: ${cleanedIntents[0]}.`);
-      } else if (cleanedIntents.length <= 5) {
-        // For 2-5 intents, list them all
-        const lastIntent = cleanedIntents[cleanedIntents.length - 1];
-        const others = cleanedIntents.slice(0, -1);
-        enhancementParts.push(`This section answers questions about: ${others.join(', ')}, and ${lastIntent}.`);
+      // Include ALL intent patterns (not limited) - they're designed to match queries exactly
+      // Format each as a standalone question/statement for better embedding matching
+      const intentLines = cleanedIntents.map(intent => intent);
+      
+      // Repeat intent patterns 2-3 times for emphasis (embedding models weight repeated content)
+      // First pass: all intents
+      enhancementParts.push(...intentLines);
+      
+      // Second pass: repeat top 5-10 most important intents (if we have many)
+      if (cleanedIntents.length > 5) {
+        // Repeat the first 5-10 intents for extra emphasis
+        const repeatCount = Math.min(10, cleanedIntents.length);
+        enhancementParts.push(...cleanedIntents.slice(0, repeatCount));
       } else {
-        // For many intents, include top 5 and indicate more
-        enhancementParts.push(`This section answers questions about: ${cleanedIntents.slice(0, 5).join(', ')}, and related topics.`);
+        // If we have 5 or fewer, repeat all of them
+        enhancementParts.push(...intentLines);
       }
+      
+      // Third pass: repeat the first intent pattern one more time (most important)
+      if (cleanedIntents.length > 0) {
+        enhancementParts.push(cleanedIntents[0]);
+      }
+      
+      enhancementParts.push(''); // Empty line separator
     }
   }
   
@@ -692,21 +757,22 @@ function enhanceContentWithMetadata(
   if (keywords.length > 0) {
     const uniqueKeywords = [...new Set(keywords)].filter(k => k.length > 0);
     if (uniqueKeywords.length > 0) {
-      // Include top 15 keywords for better semantic coverage
-      const displayKeywords = uniqueKeywords.slice(0, 15);
+      // Include top 20 keywords for better semantic coverage
+      const displayKeywords = uniqueKeywords.slice(0, 20);
       if (displayKeywords.length === 1) {
-        enhancementParts.push(`Key topic: ${displayKeywords[0]}.`);
-      } else if (displayKeywords.length <= 10) {
-        enhancementParts.push(`Key topics: ${displayKeywords.join(', ')}.`);
+        enhancementParts.push(`Keywords: ${displayKeywords[0]}.`);
+      } else if (displayKeywords.length <= 15) {
+        enhancementParts.push(`Keywords: ${displayKeywords.join(', ')}.`);
       } else {
-        enhancementParts.push(`Key topics: ${displayKeywords.slice(0, 10).join(', ')}, and more.`);
+        enhancementParts.push(`Keywords: ${displayKeywords.slice(0, 15).join(', ')}, and more.`);
       }
+      enhancementParts.push(''); // Empty line separator
     }
   }
   
   // Combine enhancements with original content
   if (enhancementParts.length > 0) {
-    return `${enhancementParts.join(' ')}\n\n${content}`;
+    return enhancementParts.join('\n') + content;
   }
   
   return content;
@@ -715,8 +781,9 @@ function enhanceContentWithMetadata(
 /**
  * Parse a single section into structured format
  * May return multiple documents if content needs to be chunked
+ * Validates parsed sections and returns empty array if validation fails
  */
-function parseSection(section: string, format: FileFormat, _source: string, _sectionIndex: number): ParsedSection[] {
+function parseSection(section: string, format: FileFormat, source: string, sectionIndex: number): ParsedSection[] {
   let metadata: SectionMetadata | null;
   let content: string;
   let contentSections: ContentSections;
@@ -726,6 +793,7 @@ function parseSection(section: string, format: FileFormat, _source: string, _sec
   if (format === 'yaml') {
     metadata = extractYAMLMetadata(section);
     if (!metadata) {
+      console.warn(`   ⚠️  [${source}:${sectionIndex}] Missing required metadata (persona, topic, or subtopic)`);
       return [];
     }
     const contentResult = extractYAMLContent(section);
@@ -736,6 +804,7 @@ function parseSection(section: string, format: FileFormat, _source: string, _sec
   } else {
     metadata = extractMarkdownMetadata(section);
     if (!metadata) {
+      console.warn(`   ⚠️  [${source}:${sectionIndex}] Missing required metadata (persona, topic, or subtopic)`);
       return [];
     }
     const contentResult = extractMarkdownContent(section);
@@ -745,9 +814,33 @@ function parseSection(section: string, format: FileFormat, _source: string, _sec
     keywords = parseMarkdownKeywords(section);
   }
   
+  // Validate parsed section
+  // Check for non-empty content
+  if (!content || content.trim().length === 0) {
+    console.warn(`   ⚠️  [${source}:${sectionIndex}] Empty content for "${metadata.topic}" / "${metadata.subtopic}"`);
+    return [];
+  }
+  
+  // Check for valid metadata fields
+  if (!metadata.persona || !metadata.topic || !metadata.subtopic) {
+    console.warn(`   ⚠️  [${source}:${sectionIndex}] Invalid metadata - missing persona, topic, or subtopic`);
+    return [];
+  }
+  
+  // Warn if no intent patterns (not fatal, but important for retrieval)
+  if (intent_patterns.length === 0) {
+    console.warn(`   ⚠️  [${source}:${sectionIndex}] No intent patterns found for "${metadata.topic}" / "${metadata.subtopic}" - retrieval may be less accurate`);
+  }
+  
   // Enhance content with intents and keywords for better vector search
   // This makes intents and keywords part of the semantic search, not just re-ranking
-  const enhancedContent = enhanceContentWithMetadata(content, intent_patterns, keywords);
+  const enhancedContent = enhanceContentWithMetadata(
+    content, 
+    intent_patterns, 
+    keywords,
+    metadata.topic,
+    metadata.subtopic
+  );
   
   // CRITICAL: Each section = 1 complete answer, so NO chunking
   // Only chunk if content is extremely large (exceeds embedding model limits)
@@ -797,6 +890,9 @@ async function loadDocuments(): Promise<Document[]> {
   console.log(`📄 Found ${files.length} file(s) to process`);
   
   // Process each file
+  const failedFiles: Array<{ file: string; error: string }> = [];
+  const failedSections: Array<{ file: string; sectionIndex: number; error: string }> = [];
+  
   for (const file of files) {
     try {
       const filePath = path.join(kbDir, file);
@@ -811,38 +907,72 @@ async function loadDocuments(): Promise<Document[]> {
       console.log(`   📑 ${file}: Found ${sections.length} section(s)`);
       
       let sectionIndex = 0;
+      let successfulSections = 0;
+      
       for (const section of sections) {
-        const parsedSections = parseSection(section, format, file, sectionIndex);
-        
-        for (const parsed of parsedSections) {
-          if (parsed && parsed.content.trim().length > 0) {
-            // Build metadata object for Supabase
-            const metadata = {
-              persona: parsed.metadata.persona,
-              topic: parsed.metadata.topic,
-              subtopic: parsed.metadata.subtopic,
-              source: file,
-              section_index: sectionIndex,
-              intent_patterns: parsed.intent_patterns,
-              keywords: parsed.keywords,
-              content_sections: parsed.content_sections,
-            };
-            
-            documents.push(new Document({
-              pageContent: parsed.content,
-              metadata: metadata,
-            }));
+        try {
+          const parsedSections = parseSection(section, format, file, sectionIndex);
+          
+          for (const parsed of parsedSections) {
+            if (parsed && parsed.content.trim().length > 0) {
+              // Build metadata object for Supabase
+              const metadata = {
+                persona: parsed.metadata.persona,
+                topic: parsed.metadata.topic,
+                subtopic: parsed.metadata.subtopic,
+                source: file,
+                section_index: sectionIndex,
+                intent_patterns: parsed.intent_patterns,
+                keywords: parsed.keywords,
+                content_sections: parsed.content_sections,
+              };
+              
+              documents.push(new Document({
+                pageContent: parsed.content,
+                metadata: metadata,
+              }));
+              successfulSections++;
+            }
           }
-        }
-        
-        if (parsedSections.length > 0) {
+          
+          if (parsedSections.length > 0) {
+            sectionIndex++;
+          }
+        } catch (sectionError: unknown) {
+          const errorMessage = sectionError instanceof Error ? sectionError.message : String(sectionError);
+          failedSections.push({
+            file,
+            sectionIndex,
+            error: errorMessage
+          });
+          console.error(`   ✗ Error parsing section ${sectionIndex} in ${file}: ${errorMessage}`);
+          // Continue processing other sections
           sectionIndex++;
         }
       }
       
-      console.log(`   ✓ Loaded ${sectionIndex} section(s) from ${file}`);
-    } catch (error) {
-      console.error(`   ✗ Error loading ${file}:`, error);
+      console.log(`   ✓ Loaded ${successfulSections} section(s) from ${file}`);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      failedFiles.push({ file, error: errorMessage });
+      console.error(`   ✗ Error loading ${file}: ${errorMessage}`);
+    }
+  }
+  
+  // Report failures at the end
+  if (failedFiles.length > 0 || failedSections.length > 0) {
+    console.log(`\n⚠️  Summary of failures:`);
+    if (failedFiles.length > 0) {
+      console.log(`   Files failed: ${failedFiles.length}`);
+      failedFiles.forEach(({ file, error }) => {
+        console.log(`     - ${file}: ${error}`);
+      });
+    }
+    if (failedSections.length > 0) {
+      console.log(`   Sections failed: ${failedSections.length}`);
+      failedSections.forEach(({ file, sectionIndex, error }) => {
+        console.log(`     - ${file}:${sectionIndex}: ${error}`);
+      });
     }
   }
   
@@ -889,14 +1019,12 @@ async function clearExistingDocuments(): Promise<void> {
 
 /**
  * Ingest documents into Supabase vector store
- * @param clearFirst - If true, clears existing documents before ingestion (default: false)
+ * Always clears existing documents before ingestion to ensure clean state
  */
-async function ingestDocuments(clearFirst: boolean = false) {
+async function ingestDocuments() {
   try {
-    // Clear existing documents if requested
-    if (clearFirst) {
-      await clearExistingDocuments();
-    }
+    // Always clear existing documents first to ensure clean state
+    await clearExistingDocuments();
     
     console.log("🔄 Loading documents...");
     const documents = await loadDocuments();
@@ -1001,14 +1129,71 @@ async function ingestDocuments(clearFirst: boolean = false) {
     }
     console.log(`   🔍 Vector store ready for queries.`);
     
-    // Print summary statistics
+    // Print comprehensive summary statistics
     if (successCount > 0) {
-      const topics = new Set(validDocuments.slice(0, successCount).map(d => d.metadata.topic));
+      const ingestedDocs = validDocuments.slice(0, successCount);
+      
+      // Topic statistics
+      const topics = new Set(ingestedDocs.map(d => d.metadata.topic));
+      console.log(`\n📊 Ingestion Statistics:`);
       console.log(`   📖 Unique topics: ${topics.size}`);
-      const totalKeywords = validDocuments.slice(0, successCount).reduce((sum, d) => sum + (d.metadata.keywords?.length || 0), 0);
-      const totalPatterns = validDocuments.slice(0, successCount).reduce((sum, d) => sum + (d.metadata.intent_patterns?.length || 0), 0);
-      console.log(`   🏷️  Total keywords: ${totalKeywords}`);
-      console.log(`   💬 Total intent patterns: ${totalPatterns}`);
+      
+      // Section statistics
+      const sectionsByTopic = new Map<string, number>();
+      ingestedDocs.forEach(doc => {
+        const topic = doc.metadata.topic as string;
+        sectionsByTopic.set(topic, (sectionsByTopic.get(topic) || 0) + 1);
+      });
+      console.log(`   📑 Total sections: ${ingestedDocs.length}`);
+      console.log(`   📚 Sections per topic:`);
+      Array.from(sectionsByTopic.entries())
+        .sort((a, b) => b[1] - a[1])
+        .forEach(([topic, count]) => {
+          console.log(`      - ${topic}: ${count} section(s)`);
+        });
+      
+      // Intent pattern statistics
+      const totalPatterns = ingestedDocs.reduce((sum, d) => sum + (d.metadata.intent_patterns?.length || 0), 0);
+      const avgPatterns = totalPatterns > 0 ? (totalPatterns / ingestedDocs.length).toFixed(1) : '0';
+      const sectionsWithPatterns = ingestedDocs.filter(d => (d.metadata.intent_patterns?.length || 0) > 0).length;
+      console.log(`   💬 Intent patterns:`);
+      console.log(`      - Total: ${totalPatterns}`);
+      console.log(`      - Average per section: ${avgPatterns}`);
+      console.log(`      - Sections with patterns: ${sectionsWithPatterns}/${ingestedDocs.length}`);
+      
+      // Keyword statistics
+      const totalKeywords = ingestedDocs.reduce((sum, d) => sum + (d.metadata.keywords?.length || 0), 0);
+      const avgKeywords = totalKeywords > 0 ? (totalKeywords / ingestedDocs.length).toFixed(1) : '0';
+      const sectionsWithKeywords = ingestedDocs.filter(d => (d.metadata.keywords?.length || 0) > 0).length;
+      console.log(`   🏷️  Keywords:`);
+      console.log(`      - Total: ${totalKeywords}`);
+      console.log(`      - Average per section: ${avgKeywords}`);
+      console.log(`      - Sections with keywords: ${sectionsWithKeywords}/${ingestedDocs.length}`);
+      
+      // Content sections statistics
+      const contentSectionsStats = {
+        has_content: 0,
+        has_action_tips: 0,
+        has_motivation: 0,
+        has_followup: 0,
+        has_habit_strategy: 0,
+      };
+      ingestedDocs.forEach(doc => {
+        const sections = doc.metadata.content_sections as ContentSections | undefined;
+        if (sections) {
+          if (sections.has_content) contentSectionsStats.has_content++;
+          if (sections.has_action_tips) contentSectionsStats.has_action_tips++;
+          if (sections.has_motivation) contentSectionsStats.has_motivation++;
+          if (sections.has_followup) contentSectionsStats.has_followup++;
+          if (sections.has_habit_strategy) contentSectionsStats.has_habit_strategy++;
+        }
+      });
+      console.log(`   📋 Content sections:`);
+      console.log(`      - Has content: ${contentSectionsStats.has_content}`);
+      console.log(`      - Has action tips: ${contentSectionsStats.has_action_tips}`);
+      console.log(`      - Has motivation: ${contentSectionsStats.has_motivation}`);
+      console.log(`      - Has follow-up: ${contentSectionsStats.has_followup}`);
+      console.log(`      - Has habit strategy: ${contentSectionsStats.has_habit_strategy}`);
     }
   } catch (error) {
     console.error("❌ Error ingesting documents:", error);
@@ -1032,17 +1217,9 @@ if (require.main === module) {
     process.exit(1);
   }
 
-  // Check for --clear flag to clear existing documents first
-  const clearFirst = process.argv.includes('--clear') || process.argv.includes('-c');
-  
-  if (clearFirst) {
-    console.log("⚠️  --clear flag detected: Will delete all existing documents before ingestion\n");
-  }
-
-  ingestDocuments(clearFirst)
+  ingestDocuments()
     .then(() => {
       console.log("\n✨ Ingestion complete!");
-      console.log("\n💡 Tip: Use --clear flag to clear existing documents before re-ingestion");
       process.exit(0);
     })
     .catch((error) => {

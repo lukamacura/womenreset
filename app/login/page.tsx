@@ -214,7 +214,13 @@ function LoginForm() {
   );
 }
 
-export default function LoginPage() {
+export default function LoginPage({
+  params: _params,
+  searchParams: _searchParams,
+}: {
+  params?: Promise<Record<string, string | string[]>>;
+  searchParams?: Promise<Record<string, string | string[]>>;
+}) {
   return (
     <Suspense fallback={
       <main className="relative mx-auto max-w-md p-6 sm:p-8">

@@ -8,20 +8,141 @@ import type { KBEntry } from "./types";
  * Strip enhancement text from content (intents/keywords prefix added during ingestion)
  * Enhancement is kept in content for vector search but should not be shown to users
  * 
- * Format: "This section answers questions about: [intents]. Key topic(s): [keywords].\n\n[actual content]"
+ * New format structure:
+ * - Topic: X. Subtopic: Y.
+ * - Empty line
+ * - Intent patterns (repeated questions/statements, each on a new line)
+ * - Empty line
+ * - Keywords: ... (optional)
+ * - Empty line
+ * - Original content
  */
 function stripEnhancementText(content: string): string {
-  // Pattern matches:
-  // - "This section answers questions about: ..." (required if intents exist)
-  // - Optional space + "Key topic(s): ..." (if keywords exist)
-  // - Followed by "\n\n" and then the actual content
-  // Using [\s\S] instead of . with /s flag for ES2017 compatibility
-  const enhancementPattern = /^This section answers questions about:[\s\S]*?(?: Key topic(?:s)?:[\s\S]*?)?\n\n/;
-  const cleaned = content.replace(enhancementPattern, '');
+  const lines = content.split('\n');
+  let contentStartIndex = -1;
+  let foundTopic = false;
   
-  // If pattern didn't match, return original content
-  // (in case content doesn't have enhancement, or format changed)
-  return cleaned || content;
+  // Step 1: Find the Topic line
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    
+    if (line.startsWith('Topic:')) {
+      foundTopic = true;
+      continue;
+    }
+    
+    // Step 2: After finding Topic, skip enhancement content
+    if (foundTopic) {
+      // Skip empty lines
+      if (!line) {
+        continue;
+      }
+      
+      // Skip Topic/Subtopic lines (in case Subtopic is on separate line)
+      if (line.startsWith('Topic:') || line.startsWith('Subtopic:')) {
+        continue;
+      }
+      
+      // Skip intent patterns - questions ending with ? or question-like statements
+      // Intent patterns are typically:
+      // - Questions ending with ?
+      // - Short lines starting with question words
+      // - Lines that look like questions but might not end with ?
+      if (line.endsWith('?') || 
+          (line.length < 120 && /^(What|Why|How|When|Where|Is|Are|Can|Should|Will|Do|Does|Did|Am|Would|Could)/i.test(line))) {
+        continue;
+      }
+      
+      // Skip Keywords section (can be single or multi-line)
+      if (line.startsWith('Keywords:')) {
+        // Skip until we find the end of Keywords (empty line after period or end of Keywords content)
+        let j = i + 1;
+        while (j < lines.length) {
+          const nextLine = lines[j].trim();
+          // If we hit an empty line after Keywords, that's the separator
+          if (!nextLine) {
+            i = j; // Skip to after the empty line
+            break;
+          }
+          // If next line doesn't look like Keywords continuation, stop
+          if (!nextLine.startsWith('Keywords:') && 
+              !nextLine.match(/^[a-z][^:]*$/i) && // Not a continuation line (no colon, lowercase start)
+              nextLine.length > 50) {
+            break;
+          }
+          j++;
+        }
+        continue;
+      }
+      
+      // Step 3: Find the first line that's clearly actual content
+      // Content indicators:
+      // - Substantial length (> 40 characters)
+      // - Doesn't start with enhancement markers
+      // - Not a question
+      // - Contains actual prose (not just keywords or patterns)
+      if (line.length > 40 && 
+          !line.startsWith('Topic:') && 
+          !line.startsWith('Subtopic:') && 
+          !line.startsWith('Keywords:') &&
+          !line.endsWith('?') &&
+          // Check if it looks like actual prose (has lowercase letters, not all caps)
+          /[a-z]/.test(line) &&
+          // Not just a list of keywords (no excessive commas or semicolons)
+          (line.split(',').length < 10 && line.split(';').length < 5)) {
+        contentStartIndex = i;
+        break;
+      }
+    }
+  }
+  
+  // If we found content start, return from there
+  if (contentStartIndex >= 0) {
+    return lines.slice(contentStartIndex).join('\n').trim();
+  }
+  
+  // Fallback 1: Try old format pattern
+  if (!foundTopic) {
+    const oldPattern = /^This section answers questions about:[\s\S]*?(?: Key topic(?:s)?:[\s\S]*?)?\n\n/;
+    const cleaned = content.replace(oldPattern, '');
+    if (cleaned !== content) {
+      return cleaned.trim();
+    }
+  }
+  
+  // Fallback 2: If we found Topic but couldn't find content, try regex removal
+  if (foundTopic) {
+    // Try to remove everything from Topic to first substantial content line using regex
+    // Pattern: Topic line + optional Subtopic line + empty lines + intent patterns + Keywords + empty lines
+    const enhancementRegex = /^Topic:[\s\S]*?Subtopic:[\s\S]*?\n\s*\n([\s\S]*?)(?:Keywords:[\s\S]*?\n\s*\n)?\s*\n/;
+    const match = content.match(enhancementRegex);
+    if (match && match.index !== undefined) {
+      // Find where the match ends
+      const afterMatch = content.substring(match.index + match[0].length);
+      // Verify it's actual content (not more enhancement)
+      const firstLine = afterMatch.split('\n')[0].trim();
+      if (firstLine.length > 40 && !firstLine.startsWith('Topic:') && !firstLine.endsWith('?')) {
+        return afterMatch.trim();
+      }
+    }
+  }
+  
+  // Fallback 3: Last resort - find first line that's clearly not enhancement
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (line && 
+        line.length > 50 &&
+        !line.startsWith('Topic:') && 
+        !line.startsWith('Subtopic:') && 
+        !line.startsWith('Keywords:') &&
+        !line.endsWith('?') &&
+        /[a-z]/.test(line)) {
+      return lines.slice(i).join('\n').trim();
+    }
+  }
+  
+  // If all else fails, return original content
+  return content;
 }
 
 /**

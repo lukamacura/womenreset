@@ -84,12 +84,9 @@ habit_strategy:
   example: "Contract your pelvic muscles while brushing teeth or waiting for water to boil."
   habit_tip: "⏱️ Anchor your exercises to daily cues — tiny, steady actions build lifelong strength."
 
-follow_up_questions: "Want to understand the link between hydration, posture, and control?"
-                     "Curious which daily moves rebuild pelvic strength and confidence?"
-                     "Interested in how local estrogen can restore comfort and moisture?"
+follow_up_question: "Want to understand the link between hydration, posture, and control?"
 
 intent_patterns:
-  intent_patterns:
   - "How do I do Kegels correctly?"
   - "What's the best pelvic floor exercise routine?"
   - "How do I use vaginal estrogen cream?"
