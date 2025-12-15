@@ -1,5 +1,6 @@
 /**
  * Response Formatter - Formats KB responses based on retrieval mode
+ * Ensures KB content is formatted naturally without showing field names
  */
 
 import type { KBEntry } from "./types";
@@ -148,8 +149,212 @@ function stripEnhancementText(content: string): string {
 }
 
 /**
+ * Format a single KB entry for display, hiding field names
+ * Parses content and formats it naturally with dividers between sections
+ */
+export function formatKBEntryForDisplay(entry: KBEntry): string {
+  if (!entry.content) {
+    return "";
+  }
+
+  // First strip enhancement text (Topic, Subtopic, Keywords, Intent patterns)
+  let content = stripEnhancementText(entry.content).trim();
+  
+  // Parse and format the content sections naturally
+  const parts: string[] = [];
+  
+  // Extract main content and sections
+  const lines = content.split('\n');
+  let mainContent: string[] = [];
+  let actionTips: string[] = [];
+  let motivation: string[] = [];
+  let habitStrategy: string[] = [];
+  let followUp: string[] = [];
+  
+  let currentSection: 'main' | 'tips' | 'motivation' | 'habit' | 'followup' = 'main';
+  let inHabitStrategy = false;
+  let habitStrategyKey = '';
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+    const lowerTrimmed = trimmed.toLowerCase();
+    
+    // Skip completely empty lines (they help separate sections naturally)
+    if (!trimmed) {
+      // Empty line might indicate section boundary
+      // Check if next line suggests a new section transition
+      if (i < lines.length - 1) {
+        const nextLine = i + 1 < lines.length ? lines[i + 1].trim() : '';
+        if (nextLine) {
+          // If we were in tips and next line is not a bullet, transition to main
+          if (currentSection === 'tips' && !nextLine.match(/^[-•*]/) && nextLine.length > 20) {
+            currentSection = 'main';
+            inHabitStrategy = false;
+          }
+          // If we were in habit and next line looks like a question or new section, transition
+          if (currentSection === 'habit' && (nextLine.endsWith('?') || nextLine.length < 50)) {
+            // Might be transitioning to followup or main
+            if (nextLine.endsWith('?')) {
+              currentSection = 'followup';
+              inHabitStrategy = false;
+            }
+          }
+        }
+      }
+      continue;
+    }
+    
+    // Check for explicit field markers first (before other heuristics)
+    if (lowerTrimmed.startsWith('content_text:') || 
+        lowerTrimmed.startsWith('action_tips:') ||
+        lowerTrimmed.startsWith('motivation_nudge:') ||
+        lowerTrimmed.startsWith('habit_strategy:') ||
+        lowerTrimmed.startsWith('follow_up_question:')) {
+      // Switch to appropriate section
+      if (lowerTrimmed.startsWith('action_tips:')) {
+        currentSection = 'tips';
+        inHabitStrategy = false;
+      } else if (lowerTrimmed.startsWith('motivation_nudge:')) {
+        currentSection = 'motivation';
+        inHabitStrategy = false;
+        // Extract content after colon if present
+        const afterColon = trimmed.substring('motivation_nudge:'.length).trim();
+        if (afterColon) {
+          motivation.push(afterColon);
+        }
+        continue;
+      } else if (lowerTrimmed.startsWith('habit_strategy:')) {
+        currentSection = 'habit';
+        inHabitStrategy = true;
+        // Extract content after colon if present
+        const afterColon = trimmed.substring('habit_strategy:'.length).trim();
+        if (afterColon) {
+          habitStrategy.push(afterColon);
+        }
+        continue;
+      } else if (lowerTrimmed.startsWith('follow_up_question:')) {
+        currentSection = 'followup';
+        inHabitStrategy = false;
+        // Extract content after colon if present
+        const afterColon = trimmed.substring('follow_up_question:'.length).trim();
+        if (afterColon) {
+          followUp.push(afterColon);
+        }
+        continue;
+      } else {
+        // content_text: - skip the marker, continue in main section
+        continue;
+      }
+    }
+    
+    // Handle habit_strategy sub-fields (principle:, explanation:, example:, habit_tip:)
+    // Only process if we're explicitly in habit section
+    if (currentSection === 'habit' && (
+      lowerTrimmed.startsWith('principle:') ||
+      lowerTrimmed.startsWith('explanation:') ||
+      lowerTrimmed.startsWith('example:') ||
+      lowerTrimmed.startsWith('habit_tip:')
+    )) {
+      inHabitStrategy = true;
+      // Extract the field name and content
+      const colonIndex = trimmed.indexOf(':');
+      if (colonIndex > 0) {
+        habitStrategyKey = trimmed.substring(0, colonIndex).trim();
+        const fieldContent = trimmed.substring(colonIndex + 1).trim();
+        if (fieldContent) {
+          habitStrategy.push(`**${habitStrategyKey.charAt(0).toUpperCase() + habitStrategyKey.slice(1)}:** ${fieldContent}`);
+        }
+      }
+      continue;
+    }
+    
+    // Check if this looks like a bullet point (action tip)
+    if (trimmed.match(/^[-•*]\s+/)) {
+      if (currentSection === 'main' && mainContent.length > 0) {
+        currentSection = 'tips';
+        inHabitStrategy = false;
+      }
+      if (currentSection === 'tips') {
+        // Remove bullet marker and clean up
+        const tip = trimmed.replace(/^[-•*]\s+/, '').trim();
+        if (tip) {
+          actionTips.push(tip);
+        }
+      }
+    } else if (trimmed.length > 0) {
+      // Regular content line - add to appropriate section
+      if (currentSection === 'main') {
+        mainContent.push(trimmed);
+      } else if (currentSection === 'motivation') {
+        motivation.push(trimmed);
+      } else if (currentSection === 'habit') {
+        // Only add to habit strategy if we're actually processing it
+        // If line looks like a question, might be transitioning to followup
+        if (trimmed.endsWith('?') && trimmed.length < 200) {
+          currentSection = 'followup';
+          inHabitStrategy = false;
+          followUp.push(trimmed);
+        } else if (inHabitStrategy) {
+          // Continuation of habit strategy field
+          habitStrategy.push(trimmed);
+        }
+      } else if (currentSection === 'followup') {
+        followUp.push(trimmed);
+      }
+    }
+  }
+  
+  // Build formatted response with dividers between sections
+  if (mainContent.length > 0) {
+    parts.push(mainContent.join('\n'));
+  }
+  
+  if (actionTips.length > 0) {
+    // Add divider before action tips
+    if (parts.length > 0) {
+      parts.push('\n---\n');
+    }
+    // Format as bullet points
+    parts.push(actionTips.map(tip => `• ${tip}`).join('\n'));
+  }
+  
+  if (motivation.length > 0) {
+    // Add divider before motivation
+    if (parts.length > 0) {
+      parts.push('\n---\n');
+    }
+    parts.push(motivation.join('\n'));
+  }
+  
+  if (habitStrategy.length > 0) {
+    // Add divider before habit strategy
+    if (parts.length > 0) {
+      parts.push('\n---\n');
+    }
+    parts.push(habitStrategy.join('\n'));
+  }
+  
+  if (followUp.length > 0) {
+    // Add divider before follow-up
+    if (parts.length > 0) {
+      parts.push('\n---\n');
+    }
+    parts.push(followUp.join('\n'));
+  }
+  
+  // If we couldn't parse properly, return cleaned original content
+  if (parts.length === 0) {
+    return content;
+  }
+  
+  // Join parts (dividers already include newlines)
+  return parts.join('\n').trim();
+}
+
+/**
  * Format verbatim KB response for kb_strict mode
- * IMPROVED: Returns top entry, but includes additional entries if top entry is too short
+ * IMPROVED: Returns top entry formatted nicely, but includes additional entries if top entry is too short
  * Each section = 1 complete answer, but we can combine if needed for completeness
  */
 export function formatVerbatimResponse(kbEntries: KBEntry[]): string {
@@ -157,15 +362,15 @@ export function formatVerbatimResponse(kbEntries: KBEntry[]): string {
     return "";
   }
 
-  // Get top entry (highest scoring)
+  // Get top entry (highest scoring) and format it
   const topEntry = kbEntries[0];
-  let response = stripEnhancementText(topEntry.content).trim();
+  let response = formatKBEntryForDisplay(topEntry);
   
   // IMPROVED: If top entry is very short (< 200 chars), consider including next entry
   // This helps when the top match is a brief intro but second match has more detail
   if (response.length < 200 && kbEntries.length > 1) {
     const secondEntry = kbEntries[1];
-    const secondContent = stripEnhancementText(secondEntry.content).trim();
+    const secondContent = formatKBEntryForDisplay(secondEntry);
     
     // Only include second entry if:
     // 1. It's from the same topic/subtopic (likely continuation)
@@ -185,6 +390,7 @@ export function formatVerbatimResponse(kbEntries: KBEntry[]): string {
 /**
  * Format KB context for hybrid mode (to be passed to LLM)
  * Combines multiple KB entries into a context string
+ * Uses formatter to ensure no field names appear
  */
 export function formatKBContextForLLM(kbEntries: KBEntry[]): string {
   if (kbEntries.length === 0) {
@@ -209,7 +415,7 @@ export function formatKBContextForLLM(kbEntries: KBEntry[]): string {
       contextParts.push(`## ${topic}\n`);
     }
 
-    // Add each entry's content
+    // Add each entry's content (formatted to hide field names)
     for (const entry of entries) {
       const subtopic = entry.metadata.subtopic || '';
 
@@ -221,7 +427,9 @@ export function formatKBContextForLLM(kbEntries: KBEntry[]): string {
         contextParts.push(`### ${subtopic}\n`);
       }
 
-      contextParts.push(entry.content);
+      // Format entry to hide field names
+      const formattedContent = formatKBEntryForDisplay(entry);
+      contextParts.push(formattedContent);
 
       // Add separator between entries (except last)
       if (entries.indexOf(entry) < entries.length - 1) {

@@ -122,7 +122,7 @@ function splitByFences(src: string) {
   return parts;
 }
 
-/** Robustly convert “markdown-looking” / HTML-ish text into real Markdown. */
+/** Robustly convert "markdown-looking" / HTML-ish text into real Markdown. */
 function normalizeMarkdown(src: string): string {
   if (!src) return "";
   let s = src.replace(/\r\n?/g, "\n");
@@ -152,7 +152,7 @@ function normalizeMarkdown(src: string): string {
     // Strip other small tags but keep <br>
     t = t.replace(/<(?!br\s*\/?>)[^>\n]{1,60}>/gi, "");
 
-    // Clean “ | ” separators inside bullet content
+    // Clean " |  " separators inside bullet content
     t = t.replace(/^(\s*[-*]\s+.*)$/gm, (line) =>
       line.replace(/\s*\|\s*\|\s*/g, " - ").replace(/\s\|\s/g, " - "),
     );
@@ -1439,6 +1439,7 @@ function ChatPageInner() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             user_id: userId,
+            sessionId: id,
             userInput: "",
             stream: false,
           }),
@@ -1446,9 +1447,9 @@ function ChatPageInner() {
 
         if (res.ok) {
           const data = await res.json();
-          if (data.reply) {
+          if (data.content) { // Changed from data.reply
             // Strip markdown formatting from personalized greeting
-            let personalizedGreeting = data.reply;
+            let personalizedGreeting = data.content; // Changed from data.reply
             // Remove markdown headers, bold, etc.
             personalizedGreeting = personalizedGreeting.replace(/^#+\s*/gm, '');
             personalizedGreeting = personalizedGreeting.replace(/\*\*(.*?)\*\*/g, '$1');
@@ -1587,6 +1588,7 @@ function ChatPageInner() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             user_id: finalUserId,
+            sessionId: id,
             userInput: text,
             history,
             stream: true, // Enable streaming

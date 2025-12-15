@@ -49,9 +49,29 @@ export interface OrchestrationResult {
   persona: Persona;
   retrievalMode: RetrievalMode;
   usedKB: boolean;
+  source: "kb" | "llm"; // Source of response
   kbEntries?: KBEntry[];
   isVerbatim?: boolean; // True if response is verbatim KB content (no LLM)
   kbContext?: string; // KB context for hybrid mode (to be passed to LLM)
+}
+
+export interface SafetyResult {
+  allowed: boolean;
+  refused: boolean;
+  reason?: string;
+}
+
+export interface ConversationMessage {
+  role: "user" | "assistant";
+  content: string;
+  persona?: Persona;
+  timestamp: number;
+}
+
+export interface ConversationMemory {
+  sessionId: string;
+  messages: ConversationMessage[];
+  userPreferences?: Record<string, any>;
 }
 
 

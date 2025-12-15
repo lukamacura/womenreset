@@ -1,9 +1,10 @@
 /**
  * Safety Validator - Validates queries for Menopause Specialist persona
  * Implements refusal logic for medication/dosage queries
+ * Mode-aware: only refuses in llm_reasoning mode without KB answer
  */
 
-import type { QueryValidation } from "./types";
+import type { RetrievalMode, SafetyResult } from "./types";
 
 /**
  * List of refused medication names (case-insensitive matching)
@@ -53,51 +54,71 @@ const ALLOWED_PATTERNS = [
 ];
 
 /**
- * Validate a query for Menopause Specialist persona
- * Returns whether the query should be refused, allowed, or requires KB
+ * Validate a query for medication/dosage safety
+ * Mode-aware: only refuses in llm_reasoning mode without KB answer
+ * 
+ * @param query - User query to validate
+ * @param mode - Retrieval mode (kb_strict, hybrid, llm_reasoning)
+ * @param hasKBAnswer - Whether KB has an answer for this query
+ * @returns SafetyResult with allowed/refused status and reason
  */
-export function validateMenopauseQuery(query: string): QueryValidation {
+export function validateMenopauseQuery(
+  query: string,
+  mode: RetrievalMode,
+  hasKBAnswer: boolean
+): SafetyResult {
   const lowerQuery = query.toLowerCase();
 
-  // Check for refused medication names
-  for (const medication of REFUSED_MEDICATIONS) {
-    if (lowerQuery.includes(medication)) {
-      // Check if it's asking about dosage specifically
-      if (DOSAGE_PATTERNS.some(pattern => pattern.test(query))) {
-        return "refused";
-      }
-      // If medication name appears but not asking about dosage, still refuse
-      // (we don't want to give specific medication advice)
-      if (/(should i|can i|do you recommend|what about|tell me about).*medication/i.test(query)) {
-        return "refused";
-      }
+  // Always allow general HRT/menopause education questions
+  if (ALLOWED_PATTERNS.some(pattern => pattern.test(query))) {
+    return {
+      allowed: true,
+      refused: false,
+    };
+  }
+
+  // Check for medication dosage questions
+  const isDosageQuestion = DOSAGE_PATTERNS.some(pattern => pattern.test(query));
+  const mentionsMedication = REFUSED_MEDICATIONS.some(med => lowerQuery.includes(med));
+  const isPrescriptionAdvice = /(prescription|prescribe|doctor.*prescribe|should.*prescribe)/i.test(query);
+
+  // If query mentions medication or asks for dosage/prescription advice
+  if (isDosageQuestion || mentionsMedication || isPrescriptionAdvice) {
+    // In llm_reasoning mode without KB answer: REFUSE
+    if (mode === "llm_reasoning" && !hasKBAnswer) {
+      return {
+        allowed: false,
+        refused: true,
+        reason: generateRefusalResponse(query),
+      };
+    }
+
+    // In kb_strict or hybrid mode with KB answer: ALLOW (KB is trusted source)
+    // Also allow if KB was checked and has answer (even in llm_reasoning mode)
+    if (hasKBAnswer || mode === "kb_strict" || mode === "hybrid") {
+      return {
+        allowed: true,
+        refused: false,
+      };
     }
   }
 
-  // Check for dosage questions (even without specific medication names)
-  if (DOSAGE_PATTERNS.some(pattern => pattern.test(query))) {
-    // But allow if it's about general supplements (calcium, vitamin D, etc.)
+  // Check for general supplement dosage (calcium, vitamin D, etc.) - allow these
+  if (isDosageQuestion) {
     const generalSupplements = ["calcium", "vitamin d", "vitamin", "magnesium", "supplement"];
     if (generalSupplements.some(supp => lowerQuery.includes(supp))) {
-      // These are generally safe to discuss, but still route to KB if possible
-      return "kb_required";
+      return {
+        allowed: true,
+        refused: false,
+      };
     }
-    return "refused";
   }
 
-  // Check for prescription advice
-  if (/(prescription|prescribe|doctor.*prescribe|should.*prescribe)/i.test(query)) {
-    return "refused";
-  }
-
-  // Check for allowed patterns (general education)
-  if (ALLOWED_PATTERNS.some(pattern => pattern.test(query))) {
-    return "allowed";
-  }
-
-  // Default: prefer KB but allow LLM fallback for general questions
-  // This is safer than refusing - we'll use LLM with safety boundaries
-  return "allowed";
+  // Default: allow (will be handled by KB or LLM with safety boundaries)
+  return {
+    allowed: true,
+    refused: false,
+  };
 }
 
 /**
@@ -119,6 +140,7 @@ I can help you with:
 
 Would you like to explore any of these topics instead? 💜`;
 }
+
 
 
 

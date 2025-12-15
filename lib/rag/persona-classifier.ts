@@ -1,89 +1,40 @@
 /**
  * Persona Classifier - Routes user queries to appropriate persona
+ * Uses fast keyword-based classification as primary method
  */
 
-import { ChatOpenAI } from "@langchain/openai";
 import type { Persona } from "./types";
 
-const llm = new ChatOpenAI({
-  modelName: "gpt-4o-mini",
-  temperature: 0.3, // Lower temperature for more consistent classification
-  openAIApiKey: process.env.OPENAI_API_KEY,
-});
-
 /**
- * Classify user query into one of the four personas using LLM
+ * Classify user query into one of the four personas using keyword matching
+ * Fast, deterministic, and reliable
  */
-export async function classifyPersona(query: string): Promise<Persona> {
-  try {
-    const classificationPrompt = `You are a query classifier for a menopause support chatbot with 4 distinct personas.
-
-Classify the following user query into ONE of these personas:
-
-1. **menopause_specialist**: Medical questions, hormone questions, symptom explanations, menopause education, HRT questions (general), physiology questions
-   Examples: "What are hot flashes?", "Why does menopause affect sleep?", "What is HRT?", "How do hormones change during menopause?"
-
-2. **nutrition_coach**: Food, meals, diet, nutrition, eating habits, meal planning, food-symptom correlations
-   Examples: "What should I eat for breakfast?", "Meal plan for hot flashes", "Nutrition tips for menopause", "What foods help with sleep?"
-
-3. **exercise_trainer**: Workouts, exercise, movement, fitness, training, exercise plans, physical activity
-   Examples: "Workout plan for menopause", "Best exercises for weight loss", "How to start exercising", "Low-impact exercises"
-
-4. **empathy_companion**: Emotional support, feelings, stress, validation, CBT, mental health, emotional regulation, casual conversation
-   Examples: "I'm feeling overwhelmed", "How to manage stress", "I'm struggling with this", "Just need someone to talk to"
-
-User query: "${query}"
-
-Respond with ONLY the persona name (one word: menopause_specialist, nutrition_coach, exercise_trainer, or empathy_companion).`;
-
-    const response = await llm.invoke(classificationPrompt);
-    const result = typeof response.content === 'string' 
-      ? response.content.trim().toLowerCase()
-      : String(response.content).trim().toLowerCase();
-
-    // Validate result
-    if (result === "menopause_specialist" || result === "nutrition_coach" || 
-        result === "exercise_trainer" || result === "empathy_companion") {
-      return result as Persona;
-    }
-
-    // Fallback to keyword-based classification
-    return classifyPersonaByKeywords(query);
-  } catch (error) {
-    console.error("Error in LLM persona classification:", error);
-    // Fallback to keyword-based classification
-    return classifyPersonaByKeywords(query);
-  }
-}
-
-/**
- * Fallback keyword-based classification
- */
-function classifyPersonaByKeywords(query: string): Persona {
+export function classifyPersona(query: string): Persona {
   const lowerQuery = query.toLowerCase();
 
-  // Nutrition Coach keywords
-  const nutritionKeywords = [
-    "food", "meal", "eat", "diet", "nutrition", "breakfast", "lunch", "dinner",
-    "snack", "calorie", "protein", "carb", "fiber", "recipe", "cooking", "ingredient"
-  ];
-  if (nutritionKeywords.some(keyword => lowerQuery.includes(keyword))) {
-    return "nutrition_coach";
-  }
-
-  // Exercise Trainer keywords
+  // Exercise Trainer keywords (check first as they're often specific)
   const exerciseKeywords = [
-    "workout", "exercise", "fitness", "training", "gym", "cardio", "strength",
-    "yoga", "walking", "running", "movement", "physical activity", "train", "sport"
+    "workout", "gym", "strength", "cardio", "movement", "yoga", 
+    "exercise", "fitness", "training", "walking", "running", "train", "sport"
   ];
   if (exerciseKeywords.some(keyword => lowerQuery.includes(keyword))) {
     return "exercise_trainer";
   }
 
+  // Nutrition Coach keywords
+  const nutritionKeywords = [
+    "food", "eat", "diet", "protein", "meal", "vitamin", "nutrition", 
+    "breakfast", "lunch", "dinner", "snack", "calorie", "carb", 
+    "fiber", "recipe", "cooking", "ingredient"
+  ];
+  if (nutritionKeywords.some(keyword => lowerQuery.includes(keyword))) {
+    return "nutrition_coach";
+  }
+
   // Empathy Companion keywords (emotional/support)
   const empathyKeywords = [
-    "feel", "feeling", "emotion", "stress", "anxious", "overwhelmed", "sad",
-    "depressed", "lonely", "support", "help me", "struggling", "difficult",
+    "feel", "emotion", "mood", "anxiety", "stress", "overwhelm", 
+    "sad", "depressed", "lonely", "support", "struggling", "difficult",
     "hard time", "coping", "mental health", "therapy", "cbt"
   ];
   if (empathyKeywords.some(keyword => lowerQuery.includes(keyword))) {
@@ -93,6 +44,52 @@ function classifyPersonaByKeywords(query: string): Persona {
   // Default to menopause_specialist (covers medical, hormone, symptom questions)
   return "menopause_specialist";
 }
+
+/**
+ * Multi-intent classifier - returns array of applicable personas
+ * Useful when query matches multiple personas
+ */
+export function classifyPersonaMultiIntent(query: string): Persona[] {
+  const lowerQuery = query.toLowerCase();
+  const personas: Persona[] = [];
+
+  // Exercise Trainer keywords
+  const exerciseKeywords = [
+    "workout", "gym", "strength", "cardio", "movement", "yoga", 
+    "exercise", "fitness", "training", "walking", "running", "train", "sport"
+  ];
+  if (exerciseKeywords.some(keyword => lowerQuery.includes(keyword))) {
+    personas.push("exercise_trainer");
+  }
+
+  // Nutrition Coach keywords
+  const nutritionKeywords = [
+    "food", "eat", "diet", "protein", "meal", "vitamin", "nutrition", 
+    "breakfast", "lunch", "dinner", "snack", "calorie", "carb", 
+    "fiber", "recipe", "cooking", "ingredient"
+  ];
+  if (nutritionKeywords.some(keyword => lowerQuery.includes(keyword))) {
+    personas.push("nutrition_coach");
+  }
+
+  // Empathy Companion keywords
+  const empathyKeywords = [
+    "feel", "emotion", "mood", "anxiety", "stress", "overwhelm", 
+    "sad", "depressed", "lonely", "support", "struggling", "difficult",
+    "hard time", "coping", "mental health", "therapy", "cbt"
+  ];
+  if (empathyKeywords.some(keyword => lowerQuery.includes(keyword))) {
+    personas.push("empathy_companion");
+  }
+
+  // If no specific matches, default to menopause_specialist
+  if (personas.length === 0) {
+    personas.push("menopause_specialist");
+  }
+
+  return personas;
+}
+
 
 
 

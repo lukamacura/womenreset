@@ -7,6 +7,8 @@ import { classifyPersona } from "./persona-classifier";
 import { validateMenopauseQuery, generateRefusalResponse } from "./safety-validator";
 import { retrieveFromKB } from "./retrieval";
 import { formatVerbatimResponse, formatKBContextForLLM } from "./response-formatter";
+import { getConversationHistory } from "./conversation-memory";
+import { shouldRouteWhyToMenopause, isWhyHormoneQuestion } from "./classifier/whyRouter";
 
 // Note: LLM calls are handled in the route to support tools (log_symptom, etc.)
 // The orchestrator only handles KB retrieval and persona classification
@@ -30,33 +32,64 @@ function getRetrievalMode(persona: Persona): RetrievalMode {
 
 /**
  * Main RAG orchestration function
+ * 
+ * @param userQuery - User's query message
+ * @param userId - User ID for tracking
+ * @param sessionId - Session ID for conversation memory
+ * @param mode - Optional retrieval mode (defaults based on persona)
+ * @param userProfile - Optional user profile data
+ * @param trackerContext - Optional tracker context
+ * @param conversationHistory - Optional conversation history (legacy support)
  */
 export async function orchestrateRAG(
   userQuery: string,
   userId: string,
+  sessionId: string,
+  mode?: RetrievalMode,
   userProfile?: unknown,
   trackerContext?: string,
   conversationHistory?: Array<["user" | "assistant", string]>
 ): Promise<OrchestrationResult> {
   try {
-    // Step 1: Classify persona
-    const persona = await classifyPersona(userQuery);
+    // Step 1: Get conversation history from memory
+    const memoryHistory = getConversationHistory(sessionId);
+    const allHistory = conversationHistory || memoryHistory.map(msg => [msg.role, msg.content] as ["user" | "assistant", string]);
+
+    // Step 2: Classify persona
+    let persona = classifyPersona(userQuery);
     
-    // Step 2: Determine retrieval mode
-    const retrievalMode = getRetrievalMode(persona);
+    // Step 2.5: Check for WHY hormone questions and potentially route to menopause persona
+    // If it's a pure WHY hormone question (not asking for a plan), route to menopause
+    // If it's asking for a plan + why, keep the persona and let prompt builder handle redirect
+    const isWhyHormone = isWhyHormoneQuestion(userQuery);
+    const isAskingForPlan = /\b(plan|routine|workout|meal|diet|program|schedule)\b/i.test(userQuery);
+    
+    if (isWhyHormone && shouldRouteWhyToMenopause(persona, userQuery)) {
+      // If user is asking for a plan + why, keep the persona (prompt builder will add redirect)
+      // Otherwise, route to menopause specialist for pure WHY questions
+      if (!isAskingForPlan) {
+        console.log(`[RAG Orchestrator] WHY hormone question detected - routing to menopause specialist`);
+        persona = "menopause_specialist";
+      } else {
+        console.log(`[RAG Orchestrator] WHY hormone question + plan request - keeping ${persona} persona with redirect instruction`);
+      }
+    }
+    
+    // Step 3: Determine retrieval mode (use provided mode or default based on persona)
+    const retrievalMode = mode || getRetrievalMode(persona);
 
     console.log(`[RAG Orchestrator] Query: "${userQuery}"`);
     console.log(`[RAG Orchestrator] Classified persona: ${persona}`);
     console.log(`[RAG Orchestrator] Retrieval mode: ${retrievalMode}`);
 
-    // Step 3: Handle based on retrieval mode
+    // Step 4: Handle based on retrieval mode
     if (retrievalMode === "kb_strict") {
-      return await handleKBStrictMode(userQuery, persona, userProfile, trackerContext, conversationHistory);
+      return await handleKBStrictMode(userQuery, persona, retrievalMode, userProfile, trackerContext, allHistory);
     } else if (retrievalMode === "hybrid") {
-      return await handleHybridMode(userQuery, persona, userProfile, trackerContext, conversationHistory);
+      return await handleHybridMode(userQuery, persona, retrievalMode, userProfile, trackerContext, allHistory);
     } else {
       // llm_reasoning mode
-      return await handleLLMReasoningMode(userQuery, persona, userProfile, trackerContext, conversationHistory);
+      return await handleLLMReasoningMode(userQuery, persona, retrievalMode, userProfile, trackerContext, allHistory);
     }
   } catch (error) {
     console.error("Error in RAG orchestration:", error);
@@ -66,16 +99,19 @@ export async function orchestrateRAG(
       persona: "menopause_specialist",
       retrievalMode: "llm_reasoning",
       usedKB: false,
+      source: "llm",
     };
   }
 }
 
 /**
  * Handle kb_strict mode (Menopause Specialist)
+ * Returns KB content if match found, null if no match
  */
 async function handleKBStrictMode(
   userQuery: string,
   persona: Persona,
+  mode: RetrievalMode,
   _userProfile?: unknown,
   _trackerContext?: string,
   _conversationHistory?: Array<["user" | "assistant", string]>
@@ -127,8 +163,9 @@ async function handleKBStrictMode(
     return {
       response: verbatimResponse,
       persona,
-      retrievalMode: "kb_strict",
+      retrievalMode: mode,
       usedKB: true,
+      source: "kb",
       kbEntries: retrievalResult.kbEntries,
       isVerbatim: true,
     };
@@ -149,37 +186,40 @@ async function handleKBStrictMode(
     console.log(`[KB Strict Mode] ❌ No verbatim response (no KB entries found)`);
   }
 
-  // No KB match - check if query is allowed/refused
-  const validation = validateMenopauseQuery(userQuery);
+  // No KB match - check safety (mode-aware)
+  const hasKBAnswer = retrievalResult.hasMatch && retrievalResult.kbEntries.length > 0;
+  const safetyCheck = validateMenopauseQuery(userQuery, mode, hasKBAnswer);
 
-  if (validation === "refused") {
+  if (safetyCheck.refused) {
     console.log(`[KB Strict Mode] Query refused, returning refusal response`);
     // Return polite refusal
     return {
-      response: generateRefusalResponse(userQuery),
+      response: safetyCheck.reason || generateRefusalResponse(userQuery),
       persona,
-      retrievalMode: "kb_strict",
+      retrievalMode: mode,
       usedKB: false,
+      source: "llm",
     };
   }
 
-  // Allowed - return empty response, route will handle LLM with tools
-  // For refused queries, we already returned the refusal response above
-  // This case is for allowed queries that need LLM generation
-  console.log(`[KB Strict Mode] Query allowed, falling back to LLM generation`);
+  // No KB match and query is allowed - return null response (route will handle LLM)
+  console.log(`[KB Strict Mode] No KB match found, returning null for LLM fallback`);
   return {
     persona,
-    retrievalMode: "kb_strict",
+    retrievalMode: mode,
     usedKB: false,
+    source: "llm",
   };
 }
 
 /**
  * Handle hybrid mode (Nutrition Coach, Exercise Trainer)
+ * Tries KB first, falls back to LLM if no KB match
  */
 async function handleHybridMode(
   userQuery: string,
   persona: Persona,
+  mode: RetrievalMode,
   _userProfile?: unknown,
   _trackerContext?: string,
   _conversationHistory?: Array<["user" | "assistant", string]>
@@ -230,8 +270,9 @@ async function handleHybridMode(
     return {
       response: verbatimResponse,
       persona,
-      retrievalMode: "hybrid",
+      retrievalMode: mode,
       usedKB: true,
+      source: "kb",
       kbEntries: retrievalResult.kbEntries,
       isVerbatim: true,
     };
@@ -261,8 +302,9 @@ async function handleHybridMode(
 
   return {
     persona,
-    retrievalMode: "hybrid",
+    retrievalMode: mode,
     usedKB: retrievalResult.hasMatch,
+    source: retrievalResult.hasMatch ? "kb" : "llm",
     kbEntries: retrievalResult.kbEntries,
     kbContext,
   };
@@ -270,19 +312,23 @@ async function handleHybridMode(
 
 /**
  * Handle llm_reasoning mode (Empathy Companion)
+ * Skips KB entirely, always uses LLM
  */
 async function handleLLMReasoningMode(
   _userQuery: string,
   persona: Persona,
+  mode: RetrievalMode,
   _userProfile?: unknown,
   _trackerContext?: string,
   _conversationHistory?: Array<["user" | "assistant", string]>
 ): Promise<OrchestrationResult> {
+  console.log(`[LLM Reasoning Mode] Active - skipping KB, using LLM only`);
   // For llm_reasoning mode, return empty response, route will handle LLM with tools
   return {
     persona,
-    retrievalMode: "llm_reasoning",
+    retrievalMode: mode,
     usedKB: false,
+    source: "llm",
   };
 }
 

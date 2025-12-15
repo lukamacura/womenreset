@@ -14,6 +14,8 @@ import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 // Import RAG orchestrator
 import { orchestrateRAG } from "@/lib/rag/orchestrator";
 import { getPersonaSystemPrompt } from "@/lib/rag/persona-prompts";
+import { addMessage, getConversationHistory } from "@/lib/rag/conversation-memory";
+import type { RetrievalMode } from "@/lib/rag/types";
 
 /**
  * Parse date/time references from user input and convert to ISO timestamp
@@ -200,24 +202,34 @@ async function generatePersonalizedGreeting(user_id: string): Promise<string> {
 
 export async function POST(req: NextRequest) {
   try {
-    const { userInput, user_id, history, stream: streamParam } = (await req.json()) as {
-      userInput?: string;
+    const { message, userInput, user_id, sessionId, history, mode, stream: streamParam } = (await req.json()) as {
+      message?: string; // New parameter name
+      userInput?: string; // Legacy support
       user_id?: string;
+      sessionId?: string;
       history?: string;
+      mode?: RetrievalMode;
       stream?: boolean;
     };
 
-    // Check if this is a greeting request (empty userInput)
-    if (!userInput?.trim()) {
+    // Support both 'message' and 'userInput' for backward compatibility
+    const userMessage = message || userInput;
+
+    // Check if this is a greeting request (empty message)
+    if (!userMessage?.trim()) {
       if (user_id) {
         const greeting = await generatePersonalizedGreeting(user_id);
-        return NextResponse.json({ reply: greeting, isGreeting: true });
+        return NextResponse.json({ content: greeting, persona: "menopause_specialist", source: "llm", isGreeting: true });
       }
-      return NextResponse.json({ error: "Missing userInput" }, { status: 400 });
+      return NextResponse.json({ error: "Missing message" }, { status: 400 });
     }
 
     if (!user_id?.trim()) {
       return NextResponse.json({ error: "Missing user_id" }, { status: 400 });
+    }
+
+    if (!sessionId?.trim()) {
+      return NextResponse.json({ error: "Missing sessionId" }, { status: 400 });
     }
 
     // Check if trial is expired
@@ -267,7 +279,10 @@ export async function POST(req: NextRequest) {
     const trackerContext = formatTrackerSummary(trackerSummary);
 
     // 3. Use RAG orchestrator for persona-based retrieval and response generation
-    // Build conversation history for orchestrator
+    // Get conversation history from memory
+    const memoryHistory = getConversationHistory(sessionId);
+    
+    // Build conversation history for orchestrator (legacy support + memory)
     const dbHistoryMessages: Array<["user" | "assistant", string]> = [];
     if (recentConversations && recentConversations.length > 0) {
       const chronological = [...recentConversations].reverse();
@@ -282,12 +297,15 @@ export async function POST(req: NextRequest) {
     }
 
     const sessionHistoryMessages = parseHistory(history || "");
-    const allHistoryMessages = [...dbHistoryMessages, ...sessionHistoryMessages];
+    const memoryHistoryArray = memoryHistory.map(msg => [msg.role, msg.content] as ["user" | "assistant", string]);
+    const allHistoryMessages = [...dbHistoryMessages, ...sessionHistoryMessages, ...memoryHistoryArray];
 
-    // Call orchestrator to get persona, retrieval mode, and KB context
+    // Call orchestrator with new signature
     const orchestrationResult = await orchestrateRAG(
-      userInput,
+      userMessage,
       user_id,
+      sessionId,
+      mode, // Optional mode parameter
       userProfile,
       trackerContext,
       allHistoryMessages
@@ -295,8 +313,21 @@ export async function POST(req: NextRequest) {
 
     // If verbatim response (KB strict mode with KB match) or refusal response, return directly
     if (orchestrationResult.response && (orchestrationResult.isVerbatim || orchestrationResult.retrievalMode === "kb_strict")) {
-      // Store conversation
-      await storeConversation(user_id, userInput, orchestrationResult.response);
+      // Store conversation in memory
+      addMessage(sessionId, {
+        role: "user",
+        content: userMessage,
+        timestamp: Date.now(),
+      });
+      addMessage(sessionId, {
+        role: "assistant",
+        content: orchestrationResult.response,
+        persona: orchestrationResult.persona,
+        timestamp: Date.now(),
+      });
+      
+      // Store conversation in database (legacy)
+      await storeConversation(user_id, userMessage, orchestrationResult.response);
 
       if (useStreaming) {
         // Stream the response
@@ -337,9 +368,11 @@ export async function POST(req: NextRequest) {
           },
         });
       } else {
-        // Non-streaming
+        // Non-streaming - return proper format
         return NextResponse.json({
-          reply: orchestrationResult.response,
+          content: orchestrationResult.response,
+          persona: orchestrationResult.persona,
+          source: orchestrationResult.source,
         });
       }
     }
@@ -378,7 +411,8 @@ export async function POST(req: NextRequest) {
 
 
     // 5. Build system message using persona-specific prompt from orchestrator
-    const personaSystemPrompt = getPersonaSystemPrompt(orchestrationResult.persona);
+    // Pass userQuery for state detection (low energy, overtraining) and WHY routing
+    const personaSystemPrompt = getPersonaSystemPrompt(orchestrationResult.persona, userMessage);
     
     const systemParts: string[] = [personaSystemPrompt];
 
@@ -426,7 +460,7 @@ INSTRUCTIONS:
       return casualPatterns.some(pattern => pattern.test(query.trim()));
     };
 
-    if (isCasualGreetingCheck(userInput)) {
+    if (isCasualGreetingCheck(userMessage)) {
       systemParts.push(`\n=== CASUAL CONVERSATION MODE ===
 IMPORTANT: The user is engaging in casual conversation, not asking for information.
 - ALWAYS respond to the CURRENT message immediately - don't reference previous messages unless directly relevant
@@ -466,7 +500,7 @@ IMPORTANT: The user is engaging in casual conversation, not asking for informati
     // Add current user input LAST (most recent)
     // For hybrid mode, KB context is already in orchestrator's system prompt
     // For llm_reasoning mode, no KB context needed
-    messages.push(new HumanMessage(userInput));
+    messages.push(new HumanMessage(userMessage || ""));
 
     // 9. Create tools for function calling
     const tools = [
@@ -786,7 +820,18 @@ IMPORTANT: The user is engaging in casual conversation, not asking for informati
 
             // Store conversation after streaming completes
             if (fullResponse) {
-              await storeConversation(user_id, userInput, fullResponse);
+              addMessage(sessionId, {
+                role: "user",
+                content: userMessage,
+                timestamp: Date.now(),
+              });
+              addMessage(sessionId, {
+                role: "assistant",
+                content: fullResponse,
+                persona: orchestrationResult.persona,
+                timestamp: Date.now(),
+              });
+              await storeConversation(user_id, userMessage, fullResponse);
             }
 
             controller.enqueue(
@@ -857,18 +902,34 @@ IMPORTANT: The user is engaging in casual conversation, not asking for informati
           : String(response.content);
       }
 
-      await storeConversation(user_id, userInput, responseText);
+      // Store conversation in memory
+      addMessage(sessionId, {
+        role: "user",
+        content: userMessage,
+        timestamp: Date.now(),
+      });
+      addMessage(sessionId, {
+        role: "assistant",
+        content: responseText,
+        persona: orchestrationResult.persona,
+        timestamp: Date.now(),
+      });
+      
+      await storeConversation(user_id, userMessage, responseText);
 
       return NextResponse.json({
-        reply: responseText,
+        content: responseText,
+        persona: orchestrationResult.persona,
+        source: orchestrationResult.source,
         toolCallsMade,
       });
     }
   } catch (e: unknown) {
     console.error("LangChain RAG error:", e);
-    const errorMessage = e instanceof Error ? e.message : "unknown";
+    // Log full error for debugging, but return generic message to client
+    console.error("Full error details:", e);
     return NextResponse.json(
-      { error: `Internal error: ${errorMessage}` },
+      { error: "An internal error occurred. Please try again." },
       { status: 500 }
     );
   }
