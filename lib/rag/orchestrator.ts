@@ -119,11 +119,11 @@ async function handleKBStrictMode(
   console.log(`[KB Strict Mode] Active for query: "${userQuery}"`);
   
   // IMPROVED: Dual threshold system - semantic similarity as primary gate
-  // Semantic threshold: 0.50 (primary gate - ensures good semantic match)
-  // Hybrid threshold: 0.52 (secondary filter - ensures good overall relevance)
+  // Semantic threshold: 0.35 (primary gate - lower to catch paraphrases)
+  // Hybrid threshold: 0.45 (secondary filter - ensures good overall relevance)
   // This prevents good semantic matches from being rejected due to metadata scoring
-  const semanticThreshold = 0.50;
-  const hybridThreshold = 0.52;
+  const semanticThreshold = 0.35;  // Lower to catch paraphrases
+  const hybridThreshold = 0.45;
   console.log(`[KB Strict Mode] Retrieving with dual thresholds:`);
   console.log(`  - Semantic threshold: ${semanticThreshold} (primary gate)`);
   console.log(`  - Hybrid threshold: ${hybridThreshold} (secondary filter)`);
@@ -232,9 +232,9 @@ async function handleHybridMode(
 
   // IMPROVED: Dual threshold system for hybrid mode verbatim responses
   // Slightly lower thresholds than kb_strict since hybrid mode is more flexible
-  // Semantic threshold: 0.50 (primary gate - ensures good semantic match)
+  // Semantic threshold: 0.35 (primary gate - lower to catch paraphrases)
   // Hybrid threshold: adaptive (already applied in retrieval, typically 0.44-0.50)
-  const semanticThreshold = 0.50;
+  const semanticThreshold = 0.35;  // Lower to catch paraphrases
   
   console.log(`[Hybrid Mode] Retrieval results:`);
   console.log(`  - Has match: ${retrievalResult.hasMatch}`);

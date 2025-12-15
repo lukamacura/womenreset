@@ -32,7 +32,6 @@ function stripEnhancementText(content: string): string {
   // Find the last occurrence of enhancement markers
   let lastEnhancementIndex = -1;
   let foundTopic = false;
-  let foundKeywords = false;
   
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
@@ -43,7 +42,6 @@ function stripEnhancementText(content: string): string {
     } else if (line.startsWith('Subtopic:')) {
       lastEnhancementIndex = i;
     } else if (line.startsWith('Keywords:')) {
-      foundKeywords = true;
       lastEnhancementIndex = i;
       // Keywords section might span multiple lines - find where it ends
       let j = i + 1;
@@ -158,18 +156,18 @@ export function formatKBEntryForDisplay(entry: KBEntry): string {
   }
 
   // First strip enhancement text (Topic, Subtopic, Keywords, Intent patterns)
-  let content = stripEnhancementText(entry.content).trim();
+  const content = stripEnhancementText(entry.content).trim();
   
   // Parse and format the content sections naturally
   const parts: string[] = [];
   
   // Extract main content and sections
   const lines = content.split('\n');
-  let mainContent: string[] = [];
-  let actionTips: string[] = [];
-  let motivation: string[] = [];
-  let habitStrategy: string[] = [];
-  let followUp: string[] = [];
+  const mainContent: string[] = [];
+  const actionTips: string[] = [];
+  const motivation: string[] = [];
+  const habitStrategy: string[] = [];
+  const followUp: string[] = [];
   
   let currentSection: 'main' | 'tips' | 'motivation' | 'habit' | 'followup' = 'main';
   let inHabitStrategy = false;
