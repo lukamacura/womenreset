@@ -5,7 +5,6 @@
  */
 
 import { ChatOpenAI } from "@langchain/openai";
-import { ChatPromptTemplate } from "@langchain/core/prompts";
 import { HumanMessage, AIMessage, SystemMessage, BaseMessage } from "@langchain/core/messages";
 import type { Persona, RetrievalMode, ConversationMessage } from "./types";
 import { getPersonaSystemPrompt } from "./persona-prompts";
