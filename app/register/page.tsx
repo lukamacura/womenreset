@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useCallback, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { User, Calendar, FileText, UtensilsCrossed, Dumbbell, Heart, Home } from "lucide-react";
@@ -284,6 +285,7 @@ export default function RegisterPage() {
   }
 
   return (
+    <>
     <main className="relative overflow-hidden mx-auto max-w-md p-6 sm:p-8">
       {/* background accents */}
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 opacity-40">
@@ -318,14 +320,18 @@ export default function RegisterPage() {
               />
             </div>
 
+
             {/* Submit */}
             <button
-              className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 font-semibold text-primary-foreground shadow-sm ring-1 ring-inset ring-primary/20 transition hover:brightness-95 disabled:opacity-60 disabled:cursor-not-allowed"
+              className="cursor-pointer w-full inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 font-semibold text-primary-foreground shadow-sm ring-1 ring-inset ring-primary/20 transition hover:brightness-95 disabled:opacity-60 disabled:cursor-not-allowed"
               type="submit"
               disabled={!canRegister}
             >
               {loading ? "Sending magic link…" : "Continue with email"}
             </button>
+
+            <p className="my-0 text-emerald-600 font-bold text-sm text-muted-foreground">Only email is required.</p>
+
 
             <p className="text-sm text-muted-foreground">
               By signing up, you agree to our{" "}
@@ -664,5 +670,22 @@ export default function RegisterPage() {
         </section>
       )}
     </main>
+
+    {/* Register Illustration - 70-80% Width (outside main to break max-w-md constraint) */}
+    {phase === "register" && (
+      <div className="w-full flex justify-center">
+        <div className="w-[75%] max-w-4xl">
+          <Image
+            src="/register.svg"
+            alt="Registration illustration"
+            width={1920}
+            height={400}
+            className="w-full h-auto"
+            priority
+          />
+        </div>
+      </div>
+    )}
+    </>
   );
 }

@@ -3,6 +3,7 @@
 
 import { useEffect, useMemo, useState, Suspense } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -88,6 +89,7 @@ function LoginForm() {
   }
 
   return (
+    <>
     <main className="relative overflow-hidden mx-auto max-w-md p-6 sm:p-8">
       {/* Subtle background accents */}
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 opacity-40">
@@ -152,12 +154,27 @@ function LoginForm() {
       )}
 
       <p className="mt-6 text-md text-muted-foreground">
-        Don’t have an account? {" "}
+        Don&apos;t have an account? {" "}
         <Link href="/register" className="bg-primary-light text-primary-dark rounded-md px-2 py-1 font-bold underline-offset-4 hover:opacity-80">
           Sign up
         </Link>
       </p>
     </main>
+
+    {/* Register Illustration - 70-80% Width (outside main to break max-w-md constraint) */}
+    <div className="w-full flex justify-center">
+      <div className="w-[75%] max-w-4xl">
+        <Image
+          src="/register.svg"
+          alt="Registration illustration"
+          width={1920}
+          height={400}
+          className="w-full h-auto"
+          priority
+        />
+      </div>
+    </div>
+    </>
   );
 }
 

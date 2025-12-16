@@ -208,7 +208,7 @@ export default function HomeSwipeButton() {
     }
     return isAuthenticated 
       ? "Swipe to chat with Lisa" 
-      : "Swipe to sign up";
+      : "Swipe to try for free";
   };
 
   return (

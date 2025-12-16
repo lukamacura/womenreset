@@ -1,6 +1,6 @@
 
 import React, { FormEvent } from "react";
-import { Lock, FileText, Gift, Sparkles } from "lucide-react";
+import { Lock, FileText, Gift } from "lucide-react";
 import Image from 'next/image';
 
 const MenoLisaHero: React.FC = () => {
