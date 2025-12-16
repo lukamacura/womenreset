@@ -24,10 +24,7 @@ export default function MagicLinkClient() {
     setLoading(true);
 
     try {
-      const redirectTo =
-        typeof window !== "undefined"
-          ? `${window.location.origin}/auth/callback`
-          : undefined;
+      const redirectTo = `https://www.womenreset.com/auth/callback`;
 
       const { error } = await supabase.auth.signInWithOtp({
         email,

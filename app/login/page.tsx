@@ -45,9 +45,7 @@ function LoginForm() {
     setLoading(true);
 
     try {
-      const redirectTo = typeof window !== "undefined"
-        ? `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectTarget)}`
-        : undefined;
+      const redirectTo = `https://www.womenreset.com/auth/callback?next=${encodeURIComponent(redirectTarget)}`;
 
       const { error } = await supabase.auth.signInWithOtp({
         email,

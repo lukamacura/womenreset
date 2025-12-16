@@ -218,9 +218,7 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      const redirectTo = typeof window !== "undefined" 
-        ? `${window.location.origin}/auth/callback?next=/register`
-        : undefined;
+      const redirectTo = `https://www.womenreset.com/auth/callback?next=/register`;
 
       const { error } = await supabase.auth.signInWithOtp({
         email,
