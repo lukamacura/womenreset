@@ -35,12 +35,25 @@ export default function MagicLinkClient() {
       });
 
       if (error) {
-        const friendly =
-          /rate/i.test(error.message)
-            ? "Too many attempts — please wait a moment and try again."
-            : /email/i.test(error.message)
-            ? "Please check your email address."
-            : error.message;
+        let friendly = "An error occurred. Please try again.";
+        
+        if (error.message.includes("email") || error.message.includes("invalid")) {
+          friendly = "Please check your email address.";
+        } else if (
+          /rate/i.test(error.message) || 
+          /too many/i.test(error.message) ||
+          error.message.includes("security purposes") ||
+          error.message.includes("only request this after") ||
+          /48 seconds/i.test(error.message)
+        ) {
+          // Use the original error message if it contains specific rate limit info
+          friendly = error.message.includes("48 seconds") || error.message.includes("security purposes")
+            ? error.message
+            : "Too many attempts — please wait a moment and try again.";
+        } else if (error.message) {
+          friendly = error.message;
+        }
+        
         setErr(friendly);
         return;
       }
@@ -100,7 +113,7 @@ export default function MagicLinkClient() {
         </div>
       )}
       {err && (
-        <div role="alert" className="mt-4 rounded-xl border border-error/30 bg-error/10 p-3 text-sm text-error">
+        <div role="alert" className="mt-4 rounded-xl border border-error/30 bg-error/10 p-3 text-sm text-error font-bold">
           {err}
         </div>
       )}

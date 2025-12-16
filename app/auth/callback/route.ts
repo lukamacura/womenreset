@@ -8,7 +8,10 @@ export async function GET(request: NextRequest) {
   const next = requestUrl.searchParams.get("next") ?? "/dashboard";
 
   if (code) {
-    const response = NextResponse.redirect(`${requestUrl.origin}${next}`);
+    // We need to create a response that we can modify
+    // First, determine a temporary redirect URL (will be updated)
+    let redirectUrl = `${requestUrl.origin}${next}`;
+    const response = NextResponse.next();
 
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -49,36 +52,39 @@ export async function GET(request: NextRequest) {
     const { error, data } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error && data.session) {
-      // Check if user has completed profile
-      const { data: profile, error: profileError } = await supabase
-        .from("user_profiles")
-        .select("user_id")
-        .eq("user_id", data.session.user.id)
-        .maybeSingle();
-
-      // If profile doesn't exist and next is /register, redirect to /register
-      // Otherwise, if profile doesn't exist, redirect to /register to complete quiz
-      if (!profile && profileError?.code !== "42P01") {
-        // Table exists but no profile found
-        const redirectUrl = next === "/register" 
-          ? `${requestUrl.origin}/register`
-          : `${requestUrl.origin}/register`;
-        return NextResponse.redirect(redirectUrl);
+      // Determine redirect URL based on the flow (login vs registration)
+      if (next === "/register") {
+        // User is coming from REGISTRATION flow - always redirect to register page to complete quiz
+        redirectUrl = `${requestUrl.origin}/register`;
+      } else {
+        // User is coming from LOGIN flow - always redirect to dashboard (or the specified next target)
+        const sanitizedNext = next.startsWith("/") ? next : "/dashboard";
+        redirectUrl = `${requestUrl.origin}${sanitizedNext}`;
       }
 
-      // If profile exists or table doesn't exist (fallback), use the original next URL
-      // But if next is /register and profile exists, redirect to dashboard
-      if (profile && next === "/register") {
-        return NextResponse.redirect(`${requestUrl.origin}/dashboard`);
-      }
+      // Create final redirect response with cookies from the exchange
+      const finalResponse = NextResponse.redirect(redirectUrl);
+      
+      // Copy cookies from the exchange response
+      response.cookies.getAll().forEach((cookie) => {
+        finalResponse.cookies.set(cookie.name, cookie.value, {
+          path: cookie.path,
+          domain: cookie.domain,
+          maxAge: cookie.maxAge,
+          expires: cookie.expires,
+          httpOnly: cookie.httpOnly,
+          secure: cookie.secure,
+          sameSite: cookie.sameSite as "lax" | "strict" | "none" | undefined,
+        });
+      });
 
-      return response;
+      return finalResponse;
     }
   }
 
   // return the user to login page with error message
   return NextResponse.redirect(
-    `${requestUrl.origin}/login?error=auth_callback_error&message=${encodeURIComponent("Email confirmation failed. Please try again or contact support.")}`
+    `${requestUrl.origin}/login?error=auth_callback_error&message=${encodeURIComponent("Authentication failed. Please try again or contact support.")}`
   );
 }
 

@@ -20,8 +20,6 @@ export default function RegisterPage() {
 
   // auth inputs
   const [email, setEmail] = useState("");
-  const [pass, setPass] = useState("");
-  const [showPass, setShowPass] = useState(false);
 
   // supabase user id
   const [userId, setUserId] = useState<string | null>(null);
@@ -47,8 +45,7 @@ export default function RegisterPage() {
 
   // validacija
   const emailValid = useMemo(() => /.+@.+\..+/.test(email), [email]);
-  const passValid = useMemo(() => pass.length >= 8, [pass]);
-  const canRegister = emailValid && passValid && !loading;
+  const canRegister = emailValid && !loading;
 
   const ageNum = Number(age);
 
@@ -80,7 +77,7 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      // fallback ako iz nekog razloga userId nije setovan iz signUp-a
+      // Get user ID from current session (user clicked magic link)
       let finalUserId = userId;
       if (!finalUserId) {
         const { data } = await supabase.auth.getUser();
@@ -135,8 +132,8 @@ export default function RegisterPage() {
         return;
       }
 
-      // If no session, user needs to confirm email first
-      setInfo("Profile saved! Please check your email to confirm your account, then log in to access your dashboard.");
+      // If no session, user needs to click magic link first
+      setInfo("Profile saved! Please check your email and click the magic link to access your dashboard.");
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : "An error occurred while saving your profile.";
       setErr(errorMessage.includes("User ID is missing") 
@@ -147,15 +144,26 @@ export default function RegisterPage() {
     }
   }, [userId, fullName, age, menopauseText, nutritionText, exerciseText, emotionalText, lifestyleText, sessionExistsAfterSignup, router]);
 
-  // Check if user has existing profile when component mounts (for users returning after email confirmation)
+  // Check if user has existing profile when component mounts (for users returning after magic link)
   useEffect(() => {
     let mounted = true;
     
     async function checkExistingProfile() {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        // Check if user has a session first
+        const { data: sessionData } = await supabase.auth.getSession();
+        const hasSession = !!sessionData.session;
+
+        if (!hasSession) {
+          // No session - user needs to click magic link first
+          if (mounted) setCheckingProfile(false);
+          return;
+        }
+
+        // Get user from session
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
         
-        if (!user) {
+        if (userError || !user) {
           if (mounted) setCheckingProfile(false);
           return;
         }
@@ -179,12 +187,8 @@ export default function RegisterPage() {
           return;
         }
 
-        // If user exists but no profile, check if they have a session
-        const { data: sessionData } = await supabase.auth.getSession();
-        const hasSession = !!sessionData.session;
-
-        if (hasSession && mounted) {
-          // User is logged in but hasn't completed profile - show quiz
+        // User has session but no profile - show quiz to complete registration
+        if (mounted) {
           setUserId(user.id);
           setSessionExistsAfterSignup(true);
           setPhase("quiz");
@@ -213,34 +217,36 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      const nowIso = new Date().toISOString();
       const redirectTo = typeof window !== "undefined" 
         ? `${window.location.origin}/auth/callback?next=/register`
         : undefined;
 
-      const { data, error } = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signInWithOtp({
         email,
-        password: pass,
         options: { 
-          data: { trial_start: nowIso },
           emailRedirectTo: redirectTo,
         },
       });
 
       if (error) {
-        console.error("Signup error:", error);
-        let friendly = "An error occurred during signup. Please try again.";
+        console.error("Magic link error:", error);
+        let friendly = "An error occurred. Please try again.";
         
         if (error.message.includes("email") || error.message.includes("invalid")) {
-          friendly = "That email address is invalid or unavailable. Please check and try again.";
-        } else if (error.message.includes("rate limit") || error.message.includes("too many")) {
-          friendly = "Too many attempts — please wait a moment and try again.";
-        } else if (error.message.includes("already registered") || error.message.includes("already exists")) {
-          friendly = "An account with this email already exists. Please log in instead.";
-        } else if (error.message.includes("password")) {
-          friendly = "Password does not meet requirements. Please use at least 8 characters.";
+          friendly = "That email address is invalid. Please check and try again.";
+        } else if (
+          error.message.includes("rate limit") || 
+          error.message.includes("too many") ||
+          error.message.includes("security purposes") ||
+          error.message.includes("only request this after") ||
+          /48 seconds/i.test(error.message)
+        ) {
+          // Use the original error message if it contains specific rate limit info
+          friendly = error.message.includes("48 seconds") || error.message.includes("security purposes")
+            ? error.message
+            : "Too many attempts — please wait a moment and try again.";
         } else if (error.status === 500) {
-          friendly = "Server error during signup. Please contact support or try again later.";
+          friendly = "Server error. Please contact support or try again later.";
           console.error("500 error details:", error);
         } else if (error.message) {
           friendly = error.message;
@@ -251,29 +257,8 @@ export default function RegisterPage() {
         return;
       }
 
-      // Check if user was created
-      if (!data?.user) {
-        setErr("Failed to create account. Please try again.");
-        setLoading(false);
-        return;
-      }
-
-      // sačuvaj user id
-      setUserId(data.user.id);
-
-      // Check if session exists (email confirmation might not be required)
-      const { data: sessionData } = await supabase.auth.getSession();
-      const hasSession = !!sessionData.session;
-      setSessionExistsAfterSignup(hasSession);
-
-      // If no session, user needs to confirm email first
-      if (!hasSession) {
-        setInfo("Please check your email to confirm your account, then you can complete your profile.");
-        // Still allow them to proceed to quiz, but they'll need to confirm email to finish
-      }
-
-      setPhase("quiz");
-      setStepIndex(0);
+      // Magic link sent successfully
+      setInfo("Check your email! We sent you a magic link. Click it to continue with registration.");
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Unknown error occurred. Please try again.");
     } finally {
@@ -333,63 +318,13 @@ export default function RegisterPage() {
               />
             </div>
 
-            {/* Password */}
-            <div>
-              <label
-                htmlFor="password"
-                className="mb-2 block text-sm font-medium"
-              >
-                Password
-              </label>
-              <div className="relative">
-                <input
-                  id="password"
-                  name="password"
-                  autoComplete="new-password"
-                  className="w-full rounded-xl border border-foreground/15 bg-background px-3 py-2 pr-11 ring-offset-background placeholder:text-muted-foreground/70 focus:outline-none focus:ring-2 focus:ring-primary/40"
-                  type={showPass ? "text" : "password"}
-                  placeholder="At least 8 characters"
-                  value={pass}
-                  onChange={(e) => setPass(e.target.value)}
-                  aria-invalid={pass.length > 0 && !passValid}
-                  required
-                  minLength={8}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPass((s) => !s)}
-                  className="absolute inset-y-0 right-2 my-auto inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-foreground/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-                >
-                  {/* eye icon */}
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    className="h-5 w-5"
-                  >
-                    {showPass ? (
-                      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Zm10 3a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
-                    ) : (
-                      <>
-                        <path d="M3 3l18 18" />
-                        <path d="M10.58 10.58a3 3 0 0 0 4.24 4.24" />
-                        <path d="M9.88 4.26A9.91 9.91 0 0 1 12 5c6.5 0 10 7 10 7a17.6 17.6 0 0 1-3.37 4.62" />
-                        <path d="M6.61 6.61A17.77 17.77 0 0 0 2 12s3.5 7 10 7a9.73 9.73 0 0 0 4.39-1" />
-                      </>
-                    )}
-                  </svg>
-                </button>
-              </div>
-            </div>
-
             {/* Submit */}
             <button
               className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 font-semibold text-primary-foreground shadow-sm ring-1 ring-inset ring-primary/20 transition hover:brightness-95 disabled:opacity-60 disabled:cursor-not-allowed"
               type="submit"
               disabled={!canRegister}
             >
-              {loading ? "Creating account…" : "Create account"}
+              {loading ? "Sending magic link…" : "Continue with email"}
             </button>
 
             <p className="text-sm text-muted-foreground">
@@ -414,7 +349,7 @@ export default function RegisterPage() {
           {err && (
             <div
               role="alert"
-              className="mt-4 rounded-xl border border-error/30 bg-error/10 p-3 text-sm text-error"
+              className="mt-4 rounded-xl border border-error/30 bg-error/10 p-3 text-sm text-error font-bold"
             >
               {err}
             </div>
@@ -713,7 +648,7 @@ export default function RegisterPage() {
           {err && (
             <div
               role="alert"
-              className="rounded-xl border border-error/30 bg-error/10 p-3 text-sm text-error"
+              className="rounded-xl border border-error/30 bg-error/10 p-3 text-sm text-error font-bold"
             >
               {err}
             </div>
@@ -721,7 +656,7 @@ export default function RegisterPage() {
           {info && (
             <div
               role="status"
-              className="rounded-xl border border-emerald-400/30 bg-emerald-500/10 p-3 text-sm text-emerald-300"
+              className="rounded-xl border border-emerald-400/30 bg-emerald-100 p-3 text-sm text-emerald-500 font-bold"
             >
               {info}
             </div>
