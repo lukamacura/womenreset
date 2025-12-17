@@ -119,25 +119,69 @@ function parseYAMLSections(content: string): string[] {
 }
 
 /**
- * Parse markdown file into sections based on ## headings
+ * Parse markdown file into sections based on ### subtopic headings followed by metadata
+ * Handles cases where:
+ * 1. Multiple sections share the same ## topic heading (split on ### subtopic headings)
+ * 2. ## headings may have leading whitespace
+ * 3. Sections are defined by ### subtopic headings followed by metadata (Persona, Topic, Subtopic)
  */
 function parseMarkdownSections(content: string): string[] {
   const sections: string[] = [];
   const lines = content.split(/\r?\n/);
   let currentSection: string[] = [];
+  let lastTopicHeading: string | null = null;
   
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    // Check if this is a new major section (## Topic)
-    if (line.match(/^##\s+/)) {
-      // Save previous section if it exists
-      if (currentSection.length > 0) {
-        sections.push(currentSection.join('\n'));
+    const trimmed = line.trim();
+    
+    // Track the most recent ## topic heading (with or without leading whitespace)
+    // Don't add it to current section yet - wait for ### subtopic heading
+    if (line.match(/^\s*##\s+/)) {
+      lastTopicHeading = line;
+      // Don't add to current section - we'll add it when we start the new section
+      continue;
+    }
+    
+    // Check if this is a ### subtopic heading
+    const isSubtopicHeading = trimmed.match(/^###\s+/);
+    
+    if (isSubtopicHeading) {
+      // Check if this ### heading is followed by metadata (Persona, Topic, Subtopic)
+      // Look ahead a few lines to see if metadata follows
+      let isFollowedByMetadata = false;
+      for (let j = i + 1; j < Math.min(i + 6, lines.length); j++) {
+        const nextLine = lines[j].trim();
+        if (nextLine.includes('**Persona:**') || 
+            nextLine.includes('**Topic:**') || 
+            nextLine.includes('**Subtopic:**')) {
+          isFollowedByMetadata = true;
+          break;
+        }
+        // Stop if we hit another heading
+        if (nextLine.match(/^#{1,3}\s+/)) {
+          break;
+        }
       }
-      // Start new section
-      currentSection = [line];
-    } else if (currentSection.length > 0 || line.trim()) {
-      // Continue current section or start collecting if we haven't started yet
+      
+      // If this ### heading is followed by metadata, it's a new section
+      if (isFollowedByMetadata) {
+        // Save previous section if it exists
+        if (currentSection.length > 0) {
+          sections.push(currentSection.join('\n'));
+        }
+        // Start new section - include the ## heading if we have one
+        currentSection = [];
+        if (lastTopicHeading) {
+          currentSection.push(lastTopicHeading);
+        }
+        currentSection.push(line);
+        continue;
+      }
+    }
+    
+    // Continue current section (add all non-heading lines)
+    if (currentSection.length > 0 || line.trim()) {
       currentSection.push(line);
     }
   }
@@ -202,7 +246,7 @@ function extractYAMLContent(section: string): { content: string; contentSections
   
   const contentParts: string[] = [];
   
-  // Extract content_text (main content)
+  // Extract content_text (main content) - add markdown header for formatter
   // Improved regex: matches content_text with | marker, captures until next field or end of section
   const contentTextMatch = section.match(/^content_text:\s*\|\s*\n([\s\S]*?)(?=^(?:[a-z_]+:|---$|\Z))/m);
   if (contentTextMatch) {
@@ -211,7 +255,8 @@ function extractYAMLContent(section: string): { content: string; contentSections
     content = content.split('\n').map(line => line.replace(/^\s{2,}/, '')).join('\n').trim();
     if (content) {
       contentSections.has_content = true;
-      contentParts.push(content);
+      // Add markdown header so formatter can parse it
+      contentParts.push(`### **Content**\n${content}`);
     }
   }
   
@@ -269,7 +314,8 @@ function extractYAMLContent(section: string): { content: string; contentSections
     }).filter(tip => tip.length > 0); // Remove any empty strings
     
     if (cleanedTips.length > 0) {
-      contentParts.push(cleanedTips.join('\n'));
+      // Add markdown header so formatter can parse it
+      contentParts.push(`### **Action Tips**\n${cleanedTips.map(tip => `- ${tip}`).join('\n')}`);
     }
   }
   
@@ -285,7 +331,8 @@ function extractYAMLContent(section: string): { content: string; contentSections
     motivation = motivation.replace(/^["']|["']$/g, '').trim();
     if (motivation) {
       contentSections.has_motivation = true;
-      contentParts.push(motivation);
+      // Add markdown header so formatter can parse it
+      contentParts.push(`### **Motivation Nudge**\n${motivation}`);
     }
   }
   
@@ -309,7 +356,8 @@ function extractYAMLContent(section: string): { content: string; contentSections
     
     if (strategyParts.length > 0) {
       contentSections.has_habit_strategy = true;
-      contentParts.push(strategyParts.join('\n'));
+      // Add markdown header so formatter can parse it
+      contentParts.push(`### **Habit Strategy**\n${strategyParts.join('\n')}`);
     }
   }
   
@@ -325,11 +373,13 @@ function extractYAMLContent(section: string): { content: string; contentSections
     followUp = followUp.replace(/^["']|["']$/g, '').trim();
     if (followUp) {
       contentSections.has_followup = true;
-      contentParts.push(followUp);
+      // Add markdown header so formatter can parse it
+      contentParts.push(`### **Follow-Up Question**\n${followUp}`);
     }
   }
   
-  const content = contentParts.join('\n\n').trim();
+  // Combine all content parts with separators to preserve section structure
+  const content = contentParts.join('\n\n---\n\n').trim();
   
   return { content, contentSections };
 }
@@ -348,60 +398,66 @@ function extractMarkdownContent(section: string): { content: string; contentSect
   
   const contentParts: string[] = [];
   
-  // Define the content sections we want to extract (without section headers/labels)
+  // Define the content sections we want to extract (WITH section headers for formatter parsing)
   const contentSectionPatterns = [
     { 
-      pattern: /###\s*\*\*Content\*\*\s*\n([\s\S]*?)(?=###|---\s*$|$)/i, 
-      key: 'has_content' as keyof ContentSections 
+      pattern: /(###\s*\*\*Content\*\*\s*\n[\s\S]*?)(?=###\s*\*\*(?:Action|Motivation|Habit|Follow-Up)|---\s*$|$)/i, 
+      key: 'has_content' as keyof ContentSections,
+      header: '### **Content**'
     },
     { 
-      pattern: /###\s*\*\*Action Tips?\*\*\s*\n([\s\S]*?)(?=###|---\s*$|$)/i, 
-      key: 'has_action_tips' as keyof ContentSections 
+      pattern: /(###\s*\*\*Action Tips?\*\*\s*\n[\s\S]*?)(?=###\s*\*\*(?:Content|Motivation|Habit|Follow-Up)|---\s*$|$)/i, 
+      key: 'has_action_tips' as keyof ContentSections,
+      header: '### **Action Tips**'
     },
     { 
-      pattern: /###\s*\*\*Motivation Nudge\*\*\s*\n([\s\S]*?)(?=###|---\s*$|$)/i, 
-      key: 'has_motivation' as keyof ContentSections 
+      pattern: /(###\s*\*\*Motivation Nudge\*\*\s*\n[\s\S]*?)(?=###\s*\*\*(?:Content|Action|Habit|Follow-Up)|---\s*$|$)/i, 
+      key: 'has_motivation' as keyof ContentSections,
+      header: '### **Motivation Nudge**'
     },
     { 
-      pattern: /###\s*\*\*Habit Strategy[\s\S]*?\*\*\s*\n([\s\S]*?)(?=###|---\s*$|$)/i, 
-      key: 'has_habit_strategy' as keyof ContentSections 
+      pattern: /(###\s*\*\*Habit Strategy[\s\S]*?\*\*\s*\n[\s\S]*?)(?=###\s*\*\*(?:Content|Action|Motivation|Follow-Up)|---\s*$|$)/i, 
+      key: 'has_habit_strategy' as keyof ContentSections,
+      header: '### **Habit Strategy**'
     },
   ];
   
-  // Extract each content section (content only, no headers/labels)
-  for (const { pattern, key } of contentSectionPatterns) {
+  // Extract each content section (INCLUDING headers so formatter can parse them)
+  for (const { pattern, key, header } of contentSectionPatterns) {
     const match = section.match(pattern);
     if (match) {
-      const extractedContent = match[1];
+      let extractedContent = match[1].trim(); // Includes header
       if (extractedContent && extractedContent.trim()) {
         contentSections[key] = true;
-        let cleaned = extractedContent.trim();
-        // Remove any trailing separators
-        cleaned = cleaned.replace(/\n*---\s*$/g, '');
-        // Remove excessive whitespace
-        cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
         
-        // For Habit Strategy, remove labels like "**Strategy:**", "**Principle:**", etc.
+        // Remove any trailing separators
+        extractedContent = extractedContent.replace(/\n*---\s*$/g, '');
+        // Remove excessive whitespace (but preserve section breaks)
+        extractedContent = extractedContent.replace(/\n{4,}/g, '\n\n\n');
+        extractedContent = extractedContent.replace(/\n{3,}/g, '\n\n');
+        
+        // For Habit Strategy, remove field labels like "**Strategy:**", "**Principle:**", etc.
+        // BUT keep the section header
         if (key === 'has_habit_strategy') {
-          cleaned = cleaned.replace(/\*\*Strategy:\*\*\s*/gi, '');
-          cleaned = cleaned.replace(/\*\*Principle:\*\*\s*/gi, '');
-          cleaned = cleaned.replace(/\*\*Explanation:\*\*\s*/gi, '');
-          cleaned = cleaned.replace(/\*\*Example:\*\*\s*/gi, '');
-          cleaned = cleaned.replace(/\*\*Habit Tip:\*\*\s*/gi, '');
-          cleaned = cleaned.replace(/\*\*Tip:\*\*\s*/gi, '');
+          extractedContent = extractedContent.replace(/\*\*Strategy:\*\*\s*/gi, '');
+          extractedContent = extractedContent.replace(/\*\*Principle:\*\*\s*/gi, '');
+          extractedContent = extractedContent.replace(/\*\*Explanation:\*\*\s*/gi, '');
+          extractedContent = extractedContent.replace(/\*\*Example:\*\*\s*/gi, '');
+          extractedContent = extractedContent.replace(/\*\*Habit Tip:\*\*\s*/gi, '');
+          extractedContent = extractedContent.replace(/\*\*Tip:\*\*\s*/gi, '');
         }
         
-        if (cleaned) {
-          contentParts.push(cleaned);
+        if (extractedContent) {
+          contentParts.push(extractedContent);
         }
       }
     }
   }
   
-  // Extract follow_up_question - include it in content
-  const followUpMatch = section.match(/###\s*\*\*Follow-Up (Question|Questions)\*\*\s*\n([\s\S]*?)(?=###|---\s*$|$)/i);
+  // Extract follow_up_question - include header in content
+  const followUpMatch = section.match(/(###\s*\*\*Follow-Up (?:Question|Questions)\*\*\s*\n[\s\S]*?)(?=###\s*\*\*(?:Content|Action|Motivation|Habit|Keywords|Intent)|---\s*$|$)/i);
   if (followUpMatch) {
-    let followUp = followUpMatch[2].trim();
+    let followUp = followUpMatch[1].trim(); // Includes header
     // Remove any trailing separators
     followUp = followUp.replace(/\n*---\s*$/g, '');
     // Remove excessive whitespace
@@ -412,8 +468,9 @@ function extractMarkdownContent(section: string): { content: string; contentSect
     }
   }
   
-  // Combine all content parts
-  let content = contentParts.join('\n\n').trim();
+  // Combine all content parts with separators to preserve section structure
+  // This ensures the formatter can properly parse each section
+  let content = contentParts.join('\n\n---\n\n').trim();
   
   // If no content sections were found, try to extract any text after removing metadata
   if (!content) {

@@ -150,14 +150,29 @@ async function handleKBStrictMode(
   }
 
   // IMPROVED: Check both semantic and hybrid thresholds
+  // Allow verbatim mode if EITHER:
+  // 1. Both thresholds are met (strict match)
+  // 2. Hybrid score is high enough (>= 0.50) - indicates strong keyword/intent matching
+  //    even if semantic is slightly below threshold (paraphrases, etc.)
   const hasSemanticMatch = retrievalResult.topSemanticScore !== undefined && retrievalResult.topSemanticScore >= semanticThreshold;
   const hasHybridMatch = retrievalResult.topScore !== undefined && retrievalResult.topScore >= hybridThreshold;
+  const hasStrongHybridMatch = retrievalResult.topScore !== undefined && retrievalResult.topScore >= 0.50;
   
-  if (retrievalResult.hasMatch && retrievalResult.kbEntries.length > 0 && hasSemanticMatch && hasHybridMatch) {
+  // Trigger verbatim if: (both thresholds met) OR (strong hybrid match with reasonable semantic)
+  const shouldUseVerbatim = retrievalResult.hasMatch && retrievalResult.kbEntries.length > 0 && 
+    ((hasSemanticMatch && hasHybridMatch) || 
+     (hasStrongHybridMatch && retrievalResult.topSemanticScore !== undefined && retrievalResult.topSemanticScore >= 0.40));
+  
+  if (shouldUseVerbatim) {
     // KB match found - return verbatim
     console.log(`[KB Strict Mode] ✅ VERBATIM RESPONSE triggered`);
-    console.log(`  - Semantic: ${retrievalResult.topSemanticScore!.toFixed(3)} >= ${semanticThreshold} ✓`);
-    console.log(`  - Hybrid: ${retrievalResult.topScore!.toFixed(3)} >= ${hybridThreshold} ✓`);
+    if (hasSemanticMatch && hasHybridMatch) {
+      console.log(`  - Semantic: ${retrievalResult.topSemanticScore!.toFixed(3)} >= ${semanticThreshold} ✓`);
+      console.log(`  - Hybrid: ${retrievalResult.topScore!.toFixed(3)} >= ${hybridThreshold} ✓`);
+    } else if (hasStrongHybridMatch) {
+      console.log(`  - Strong hybrid match: ${retrievalResult.topScore!.toFixed(3)} >= 0.50 ✓`);
+      console.log(`  - Semantic: ${retrievalResult.topSemanticScore!.toFixed(3)} >= 0.40 ✓ (lenient for high hybrid)`);
+    }
     const verbatimResponse = formatVerbatimResponse(retrievalResult.kbEntries);
     
     return {
@@ -175,12 +190,13 @@ async function handleKBStrictMode(
   if (retrievalResult.topSemanticScore !== undefined || retrievalResult.topScore !== undefined) {
     const semanticStatus = hasSemanticMatch ? '✓' : '✗';
     const hybridStatus = hasHybridMatch ? '✓' : '✗';
+    const strongHybridStatus = hasStrongHybridMatch ? '✓' : '✗';
     console.log(`[KB Strict Mode] ❌ No verbatim response:`);
     if (retrievalResult.topSemanticScore !== undefined) {
-      console.log(`  - Semantic: ${retrievalResult.topSemanticScore.toFixed(3)} ${semanticStatus} (threshold: ${semanticThreshold})`);
+      console.log(`  - Semantic: ${retrievalResult.topSemanticScore.toFixed(3)} ${semanticStatus} (threshold: ${semanticThreshold}, lenient: 0.40)`);
     }
     if (retrievalResult.topScore !== undefined) {
-      console.log(`  - Hybrid: ${retrievalResult.topScore.toFixed(3)} ${hybridStatus} (threshold: ${hybridThreshold})`);
+      console.log(`  - Hybrid: ${retrievalResult.topScore.toFixed(3)} ${hybridStatus} (threshold: ${hybridThreshold}, strong: 0.50 ${strongHybridStatus})`);
     }
   } else {
     console.log(`[KB Strict Mode] ❌ No verbatim response (no KB entries found)`);

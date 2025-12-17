@@ -7,148 +7,106 @@ import type { KBEntry } from "./types";
 
 /**
  * Strip enhancement text from content (intents/keywords prefix added during ingestion)
- * IMPROVED: More reliable detection using multiple strategies
- * 
- * Format structure:
+ * IMPROVED: Aggressively removes ALL enhancement metadata (Topic, Subtopic, Keywords, Intent patterns)
+ *
+ * Format structure in stored content:
  * - Topic: X. Subtopic: Y.
  * - Empty line
- * - Intent patterns (repeated questions/statements, each on a new line)
+ * - Intent patterns (repeated questions/statements, each on a new line) - REPEATED 2-3 TIMES
  * - Empty line
  * - Keywords: ... (optional)
  * - Empty line
- * - Original content
+ * - Original content (with ### **Content**, ### **Action Tips**, etc. sections)
  */
 function stripEnhancementText(content: string): string {
   if (!content || !content.trim()) {
     return content;
   }
 
-  const lines = content.split('\n');
-  
-  // Strategy 1: Look for clear content markers (most reliable)
-  // Enhancement sections typically end with a double newline before actual content
-  // Look for pattern: Topic/Subtopic/Keywords sections, then double newline, then content
-  
-  // Find the last occurrence of enhancement markers
-  let lastEnhancementIndex = -1;
-  let foundTopic = false;
-  
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
-    
-    if (line.startsWith('Topic:')) {
-      foundTopic = true;
-      lastEnhancementIndex = i;
-    } else if (line.startsWith('Subtopic:')) {
-      lastEnhancementIndex = i;
-    } else if (line.startsWith('Keywords:')) {
-      lastEnhancementIndex = i;
-      // Keywords section might span multiple lines - find where it ends
-      let j = i + 1;
-      while (j < lines.length) {
-        const nextLine = lines[j].trim();
-        if (!nextLine) {
-          // Empty line after keywords - this is likely the separator
-          lastEnhancementIndex = j;
-          break;
-        }
-        // If next line looks like content (not keyword continuation), stop
-        if (nextLine.length > 50 && 
-            !nextLine.startsWith('Keywords:') && 
-            !/^[a-z][^:]*$/i.test(nextLine)) {
-          break;
-        }
-        j++;
-      }
-    } else if (foundTopic && line) {
-      // After finding Topic, check if this is an intent pattern (question)
-      const isQuestion = line.endsWith('?') || 
-        (line.length < 120 && /^(What|Why|How|When|Where|Is|Are|Can|Should|Will|Do|Does|Did|Am|Would|Could)/i.test(line));
-      
-      if (isQuestion) {
-        lastEnhancementIndex = i;
-      } else if (line.length > 40 && 
-                 !line.startsWith('Topic:') && 
-                 !line.startsWith('Subtopic:') &&
-                 !line.startsWith('Keywords:') &&
-                 /[a-z]/.test(line)) {
-        // This looks like actual content - stop here
-        break;
-      }
-    }
+  let cleaned = content;
+
+  // Step 1: Remove Topic: and Subtopic: lines (can be on same line or separate)
+  cleaned = cleaned.replace(/^Topic:.*$/gm, '');
+  cleaned = cleaned.replace(/^Subtopic:.*$/gm, '');
+  cleaned = cleaned.replace(/^Topic:.*?Subtopic:.*$/gm, '');
+
+  // Step 2: Find where actual content starts (first ### section header)
+  const contentStartMatch = cleaned.match(/###\s*\*\*Content\*\*/i);
+  let contentStartIndex = -1;
+  if (contentStartMatch) {
+    contentStartIndex = cleaned.indexOf(contentStartMatch[0]);
   }
-  
-  // If we found enhancement markers, start content after them
-  if (lastEnhancementIndex >= 0) {
-    // Skip to the first non-empty line after enhancement
-    for (let i = lastEnhancementIndex + 1; i < lines.length; i++) {
-      const line = lines[i].trim();
-      if (line && 
-          line.length > 30 &&
-          !line.startsWith('Topic:') && 
-          !line.startsWith('Subtopic:') &&
-          !line.startsWith('Keywords:') &&
-          !line.endsWith('?') &&
-          /[a-z]/.test(line)) {
-        const result = lines.slice(i).join('\n').trim();
-        if (result.length > 50) { // Ensure we have substantial content
-          return result;
-        }
+
+  if (contentStartIndex >= 0) {
+    // AGGRESSIVE: Remove EVERYTHING before the first ### section header
+    // This includes all intent patterns, keywords, and any other metadata
+    cleaned = cleaned.substring(contentStartIndex);
+  } else {
+    // No ### **Content** header found - try to find first substantial paragraph
+    // But first, remove all question lines that look like intent patterns
+    const lines = cleaned.split('\n');
+    const filteredLines: string[] = [];
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+
+      // Skip empty lines
+      if (!trimmed) {
+        filteredLines.push(line);
+        continue;
       }
-    }
-  }
-  
-  // Strategy 2: Try regex-based removal (for well-formed documents)
-  const enhancementPatterns = [
-    // Pattern: Topic + Subtopic + empty lines + questions + Keywords + empty lines
-    /^Topic:[\s\S]*?Subtopic:[\s\S]*?\n\s*\n(?:[^\n]*\?[\s\S]*?\n\s*\n)?(?:Keywords:[\s\S]*?\n\s*\n)?\s*\n/,
-    // Pattern: Topic + questions + Keywords
-    /^Topic:[\s\S]*?\n\s*\n(?:[^\n]*\?[\s\S]*?\n\s*\n)?(?:Keywords:[\s\S]*?\n\s*\n)?\s*\n/,
-    // Old format pattern
-    /^This section answers questions about:[\s\S]*?(?: Key topic(?:s)?:[\s\S]*?)?\n\n/,
-  ];
-  
-  for (const pattern of enhancementPatterns) {
-    const cleaned = content.replace(pattern, '');
-    if (cleaned !== content && cleaned.trim().length > 50) {
-      const firstLine = cleaned.split('\n')[0].trim();
-      // Verify first line looks like content
-      if (firstLine.length > 30 && 
-          !firstLine.startsWith('Topic:') && 
-          !firstLine.endsWith('?') &&
-          /[a-z]/.test(firstLine)) {
-        return cleaned.trim();
+
+      // Skip lines that look like intent patterns (questions)
+      if (trimmed.endsWith('?')) {
+        continue;
       }
-    }
-  }
-  
-  // Strategy 3: Find first substantial content line (fallback)
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
-    if (line && 
-        line.length > 50 &&
-        !line.startsWith('Topic:') && 
-        !line.startsWith('Subtopic:') && 
-        !line.startsWith('Keywords:') &&
-        !line.endsWith('?') &&
-        /[a-z]/.test(line) &&
-        // Not just a list (check for prose structure)
-        line.split(',').length < 15 &&
-        line.split(';').length < 8) {
-      const result = lines.slice(i).join('\n').trim();
-      if (result.length > 50) {
-        return result;
+
+      // Skip lines that start with common question words
+      if (trimmed.match(/^(What|Why|How|When|Where|Is|Are|Can|Should|Will|Do|Does|Did|Am|Would|Could|I|My|Give|Show|Tell|Help|Want|Need)\s/i)) {
+        continue;
       }
+
+      // Skip keyword lines
+      if (trimmed.startsWith('Keywords:')) {
+        continue;
+      }
+
+      // Skip lines that look like keyword lists
+      if (trimmed.includes(',') && trimmed.split(',').length > 2 && trimmed.length < 250) {
+        continue;
+      }
+
+      if (trimmed.endsWith('and more.') || trimmed.endsWith('and more')) {
+        continue;
+      }
+
+      // Keep this line
+      filteredLines.push(line);
     }
+
+    cleaned = filteredLines.join('\n');
   }
-  
-  // Last resort: return original content (better than empty string)
-  return content.trim();
+
+  // Step 3: Clean up excessive empty lines (but preserve section breaks)
+  cleaned = cleaned.replace(/\n{4,}/g, '\n\n');
+  cleaned = cleaned.replace(/\n{3}/g, '\n\n');
+
+  // Step 4: Remove leading/trailing empty lines
+  cleaned = cleaned.trim();
+
+  // Step 5: Verify we have substantial content left
+  if (cleaned.length < 50) {
+    // Fallback: return original if stripping removed everything
+    return content.trim();
+  }
+
+  return cleaned;
 }
 
 /**
  * Format a single KB entry for display, hiding field names
- * Parses content and formats it naturally with dividers between sections
+ * Parses content and formats it naturally with clear dividers between sections
+ * IMPROVED: Better section detection and formatting with explicit separators
  */
 export function formatKBEntryForDisplay(entry: KBEntry): string {
   if (!entry.content) {
@@ -158,196 +116,213 @@ export function formatKBEntryForDisplay(entry: KBEntry): string {
   // First strip enhancement text (Topic, Subtopic, Keywords, Intent patterns)
   const content = stripEnhancementText(entry.content).trim();
   
-  // Parse and format the content sections naturally
+  // DEBUG: Log if content still has headers (for troubleshooting)
+  if (content.includes('### **Content**') || content.includes('### **Action Tips**')) {
+    console.log('[Formatter] Warning: Content still contains section headers after stripEnhancementText');
+  }
+  
+  // Parse sections using regex patterns (more reliable than line-by-line)
+  const sections: {
+    content: string[];
+    actionTips: string[];
+    motivation: string[];
+    habitStrategy: string[];
+    followUp: string[];
+  } = {
+    content: [],
+    actionTips: [],
+    motivation: [],
+    habitStrategy: [],
+    followUp: []
+  };
+  
+  // Extract Content section (main content)
+  // Stop at the FIRST ### **Action Tips** header (not at --- separators, which are part of content)
+  const contentMatch = content.match(/###\s*\*\*Content\*\*\s*\n([\s\S]*?)(?=\n---\s*\n###\s*\*\*Action Tips?\*\*)/i);
+  if (contentMatch) {
+    let contentText = contentMatch[1].trim();
+    if (contentText) {
+      // Remove any --- separators at the end
+      contentText = contentText.replace(/\n*---\s*$/g, '');
+      sections.content = contentText.split('\n').filter(line => line.trim().length > 0);
+    }
+  } else {
+    // Try without the --- before Action Tips
+    const contentMatch2 = content.match(/###\s*\*\*Content\*\*\s*\n([\s\S]*?)(?=###\s*\*\*(?:Action|Motivation|Habit|Follow-Up))/i);
+    if (contentMatch2) {
+      let contentText = contentMatch2[1].trim();
+      contentText = contentText.replace(/\n*---\s*$/g, '');
+      sections.content = contentText.split('\n').filter(line => line.trim().length > 0);
+    }
+  }
+  
+  // Extract Action Tips section - preserve original bullet format and bold text
+  // Stop at the next --- separator (before Motivation section)
+  const actionTipsMatch = content.match(/###\s*\*\*Action Tips?\*\*\s*\n([\s\S]*?)(?=\n---\s*\n###\s*\*\*Motivation)/i);
+  if (actionTipsMatch) {
+    let tipsText = actionTipsMatch[1].trim();
+    // Remove trailing --- if present
+    tipsText = tipsText.replace(/\n*---\s*$/g, '');
+    // Only include lines that are actual tips (start with - or •, or are emoji bullets)
+    const tipLines = tipsText.split('\n').filter(line => {
+      const trimmed = line.trim();
+      if (!trimmed) return false;
+      if (trimmed.match(/^###/)) return false; // Skip headers
+      if (trimmed.match(/^---$/)) return false; // Skip separators
+      // Include bullet points (-, •, *, or emoji bullets like 📵)
+      return trimmed.match(/^[-•*]/) || trimmed.match(/^[\p{Emoji}]/u);
+    });
+    sections.actionTips = tipLines;
+  } else {
+    // Try without --- before Motivation
+    const actionTipsMatch2 = content.match(/###\s*\*\*Action Tips?\*\*\s*\n([\s\S]*?)(?=###\s*\*\*(?:Motivation|Habit|Follow-Up))/i);
+    if (actionTipsMatch2) {
+      let tipsText = actionTipsMatch2[1].trim();
+      tipsText = tipsText.replace(/\n*---\s*$/g, '');
+      const tipLines = tipsText.split('\n').filter(line => {
+        const trimmed = line.trim();
+        if (!trimmed) return false;
+        if (trimmed.match(/^###/)) return false;
+        if (trimmed.match(/^---$/)) return false;
+        return trimmed.match(/^[-•*]/) || trimmed.match(/^[\p{Emoji}]/u);
+      });
+      sections.actionTips = tipLines;
+    }
+  }
+  
+  // Extract Motivation Nudge section
+  // Stop at the next --- separator or next section header
+  const motivationMatch = content.match(/###\s*\*\*Motivation Nudge\*\*\s*\n([\s\S]*?)(?=\n---\s*\n###|$)/i);
+  if (motivationMatch) {
+    let motivationText = motivationMatch[1].trim();
+    // Remove trailing --- if present
+    motivationText = motivationText.replace(/\n*---\s*$/g, '');
+    if (motivationText) {
+      sections.motivation = motivationText.split('\n').filter(line => line.trim().length > 0);
+    }
+  } else {
+    // Try without --- separator
+    const motivationMatch2 = content.match(/###\s*\*\*Motivation Nudge\*\*\s*\n([\s\S]*?)(?=###\s*\*\*(?:Habit|Follow-Up)|$)/i);
+    if (motivationMatch2) {
+      let motivationText = motivationMatch2[1].trim();
+      motivationText = motivationText.replace(/\n*---\s*$/g, '');
+      if (motivationText) {
+        sections.motivation = motivationText.split('\n').filter(line => line.trim().length > 0);
+      }
+    }
+  }
+  
+  // Extract Habit Strategy section
+  // IMPORTANT: Stop only at actual section headers, not at --- separators
+  const habitMatch = content.match(/###\s*\*\*Habit Strategy[\s\S]*?\*\*\s*\n([\s\S]*?)(?=###\s*\*\*(?:Content|Action|Motivation|Follow-Up|Keywords|Intent)|$)/i);
+  if (habitMatch) {
+    const habitText = habitMatch[1].trim();
+    if (habitText) {
+      sections.habitStrategy = habitText.split('\n').filter(line => line.trim().length > 0);
+    }
+  }
+  
+  // Extract Follow-Up Question section (CRITICAL - must be included)
+  // Try multiple patterns to catch all variations
+  // IMPORTANT: Follow-Up is usually the last section, so capture until end of content
+  const followUpMatch = content.match(/###\s*\*\*Follow-Up (?:Question|Questions)?\*\*\s*\n([\s\S]*?)$/i);
+
+  if (followUpMatch) {
+    let followUpText = followUpMatch[1].trim();
+    // Remove any trailing separators
+    followUpText = followUpText.replace(/\n*---\s*$/g, '');
+    if (followUpText) {
+      // Take all lines (follow-up questions can be multi-line)
+      const lines = followUpText.split('\n')
+        .map(line => line.trim())
+        .filter(line => line.length > 0 && !line.match(/^###/));
+      if (lines.length > 0) {
+        sections.followUp = lines;
+      }
+    }
+  }
+  
+  // If no sections were found via regex, try fallback parsing
+  if (sections.content.length === 0 && sections.actionTips.length === 0 && 
+      sections.motivation.length === 0 && sections.habitStrategy.length === 0 && 
+      sections.followUp.length === 0) {
+    // Fallback: use cleaned content as-is
+    const fallbackLines = content.split('\n').filter(line => {
+      const trimmed = line.trim();
+      return trimmed.length > 0 && 
+             !trimmed.startsWith('Topic:') && 
+             !trimmed.startsWith('Subtopic:') &&
+             !trimmed.startsWith('Keywords:') &&
+             !trimmed.match(/^###\s*\*\*(?:Keywords?|Intent Patterns?)\*\*/i);
+    });
+    if (fallbackLines.length > 0) {
+      sections.content = fallbackLines;
+    }
+  }
+  
+  // Build formatted response with clear section separators matching desired format
+  // IMPORTANT: All section headers (### **Content**, etc.) are already removed during extraction
   const parts: string[] = [];
-  
-  // Extract main content and sections
-  const lines = content.split('\n');
-  const mainContent: string[] = [];
-  const actionTips: string[] = [];
-  const motivation: string[] = [];
-  const habitStrategy: string[] = [];
-  const followUp: string[] = [];
-  
-  let currentSection: 'main' | 'tips' | 'motivation' | 'habit' | 'followup' = 'main';
-  let inHabitStrategy = false;
-  let habitStrategyKey = '';
-  
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const trimmed = line.trim();
-    const lowerTrimmed = trimmed.toLowerCase();
-    
-    // Skip completely empty lines (they help separate sections naturally)
-    if (!trimmed) {
-      // Empty line might indicate section boundary
-      // Check if next line suggests a new section transition
-      if (i < lines.length - 1) {
-        const nextLine = i + 1 < lines.length ? lines[i + 1].trim() : '';
-        if (nextLine) {
-          // If we were in tips and next line is not a bullet, transition to main
-          if (currentSection === 'tips' && !nextLine.match(/^[-•*]/) && nextLine.length > 20) {
-            currentSection = 'main';
-            inHabitStrategy = false;
-          }
-          // If we were in habit and next line looks like a question or new section, transition
-          if (currentSection === 'habit' && (nextLine.endsWith('?') || nextLine.length < 50)) {
-            // Might be transitioning to followup or main
-            if (nextLine.endsWith('?')) {
-              currentSection = 'followup';
-              inHabitStrategy = false;
-            }
-          }
-        }
-      }
-      continue;
-    }
-    
-    // Check for explicit field markers first (before other heuristics)
-    if (lowerTrimmed.startsWith('content_text:') || 
-        lowerTrimmed.startsWith('action_tips:') ||
-        lowerTrimmed.startsWith('motivation_nudge:') ||
-        lowerTrimmed.startsWith('habit_strategy:') ||
-        lowerTrimmed.startsWith('follow_up_question:')) {
-      // Switch to appropriate section
-      if (lowerTrimmed.startsWith('action_tips:')) {
-        currentSection = 'tips';
-        inHabitStrategy = false;
-      } else if (lowerTrimmed.startsWith('motivation_nudge:')) {
-        currentSection = 'motivation';
-        inHabitStrategy = false;
-        // Extract content after colon if present
-        const afterColon = trimmed.substring('motivation_nudge:'.length).trim();
-        if (afterColon) {
-          motivation.push(afterColon);
-        }
-        continue;
-      } else if (lowerTrimmed.startsWith('habit_strategy:')) {
-        currentSection = 'habit';
-        inHabitStrategy = true;
-        // Extract content after colon if present
-        const afterColon = trimmed.substring('habit_strategy:'.length).trim();
-        if (afterColon) {
-          habitStrategy.push(afterColon);
-        }
-        continue;
-      } else if (lowerTrimmed.startsWith('follow_up_question:')) {
-        currentSection = 'followup';
-        inHabitStrategy = false;
-        // Extract content after colon if present
-        const afterColon = trimmed.substring('follow_up_question:'.length).trim();
-        if (afterColon) {
-          followUp.push(afterColon);
-        }
-        continue;
-      } else {
-        // content_text: - skip the marker, continue in main section
-        continue;
-      }
-    }
-    
-    // Handle habit_strategy sub-fields (principle:, explanation:, example:, habit_tip:)
-    // Only process if we're explicitly in habit section
-    if (currentSection === 'habit' && (
-      lowerTrimmed.startsWith('principle:') ||
-      lowerTrimmed.startsWith('explanation:') ||
-      lowerTrimmed.startsWith('example:') ||
-      lowerTrimmed.startsWith('habit_tip:')
-    )) {
-      inHabitStrategy = true;
-      // Extract the field name and content
-      const colonIndex = trimmed.indexOf(':');
-      if (colonIndex > 0) {
-        habitStrategyKey = trimmed.substring(0, colonIndex).trim();
-        const fieldContent = trimmed.substring(colonIndex + 1).trim();
-        if (fieldContent) {
-          habitStrategy.push(`**${habitStrategyKey.charAt(0).toUpperCase() + habitStrategyKey.slice(1)}:** ${fieldContent}`);
-        }
-      }
-      continue;
-    }
-    
-    // Check if this looks like a bullet point (action tip)
-    if (trimmed.match(/^[-•*]\s+/)) {
-      if (currentSection === 'main' && mainContent.length > 0) {
-        currentSection = 'tips';
-        inHabitStrategy = false;
-      }
-      if (currentSection === 'tips') {
-        // Remove bullet marker and clean up
-        const tip = trimmed.replace(/^[-•*]\s+/, '').trim();
-        if (tip) {
-          actionTips.push(tip);
-        }
-      }
-    } else if (trimmed.length > 0) {
-      // Regular content line - add to appropriate section
-      if (currentSection === 'main') {
-        mainContent.push(trimmed);
-      } else if (currentSection === 'motivation') {
-        motivation.push(trimmed);
-      } else if (currentSection === 'habit') {
-        // Only add to habit strategy if we're actually processing it
-        // If line looks like a question, might be transitioning to followup
-        if (trimmed.endsWith('?') && trimmed.length < 200) {
-          currentSection = 'followup';
-          inHabitStrategy = false;
-          followUp.push(trimmed);
-        } else if (inHabitStrategy) {
-          // Continuation of habit strategy field
-          habitStrategy.push(trimmed);
-        }
-      } else if (currentSection === 'followup') {
-        followUp.push(trimmed);
-      }
+
+  // Main content section - preserve internal structure (including any --- separators)
+  if (sections.content.length > 0) {
+    const contentText = sections.content.join('\n').trim();
+    parts.push(contentText);
+    // Add separator after content section
+    parts.push('\n\n---\n\n');
+  }
+
+  // Action Tips section - preserve original bullet format and bold text
+  if (sections.actionTips.length > 0) {
+    parts.push(sections.actionTips.join('\n'));
+    parts.push('\n\n---\n\n');
+  }
+
+  // Motivation section - format as blockquote
+  if (sections.motivation.length > 0) {
+    const blockquoteLines = sections.motivation.map(line => {
+      const trimmed = line.trim();
+      if (!trimmed) return '';
+      return `> ${trimmed}`;
+    }).filter(line => line.length > 0);
+    parts.push(blockquoteLines.join('\n'));
+    parts.push('\n\n---\n\n');
+  }
+
+  // Habit Strategy section
+  if (sections.habitStrategy.length > 0) {
+    parts.push(sections.habitStrategy.join('\n'));
+    parts.push('\n\n---\n\n');
+  }
+
+  // Follow-Up Question section (CRITICAL - ALWAYS include if present, no separator after)
+  if (sections.followUp.length > 0) {
+    const followUpText = sections.followUp.join('\n').trim();
+    if (followUpText) {
+      parts.push(followUpText);
     }
   }
   
-  // Build formatted response with dividers between sections
-  if (mainContent.length > 0) {
-    parts.push(mainContent.join('\n'));
-  }
-  
-  if (actionTips.length > 0) {
-    // Add divider before action tips
-    if (parts.length > 0) {
-      parts.push('\n---\n');
-    }
-    // Format as bullet points
-    parts.push(actionTips.map(tip => `• ${tip}`).join('\n'));
-  }
-  
-  if (motivation.length > 0) {
-    // Add divider before motivation
-    if (parts.length > 0) {
-      parts.push('\n---\n');
-    }
-    parts.push(motivation.join('\n'));
-  }
-  
-  if (habitStrategy.length > 0) {
-    // Add divider before habit strategy
-    if (parts.length > 0) {
-      parts.push('\n---\n');
-    }
-    parts.push(habitStrategy.join('\n'));
-  }
-  
-  if (followUp.length > 0) {
-    // Add divider before follow-up
-    if (parts.length > 0) {
-      parts.push('\n---\n');
-    }
-    parts.push(followUp.join('\n'));
-  }
   
   // If we couldn't parse properly, return cleaned original content
   if (parts.length === 0) {
     return content;
   }
   
-  // Join parts (dividers already include newlines)
-  return parts.join('\n').trim();
+  // Join parts and clean up
+  let result = parts.join('').trim();
+
+  // Clean up excessive newlines (but preserve --- separators)
+  // First normalize all whitespace around ---
+  result = result.replace(/\s*---\s*/g, '\n\n---\n\n');
+
+  // Then clean up any excessive newlines (more than 2)
+  result = result.replace(/\n{3,}/g, '\n\n');
+
+  // Final trim
+  result = result.trim();
+
+  return result;
 }
 
 /**

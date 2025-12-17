@@ -45,7 +45,9 @@ function LoginForm() {
     setLoading(true);
 
     try {
-      const redirectTo = `https://www.womenreset.com/auth/callback?next=${encodeURIComponent(redirectTarget)}`;
+      // Use environment variable for site URL, fallback to current origin for development
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || (typeof window !== "undefined" ? window.location.origin : "https://www.womenreset.com");
+      const redirectTo = `${siteUrl}/auth/callback?next=${encodeURIComponent(redirectTarget)}`;
 
       const { error } = await supabase.auth.signInWithOtp({
         email,

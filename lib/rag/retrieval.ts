@@ -439,7 +439,8 @@ export async function retrieveFromKB(
       }
       
       // IMPROVED: Use semantic similarity as primary gate, hybrid score for ranking
-      const semanticThreshold = Math.max(0.5, similarityThreshold - 0.1);
+      // Allow lower semantic threshold (0.35-0.4) for better recall, especially for paraphrases
+      const semanticThreshold = Math.max(0.35, similarityThreshold - 0.1);
       const semanticallyValid = scoredDocs.filter(item => item.similarity >= semanticThreshold);
       const adaptiveHybridThreshold = calculateAdaptiveHybridThreshold(scoredDocs.length > 0 ? scoredDocs[0].similarity : 0, similarityThreshold);
       const filteredDocs = semanticallyValid.filter(item => item.score >= adaptiveHybridThreshold);
@@ -526,7 +527,8 @@ export async function retrieveFromKB(
 
     // IMPROVED: Use semantic similarity as primary gate, hybrid score for ranking
     // This ensures high-quality semantic matches aren't rejected due to metadata scoring
-    const semanticThreshold = Math.max(0.5, similarityThreshold - 0.1);
+    // Allow lower semantic threshold (0.35-0.4) for better recall, especially for paraphrases
+    const semanticThreshold = Math.max(0.35, similarityThreshold - 0.1);
 
     // First filter by semantic similarity (primary gate)
     const semanticallyValid = scoredDocs.filter(item => item.similarity >= semanticThreshold);
