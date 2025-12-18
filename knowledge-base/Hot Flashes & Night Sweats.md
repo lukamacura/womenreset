@@ -597,137 +597,135 @@ Everyday Language:
 - "pharmaceutical relief options"
 - "hormone vs non-hormone medication"
 - "new menopause drug Veozah"
----
 
----
 persona: "menopause"
 topic: "Hot Flashes & Night Sweats"
 subtopic: "Tracking & Monitoring — Data Collection for Pattern Recognition"
-
 content_text: |
-  Tracking your symptoms is one of the smartest things you can do 🌸. It helps you spot patterns, identify triggers, and notice real progress — even when improvement feels slow.
-  Objective data gives you confidence when adjusting habits or talking to your doctor 💜. Tracking transforms frustration into insight and empowers informed decision-making 🌿.
-
+Tracking your symptoms is one of the smartest things you can do 🌸. It helps you spot patterns, identify triggers, and notice real progress — even when improvement feels slow.
+Objective data gives you confidence when adjusting habits or talking to your doctor 💜. Tracking transforms frustration into insight and empowers informed decision-making 🌿.
 action_tips:
-  - "📱 Log 4 data points per hot flash: (1) Time of day, (2) Duration in minutes, (3) Severity 1-10 scale, (4) Preceding trigger hypothesis."
-  - "📊 Use validated tracking tools: Balance app, MenoLife app, or printable MRS (Menopause Rating Scale) questionnaire."
-  - "🔍 Track for minimum 2 weeks before changing interventions — this establishes baseline and reveals true patterns versus random variation."
-  - "💤 Include sleep metrics: hours slept, number of night sweat awakenings, next-day fatigue rating 1-10."
-  - "💬 Bring quantified data to appointments: 'I'm averaging 12 flashes daily, 6/10 severity, disrupting sleep 4 nights/week' is more actionable than 'I'm suffering.'"
+
+"📱 Log 4 data points per hot flash: (1) Time of day, (2) Duration in minutes, (3) Severity 1-10 scale, (4) Preceding trigger hypothesis."
+"📊 Use validated tracking tools: Balance app, MenoLife app, or printable MRS (Menopause Rating Scale) questionnaire."
+"🔍 Track for minimum 2 weeks before changing interventions — this establishes baseline and reveals true patterns versus random variation."
+"💤 Include sleep metrics: hours slept, number of night sweat awakenings, next-day fatigue rating 1-10."
+"💬 Bring quantified data to appointments: 'I'm averaging 12 flashes daily, 6/10 severity, disrupting sleep 4 nights/week' is more actionable than 'I'm suffering.'"
 
 motivation_nudge: "✨ Every data point you collect is a step toward personalized relief — small awareness creates big insights and targeted solutions."
-
 habit_strategy:
-  principle: "Evidence-Based Self-Monitoring"
-  explanation: "Systematic data collection reveals objective patterns that guide effective intervention selection."
-  example: "Keep phone notepad open all day; immediately log each flash with 4 data points in under 30 seconds."
-  habit_tip: "🕯️ Set end-of-day reminder to review log and identify one pattern or insight — reflection reinforces awareness."
-
+principle: "Evidence-Based Self-Monitoring"
+explanation: "Systematic data collection reveals objective patterns that guide effective intervention selection."
+example: "Keep phone notepad open all day; immediately log each flash with 4 data points in under 30 seconds."
+habit_tip: "🕯️ Set end-of-day reminder to review log and identify one pattern or insight — reflection reinforces awareness."
 follow_up_question: "Would you like help choosing the best tracking method for your lifestyle, a sample 2-week tracking template, or guidance on interpreting your data to identify actionable patterns?"
-
 intent_patterns:
-  - "SHOULD I track my hot flashes and night sweats?"
-  - "HOW DO I monitor symptom frequency and severity effectively?"
-  - "WHAT'S THE BEST METHOD for recording vasomotor symptoms?"
-  - "CAN symptom tracking HELP identify my personal triggers?"
-  - "WHAT INFORMATION should I include in my symptom log?"
-  - "HOW LONG should I track before seeing patterns?"
-  - "WHICH APPS or tools are best for tracking menopause symptoms?"
-  - "HOW CAN tracking DATA help my doctor adjust treatment?"
-  - "WHAT should I bring to appointments to communicate symptoms clearly?"
+
+"SHOULD I track my hot flashes and night sweats?"
+"HOW DO I monitor symptom frequency and severity effectively?"
+"WHAT'S THE BEST METHOD for recording vasomotor symptoms?"
+"CAN symptom tracking HELP identify my personal triggers?"
+"WHAT INFORMATION should I include in my symptom log?"
+"HOW LONG should I track before seeing patterns?"
+"WHICH APPS or tools are best for tracking menopause symptoms?"
+"HOW CAN tracking DATA help my doctor adjust treatment?"
+"WHAT should I bring to appointments to communicate symptoms clearly?"
 
 keywords:
-  - "SYMPTOM MONITORING tools"
-  - "DATA COLLECTION menopause"
-  - "hot flash tracking app"
-  - "menopause symptom journal"
-  - "digital health tracker vasomotor"
-  - "wearable temperature sensors"
-  - "smartwatch symptom logging"
-  - "validated tracking scales"
-  - "hot flash FREQUENCY measurement"
-  - "night sweat INTENSITY scale"
-  - "duration minutes logging"
-  - "severity rating 1-10"
-  - "time pattern analysis"
-  - "sleep disruption tracking"
-  - "trigger correlation data"
-  - "PATTERN RECOGNITION symptoms"
-  - "trigger identification data"
-  - "baseline establishment tracking"
-  - "progress measurement objective"
-  - "lifestyle correlation analysis"
-  - "treatment response monitoring"
-  - "quantified symptom reporting"
-  - "doctor appointment data"
-  - "treatment adjustment evidence"
-  - "objective health metrics"
-  - "HOW TO track hot flashes"
-  - "log my symptoms effectively"
-  - "find what triggers night sweats"
-  - "measure progress over time"
-  - "track menopause patterns"
-  - "symptom diary menopause"
----
+Tracking Methods & Tools:
+- "SYMPTOM MONITORING tools"
+- "DATA COLLECTION menopause"
+- "hot flash tracking app"
+- "menopause symptom journal"
+- "digital health tracker vasomotor"
+- "wearable temperature sensors"
+- "smartwatch symptom logging"
+- "validated tracking scales"
+Data Points & Metrics:
+- "hot flash FREQUENCY measurement"
+- "night sweat INTENSITY scale"
+- "duration minutes logging"
+- "severity rating 1-10"
+- "time pattern analysis"
+- "sleep disruption tracking"
+- "trigger correlation data"
+Analysis & Insights:
+- "PATTERN RECOGNITION symptoms"
+- "trigger identification data"
+- "baseline establishment tracking"
+- "progress measurement objective"
+- "lifestyle correlation analysis"
+- "treatment response monitoring"
+Clinical Communication:
+- "quantified symptom reporting"
+- "doctor appointment data"
+- "treatment adjustment evidence"
+- "objective health metrics"
+Everyday Language:
+- "HOW TO track hot flashes"
+- "log my symptoms effectively"
+- "find what triggers night sweats"
+- "measure progress over time"
+- "track menopause patterns"
+- "symptom diary menopause"
 
----
 persona: "menopause"
 topic: "Hot Flashes & Night Sweats"
 subtopic: "When to Seek Help — Recognizing Concerning Patterns"
-
 content_text: |
-  Most hot flashes are manageable with lifestyle changes 💜. But some situations warrant professional evaluation.
-  See a healthcare provider if: flashes severely disrupt sleep (3+ nights/week for a month), occur with chest pain or heart irregularities, cause significant distress or depression, persist severely for 2+ years, or don't improve with basic interventions.
-  You deserve quality of life — seeking help isn't weakness, it's wise health management 🌿.
-
+Most hot flashes are manageable with lifestyle changes 💜. But some situations warrant professional evaluation.
+See a healthcare provider if: flashes severely disrupt sleep (3+ nights/week for a month), occur with chest pain or heart irregularities, cause significant distress or depression, persist severely for 2+ years, or don't improve with basic interventions.
+You deserve quality of life — seeking help isn't weakness, it's wise health management 🌿.
 action_tips:
-  - "🚨 Seek immediate evaluation if hot flashes occur WITH: chest pain, severe palpitations, dizziness, or shortness of breath."
-  - "📊 Schedule appointment if experiencing: 10+ moderate-severe flashes daily, chronic sleep disruption (3+ nights/week), or significant mood impact."
-  - "🩺 Request menopause specialist referral if: primary care provider lacks menopause training, symptoms don't improve with initial treatment, or you have complex health history."
-  - "💬 Communicate severity clearly: use tracking data showing frequency, intensity, sleep impact, and functional impairment."
-  - "⏰ Don't wait: average time women suffer before seeking help is 12-18 months — early intervention prevents compounding health effects."
+
+"🚨 Seek immediate evaluation if hot flashes occur WITH: chest pain, severe palpitations, dizziness, or shortness of breath."
+"📊 Schedule appointment if experiencing: 10+ moderate-severe flashes daily, chronic sleep disruption (3+ nights/week), or significant mood impact."
+"🩺 Request menopause specialist referral if: primary care provider lacks menopause training, symptoms don't improve with initial treatment, or you have complex health history."
+"💬 Communicate severity clearly: use tracking data showing frequency, intensity, sleep impact, and functional impairment."
+"⏰ Don't wait: average time women suffer before seeking help is 12-18 months — early intervention prevents compounding health effects."
 
 motivation_nudge: "🌸 Severe symptoms deserve medical intervention — suffering isn't noble, it's unnecessarily harmful to your health and quality of life."
-
 habit_strategy:
-  principle: "Self-Advocacy"
-  explanation: "Recognizing when symptoms exceed normal adaptation empowers appropriate help-seeking."
-  example: "If sleep disruption continues 3+ weeks despite lifestyle changes, schedule appointment — don't wait for 'crisis' to justify care."
-  habit_tip: "📅 Set monthly 'symptom check-in': if severity hasn't improved or is worsening, take action."
-
+principle: "Self-Advocacy"
+explanation: "Recognizing when symptoms exceed normal adaptation empowers appropriate help-seeking."
+example: "If sleep disruption continues 3+ weeks despite lifestyle changes, schedule appointment — don't wait for 'crisis' to justify care."
+habit_tip: "📅 Set monthly 'symptom check-in': if severity hasn't improved or is worsening, take action."
 follow_up_question: "Would you like guidance on finding a menopause specialist, preparing for your first appointment with tracking data, or understanding which symptoms are normal versus concerning?"
-
 intent_patterns:
-  - "WHEN SHOULD I see a doctor about hot flashes?"
-  - "ARE my hot flashes SEVERE ENOUGH to need treatment?"
-  - "WHAT symptoms mean I should get medical help?"
-  - "IS IT NORMAL for hot flashes to be this disruptive?"
-  - "WHEN DO hot flashes become a MEDICAL CONCERN?"
-  - "SHOULD I see a specialist or just my primary doctor?"
-  - "HOW DO I KNOW if my symptoms are concerning?"
-  - "WHAT makes hot flashes DANGEROUS versus just uncomfortable?"
+
+"WHEN SHOULD I see a doctor about hot flashes?"
+"ARE my hot flashes SEVERE ENOUGH to need treatment?"
+"WHAT symptoms mean I should get medical help?"
+"IS IT NORMAL for hot flashes to be this disruptive?"
+"WHEN DO hot flashes become a MEDICAL CONCERN?"
+"SHOULD I see a specialist or just my primary doctor?"
+"HOW DO I KNOW if my symptoms are concerning?"
+"WHAT makes hot flashes DANGEROUS versus just uncomfortable?"
 
 keywords:
-  - "SEVERE hot flash symptoms"
-  - "CONCERNING vasomotor patterns"
-  - "medical emergency hot flashes"
-  - "chest pain with flashes"
-  - "heart irregularities sweating"
-  - "extreme symptom severity"
-  - "10+ flashes daily medical threshold"
-  - "chronic sleep disruption 3+ nights"
-  - "persistent symptoms 2+ years"
-  - "functional impairment vasomotor"
-  - "depression from hot flashes"
-  - "quality of life impact severe"
-  - "WHEN TO seek medical help"
-  - "menopause specialist referral"
-  - "primary care vs specialist"
-  - "finding menopause expert"
-  - "preparing for doctor appointment"
-  - "how bad is too bad"
-  - "should I see doctor hot flashes"
-  - "is this serious or normal"
-  - "when to get help night sweats"
-  - "severe versus normal symptoms"
----
+Warning Signs & Red Flags:
+- "SEVERE hot flash symptoms"
+- "CONCERNING vasomotor patterns"
+- "medical emergency hot flashes"
+- "chest pain with flashes"
+- "heart irregularities sweating"
+- "extreme symptom severity"
+Clinical Thresholds:
+- "10+ flashes daily medical threshold"
+- "chronic sleep disruption 3+ nights"
+- "persistent symptoms 2+ years"
+- "functional impairment vasomotor"
+- "depression from hot flashes"
+- "quality of life impact severe"
+Healthcare Navigation:
+- "WHEN TO seek medical help"
+- "menopause specialist referral"
+- "primary care vs specialist"
+- "finding menopause expert"
+- "preparing for doctor appointment"
+Everyday Language:
+- "how bad is too bad"
+- "should I see doctor hot flashes"
+- "is this serious or normal"
+- "when to get help night sweats"
+- "severe versus normal symptoms"

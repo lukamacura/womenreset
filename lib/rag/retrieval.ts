@@ -110,7 +110,38 @@ function extractQueryKeywords(query: string): string[] {
 }
 
 /**
+ * Normalize text for intent pattern matching
+ * Removes punctuation and normalizes whitespace
+ */
+function normalizeTextForIntentMatching(text: string): string {
+  return text.toLowerCase().replace(/[?!.,;:]/g, '').trim();
+}
+
+/**
+ * Check if query has a perfect match with any intent pattern
+ * Perfect match = exact match after normalization
+ */
+function hasPerfectIntentMatch(
+  docIntentPatterns: string[],
+  userQuery: string
+): boolean {
+  if (docIntentPatterns.length === 0) return false;
+  
+  const queryNormalized = normalizeTextForIntentMatching(userQuery);
+  
+  for (const pattern of docIntentPatterns) {
+    const patternNormalized = normalizeTextForIntentMatching(pattern);
+    if (queryNormalized === patternNormalized) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
+/**
  * Calculate intent pattern match score
+ * IMPROVED: Normalizes punctuation for better matching
  */
 function calculateIntentPatternScore(
   docIntentPatterns: string[],
@@ -118,26 +149,37 @@ function calculateIntentPatternScore(
 ): number {
   if (docIntentPatterns.length === 0) return 0;
 
-  const queryLower = userQuery.toLowerCase();
+  const queryNormalized = normalizeTextForIntentMatching(userQuery);
   let maxScore = 0;
   let primaryIntentMatches = 0;
 
   for (const pattern of docIntentPatterns) {
-    const patternLower = pattern.toLowerCase();
+    const patternNormalized = normalizeTextForIntentMatching(pattern);
     
-    if (queryLower.includes(patternLower) || patternLower.includes(queryLower)) {
+    // Check for exact match after normalization (highest priority)
+    if (queryNormalized === patternNormalized) {
       maxScore = Math.max(maxScore, 1.0);
       if (pattern.includes('PRIMARY') || !pattern.includes('SECONDARY')) {
         primaryIntentMatches++;
       }
       continue;
     }
+    
+    // Check for substring match (still very strong)
+    if (queryNormalized.includes(patternNormalized) || patternNormalized.includes(queryNormalized)) {
+      maxScore = Math.max(maxScore, 0.95);
+      if (pattern.includes('PRIMARY') || !pattern.includes('SECONDARY')) {
+        primaryIntentMatches++;
+      }
+      continue;
+    }
 
-    const patternWords = patternLower
+    // Word-based matching (fallback)
+    const patternWords = patternNormalized
       .split(/\s+/)
       .filter(w => w.length > 3 && !['why', 'what', 'how', 'when', 'where', 'can', 'does', 'is', 'are'].includes(w));
     
-    const matchingWords = patternWords.filter(word => queryLower.includes(word));
+    const matchingWords = patternWords.filter(word => queryNormalized.includes(word));
     if (matchingWords.length > 0) {
       const wordMatchScore = matchingWords.length / patternWords.length;
       maxScore = Math.max(maxScore, wordMatchScore * 0.7);
@@ -239,9 +281,77 @@ function applyHybridSearch(
     // Use ACTUAL semantic similarity from database (not approximation)
     const semanticScore = similarity;
 
-    const docKeywords = (doc.metadata?.keywords as string[]) || [];
-    const docIntentPatterns = (doc.metadata?.intent_patterns as string[]) || [];
-    const contentSections = doc.metadata?.content_sections as { has_content?: boolean; has_action_tips?: boolean; has_motivation?: boolean; has_followup?: boolean; has_habit_strategy?: boolean } | undefined;
+    // Extract metadata fields - handle both direct access and nested JSONB structure
+    const metadata = doc.metadata || {};
+    
+    // Intent patterns might be stored as JSONB array - ensure we get it as array
+    // Supabase JSONB fields are automatically parsed, but handle edge cases
+    let docIntentPatterns: string[] = [];
+    const rawIntentPatterns = metadata.intent_patterns;
+    
+    if (rawIntentPatterns) {
+      if (Array.isArray(rawIntentPatterns)) {
+        // Already an array - use directly, but ensure all elements are strings
+        docIntentPatterns = rawIntentPatterns
+          .map(p => typeof p === 'string' ? p : String(p))
+          .filter(p => p && p.trim().length > 0);
+      } else if (typeof rawIntentPatterns === 'string') {
+        // If stored as JSON string, parse it
+        try {
+          const parsed = JSON.parse(rawIntentPatterns);
+          if (Array.isArray(parsed)) {
+            docIntentPatterns = parsed
+              .map(p => typeof p === 'string' ? p : String(p))
+              .filter(p => p && p.trim().length > 0);
+          }
+        } catch {
+          // If parsing fails, treat as single string
+          docIntentPatterns = [rawIntentPatterns];
+        }
+      }
+    }
+    
+    // Keywords - same handling
+    let docKeywords: string[] = [];
+    const rawKeywords = metadata.keywords;
+    if (rawKeywords) {
+      if (Array.isArray(rawKeywords)) {
+        docKeywords = rawKeywords
+          .map(k => typeof k === 'string' ? k : String(k))
+          .filter(k => k && k.trim().length > 0);
+      } else if (typeof rawKeywords === 'string') {
+        try {
+          const parsed = JSON.parse(rawKeywords);
+          if (Array.isArray(parsed)) {
+            docKeywords = parsed
+              .map(k => typeof k === 'string' ? k : String(k))
+              .filter(k => k && k.trim().length > 0);
+          }
+        } catch {
+          docKeywords = [rawKeywords];
+        }
+      }
+    }
+    
+    const contentSections = metadata.content_sections as { has_content?: boolean; has_action_tips?: boolean; has_motivation?: boolean; has_followup?: boolean; has_habit_strategy?: boolean } | undefined;
+
+    // DEBUG: Log intent patterns for first few documents
+    const topic = metadata.topic as string || 'Unknown';
+    const subtopic = metadata.subtopic as string || 'Unknown';
+    if (docIntentPatterns.length > 0) {
+      console.log(`[KB Retrieval] Document: ${topic} / ${subtopic} - Found ${docIntentPatterns.length} intent patterns`);
+      // Check if query matches any intent pattern
+      const normalizedQuery = normalizeTextForIntentMatching(userQuery);
+      const matchingPatterns = docIntentPatterns.filter(pattern => {
+        const normalizedPattern = normalizeTextForIntentMatching(pattern);
+        return normalizedQuery === normalizedPattern;
+      });
+      if (matchingPatterns.length > 0) {
+        console.log(`[KB Retrieval] 🎯 EXACT MATCH FOUND! Query: "${userQuery}" matches pattern: "${matchingPatterns[0]}"`);
+      }
+    } else {
+      console.log(`[KB Retrieval] ⚠️  Document: ${topic} / ${subtopic} - NO INTENT PATTERNS`);
+    }
 
     const intentScore = calculateIntentPatternScore(docIntentPatterns, userQuery);
     const keywordScore = queryKeywords.length > 0 
@@ -249,13 +359,36 @@ function applyHybridSearch(
       : 0.5;
     const sectionScore = calculateSectionRelevanceScore(contentSections, userQuery);
 
-    // CRITICAL FIX: Adaptive weighting based on semantic similarity
-    // High semantic similarity (>= 0.7) is extremely reliable - trust it more
-    // This prevents excellent semantic matches from being penalized by hybrid scoring
+    // CRITICAL FIX: Detect perfect intent matches and boost them significantly
+    // Perfect match = exact match after normalization (not just score >= 1.0)
+    const hasPerfectMatch = hasPerfectIntentMatch(docIntentPatterns, userQuery);
+    
+    // Debug logging for perfect matches
+    if (hasPerfectMatch) {
+      const topic = doc.metadata?.topic as string || 'Unknown';
+      const subtopic = doc.metadata?.subtopic as string || 'Unknown';
+      console.log(`[KB Retrieval] ✅ Perfect intent match found! Topic: ${topic}, Subtopic: ${subtopic}, Intent Score: ${intentScore.toFixed(3)}`);
+    }
+    
+    // CRITICAL FIX: Adaptive weighting based on semantic similarity AND intent matches
+    // Perfect intent matches should win even if semantic similarity is slightly lower
     let semanticWeight: number;
     let metadataWeight: number;
     
-    if (semanticScore >= 0.7) {
+    if (hasPerfectMatch) {
+      // Perfect intent match - prioritize metadata VERY heavily (40% semantic, 60% metadata)
+      // This ensures exact intent matches win even if semantic similarity is slightly lower
+      // Example: Sleep Disturbances with perfect match beats Hot Flashes with higher semantic
+      // If semantic similarity is still reasonable (>= 0.5), perfect match should win
+      if (semanticScore >= 0.5) {
+        semanticWeight = 0.4;
+        metadataWeight = 0.6;
+      } else {
+        // Very low semantic similarity - still boost but less aggressively
+        semanticWeight = 0.5;
+        metadataWeight = 0.5;
+      }
+    } else if (semanticScore >= 0.7) {
       // Very high semantic similarity (0.7+) - trust it heavily (85% weight)
       // Example: 0.726 semantic -> 0.726 * 0.85 = 0.617 base, plus metadata boost
       semanticWeight = 0.85;
@@ -270,16 +403,41 @@ function applyHybridSearch(
       metadataWeight = 0.4;
     }
 
-    // Calculate metadata contribution
+    // Calculate metadata contribution with boosted intent weight for perfect matches
+    // Perfect matches get even higher intent weight to ensure they win
+    const intentWeight = hasPerfectMatch ? 0.8 : 0.5;
+    const keywordWeight = hasPerfectMatch ? 0.15 : 0.35;
+    const sectionWeight = hasPerfectMatch ? 0.05 : 0.15;
+    
     const metadataScore = 
-      (intentScore * 0.5) +    // Intent patterns are strong signals
-      (keywordScore * 0.35) +  // Keywords provide additional relevance
-      (sectionScore * 0.15);   // Content sections fine-tune relevance
+      (intentScore * intentWeight) +    // Intent patterns are strong signals, boosted for perfect matches
+      (keywordScore * keywordWeight) +  // Keywords provide additional relevance
+      (sectionScore * sectionWeight);   // Content sections fine-tune relevance
 
-    // Final score: adaptive weighting ensures high semantic scores aren't penalized
-    const finalScore = 
+    // Final score: adaptive weighting ensures perfect intent matches win
+    let finalScore = 
       (semanticScore * semanticWeight) + 
       (metadataScore * metadataWeight);
+    
+    // CRITICAL: Add bonus boost for perfect matches to ensure they always win
+    // This is a safety net to guarantee perfect intent matches rank highest
+    // Perfect matches should win even if semantic similarity is lower (e.g., 0.4-0.5)
+    if (hasPerfectMatch) {
+      // Add a significant boost (0.15-0.25) to ensure perfect matches win
+      // Lower semantic scores get bigger boosts to compensate
+      let bonus: number;
+      if (semanticScore >= 0.5) {
+        // Good semantic similarity - moderate boost
+        bonus = 0.15 + (semanticScore - 0.5) * 0.1;
+      } else if (semanticScore >= 0.4) {
+        // Moderate semantic similarity - larger boost needed
+        bonus = 0.20 + (semanticScore - 0.4) * 0.5;
+      } else {
+        // Lower semantic similarity - maximum boost
+        bonus = 0.25;
+      }
+      finalScore += Math.min(0.25, bonus);
+    }
 
     return {
       doc,
@@ -366,9 +524,11 @@ export async function retrieveFromKB(
     // Map persona to metadata value
     const metadataPersona = mapPersonaToMetadata(persona);
     
-    // OPTIMIZATION: Retrieve more candidates for hybrid re-ranking
-    // Increased to 2x topK to ensure we have enough candidates after filtering
-    const retrieveCount = Math.min(Math.ceil(topK * 2), 30);
+    // CRITICAL FIX: Retrieve significantly more candidates to ensure perfect intent matches are included
+    // Even if semantic similarity is lower, documents with perfect intent matches must be in the candidate pool
+    // Example: "why do i wake up every night" should retrieve Sleep Disturbances even if Hot Flashes has higher semantic similarity
+    // Increased to 5x topK (15-30 candidates) to ensure intent-matched documents are included
+    const retrieveCount = Math.min(Math.ceil(topK * 5), 30);
     
     // For hybrid mode personas (nutrition_coach, exercise_trainer), include "menopause" content too
     // Weight/metabolism questions are relevant to both the specific persona AND menopause content
@@ -416,13 +576,31 @@ export async function retrieveFromKB(
       }
       
       // Convert to Document format with ACTUAL similarity scores from database
-      const documentsWithScores = personaFiltered.map((match: MatchResult) => ({
-        doc: {
-          pageContent: match.content,
-          metadata: match.metadata,
-        } as Document,
-        similarity: match.similarity, // ACTUAL similarity score
-      }));
+      const documentsWithScores = personaFiltered.map((match: MatchResult) => {
+        // DEBUG: Log metadata structure from database (fallback path)
+        const topic = match.metadata?.topic as string || 'Unknown';
+        const intentPatterns = match.metadata?.intent_patterns;
+        const intentPatternsType = typeof intentPatterns;
+        const intentPatternsIsArray = Array.isArray(intentPatterns);
+        
+        if (topic.includes('Sleep') || topic.includes('Hot Flash')) {
+          console.log(`[KB Retrieval] 🔍 Database metadata (fallback) for ${topic}:`);
+          console.log(`  - intent_patterns type: ${intentPatternsType}`);
+          console.log(`  - intent_patterns is array: ${intentPatternsIsArray}`);
+          console.log(`  - intent_patterns value:`, intentPatterns);
+          if (Array.isArray(intentPatterns) && intentPatterns.length > 0) {
+            console.log(`  - First intent pattern: "${intentPatterns[0]}"`);
+          }
+        }
+        
+        return {
+          doc: {
+            pageContent: match.content,
+            metadata: match.metadata,
+          } as Document,
+          similarity: match.similarity, // ACTUAL similarity score
+        };
+      });
       
       // Apply hybrid search re-ranking with actual similarity scores
       const scoredDocs = applyHybridSearch(documentsWithScores, query);
@@ -434,16 +612,43 @@ export async function retrieveFromKB(
           const doc = item.doc;
           const topic = doc.metadata?.topic as string || 'Unknown';
           const subtopic = doc.metadata?.subtopic as string || 'Unknown';
-          console.log(`  [${idx + 1}] Final Score: ${item.score.toFixed(3)} | Semantic: ${item.similarity.toFixed(3)} | Topic: ${topic} | Subtopic: ${subtopic}`);
+          const intentPatterns = (doc.metadata?.intent_patterns as string[]) || [];
+          const hasPerfect = hasPerfectIntentMatch(intentPatterns, query);
+          const perfectMarker = hasPerfect ? ' ⭐ PERFECT MATCH' : '';
+          console.log(`  [${idx + 1}] Final Score: ${item.score.toFixed(3)} | Semantic: ${item.similarity.toFixed(3)} | Topic: ${topic} | Subtopic: ${subtopic}${perfectMarker}`);
         });
       }
       
       // IMPROVED: Use semantic similarity as primary gate, hybrid score for ranking
       // Allow lower semantic threshold (0.35-0.4) for better recall, especially for paraphrases
+      // CRITICAL: Perfect intent matches bypass semantic threshold - they must be included
       const semanticThreshold = Math.max(0.35, similarityThreshold - 0.1);
-      const semanticallyValid = scoredDocs.filter(item => item.similarity >= semanticThreshold);
+      
+      // Separate perfect matches from regular matches
+      const perfectMatches: typeof scoredDocs = [];
+      const regularMatches: typeof scoredDocs = [];
+      
+      for (const item of scoredDocs) {
+        const intentPatterns = (item.doc.metadata?.intent_patterns as string[]) || [];
+        const hasPerfect = hasPerfectIntentMatch(intentPatterns, query);
+        if (hasPerfect) {
+          perfectMatches.push(item);
+        } else {
+          regularMatches.push(item);
+        }
+      }
+      
+      // Regular matches must pass semantic threshold
+      const semanticallyValid = regularMatches.filter(item => item.similarity >= semanticThreshold);
+      
+      // Perfect matches bypass semantic threshold - always include them (even if semantic is lower)
+      // But still apply hybrid threshold to ensure quality
       const adaptiveHybridThreshold = calculateAdaptiveHybridThreshold(scoredDocs.length > 0 ? scoredDocs[0].similarity : 0, similarityThreshold);
-      const filteredDocs = semanticallyValid.filter(item => item.score >= adaptiveHybridThreshold);
+      const filteredRegular = semanticallyValid.filter(item => item.score >= adaptiveHybridThreshold);
+      const filteredPerfect = perfectMatches.filter(item => item.score >= adaptiveHybridThreshold);
+      
+      // Combine: perfect matches first (they should rank highest), then regular matches
+      const filteredDocs = [...filteredPerfect, ...filteredRegular];
       
       if (scoredDocs.length > 0) {
         const topSemantic = scoredDocs[0].similarity;
@@ -453,8 +658,13 @@ export async function retrieveFromKB(
         console.log(`  - Hybrid threshold: ${adaptiveHybridThreshold.toFixed(3)} (adaptive, base: ${similarityThreshold.toFixed(3)})`);
         console.log(`  - Top semantic score: ${topSemantic.toFixed(3)}`);
         console.log(`  - Top hybrid score: ${topHybrid.toFixed(3)}`);
-        console.log(`  - Semantically valid: ${semanticallyValid.length}/${scoredDocs.length}`);
-        console.log(`  - Passed both thresholds: ${filteredDocs.length}/${scoredDocs.length}`);
+        console.log(`  - Perfect matches: ${perfectMatches.length} (bypass semantic threshold)`);
+        console.log(`  - Regular matches (semantically valid): ${semanticallyValid.length}/${regularMatches.length}`);
+        console.log(`  - Passed both thresholds: ${filteredDocs.length}/${scoredDocs.length} (${filteredPerfect.length} perfect + ${filteredRegular.length} regular)`);
+        
+        if (filteredPerfect.length > 0) {
+          console.log(`[KB Retrieval] ⭐ Perfect intent matches found and included: ${filteredPerfect.length}`);
+        }
       }
 
       // Convert to KBEntry format with both scores
@@ -502,13 +712,31 @@ export async function retrieveFromKB(
     }
 
     // Convert to Document format with ACTUAL similarity scores from database
-    const documentsWithScores = matches.map((match: MatchResult) => ({
-      doc: {
-        pageContent: match.content,
-        metadata: match.metadata,
-      } as Document,
-      similarity: match.similarity, // ACTUAL similarity score from database
-    }));
+    const documentsWithScores = matches.map((match: MatchResult) => {
+      // DEBUG: Log metadata structure from database
+      const topic = match.metadata?.topic as string || 'Unknown';
+      const intentPatterns = match.metadata?.intent_patterns;
+      const intentPatternsType = typeof intentPatterns;
+      const intentPatternsIsArray = Array.isArray(intentPatterns);
+      
+      if (topic.includes('Sleep') || topic.includes('Hot Flash')) {
+        console.log(`[KB Retrieval] 🔍 Database metadata for ${topic}:`);
+        console.log(`  - intent_patterns type: ${intentPatternsType}`);
+        console.log(`  - intent_patterns is array: ${intentPatternsIsArray}`);
+        console.log(`  - intent_patterns value:`, intentPatterns);
+        if (Array.isArray(intentPatterns) && intentPatterns.length > 0) {
+          console.log(`  - First intent pattern: "${intentPatterns[0]}"`);
+        }
+      }
+      
+      return {
+        doc: {
+          pageContent: match.content,
+          metadata: match.metadata,
+        } as Document,
+        similarity: match.similarity, // ACTUAL similarity score from database
+      };
+    });
 
     // Apply hybrid search re-ranking with actual similarity scores
     const scoredDocs = applyHybridSearch(documentsWithScores, query);
@@ -520,7 +748,10 @@ export async function retrieveFromKB(
         const doc = item.doc;
         const topic = doc.metadata?.topic as string || 'Unknown';
         const subtopic = doc.metadata?.subtopic as string || 'Unknown';
-        console.log(`  [${idx + 1}] Final Score: ${item.score.toFixed(3)} | Semantic: ${item.similarity.toFixed(3)} | Topic: ${topic} | Subtopic: ${subtopic}`);
+        const intentPatterns = (doc.metadata?.intent_patterns as string[]) || [];
+        const hasPerfect = hasPerfectIntentMatch(intentPatterns, query);
+        const perfectMarker = hasPerfect ? ' ⭐ PERFECT MATCH' : '';
+        console.log(`  [${idx + 1}] Final Score: ${item.score.toFixed(3)} | Semantic: ${item.similarity.toFixed(3)} | Topic: ${topic} | Subtopic: ${subtopic}${perfectMarker}`);
       });
       console.log(`[KB Retrieval] Threshold: ${similarityThreshold}`);
     }
@@ -528,17 +759,35 @@ export async function retrieveFromKB(
     // IMPROVED: Use semantic similarity as primary gate, hybrid score for ranking
     // This ensures high-quality semantic matches aren't rejected due to metadata scoring
     // Allow lower semantic threshold (0.35-0.4) for better recall, especially for paraphrases
+    // CRITICAL: Perfect intent matches bypass semantic threshold - they must be included
     const semanticThreshold = Math.max(0.35, similarityThreshold - 0.1);
-
-    // First filter by semantic similarity (primary gate)
-    const semanticallyValid = scoredDocs.filter(item => item.similarity >= semanticThreshold);
-
-    // Calculate adaptive hybrid threshold based on top semantic score
+    
+    // Separate perfect matches from regular matches
+    const perfectMatches: typeof scoredDocs = [];
+    const regularMatches: typeof scoredDocs = [];
+    
+    for (const item of scoredDocs) {
+      const intentPatterns = (item.doc.metadata?.intent_patterns as string[]) || [];
+      const hasPerfect = hasPerfectIntentMatch(intentPatterns, query);
+      if (hasPerfect) {
+        perfectMatches.push(item);
+      } else {
+        regularMatches.push(item);
+      }
+    }
+    
+    // Regular matches must pass semantic threshold
+    const semanticallyValid = regularMatches.filter(item => item.similarity >= semanticThreshold);
+    
+    // Perfect matches bypass semantic threshold - always include them (even if semantic is lower)
+    // But still apply hybrid threshold to ensure quality
     const topSemanticScore = scoredDocs.length > 0 ? scoredDocs[0].similarity : 0;
     const adaptiveHybridThreshold = calculateAdaptiveHybridThreshold(topSemanticScore, similarityThreshold);
-
-    // Then filter by adaptive hybrid score (secondary filter)
-    const filteredDocs = semanticallyValid.filter(item => item.score >= adaptiveHybridThreshold);
+    const filteredRegular = semanticallyValid.filter(item => item.score >= adaptiveHybridThreshold);
+    const filteredPerfect = perfectMatches.filter(item => item.score >= adaptiveHybridThreshold);
+    
+    // Combine: perfect matches first (they should rank highest), then regular matches
+    const filteredDocs = [...filteredPerfect, ...filteredRegular];
 
     // Enhanced logging
     if (scoredDocs.length > 0) {
@@ -549,13 +798,18 @@ export async function retrieveFromKB(
       console.log(`  - Hybrid threshold: ${adaptiveHybridThreshold.toFixed(3)} (adaptive, base: ${similarityThreshold.toFixed(3)})`);
       console.log(`  - Top semantic score: ${topSemantic.toFixed(3)}`);
       console.log(`  - Top hybrid score: ${topHybrid.toFixed(3)}`);
-      console.log(`  - Semantically valid: ${semanticallyValid.length}/${scoredDocs.length}`);
-      console.log(`  - Passed both thresholds: ${filteredDocs.length}/${scoredDocs.length}`);
+      console.log(`  - Perfect matches: ${perfectMatches.length} (bypass semantic threshold)`);
+      console.log(`  - Regular matches (semantically valid): ${semanticallyValid.length}/${regularMatches.length}`);
+      console.log(`  - Passed both thresholds: ${filteredDocs.length}/${scoredDocs.length} (${filteredPerfect.length} perfect + ${filteredRegular.length} regular)`);
       
       if (filteredDocs.length === 0 && semanticallyValid.length > 0) {
         console.log(`[KB Retrieval] ⚠️  Semantic match found but hybrid score too low`);
         console.log(`  - Top semantic: ${topSemantic.toFixed(3)} (passed)`);
         console.log(`  - Top hybrid: ${topHybrid.toFixed(3)} (failed threshold ${adaptiveHybridThreshold.toFixed(3)})`);
+      }
+      
+      if (filteredPerfect.length > 0) {
+        console.log(`[KB Retrieval] ⭐ Perfect intent matches found and included: ${filteredPerfect.length}`);
       }
     }
 

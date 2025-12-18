@@ -513,8 +513,20 @@ function parseYAMLIntentPatterns(section: string): string[] {
   
   for (const line of lines) {
     const trimmed = line.trim();
-    // Skip empty lines and headers
-    if (!trimmed || trimmed.match(/^(PRIMARY|SECONDARY)\s+INTENTS?/i)) {
+    // Skip empty lines
+    if (!trimmed) {
+      continue;
+    }
+    // Skip headers like "PRIMARY INTENTS", "SECONDARY INTENTS", "TIER 1:", "TIER 2:", etc.
+    if (trimmed.match(/^(PRIMARY|SECONDARY|TIER\s+\d+)\s+/i)) {
+      continue;
+    }
+    // Skip cluster headers like "The "waking up at night" cluster:" or "The "can't fall asleep" cluster:"
+    if (trimmed.match(/^The\s+["'].*?["']\s+cluster:/i)) {
+      continue;
+    }
+    // Skip lines that are just descriptive text (contain "QUESTIONS", "CLUSTER", etc. but not bullet points)
+    if (trimmed.match(/^(QUESTIONS|CLUSTER|INTENTS?):/i) && !trimmed.match(/^[-•]/)) {
       continue;
     }
     // Match bullet points (- or •)
@@ -558,8 +570,16 @@ function parseMarkdownIntentPatterns(section: string): string[] {
     if (!trimmed) {
       continue;
     }
-    // Skip headers like "PRIMARY INTENTS (educational/overview queries):" or "SECONDARY INTENTS"
-    if (trimmed.match(/^(PRIMARY|SECONDARY)\s+INTENTS?/i)) {
+    // Skip headers like "PRIMARY INTENTS", "SECONDARY INTENTS", "TIER 1:", "TIER 2:", etc.
+    if (trimmed.match(/^(PRIMARY|SECONDARY|TIER\s+\d+)\s+/i)) {
+      continue;
+    }
+    // Skip cluster headers like "The "waking up at night" cluster:" or "The "can't fall asleep" cluster:"
+    if (trimmed.match(/^The\s+["'].*?["']\s+cluster:/i)) {
+      continue;
+    }
+    // Skip lines that are just descriptive text (contain "QUESTIONS", "CLUSTER", etc. but not bullet points)
+    if (trimmed.match(/^(QUESTIONS|CLUSTER|INTENTS?):/i) && !trimmed.match(/^[-•]/)) {
       continue;
     }
     // Match bullet points (- or •)
@@ -909,8 +929,9 @@ function parseSection(section: string, format: FileFormat, source: string, secti
   
   // Return one document per section (chunking only as last resort for extremely large sections)
   return contentChunks.map((chunk, chunkIndex) => {
-    // Only first chunk gets full intent patterns (subsequent chunks are rare edge cases)
-    const chunkIntentPatterns = chunkIndex === 0 ? intent_patterns : [];
+    // ALL chunks must have intent patterns in metadata for proper retrieval
+    // Intent patterns are critical for verbatim mode and exact intent matching
+    const chunkIntentPatterns = intent_patterns; // Include intents in ALL chunks
     
     return {
       metadata,
