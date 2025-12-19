@@ -7,8 +7,8 @@ export async function GET(request: NextRequest) {
   const code = requestUrl.searchParams.get("code");
   const next = requestUrl.searchParams.get("next") ?? "/dashboard";
 
-  // Determine the base URL (use environment variable if set, otherwise use request origin)
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || requestUrl.origin;
+  // Always use www.womenreset.com for redirects after email authentication
+  const baseUrl = "https://www.womenreset.com";
 
   if (!code) {
     console.error("Auth callback: No code parameter found");

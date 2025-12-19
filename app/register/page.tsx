@@ -218,8 +218,8 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      // Use environment variable for site URL, fallback to current origin for development
-      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || (typeof window !== "undefined" ? window.location.origin : "https://www.womenreset.com");
+      // Always use www.womenreset.com for email redirects
+      const siteUrl = "https://www.womenreset.com";
       const redirectTo = `${siteUrl}/auth/callback?next=/register`;
 
       const { error } = await supabase.auth.signInWithOtp({
