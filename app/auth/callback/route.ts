@@ -1,14 +1,15 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
+import { SITE_URL } from "@/lib/constants";
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
   const next = requestUrl.searchParams.get("next") ?? "/dashboard";
 
-  // Always use www.womenreset.com for redirects after email authentication
-  const baseUrl = "https://www.womenreset.com";
+  // Always use womenreset.com for redirects after email authentication
+  const baseUrl = SITE_URL;
 
   if (!code) {
     console.error("Auth callback: No code parameter found");
@@ -75,11 +76,31 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    if (!data.user) {
+      console.error("Auth callback: No user in session");
+      return NextResponse.redirect(
+        `${baseUrl}/login?error=auth_callback_error&message=${encodeURIComponent("User authentication failed. Please try again.")}`
+      );
+    }
+
     // Determine redirect URL based on the flow (login vs registration)
     let redirectUrl: string;
     if (next === "/register") {
-      // User is coming from REGISTRATION flow - always redirect to register page to complete quiz
-      redirectUrl = `${baseUrl}/register`;
+      // User is coming from REGISTRATION flow - check if they already have a profile
+      // If they do, redirect to dashboard; otherwise, redirect to register to complete quiz
+      const { data: profile } = await supabase
+        .from("user_profiles")
+        .select("user_id")
+        .eq("user_id", data.user.id)
+        .maybeSingle();
+
+      if (profile) {
+        // User already has a profile - redirect to dashboard
+        redirectUrl = `${baseUrl}/dashboard`;
+      } else {
+        // User needs to complete registration - redirect to register page
+        redirectUrl = `${baseUrl}/register`;
+      }
     } else {
       // User is coming from LOGIN flow - always redirect to dashboard (or the specified next target)
       const sanitizedNext = next.startsWith("/") ? next : "/dashboard";
@@ -105,8 +126,9 @@ export async function GET(request: NextRequest) {
     return finalResponse;
   } catch (error) {
     console.error("Auth callback exception:", error);
+    const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred. Please try again.";
     return NextResponse.redirect(
-      `${baseUrl}/login?error=auth_callback_error&message=${encodeURIComponent("An unexpected error occurred. Please try again.")}`
+      `${baseUrl}/login?error=auth_callback_error&message=${encodeURIComponent(errorMessage)}`
     );
   }
 }

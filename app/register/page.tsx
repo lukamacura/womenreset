@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { SITE_URL, AUTH_CALLBACK_PATH } from "@/lib/constants";
 import { User, Calendar, FileText, UtensilsCrossed, Dumbbell, Heart, Home } from "lucide-react";
 
 type Step = "name" | "age" | "profiles" | "summary" | "done";
@@ -218,9 +219,10 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      // Always use www.womenreset.com for email redirects
-      const siteUrl = "https://www.womenreset.com";
-      const redirectTo = `${siteUrl}/auth/callback?next=/register`;
+      // Always use womenreset.com for email redirects
+      // Note: signInWithOtp works for both new and existing users
+      // The auth callback will check if user has a profile and redirect accordingly
+      const redirectTo = `${SITE_URL}${AUTH_CALLBACK_PATH}?next=/register`;
 
       const { error } = await supabase.auth.signInWithOtp({
         email,
@@ -259,6 +261,8 @@ export default function RegisterPage() {
       }
 
       // Magic link sent successfully
+      // Note: signInWithOtp works for both registration and login
+      // If user already exists, they'll be logged in; if not, they'll complete registration
       setInfo("Check your email! We sent you a magic link. Click it to continue with registration.");
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Unknown error occurred. Please try again.");

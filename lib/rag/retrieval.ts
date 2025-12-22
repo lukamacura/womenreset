@@ -110,16 +110,71 @@ function extractQueryKeywords(query: string): string[] {
 }
 
 /**
+ * Synonym map for intent pattern matching
+ * Maps common words to their synonyms for better semantic matching
+ */
+const intentSynonymMap: Record<string, string[]> = {
+  'wake': ['awaken', 'awake', 'waking', 'woke'],
+  'sleep': ['rest', 'slumber', 'sleeping', 'asleep'],
+  'night': ['evening', 'nighttime', 'nocturnal'],
+  'every': ['each', 'all', 'always'],
+  'cannot': ['can\'t', 'can not', 'unable'],
+  'can\'t': ['cannot', 'can not', 'unable'],
+  'insomnia': ['sleeplessness', 'sleep problems', 'sleep issues', 'sleep disturbance'],
+  'hot flash': ['hot flashes', 'flushing', 'vasomotor'],
+  'sweat': ['sweating', 'perspire'],
+  'tired': ['exhausted', 'fatigued', 'weary'],
+  'fall': ['go to', 'get to'],
+  'asleep': ['sleep', 'sleeping'],
+  'awake': ['wake', 'waking'],
+  'rest': ['sleep', 'resting'],
+  'evening': ['night', 'nighttime'],
+  'each': ['every', 'all'],
+  'always': ['every', 'each'],
+};
+
+/**
+ * Expand a word with its synonyms
+ */
+function expandSynonyms(word: string, synonymMap: Record<string, string[]>): Set<string> {
+  const expanded = new Set<string>([word]);
+  
+  // Check if word is a key in the map
+  if (synonymMap[word]) {
+    synonymMap[word].forEach(syn => expanded.add(syn));
+  }
+  
+  // Check if word is a synonym of any key
+  for (const [key, synonyms] of Object.entries(synonymMap)) {
+    if (synonyms.includes(word)) {
+      expanded.add(key);
+      synonyms.forEach(syn => expanded.add(syn));
+    }
+  }
+  
+  return expanded;
+}
+
+/**
  * Normalize text for intent pattern matching
- * Removes punctuation and normalizes whitespace
+ * Removes punctuation, normalizes whitespace, and expands contractions
  */
 function normalizeTextForIntentMatching(text: string): string {
-  return text.toLowerCase().replace(/[?!.,;:]/g, '').trim();
+  let normalized = text.toLowerCase().replace(/[?!.,;:]/g, '').trim();
+  
+  // Expand common contractions and variations
+  normalized = normalized.replace(/\b(can't|cannot|can not)\b/g, 'cannot');
+  normalized = normalized.replace(/\b(won't|will not)\b/g, 'will not');
+  normalized = normalized.replace(/\b(don't|do not)\b/g, 'do not');
+  normalized = normalized.replace(/\b(i'm|i am)\b/g, 'i am');
+  normalized = normalized.replace(/\b(it's|it is)\b/g, 'it is');
+  
+  return normalized;
 }
 
 /**
  * Check if query has a perfect match with any intent pattern
- * Perfect match = exact match after normalization
+ * Perfect match = exact match OR high semantic similarity (>= 0.6 word overlap with synonyms)
  */
 function hasPerfectIntentMatch(
   docIntentPatterns: string[],
@@ -131,8 +186,48 @@ function hasPerfectIntentMatch(
   
   for (const pattern of docIntentPatterns) {
     const patternNormalized = normalizeTextForIntentMatching(pattern);
+    
+    // Exact match
     if (queryNormalized === patternNormalized) {
       return true;
+    }
+    
+    // High semantic similarity with synonym-aware matching
+    const stopWords = new Set(['why', 'what', 'how', 'when', 'where', 'can', 'does', 'is', 'are', 'do', 'i', 'my', 'me', 'at', 'in', 'on', 'the', 'a', 'an']);
+    
+    const queryWords = queryNormalized
+      .split(/\s+/)
+      .filter(w => w.length > 2 && !stopWords.has(w));
+    
+    const patternWords = patternNormalized
+      .split(/\s+/)
+      .filter(w => w.length > 2 && !stopWords.has(w));
+    
+    if (queryWords.length > 0 && patternWords.length > 0) {
+      // Expand words with synonyms
+      const queryWordSet = new Set<string>();
+      const patternWordSet = new Set<string>();
+      
+      queryWords.forEach(word => {
+        const expanded = expandSynonyms(word, intentSynonymMap);
+        expanded.forEach(w => queryWordSet.add(w));
+      });
+      
+      patternWords.forEach(word => {
+        const expanded = expandSynonyms(word, intentSynonymMap);
+        expanded.forEach(w => patternWordSet.add(w));
+      });
+      
+      // Calculate overlap with synonym expansion
+      const intersection = new Set([...queryWordSet].filter(w => patternWordSet.has(w)));
+      const union = new Set([...queryWordSet, ...patternWordSet]);
+      
+      const wordOverlapScore = intersection.size / union.size;
+      
+      // High semantic similarity (>= 0.6) treated as perfect match (lowered from 0.75)
+      if (wordOverlapScore >= 0.6) {
+        return true;
+      }
     }
   }
   
@@ -141,7 +236,7 @@ function hasPerfectIntentMatch(
 
 /**
  * Calculate intent pattern match score
- * IMPROVED: Normalizes punctuation for better matching
+ * IMPROVED: Better semantic matching for variations like "at night" vs "every night"
  */
 function calculateIntentPatternScore(
   docIntentPatterns: string[],
@@ -174,18 +269,99 @@ function calculateIntentPatternScore(
       continue;
     }
 
-    // Word-based matching (fallback)
+    // IMPROVED: Word-based matching with synonym-aware semantic similarity
+    // Extract meaningful words (exclude common stop words and short words)
+    const stopWords = new Set(['why', 'what', 'how', 'when', 'where', 'can', 'does', 'is', 'are', 'do', 'i', 'my', 'me', 'at', 'in', 'on', 'the', 'a', 'an']);
+    
+    const queryWords = queryNormalized
+      .split(/\s+/)
+      .filter(w => w.length > 2 && !stopWords.has(w));
+    
     const patternWords = patternNormalized
       .split(/\s+/)
-      .filter(w => w.length > 3 && !['why', 'what', 'how', 'when', 'where', 'can', 'does', 'is', 'are'].includes(w));
+      .filter(w => w.length > 2 && !stopWords.has(w));
     
-    const matchingWords = patternWords.filter(word => queryNormalized.includes(word));
-    if (matchingWords.length > 0) {
-      const wordMatchScore = matchingWords.length / patternWords.length;
-      maxScore = Math.max(maxScore, wordMatchScore * 0.7);
+    if (queryWords.length === 0 || patternWords.length === 0) {
+      continue;
+    }
+    
+    // Expand words with synonyms for better matching
+    const queryWordSet = new Set<string>();
+    const patternWordSet = new Set<string>();
+    
+    queryWords.forEach(word => {
+      queryWordSet.add(word); // Add original word
+      const expanded = expandSynonyms(word, intentSynonymMap);
+      expanded.forEach(w => queryWordSet.add(w));
+    });
+    
+    patternWords.forEach(word => {
+      patternWordSet.add(word); // Add original word
+      const expanded = expandSynonyms(word, intentSynonymMap);
+      expanded.forEach(w => patternWordSet.add(w));
+    });
+    
+    // Calculate word overlap using Jaccard similarity with synonym expansion
+    const intersection = new Set([...queryWordSet].filter(w => patternWordSet.has(w)));
+    const union = new Set([...queryWordSet, ...patternWordSet]);
+    
+    const wordOverlapScore = intersection.size / union.size;
+    
+    // If high word overlap (>= 0.4, lowered from 0.6), treat as strong match
+    // This catches cases like "wake up at night" vs "wake up every night"
+    // and "rest at night" vs "sleep" (synonym matching)
+    if (wordOverlapScore >= 0.4) {
+      // Scale the score: 0.4 overlap = 0.70, 0.6+ overlap = 0.85, 0.8+ overlap = 0.95
+      let semanticScore: number;
+      if (wordOverlapScore >= 0.8) {
+        semanticScore = 0.95;
+      } else if (wordOverlapScore >= 0.6) {
+        semanticScore = 0.75 + (wordOverlapScore - 0.6) * 0.5; // Maps 0.6->0.75, 0.8->0.85
+      } else {
+        semanticScore = 0.70 + (wordOverlapScore - 0.4) * 0.25; // Maps 0.4->0.70, 0.6->0.75
+      }
+      maxScore = Math.max(maxScore, Math.min(0.95, semanticScore));
       
       if (pattern.includes('PRIMARY') || !pattern.includes('SECONDARY')) {
         primaryIntentMatches++;
+      }
+      continue;
+    }
+    
+    // IMPROVED: Fallback matching with partial word matching and lower threshold
+    // Check for partial word matches (e.g., "waking" matches "wake")
+    const matchingWords: string[] = [];
+    const partialMatches: string[] = [];
+    
+    for (const patternWord of patternWords) {
+      // Exact word match (including synonyms)
+      if (queryWordSet.has(patternWord)) {
+        matchingWords.push(patternWord);
+        continue;
+      }
+      
+      // Partial word match - check if one word contains the other
+      for (const queryWord of queryWords) {
+        if (patternWord.includes(queryWord) || queryWord.includes(patternWord)) {
+          partialMatches.push(patternWord);
+          break;
+        }
+      }
+    }
+    
+    // Calculate score with both exact and partial matches
+    if (matchingWords.length > 0 || partialMatches.length > 0) {
+      const exactScore = matchingWords.length / patternWords.length;
+      const partialScore = partialMatches.length / patternWords.length * 0.5; // Partial matches worth less
+      const wordMatchScore = exactScore + partialScore;
+      
+      // Only consider if score >= 0.3 (lowered threshold)
+      if (wordMatchScore >= 0.3) {
+        maxScore = Math.max(maxScore, wordMatchScore * 0.7);
+        
+        if (pattern.includes('PRIMARY') || !pattern.includes('SECONDARY')) {
+          primaryIntentMatches++;
+        }
       }
     }
   }

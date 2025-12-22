@@ -14,6 +14,87 @@ import { shouldRouteWhyToMenopause, isWhyHormoneQuestion } from "./classifier/wh
 // The orchestrator only handles KB retrieval and persona classification
 
 /**
+ * Detect if a query is a follow-up question that needs context enhancement
+ */
+function isFollowUpQuestion(
+  query: string,
+  conversationHistory: Array<["user" | "assistant", string]>
+): boolean {
+  // Must have conversation history to be a follow-up
+  if (!conversationHistory || conversationHistory.length === 0) {
+    return false;
+  }
+  
+  const normalized = query.toLowerCase().trim();
+  
+  // Short ambiguous queries that likely reference previous conversation
+  const followUpPatterns = [
+    /^(what|how|why|when|where|which|who)\s+(about|is|are|was|were|do|does|did|can|could|should|will|would)\s+(that|this|it|them|those|these)/i,
+    /^(tell me more|more about|what else|anything else|how about|what about)/i,
+    /^(and|also|plus|what|how|why)\s+(about|is|are)/i,
+    /^(can you|could you|will you|would you)\s+(tell|explain|give|show|help)/i,
+    /^(what|how|why)\s+(is|are|was|were|do|does|did)\s+(that|this|it)/i,
+  ];
+  
+  // Check if query matches follow-up patterns
+  const matchesPattern = followUpPatterns.some(pattern => pattern.test(normalized));
+  
+  // Also check if query is very short (< 20 chars) and has history
+  const isShort = normalized.length < 20;
+  
+  return matchesPattern || (isShort && conversationHistory.length > 0);
+}
+
+/**
+ * Enhance a follow-up query with conversation context for better KB matching
+ */
+function enhanceQueryWithContext(
+  query: string,
+  conversationHistory: Array<["user" | "assistant", string]>
+): string {
+  if (!conversationHistory || conversationHistory.length === 0) {
+    return query;
+  }
+  
+  // Get the last few turns of conversation (last 4 messages = 2 user + 2 assistant)
+  const recentHistory = conversationHistory.slice(-4);
+  
+  // Extract key topics/entities from recent conversation
+  const contextParts: string[] = [];
+  
+  for (let i = recentHistory.length - 1; i >= 0; i--) {
+    const [role, content] = recentHistory[i];
+    
+    // Extract nouns and key phrases from assistant responses
+    if (role === "assistant" && content) {
+      // Look for topic mentions (menopause-related terms)
+      const topicMatch = content.match(/\b(sleep|insomnia|hot flash|night sweat|hormone|estrogen|progesterone|menopause|perimenopause|symptom|weight|exercise|nutrition|diet|workout)\b/gi);
+      if (topicMatch) {
+        contextParts.push(...topicMatch.map(t => t.toLowerCase()));
+      }
+    }
+    
+    // Extract key terms from user questions
+    if (role === "user" && content) {
+      // Remove question words and extract meaningful terms
+      const cleaned = content.replace(/\b(what|how|why|when|where|which|who|can|could|should|will|would|do|does|did|is|are|was|were|tell|me|more|about|that|this|it)\b/gi, '');
+      const terms = cleaned.split(/\s+/).filter(w => w.length > 3);
+      if (terms.length > 0) {
+        contextParts.push(...terms.slice(0, 3)); // Take first 3 meaningful terms
+      }
+    }
+  }
+  
+  // Combine original query with context
+  const uniqueContext = [...new Set(contextParts)].slice(0, 5); // Max 5 context terms
+  if (uniqueContext.length > 0) {
+    return `${query} ${uniqueContext.join(' ')}`.trim();
+  }
+  
+  return query;
+}
+
+/**
  * Determine retrieval mode based on persona
  */
 function getRetrievalMode(persona: Persona): RetrievalMode {
@@ -55,7 +136,17 @@ export async function orchestrateRAG(
     const memoryHistory = getConversationHistory(sessionId);
     const allHistory = conversationHistory || memoryHistory.map(msg => [msg.role, msg.content] as ["user" | "assistant", string]);
 
-    // Step 2: Classify persona
+    // Step 1.5: Detect and enhance follow-up questions
+    const isFollowUp = isFollowUpQuestion(userQuery, allHistory);
+    let queryForKB = userQuery;
+    
+    if (isFollowUp) {
+      console.log(`[RAG Orchestrator] Follow-up question detected, enhancing with conversation context`);
+      queryForKB = enhanceQueryWithContext(userQuery, allHistory);
+      console.log(`[RAG Orchestrator] Enhanced query: "${queryForKB}" (original: "${userQuery}")`);
+    }
+
+    // Step 2: Classify persona (use original query, not enhanced)
     let persona = classifyPersona(userQuery);
     
     // Step 2.5: Check for WHY hormone questions and potentially route to menopause persona
@@ -82,14 +173,14 @@ export async function orchestrateRAG(
     console.log(`[RAG Orchestrator] Classified persona: ${persona}`);
     console.log(`[RAG Orchestrator] Retrieval mode: ${retrievalMode}`);
 
-    // Step 4: Handle based on retrieval mode
+    // Step 4: Handle based on retrieval mode - use queryForKB for retrieval
     if (retrievalMode === "kb_strict") {
-      return await handleKBStrictMode(userQuery, persona, retrievalMode, userProfile, trackerContext, allHistory);
+      return await handleKBStrictMode(queryForKB, persona, retrievalMode, userProfile, trackerContext, allHistory);
     } else if (retrievalMode === "hybrid") {
-      return await handleHybridMode(userQuery, persona, retrievalMode, userProfile, trackerContext, allHistory);
+      return await handleHybridMode(queryForKB, persona, retrievalMode, userProfile, trackerContext, allHistory);
     } else {
-      // llm_reasoning mode
-      return await handleLLMReasoningMode(userQuery, persona, retrievalMode, userProfile, trackerContext, allHistory);
+      // llm_reasoning mode - pass enhanced query and original for context
+      return await handleLLMReasoningMode(queryForKB, persona, retrievalMode, userProfile, trackerContext, allHistory);
     }
   } catch (error) {
     console.error("Error in RAG orchestration:", error);
@@ -328,16 +419,48 @@ async function handleHybridMode(
 
 /**
  * Handle llm_reasoning mode (Empathy Companion)
- * Skips KB entirely, always uses LLM
+ * For follow-up questions, tries KB first even in llm_reasoning mode
  */
 async function handleLLMReasoningMode(
-  _userQuery: string,
+  userQuery: string, // This is already enhanced if it was a follow-up
   persona: Persona,
   mode: RetrievalMode,
   _userProfile?: unknown,
   _trackerContext?: string,
-  _conversationHistory?: Array<["user" | "assistant", string]>
+  conversationHistory?: Array<["user" | "assistant", string]>
 ): Promise<OrchestrationResult> {
+  // For follow-up questions, try KB first even in llm_reasoning mode
+  // If query is already enhanced (has extra context words) or we have history, try KB
+  const history = conversationHistory || [];
+  const hasHistory = history.length > 0;
+  
+  // Check if query looks like it might be a follow-up (short or has follow-up patterns)
+  // Note: query might already be enhanced, so we check the original patterns
+  const normalized = userQuery.toLowerCase().trim();
+  const looksLikeFollowUp = hasHistory && (
+    normalized.length < 30 || 
+    /^(what|how|why|tell|more|about|that|this|it)\b/i.test(normalized)
+  );
+  
+  if (looksLikeFollowUp) {
+    console.log(`[LLM Reasoning Mode] Follow-up question detected - attempting KB search first`);
+    // Query is already enhanced from orchestrateRAG, use it directly
+    const retrievalResult = await retrieveFromKB(userQuery, persona, 3, 0.4);
+    
+    if (retrievalResult.hasMatch && retrievalResult.kbEntries.length > 0) {
+      console.log(`[LLM Reasoning Mode] KB match found for follow-up, using KB context`);
+      const kbContext = formatKBContextForLLM(retrievalResult.kbEntries);
+      return {
+        persona,
+        retrievalMode: mode,
+        usedKB: true,
+        source: "kb",
+        kbEntries: retrievalResult.kbEntries,
+        kbContext,
+      };
+    }
+  }
+  
   console.log(`[LLM Reasoning Mode] Active - skipping KB, using LLM only`);
   // For llm_reasoning mode, return empty response, route will handle LLM with tools
   return {

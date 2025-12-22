@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
+import { SITE_URL, AUTH_CALLBACK_PATH } from "@/lib/constants";
 
 export default function MagicLinkClient() {
   const sp = useSearchParams();
@@ -24,9 +25,9 @@ export default function MagicLinkClient() {
     setLoading(true);
 
     try {
-      // Always use www.womenreset.com for email redirects
-      const siteUrl = "https://www.womenreset.com";
-      const redirectTo = `${siteUrl}/auth/callback`;
+      // Always use womenreset.com for email redirects
+      const redirectTarget = sp.get("next") || "/dashboard";
+      const redirectTo = `${SITE_URL}${AUTH_CALLBACK_PATH}?next=${encodeURIComponent(redirectTarget)}`;
 
       const { error } = await supabase.auth.signInWithOtp({
         email,

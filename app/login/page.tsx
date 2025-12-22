@@ -6,6 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { SITE_URL, AUTH_CALLBACK_PATH } from "@/lib/constants";
 
 // (opciono, ali bezbedno): spreči statički prerender
 export const dynamic = "force-dynamic";
@@ -45,9 +46,8 @@ function LoginForm() {
     setLoading(true);
 
     try {
-      // Always use www.womenreset.com for email redirects
-      const siteUrl = "https://www.womenreset.com";
-      const redirectTo = `${siteUrl}/auth/callback?next=${encodeURIComponent(redirectTarget)}`;
+      // Always use womenreset.com for email redirects
+      const redirectTo = `${SITE_URL}${AUTH_CALLBACK_PATH}?next=${encodeURIComponent(redirectTarget)}`;
 
       const { error } = await supabase.auth.signInWithOtp({
         email,
