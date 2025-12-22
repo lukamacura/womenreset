@@ -1,16 +1,37 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
 import Navbar from "./Navbar";
 
 type ConditionalNavbarProps = {
   isAuthenticated: boolean;
 };
 
-export default function ConditionalNavbar({ isAuthenticated }: ConditionalNavbarProps) {
+export default function ConditionalNavbar({ isAuthenticated: initialIsAuthenticated }: ConditionalNavbarProps) {
   const pathname = usePathname();
   const isChatPage = pathname?.includes("/chat/lisa");
+  const [isAuthenticated, setIsAuthenticated] = useState(initialIsAuthenticated);
+
+  // Check authentication state on client side
+  useEffect(() => {
+    // Check initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setIsAuthenticated(!!session);
+    });
+
+    // Listen for auth state changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAuthenticated(!!session);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     const main = document.querySelector("main");
