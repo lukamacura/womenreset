@@ -8,8 +8,13 @@ export async function GET(request: NextRequest) {
   const code = requestUrl.searchParams.get("code");
   const next = requestUrl.searchParams.get("next") ?? "/dashboard";
 
-  // Always use womenreset.com for redirects after email authentication
-  const baseUrl = SITE_URL;
+  // Use request origin in development, SITE_URL in production
+  // This ensures magic links work in both dev and prod
+  const baseUrl = process.env.NODE_ENV === "production" 
+    ? SITE_URL 
+    : `${requestUrl.protocol}//${requestUrl.host}`;
+  
+  console.log("Auth callback: baseUrl =", baseUrl);
 
   if (!code) {
     console.error("Auth callback: No code parameter found");
@@ -18,8 +23,9 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // Create a response object for cookie handling
-  const response = NextResponse.redirect(`${baseUrl}${next}`);
+  // Create a temporary response for cookie handling during auth exchange
+  // We'll create the final redirect response after we know where to redirect
+  const tempResponse = NextResponse.next();
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -30,26 +36,16 @@ export async function GET(request: NextRequest) {
           return request.cookies.get(name)?.value;
         },
         set(name: string, value: string, options: CookieOptions) {
-          // Set cookies on both request and response
-          request.cookies.set({
-            name,
-            value,
-            ...options,
-          });
-          response.cookies.set({
+          // Set cookies on the temp response - these will be copied to final response
+          tempResponse.cookies.set({
             name,
             value,
             ...options,
           });
         },
         remove(name: string, options: CookieOptions) {
-          // Remove cookies from both request and response
-          request.cookies.set({
-            name,
-            value: "",
-            ...options,
-          });
-          response.cookies.set({
+          // Remove cookies from the temp response
+          tempResponse.cookies.set({
             name,
             value: "",
             ...options,
@@ -60,6 +56,7 @@ export async function GET(request: NextRequest) {
   );
 
   try {
+    console.log("Auth callback: Exchanging code for session...");
     const { error, data } = await supabase.auth.exchangeCodeForSession(code);
 
     if (error) {
@@ -82,6 +79,8 @@ export async function GET(request: NextRequest) {
         `${baseUrl}/login?error=auth_callback_error&message=${encodeURIComponent("User authentication failed. Please try again.")}`
       );
     }
+
+    console.log("Auth callback: Session created successfully for user:", data.user.id);
 
     // Determine redirect URL based on the flow (login vs registration)
     let redirectUrl: string;
@@ -107,11 +106,14 @@ export async function GET(request: NextRequest) {
       redirectUrl = `${baseUrl}${sanitizedNext}`;
     }
 
-    // Create final redirect response with updated URL
+    console.log("Auth callback: Redirecting to:", redirectUrl);
+
+    // Create the final redirect response
     const finalResponse = NextResponse.redirect(redirectUrl);
     
-    // Copy all cookies from the response to the final response
-    response.cookies.getAll().forEach((cookie) => {
+    // Copy all cookies from the temp response to the final response
+    // This ensures the session cookies set by exchangeCodeForSession are preserved
+    tempResponse.cookies.getAll().forEach((cookie) => {
       finalResponse.cookies.set(cookie.name, cookie.value, {
         path: cookie.path || "/",
         domain: cookie.domain,
@@ -123,6 +125,7 @@ export async function GET(request: NextRequest) {
       });
     });
 
+    console.log("Auth callback: Cookies copied, returning response");
     return finalResponse;
   } catch (error) {
     console.error("Auth callback exception:", error);

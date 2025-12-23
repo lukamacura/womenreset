@@ -388,20 +388,75 @@ export async function POST(req: NextRequest) {
       if (userProfile.name) profileParts.push(`Name: ${userProfile.name}`);
       if (userProfile.age) profileParts.push(`Age: ${userProfile.age}`);
 
-      if (userProfile.menopause_profile) {
-        profileParts.push(`Menopause Stage/Profile: ${userProfile.menopause_profile}`);
+      // New User Memory Questions fields
+      if (userProfile.top_problems && Array.isArray(userProfile.top_problems) && userProfile.top_problems.length > 0) {
+        const problemLabels: Record<string, string> = {
+          hot_flashes: "Hot flashes / Night sweats",
+          sleep_issues: "Can't sleep well",
+          brain_fog: "Brain fog / Memory issues",
+          mood_swings: "Mood swings / Irritability",
+          weight_changes: "Weight changes",
+          low_energy: "Low energy / Fatigue",
+          anxiety: "Anxiety",
+          joint_pain: "Joint pain",
+        };
+        const problems = userProfile.top_problems.map((p: string) => problemLabels[p] || p).join(", ");
+        profileParts.push(`Main concerns: ${problems}`);
       }
-      if (userProfile.nutrition_profile) {
-        profileParts.push(`Nutrition Preferences/Profile: ${userProfile.nutrition_profile}`);
+
+      if (userProfile.severity) {
+        const severityLabels: Record<string, string> = {
+          mild: "Mild — Annoying but manageable",
+          moderate: "Moderate — Affecting work/relationships",
+          severe: "Severe — Struggling every day",
+        };
+        profileParts.push(`Severity: ${severityLabels[userProfile.severity] || userProfile.severity}`);
       }
-      if (userProfile.exercise_profile) {
-        profileParts.push(`Exercise Habits/Profile: ${userProfile.exercise_profile}`);
+
+      if (userProfile.timing) {
+        const timingLabels: Record<string, string> = {
+          just_started: "Just started (0-6 months)",
+          been_while: "Been a while (6-12 months)",
+          over_year: "Over a year",
+          several_years: "Several years",
+        };
+        profileParts.push(`Symptoms started: ${timingLabels[userProfile.timing] || userProfile.timing}`);
       }
-      if (userProfile.emotional_stress_profile) {
-        profileParts.push(`Emotional/Stress Profile: ${userProfile.emotional_stress_profile}`);
+
+      if (userProfile.tried_options && Array.isArray(userProfile.tried_options) && userProfile.tried_options.length > 0) {
+        const triedLabels: Record<string, string> = {
+          nothing: "Nothing yet",
+          supplements: "Supplements / Vitamins",
+          diet: "Diet changes",
+          exercise: "Exercise",
+          hrt: "HRT / Medication",
+          doctor_talk: "Talked to doctor",
+          apps: "Apps / Tracking",
+        };
+        const tried = userProfile.tried_options.map((t: string) => triedLabels[t] || t).join(", ");
+        profileParts.push(`Already tried: ${tried}`);
       }
-      if (userProfile.lifestyle_context) {
-        profileParts.push(`Lifestyle Context: ${userProfile.lifestyle_context}`);
+
+      if (userProfile.doctor_status) {
+        const doctorLabels: Record<string, string> = {
+          yes_actively: "Yes, actively",
+          yes_not_helpful: "Yes, but they're not helpful",
+          no_planning: "No, planning to",
+          no_natural: "No, prefer natural approaches",
+        };
+        profileParts.push(`Doctor status: ${doctorLabels[userProfile.doctor_status] || userProfile.doctor_status}`);
+      }
+
+      if (userProfile.goal) {
+        const goalLabels: Record<string, string> = {
+          sleep_through_night: "Sleep through the night",
+          think_clearly: "Think clearly again",
+          feel_like_myself: "Feel like myself",
+          understand_patterns: "Understand my patterns",
+          data_for_doctor: "Have data for my doctor",
+          get_body_back: "Get my body back",
+        };
+        profileParts.push(`Primary goal: ${goalLabels[userProfile.goal] || userProfile.goal}`);
       }
 
       if (profileParts.length > 0) {

@@ -1,695 +1,662 @@
 "use client";
 
-import { useMemo, useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { SITE_URL, AUTH_CALLBACK_PATH } from "@/lib/constants";
-import { User, Calendar, FileText, UtensilsCrossed, Dumbbell, Heart, Home } from "lucide-react";
+import {
+  Flame,
+  Moon,
+  Brain,
+  Heart,
+  Scale,
+  Battery,
+  AlertCircle,
+  Bone,
+  ArrowRight,
+  ArrowLeft,
+  Mail,
+  CheckCircle2,
+  Loader2,
+} from "lucide-react";
 
-type Step = "name" | "age" | "profiles" | "summary" | "done";
+type Step = "q1_problems" | "q2_severity" | "q3_timing" | "q4_tried" | "q5_doctor" | "q6_goal" | "q7_name";
 
-const STEPS: Step[] = ["name", "age", "profiles", "summary", "done"];
+const STEPS: Step[] = ["q1_problems", "q2_severity", "q3_timing", "q4_tried", "q5_doctor", "q6_goal", "q7_name"];
+
+// Question options with Lucide icons
+const PROBLEM_OPTIONS = [
+  { id: "hot_flashes", label: "Hot flashes / Night sweats", icon: Flame },
+  { id: "sleep_issues", label: "Can't sleep well", icon: Moon },
+  { id: "brain_fog", label: "Brain fog / Memory issues", icon: Brain },
+  { id: "mood_swings", label: "Mood swings / Irritability", icon: Heart },
+  { id: "weight_changes", label: "Weight changes", icon: Scale },
+  { id: "low_energy", label: "Low energy / Fatigue", icon: Battery },
+  { id: "anxiety", label: "Anxiety", icon: AlertCircle },
+  { id: "joint_pain", label: "Joint pain", icon: Bone },
+];
+
+const SEVERITY_OPTIONS = [
+  { id: "mild", label: "Mild - Annoying but manageable" },
+  { id: "moderate", label: "Moderate - Affecting my work/relationships" },
+  { id: "severe", label: "Severe - I'm struggling every day" },
+];
+
+const TIMING_OPTIONS = [
+  { id: "just_started", label: "Just started (0-6 months)" },
+  { id: "been_while", label: "Been a while (6-12 months)" },
+  { id: "over_year", label: "Over a year" },
+  { id: "several_years", label: "Several years" },
+];
+
+const TRIED_OPTIONS = [
+  { id: "nothing", label: "Nothing yet" },
+  { id: "supplements", label: "Supplements / Vitamins" },
+  { id: "diet", label: "Diet changes" },
+  { id: "exercise", label: "Exercise" },
+  { id: "hrt", label: "HRT / Medication" },
+  { id: "doctor_talk", label: "Talked to doctor" },
+  { id: "apps", label: "Apps / Tracking" },
+];
+
+const DOCTOR_OPTIONS = [
+  { id: "yes_actively", label: "Yes, actively" },
+  { id: "yes_not_helpful", label: "Yes, but they're not helpful" },
+  { id: "no_planning", label: "No, planning to" },
+  { id: "no_natural", label: "No, prefer natural approaches" },
+];
+
+const GOAL_OPTIONS = [
+  { id: "sleep_through_night", label: "Sleep through the night", icon: Moon },
+  { id: "think_clearly", label: "Think clearly again", icon: Brain },
+  { id: "feel_like_myself", label: "Feel like myself", icon: Heart },
+  { id: "understand_patterns", label: "Understand my patterns", icon: Scale },
+  { id: "data_for_doctor", label: "Have data for my doctor", icon: CheckCircle2 },
+  { id: "get_body_back", label: "Get my body back", icon: Battery },
+];
+
+type Phase = "quiz" | "email" | "email-sent";
 
 export default function RegisterPage() {
   const router = useRouter();
 
-  // faza: prvo register, pa onda kratki profil
-  const [phase, setPhase] = useState<"register" | "quiz">("register");
+  // Always start with quiz
+  const [phase, setPhase] = useState<Phase>("quiz");
   const [stepIndex, setStepIndex] = useState(0);
   const currentStep = STEPS[stepIndex];
 
-  // auth inputs
+  // Quiz answers - stored in state
+  const [topProblems, setTopProblems] = useState<string[]>([]);
+  const [severity, setSeverity] = useState<string>("");
+  const [timing, setTiming] = useState<string>("");
+  const [triedOptions, setTriedOptions] = useState<string[]>([]);
+  const [doctorStatus, setDoctorStatus] = useState<string>("");
+  const [goal, setGoal] = useState<string>("");
+  const [firstName, setFirstName] = useState<string>("");
+
+  // Email state
   const [email, setEmail] = useState("");
-
-  // supabase user id
-  const [userId, setUserId] = useState<string | null>(null);
-
-  // osnovni podaci
-  const [fullName, setFullName] = useState("");
-  const [age, setAge] = useState<string>("");
-
-  // tekstualni profili (sve opciono)
-  const [menopauseText, setMenopauseText] = useState("");
-  const [nutritionText, setNutritionText] = useState("");
-  const [exerciseText, setExerciseText] = useState("");
-  const [emotionalText, setEmotionalText] = useState("");
-  const [lifestyleText, setLifestyleText] = useState("");
-
-  // UI
   const [loading, setLoading] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
-  const [info, setInfo] = useState<string | null>(null);
-  const [sessionExistsAfterSignup, setSessionExistsAfterSignup] =
-    useState(false);
-  const [checkingProfile, setCheckingProfile] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // validacija
-  const emailValid = useMemo(() => /.+@.+\..+/.test(email), [email]);
-  const canRegister = emailValid && !loading;
+  // Validation
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  const canSubmit = emailValid && !loading;
 
-  const ageNum = Number(age);
-
+  // Check if current step is answered
   const stepIsAnswered = useCallback((step: Step) => {
     switch (step) {
-      case "name":
-        return fullName.trim().length > 1;
-      case "age":
-        return Number.isFinite(ageNum) && ageNum >= 35 && ageNum <= 70;
-      // ostali koraci nisu obavezni
+      case "q1_problems":
+        return topProblems.length === 2;
+      case "q2_severity":
+        return severity !== "";
+      case "q3_timing":
+        return timing !== "";
+      case "q4_tried":
+        return triedOptions.length > 0;
+      case "q5_doctor":
+        return doctorStatus !== "";
+      case "q6_goal":
+        return goal !== "";
+      case "q7_name":
+        return firstName.trim().length > 0;
       default:
-        return true;
+        return false;
     }
-  }, [fullName, ageNum]);
+  }, [topProblems, severity, timing, triedOptions, doctorStatus, goal, firstName]);
 
   const goNext = useCallback(() => {
     if (!stepIsAnswered(currentStep)) return;
-    setStepIndex((i) => Math.min(i + 1, STEPS.length - 1));
-  }, [currentStep, stepIsAnswered]);
+    if (stepIndex < STEPS.length - 1) {
+      setStepIndex(stepIndex + 1);
+    } else {
+      // Quiz complete - move to email phase
+      setPhase("email");
+    }
+  }, [currentStep, stepIndex, stepIsAnswered]);
 
-  function goBack() {
-    setStepIndex((i) => Math.max(i - 1, 0));
-  }
+  const goBack = useCallback(() => {
+    if (stepIndex > 0) {
+      setStepIndex(stepIndex - 1);
+    }
+  }, [stepIndex]);
 
-  // Define finishQuiz before useEffect that uses it
-  const finishQuiz = useCallback(async () => {
-    setErr(null);
-    setInfo(null);
+  const toggleProblem = (problemId: string) => {
+    setTopProblems((prev) => {
+      if (prev.includes(problemId)) {
+        return prev.filter((id) => id !== problemId);
+      }
+      if (prev.length >= 2) {
+        return prev;
+      }
+      return [...prev, problemId];
+    });
+  };
+
+  const toggleTriedOption = (optionId: string) => {
+    setTriedOptions((prev) => {
+      if (prev.includes(optionId)) {
+        return prev.filter((id) => id !== optionId);
+      }
+      return [...prev, optionId];
+    });
+  };
+
+  // Save quiz answers to localStorage when moving to email phase
+  const saveQuizAnswers = useCallback(() => {
+    const quizAnswers = {
+      top_problems: topProblems,
+      severity: severity,
+      timing: timing,
+      tried_options: triedOptions,
+      doctor_status: doctorStatus,
+      goal: goal,
+      name: firstName.trim() || null,
+    };
+    localStorage.setItem("pending_quiz_answers", JSON.stringify(quizAnswers));
+  }, [topProblems, severity, timing, triedOptions, doctorStatus, goal, firstName]);
+
+  // When quiz is complete, save and move to email
+  useEffect(() => {
+    if (phase === "email" && stepIndex === STEPS.length - 1) {
+      saveQuizAnswers();
+    }
+  }, [phase, stepIndex, saveQuizAnswers]);
+
+  // Handle email submission
+  const handleEmailSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!canSubmit) return;
+
+    setError(null);
     setLoading(true);
 
     try {
-      // Get user ID from current session (user clicked magic link)
-      let finalUserId = userId;
-      if (!finalUserId) {
-        const { data } = await supabase.auth.getUser();
-        finalUserId = data.user?.id ?? null;
-      }
-
-      if (!finalUserId) {
-        throw new Error("User ID is missing. Please try registering again or log in if you already have an account.");
-      }
-
-      // Validate required fields
-      if (!fullName.trim()) {
-        throw new Error("Please enter your name.");
-      }
-
-      const ageNum = Number(age);
-      if (!Number.isFinite(ageNum) || ageNum < 35 || ageNum > 70) {
-        throw new Error("Please enter a valid age between 35 and 70.");
-      }
-
-      // tekst polja – trim + ako je prazno, šaljemo null (da se lepo upiše u DB)
-      const intakePayload = {
-        user_id: finalUserId,
-        name: fullName.trim(),
-        age: ageNum,
-
-        menopause_profile: menopauseText.trim() || null,
-        nutrition_profile: nutritionText.trim() || null,
-        exercise_profile: exerciseText.trim() || null,
-        emotional_stress_profile: emotionalText.trim() || null,
-        lifestyle_context: lifestyleText.trim() || null,
-      };
-
-      const res = await fetch("/api/intake", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(intakePayload),
+      const redirectTo = `${SITE_URL}${AUTH_CALLBACK_PATH}?next=/register`;
+      
+      const { error: signInError } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: redirectTo,
+        },
       });
 
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        const errorMessage = body?.error || "Failed to save your profile. Please try again.";
-        const details = body?.details;
-        // Include details in error message if available (for debugging)
-        throw new Error(details ? `${errorMessage} (${details})` : errorMessage);
-      }
-
-      // If user has a session, redirect to dashboard
-      if (sessionExistsAfterSignup) {
-        router.replace("/dashboard");
-        router.refresh();
+      if (signInError) {
+        let friendly = "An error occurred. Please try again.";
+        if (signInError.message.includes("email") || signInError.message.includes("invalid")) {
+          friendly = "That email address is invalid. Please check and try again.";
+        } else if (signInError.message.includes("rate limit") || signInError.message.includes("too many")) {
+          friendly = "Too many attempts - please wait a moment and try again.";
+        } else if (signInError.message) {
+          friendly = signInError.message;
+        }
+        setError(friendly);
+        setLoading(false);
         return;
       }
 
-      // If no session, user needs to click magic link first
-      setInfo("Profile saved! Please check your email and click the magic link to access your dashboard.");
+      // Success - show email sent message
+      setPhase("email-sent");
+      setLoading(false);
     } catch (e) {
-      const errorMessage = e instanceof Error ? e.message : "An error occurred while saving your profile.";
-      setErr(errorMessage.includes("User ID is missing") 
-        ? errorMessage 
-        : "Failed to save your profile. Please try again or contact support if the problem persists.");
-    } finally {
+      setError(e instanceof Error ? e.message : "An error occurred. Please try again.");
       setLoading(false);
     }
-  }, [userId, fullName, age, menopauseText, nutritionText, exerciseText, emotionalText, lifestyleText, sessionExistsAfterSignup, router]);
+  };
 
-  // Check if user has existing profile when component mounts (for users returning after magic link)
+  // Auto-save profile when user returns from magic link
   useEffect(() => {
     let mounted = true;
-    
-    async function checkExistingProfile() {
+
+    async function checkAndSaveProfile() {
+      // Wait a bit for session to be available
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      if (!mounted) return;
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Check if profile exists
+      const { data: existingProfile } = await supabase
+        .from("user_profiles")
+        .select("user_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (existingProfile) {
+        // Profile exists - redirect to dashboard
+        router.replace("/dashboard");
+        return;
+      }
+
+      // No profile - check for quiz answers
+      const storedAnswers = localStorage.getItem("pending_quiz_answers");
+      if (!storedAnswers) return;
+
+      // Save profile
       try {
-        // Check if user has a session first
-        const { data: sessionData } = await supabase.auth.getSession();
-        const hasSession = !!sessionData.session;
+        const quizAnswers = JSON.parse(storedAnswers);
+        const res = await fetch("/api/intake", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            user_id: user.id,
+            name: quizAnswers.name || null,
+            top_problems: quizAnswers.top_problems || [],
+            severity: quizAnswers.severity || null,
+            timing: quizAnswers.timing || null,
+            tried_options: quizAnswers.tried_options || [],
+            doctor_status: quizAnswers.doctor_status || null,
+            goal: quizAnswers.goal || null,
+          }),
+        });
 
-        if (!hasSession) {
-          // No session - user needs to click magic link first
-          if (mounted) setCheckingProfile(false);
-          return;
-        }
-
-        // Get user from session
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
-        
-        if (userError || !user) {
-          if (mounted) setCheckingProfile(false);
-          return;
-        }
-
-        // Check if profile exists
-        const { data: profile, error } = await supabase
-          .from("user_profiles")
-          .select("user_id, name, age")
-          .eq("user_id", user.id)
-          .maybeSingle();
-
-        if (error && error.code !== "PGRST116" && error.code !== "42P01") {
-          console.error("Error checking profile:", error);
-          if (mounted) setCheckingProfile(false);
-          return;
-        }
-
-        // If profile exists, redirect to dashboard
-        if (profile) {
+        if (res.ok) {
+          localStorage.removeItem("pending_quiz_answers");
           router.replace("/dashboard");
-          return;
-        }
-
-        // User has session but no profile - show quiz to complete registration
-        if (mounted) {
-          setUserId(user.id);
-          setSessionExistsAfterSignup(true);
-          setPhase("quiz");
-          setStepIndex(0);
+          router.refresh();
         }
       } catch (e) {
-        console.error("Error in checkExistingProfile:", e);
-      } finally {
-        if (mounted) setCheckingProfile(false);
+        console.error("Error saving profile:", e);
       }
     }
 
-    checkExistingProfile();
+    checkAndSaveProfile();
 
     return () => {
       mounted = false;
     };
   }, [router]);
 
-  async function onRegisterSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    if (!canRegister) return;
 
-    setErr(null);
-    setInfo(null);
-    setLoading(true);
-
-    try {
-      // Always use womenreset.com for email redirects
-      // Note: signInWithOtp works for both new and existing users
-      // The auth callback will check if user has a profile and redirect accordingly
-      const redirectTo = `${SITE_URL}${AUTH_CALLBACK_PATH}?next=/register`;
-
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: { 
-          emailRedirectTo: redirectTo,
-        },
-      });
-
-      if (error) {
-        console.error("Magic link error:", error);
-        let friendly = "An error occurred. Please try again.";
-        
-        if (error.message.includes("email") || error.message.includes("invalid")) {
-          friendly = "That email address is invalid. Please check and try again.";
-        } else if (
-          error.message.includes("rate limit") || 
-          error.message.includes("too many") ||
-          error.message.includes("security purposes") ||
-          error.message.includes("only request this after") ||
-          /48 seconds/i.test(error.message)
-        ) {
-          // Use the original error message if it contains specific rate limit info
-          friendly = error.message.includes("48 seconds") || error.message.includes("security purposes")
-            ? error.message
-            : "Too many attempts — please wait a moment and try again.";
-        } else if (error.status === 500) {
-          friendly = "Server error. Please contact support or try again later.";
-          console.error("500 error details:", error);
-        } else if (error.message) {
-          friendly = error.message;
-        }
-        
-        setErr(friendly);
-        setLoading(false);
-        return;
-      }
-
-      // Magic link sent successfully
-      // Note: signInWithOtp works for both registration and login
-      // If user already exists, they'll be logged in; if not, they'll complete registration
-      setInfo("Check your email! We sent you a magic link. Click it to continue with registration.");
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : "Unknown error occurred. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  const progress = Math.min(stepIndex, STEPS.length - 2);
-  const progressTotal = STEPS.length - 1;
-
-  // Show loading state while checking profile
-  if (checkingProfile) {
-    return (
-      <main className="relative mx-auto max-w-md p-6 sm:p-8">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent mb-4"></div>
-            <p className="text-sm text-muted-foreground">Loading...</p>
-          </div>
-        </div>
-      </main>
-    );
-  }
 
   return (
-    <>
-    <main className="relative overflow-hidden mx-auto max-w-md p-6 sm:p-8">
-      {/* background accents */}
+    <main className="relative mx-auto max-w-2xl p-6 sm:p-8 min-h-screen flex flex-col">
+      {/* Background accents */}
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 opacity-40">
         <div className="absolute -top-24 -left-24 h-56 w-56 rounded-full bg-primary/20 blur-3xl" />
         <div className="absolute -bottom-24 -right-24 h-56 w-56 rounded-full bg-primary/10 blur-3xl" />
       </div>
 
-      {phase === "register" && (
-        <>
-          <h1 className="text-3xl sm:text-5xl font-script font-extrabold tracking-tight mb-6 text-balance pt-16">
-            Create your account
-          </h1>
-
-          <form onSubmit={onRegisterSubmit} className="space-y-4" noValidate>
-            {/* Email */}
-            <div>
-              <label htmlFor="email" className="mb-2 block text-sm font-medium">
-                Email
-              </label>
-              <input
-                id="email"
-                name="email"
-                inputMode="email"
-                autoComplete="email"
-                className="w-full rounded-xl border border-foreground/15 bg-background px-3 py-2 ring-offset-background placeholder:text-muted-foreground/70 focus:outline-none focus:ring-2 focus:ring-primary/40"
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                aria-invalid={email.length > 0 && !emailValid}
-                required
-              />
-            </div>
-
-
-            {/* Submit */}
-            <button
-              className="cursor-pointer w-full inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 font-semibold text-primary-foreground shadow-sm ring-1 ring-inset ring-primary/20 transition hover:brightness-95 disabled:opacity-60 disabled:cursor-not-allowed"
-              type="submit"
-              disabled={!canRegister}
-            >
-              {loading ? "Sending magic link…" : "Continue with email"}
-            </button>
-
-            <p className="my-0 text-emerald-600 font-bold text-sm text-muted-foreground">Only email is required.</p>
-
-
-            <p className="text-sm text-muted-foreground">
-              By signing up, you agree to our{" "}
-              <Link
-                href="/terms"
-                className="underline underline-offset-4 hover:opacity-80"
-              >
-                Terms
-              </Link>{" "}
-              and{" "}
-              <Link
-                href="/privacy"
-                className="underline underline-offset-4 hover:opacity-80"
-              >
-                Privacy Policy
-              </Link>
-              .
-            </p>
-          </form>
-
-          {err && (
-            <div
-              role="alert"
-              className="mt-4 rounded-xl border border-error/30 bg-error/10 p-3 text-sm text-error font-bold"
-            >
-              {err}
-            </div>
-          )}
-
-          <p className="mt-6 text-md text-muted-foreground">
-            Already have an account?{" "}
-            <Link
-              className="bg-primary-light text-primary-dark rounded-md px-2 py-1 font-bold underline-offset-4 hover:opacity-80"
-              href="/login"
-            >
-              Log in
-            </Link>
-          </p>
-        </>
-      )}
-
+      {/* Quiz Phase */}
       {phase === "quiz" && (
-        <section className="space-y-5">
-          <div>
-            <h1 className="text-2xl font-bold">Your menopause profile</h1>
-            <p className="text-xs text-muted-foreground">
-              Step {progress + 1} of {progressTotal}
-            </p>
-
-            <div className="mt-2 h-2 w-full rounded-full bg-foreground/10">
+        <div className="flex-1 flex flex-col pt-8 ">
+          {/* Progress Bar */}
+          <div className="mb-8 pt-8">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-muted-foreground">
+                Question {stepIndex + 1} of {STEPS.length}
+              </span>
+              <span className="text-sm font-medium text-muted-foreground">
+                {Math.round(((stepIndex + 1) / STEPS.length) * 100)}%
+              </span>
+            </div>
+            <div className="h-2 w-full rounded-full bg-foreground/10 overflow-hidden">
               <div
-                className="h-2 rounded-full bg-primary transition-all"
-                style={{ width: `${(progress / progressTotal) * 100}%` }}
+                className="h-full rounded-full bg-primary transition-all duration-300"
+                style={{ width: `${((stepIndex + 1) / STEPS.length) * 100}%` }}
               />
             </div>
           </div>
 
-          <div className="rounded-2xl border border-foreground/10 bg-card/40 p-6 sm:p-8 space-y-6 min-h-[240px] flex flex-col justify-between">
-            {currentStep === "name" && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-full bg-primary/10 p-3">
-                    <User className="h-6 w-6 text-primary" />
+          {/* Question Content */}
+          <div className="flex-1 flex flex-col">
+            <div className="rounded-2xl border border-foreground/10 bg-card/40 p-6 sm:p-8 space-y-6 flex-1">
+              {/* Q1: Top Problems */}
+              {currentStep === "q1_problems" && (
+                <div className="space-y-6">
+                  <div>
+                    <h2 className="text-2xl sm:text-3xl font-bold mb-2">
+                      What&apos;s making life hardest right now?
+                    </h2>
+                    <p className="text-muted-foreground">Pick your TOP 2:</p>
                   </div>
-                  <label className="text-xl sm:text-2xl font-semibold">
-                    What is your name?
-                  </label>
-                </div>
-                <input
-                  className="w-full text-lg sm:text-xl rounded-xl border border-foreground/15 bg-background px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/40"
-                  placeholder="Your name"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  autoFocus
-                />
-              </div>
-            )}
-
-            {currentStep === "age" && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-full bg-primary/10 p-3">
-                    <Calendar className="h-6 w-6 text-primary" />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {PROBLEM_OPTIONS.map((option) => {
+                      const Icon = option.icon;
+                      const isSelected = topProblems.includes(option.id);
+                      return (
+                        <button
+                          key={option.id}
+                          type="button"
+                          onClick={() => toggleProblem(option.id)}
+                          disabled={!isSelected && topProblems.length >= 2}
+                          className={`p-4 rounded-xl border-2 transition-all text-left ${
+                            isSelected
+                              ? "border-primary bg-primary/10"
+                              : "border-foreground/15 hover:border-primary/50"
+                          } ${!isSelected && topProblems.length >= 2 ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <Icon className={`w-6 h-6 ${isSelected ? "text-primary" : "text-muted-foreground"}`} />
+                            <span className="font-medium">{option.label}</span>
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
-                  <label className="text-xl sm:text-2xl font-semibold">
-                    How old are you?
-                  </label>
-                </div>
-                <input
-                  inputMode="numeric"
-                  className="w-full text-lg sm:text-xl rounded-xl border border-foreground/15 bg-background px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/40"
-                  placeholder="e.g. 47"
-                  value={age}
-                  onChange={(e) =>
-                    setAge(e.target.value.replace(/[^\d]/g, ""))
-                  }
-                  autoFocus
-                />
-                <p className="text-sm sm:text-base text-muted-foreground">
-                  Typical menopause ages are 35-70.
-                </p>
-              </div>
-            )}
-
-            {currentStep === "summary" && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="rounded-full bg-primary/10 p-3">
-                    <FileText className="h-6 w-6 text-primary" />
-                  </div>
-                  <label className="text-xl sm:text-2xl font-semibold">
-                    Review your information
-                  </label>
-                </div>
-                
-                <div className="space-y-4">
-                  <div className="p-4 rounded-xl border border-foreground/10 bg-background/50">
-                    <div className="flex items-center gap-2 mb-2">
-                      <User className="h-5 w-5 text-primary" />
-                      <span className="text-sm font-semibold text-muted-foreground">Name</span>
-                    </div>
-                    <p className="text-base font-medium">{fullName || "Not provided"}</p>
-                  </div>
-
-                  <div className="p-4 rounded-xl border border-foreground/10 bg-background/50">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Calendar className="h-5 w-5 text-primary" />
-                      <span className="text-sm font-semibold text-muted-foreground">Age</span>
-                    </div>
-                    <p className="text-base font-medium">{age || "Not provided"}</p>
-                  </div>
-
-                  {menopauseText && (
-                    <div className="p-4 rounded-xl border border-foreground/10 bg-background/50">
-                      <div className="flex items-center gap-2 mb-2">
-                        <FileText className="h-5 w-5 text-primary" />
-                        <span className="text-sm font-semibold text-muted-foreground">Menopause Profile</span>
-                      </div>
-                      <p className="text-sm text-foreground whitespace-pre-wrap">{menopauseText}</p>
-                    </div>
-                  )}
-
-                  {nutritionText && (
-                    <div className="p-4 rounded-xl border border-foreground/10 bg-background/50">
-                      <div className="flex items-center gap-2 mb-2">
-                        <UtensilsCrossed className="h-5 w-5 text-primary" />
-                        <span className="text-sm font-semibold text-muted-foreground">Nutrition Profile</span>
-                      </div>
-                      <p className="text-sm text-foreground whitespace-pre-wrap">{nutritionText}</p>
-                    </div>
-                  )}
-
-                  {exerciseText && (
-                    <div className="p-4 rounded-xl border border-foreground/10 bg-background/50">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Dumbbell className="h-5 w-5 text-primary" />
-                        <span className="text-sm font-semibold text-muted-foreground">Exercise Profile</span>
-                      </div>
-                      <p className="text-sm text-foreground whitespace-pre-wrap">{exerciseText}</p>
-                    </div>
-                  )}
-
-                  {emotionalText && (
-                    <div className="p-4 rounded-xl border border-foreground/10 bg-background/50">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Heart className="h-5 w-5 text-primary" />
-                        <span className="text-sm font-semibold text-muted-foreground">Emotional / Stress Profile</span>
-                      </div>
-                      <p className="text-sm text-foreground whitespace-pre-wrap">{emotionalText}</p>
-                    </div>
-                  )}
-
-                  {lifestyleText && (
-                    <div className="p-4 rounded-xl border border-foreground/10 bg-background/50">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Home className="h-5 w-5 text-primary" />
-                        <span className="text-sm font-semibold text-muted-foreground">Lifestyle Context</span>
-                      </div>
-                      <p className="text-sm text-foreground whitespace-pre-wrap">{lifestyleText}</p>
-                    </div>
+                  {topProblems.length > 0 && (
+                    <p className="text-sm text-muted-foreground">
+                      {topProblems.length} of 2 selected
+                    </p>
                   )}
                 </div>
-              </div>
-            )}
+              )}
 
-            {currentStep === "profiles" && (
-              <div className="space-y-5">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="rounded-full bg-primary/10 p-3">
-                    <FileText className="h-6 w-6 text-primary" />
+              {/* Q2: Severity */}
+              {currentStep === "q2_severity" && (
+                <div className="space-y-6">
+                  <div>
+                    <h2 className="text-2xl sm:text-3xl font-bold mb-2">
+                      How much is this affecting your daily life?
+                    </h2>
                   </div>
-                  <label className="text-md sm:text-lg font-semibold">
-                    Tell us more about yourself (recommended)
-                  </label>
+                  <div className="space-y-3">
+                    {SEVERITY_OPTIONS.map((option) => (
+                      <button
+                        key={option.id}
+                        type="button"
+                        onClick={() => setSeverity(option.id)}
+                        className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
+                          severity === option.id
+                            ? "border-primary bg-primary/10"
+                            : "border-foreground/15 hover:border-primary/50"
+                        }`}
+                      >
+                        <span className="font-medium">{option.label}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <FileText className="h-5 w-5 text-primary" />
-                    <label className="text-base sm:text-md font-medium">
-                      Menopause profile (symptoms, stage...)
-                    </label>
+              )}
+
+              {/* Q3: Timing */}
+              {currentStep === "q3_timing" && (
+                <div className="space-y-6">
+                  <div>
+                    <h2 className="text-2xl sm:text-3xl font-bold mb-2">
+                      When did symptoms start?
+                    </h2>
                   </div>
-                  <textarea
-                    className="w-full rounded-xl border border-foreground/15 bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary/40"
-                    rows={3}
-                    placeholder="Describe your main symptoms, sleep pattern, stage (perimenopause, post-menopause...)"
-                    value={menopauseText}
-                    onChange={(e) => setMenopauseText(e.target.value)}
+                  <div className="space-y-3">
+                    {TIMING_OPTIONS.map((option) => (
+                      <button
+                        key={option.id}
+                        type="button"
+                        onClick={() => setTiming(option.id)}
+                        className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
+                          timing === option.id
+                            ? "border-primary bg-primary/10"
+                            : "border-foreground/15 hover:border-primary/50"
+                        }`}
+                      >
+                        <span className="font-medium">{option.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Q4: What They've Tried */}
+              {currentStep === "q4_tried" && (
+                <div className="space-y-6">
+                  <div>
+                    <h2 className="text-2xl sm:text-3xl font-bold mb-2">
+                      What have you tried so far?
+                    </h2>
+                    <p className="text-muted-foreground">Pick any that apply:</p>
+                  </div>
+                  <div className="space-y-3">
+                    {TRIED_OPTIONS.map((option) => {
+                      const isSelected = triedOptions.includes(option.id);
+                      return (
+                        <button
+                          key={option.id}
+                          type="button"
+                          onClick={() => toggleTriedOption(option.id)}
+                          className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
+                            isSelected
+                              ? "border-primary bg-primary/10"
+                              : "border-foreground/15 hover:border-primary/50"
+                          }`}
+                        >
+                          <span className="font-medium">{option.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Q5: Doctor Status */}
+              {currentStep === "q5_doctor" && (
+                <div className="space-y-6">
+                  <div>
+                    <h2 className="text-2xl sm:text-3xl font-bold mb-2">
+                      Are you working with a doctor on this?
+                    </h2>
+                  </div>
+                  <div className="space-y-3">
+                    {DOCTOR_OPTIONS.map((option) => (
+                      <button
+                        key={option.id}
+                        type="button"
+                        onClick={() => setDoctorStatus(option.id)}
+                        className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
+                          doctorStatus === option.id
+                            ? "border-primary bg-primary/10"
+                            : "border-foreground/15 hover:border-primary/50"
+                        }`}
+                      >
+                        <span className="font-medium">{option.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Q6: Goal */}
+              {currentStep === "q6_goal" && (
+                <div className="space-y-6">
+                  <div>
+                    <h2 className="text-2xl sm:text-3xl font-bold mb-2">
+                      What would success look like for you?
+                    </h2>
+                    <p className="text-muted-foreground">Pick ONE:</p>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {GOAL_OPTIONS.map((option) => {
+                      const Icon = option.icon;
+                      const isSelected = goal === option.id;
+                      return (
+                        <button
+                          key={option.id}
+                          type="button"
+                          onClick={() => setGoal(option.id)}
+                          className={`p-4 rounded-xl border-2 transition-all text-left ${
+                            isSelected
+                              ? "border-primary bg-primary/10"
+                              : "border-foreground/15 hover:border-primary/50"
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <Icon className={`w-5 h-5 ${isSelected ? "text-primary" : "text-muted-foreground"}`} />
+                            <span className="font-medium">{option.label}</span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Q7: Name */}
+              {currentStep === "q7_name" && (
+                <div className="space-y-6">
+                  <div>
+                    <h2 className="text-2xl sm:text-3xl font-bold mb-2">
+                      What should Lisa call you?
+                    </h2>
+                    <p className="text-muted-foreground">
+                      Lisa will use this to personalize your experience
+                    </p>
+                  </div>
+                  <input
+                    type="text"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    placeholder="First name"
+                    className="w-full p-4 rounded-xl border-2 border-foreground/15 bg-background focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
                   />
                 </div>
+              )}
+            </div>
 
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <UtensilsCrossed className="h-5 w-5 text-primary" />
-                    <label className="text-base sm:text-md font-medium">
-                      Nutrition profile (foods you like/avoid)
-                    </label>
-                  </div>
-                  <textarea
-                    className="w-full rounded-xl border border-foreground/15 bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary/40"
-                    rows={2}
-                    placeholder="Do you have something you can't eat? Any preferences?"
-                    value={nutritionText}
-                    onChange={(e) => setNutritionText(e.target.value)}
-                  />
-                </div>
-
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <Dumbbell className="h-5 w-5 text-primary" />
-                    <label className="text-base sm:text-md font-medium">
-                      Exercise profile
-                    </label>
-                  </div>
-                  <textarea
-                    className="w-full rounded-xl border border-foreground/15 bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary/40"
-                    rows={2}
-                    placeholder="What kind of movement do you prefer or avoid?"
-                    value={exerciseText}
-                    onChange={(e) => setExerciseText(e.target.value)}
-                  />
-                </div>
-
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <Heart className="h-5 w-5 text-primary" />
-                    <label className="text-base sm:text-md font-medium">
-                      Emotional / stress profile
-                    </label>
-                  </div>
-                  <textarea
-                    className="w-full rounded-xl border border-foreground/15 bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary/40"
-                    rows={2}
-                    placeholder="Anything important about stress, mood, anxiety..."
-                    value={emotionalText}
-                    onChange={(e) => setEmotionalText(e.target.value)}
-                  />
-                </div>
-
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <Home className="h-5 w-5 text-primary" />
-                    <label className="text-base sm:text-md font-medium">
-                      Lifestyle context
-                    </label>
-                  </div>
-                  <textarea
-                    className="w-full rounded-xl border border-foreground/15 bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary/40"
-                    rows={2}
-                    placeholder="Job type, schedule, kids, night shifts, etc."
-                    value={lifestyleText}
-                    onChange={(e) => setLifestyleText(e.target.value)}
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Navigation */}
-            <div className="flex items-center justify-between pt-2">
+            {/* Navigation Buttons */}
+            <div className="flex items-center justify-between mt-6 gap-4">
               <button
                 type="button"
                 onClick={goBack}
-                disabled={stepIndex === 0 || loading}
-                className="text-sm px-3 py-2 rounded-xl border border-foreground/15 hover:bg-foreground/5 disabled:opacity-50"
+                disabled={stepIndex === 0}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl border border-foreground/15 hover:bg-foreground/5 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
+                <ArrowLeft className="w-4 h-4" />
                 Back
               </button>
-
-              {currentStep === "summary" ? (
-                <button
-                  type="button"
-                  onClick={finishQuiz}
-                  disabled={loading}
-                  className="text-sm px-4 py-2 rounded-xl bg-primary font-bold text-primary-foreground disabled:opacity-60"
-                >
-                  {loading ? "Saving…" : "Complete registration"}
-                </button>
-              ) : currentStep !== "done" ? (
-                <button
-                  type="button"
-                  onClick={goNext}
-                  disabled={!stepIsAnswered(currentStep) || loading}
-                  className="text-sm px-4 py-2 rounded-xl bg-primary font-bold text-primary-foreground disabled:opacity-60"
-                >
-                  Next
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={finishQuiz}
-                  disabled={loading}
-                  className="text-sm px-4 py-2 rounded-xl bg-primary text-primary-foreground disabled:opacity-60"
-                >
-                  {loading ? "Saving…" : "Finish"}
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={goNext}
+                disabled={!stepIsAnswered(currentStep)}
+                className="flex items-center gap-2 px-6 py-2 rounded-xl bg-primary text-primary-foreground hover:brightness-95 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {stepIndex === STEPS.length - 1 ? "Continue" : "Next"}
+                <ArrowRight className="w-4 h-4" />
+              </button>
             </div>
           </div>
+        </div>
+      )}
 
-          {err && (
-            <div
-              role="alert"
-              className="rounded-xl border border-error/30 bg-error/10 p-3 text-sm text-error font-bold"
-            >
-              {err}
+      {/* Email Phase */}
+      {phase === "email" && (
+        <div className="flex-1 flex flex-col justify-center max-w-md mx-auto w-full">
+          <div className="space-y-6">
+            <div className="text-center">
+              <h1 className="text-3xl sm:text-4xl font-bold mb-3">
+                Almost there!
+              </h1>
+              <p className="text-muted-foreground">
+                Enter your email to create your account and save your progress.
+              </p>
             </div>
-          )}
-          {info && (
-            <div
-              role="status"
-              className="rounded-xl border border-emerald-400/30 bg-emerald-100 p-3 text-sm text-emerald-500 font-bold"
-            >
-              {info}
-            </div>
-          )}
-        </section>
+
+            <form onSubmit={handleEmailSubmit} className="space-y-4">
+              <div>
+                <label htmlFor="email" className="mb-2 block text-sm font-medium">
+                  Email
+                </label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                  <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    className="w-full pl-10 pr-4 py-3 rounded-xl border-2 border-foreground/15 bg-background focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
+                    required
+                  />
+                </div>
+              </div>
+
+              {error && (
+                <div className="rounded-xl border border-error/30 bg-error/10 p-3 text-sm text-error">
+                  {error}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={!canSubmit}
+                className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-primary text-primary-foreground hover:brightness-95 transition disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    Send magic link
+                    <ArrowRight className="w-5 h-5" />
+                  </>
+                )}
+              </button>
+
+              <p className="text-xs text-center text-muted-foreground">
+                By continuing, you agree to our{" "}
+                <Link href="/terms" className="underline hover:opacity-80">
+                  Terms
+                </Link>{" "}
+                and{" "}
+                <Link href="/privacy" className="underline hover:opacity-80">
+                  Privacy Policy
+                </Link>
+              </p>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Email Sent Phase */}
+      {phase === "email-sent" && (
+        <div className="flex-1 flex flex-col justify-center items-center max-w-md mx-auto w-full text-center space-y-6">
+          <div className="rounded-full bg-primary/10 p-6">
+            <Mail className="w-12 h-12 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-3xl sm:text-4xl font-bold mb-3">
+              Check your email
+            </h1>
+            <p className="text-lg text-muted-foreground">
+              We sent you a magic link at <strong>{email}</strong>
+            </p>
+            <p className="text-muted-foreground mt-2">
+              Click the link in your email to continue with registration.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <CheckCircle2 className="w-4 h-4 text-primary" />
+            <span>Your quiz answers are saved</span>
+          </div>
+        </div>
       )}
     </main>
-
-    {/* Register Illustration - 70-80% Width (outside main to break max-w-md constraint) */}
-    {phase === "register" && (
-      <div className="w-full flex justify-center">
-        <div className="w-[75%] max-w-4xl">
-          <Image
-            src="/register.svg"
-            alt="Registration illustration"
-            width={1920}
-            height={400}
-            className="w-full h-auto"
-            priority
-          />
-        </div>
-      </div>
-    )}
-    </>
   );
 }

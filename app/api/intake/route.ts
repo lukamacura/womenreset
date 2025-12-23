@@ -11,32 +11,81 @@ export async function POST(req: Request) {
     console.log("=== INTAKE API CALLED ===");
     console.log("User ID:", body.user_id);
     console.log("Name:", body.name);
-    console.log("Age:", body.age);
+    console.log("Top Problems:", body.top_problems);
+    console.log("Severity:", body.severity);
 
     const {
       user_id,
       name,
-      age,
-      menopause_profile,
-      nutrition_profile,
-      exercise_profile,
-      emotional_stress_profile,
-      lifestyle_context,
+      top_problems,
+      severity,
+      timing,
+      tried_options,
+      doctor_status,
+      goal,
     } = body;
 
-    if (!user_id || !name || typeof age !== "number") {
+    if (!user_id) {
       return NextResponse.json(
-        { error: "Missing required fields (user_id, name, age)." },
+        { error: "Missing required field: user_id." },
         { status: 400 }
       );
     }
 
-    // Validate age range
-    if (age < 18 || age > 120) {
-      return NextResponse.json(
-        { error: "Age must be between 18 and 120." },
-        { status: 400 }
-      );
+    // Validate required fields for new question structure (only if provided)
+    // Allow partial updates for webhook/trigger created profiles
+    if (top_problems !== undefined) {
+      if (!Array.isArray(top_problems) || top_problems.length !== 2) {
+        return NextResponse.json(
+          { error: "Please select exactly 2 top problems." },
+          { status: 400 }
+        );
+      }
+    }
+
+    if (severity !== undefined && severity !== null) {
+      if (!["mild", "moderate", "severe"].includes(severity)) {
+        return NextResponse.json(
+          { error: "Please select a valid severity level." },
+          { status: 400 }
+        );
+      }
+    }
+
+    if (timing !== undefined && timing !== null) {
+      if (!["just_started", "been_while", "over_year", "several_years"].includes(timing)) {
+        return NextResponse.json(
+          { error: "Please select when symptoms started." },
+          { status: 400 }
+        );
+      }
+    }
+
+    if (tried_options !== undefined) {
+      if (!Array.isArray(tried_options) || tried_options.length === 0) {
+        return NextResponse.json(
+          { error: "Please select at least one option for what you've tried." },
+          { status: 400 }
+        );
+      }
+    }
+
+    if (doctor_status !== undefined && doctor_status !== null) {
+      if (!["yes_actively", "yes_not_helpful", "no_planning", "no_natural"].includes(doctor_status)) {
+        return NextResponse.json(
+          { error: "Please select your doctor status." },
+          { status: 400 }
+        );
+      }
+    }
+
+    if (goal !== undefined && goal !== null) {
+      if (!["sleep_through_night", "think_clearly", "feel_like_myself", "understand_patterns", "data_for_doctor", "get_body_back"].includes(goal)) {
+        return NextResponse.json(
+          { error: "Please select your primary goal." },
+          { status: 400 }
+        );
+      }
     }
 
     // Verify user exists in auth.users first (using admin API)
@@ -81,19 +130,44 @@ export async function POST(req: Request) {
       console.error("Error checking existing profile:", checkError);
     }
 
+    // Prepare profile data with new question structure (only include provided fields)
+    const profileData: {
+      name?: string | null;
+      top_problems?: string[];
+      severity?: string | null;
+      timing?: string | null;
+      tried_options?: string[];
+      doctor_status?: string | null;
+      goal?: string | null;
+    } = {};
+    
+    if (name !== undefined) {
+      profileData.name = name || null;
+    }
+    if (top_problems !== undefined) {
+      profileData.top_problems = top_problems;
+    }
+    if (severity !== undefined) {
+      profileData.severity = severity || null;
+    }
+    if (timing !== undefined) {
+      profileData.timing = timing || null;
+    }
+    if (tried_options !== undefined) {
+      profileData.tried_options = tried_options;
+    }
+    if (doctor_status !== undefined) {
+      profileData.doctor_status = doctor_status || null;
+    }
+    if (goal !== undefined) {
+      profileData.goal = goal || null;
+    }
+
     if (existingProfile) {
       // Update existing profile instead of inserting
       const { error } = await supabase
         .from("user_profiles")
-        .update({
-          name,
-          age,
-          menopause_profile: menopause_profile || null,
-          nutrition_profile: nutrition_profile || null,
-          exercise_profile: exercise_profile || null,
-          emotional_stress_profile: emotional_stress_profile || null,
-          lifestyle_context: lifestyle_context || null,
-        })
+        .update(profileData)
         .eq("user_id", user_id);
 
       if (error) {
@@ -110,19 +184,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: true, updated: true });
     }
 
-    // Insert new user profile (trial info is handled by trigger on auth.users)
-    // Only include columns that exist - don't include created_at/updated_at as they have defaults
+    // Insert new user profile
     const { error } = await supabase.from("user_profiles").insert([
       {
         user_id,
-        name,
-        age,
-        menopause_profile: menopause_profile || null,
-        nutrition_profile: nutrition_profile || null,
-        exercise_profile: exercise_profile || null,
-        emotional_stress_profile: emotional_stress_profile || null,
-        lifestyle_context: lifestyle_context || null,
-        // Don't include created_at/updated_at - let database defaults handle them
+        ...profileData,
       },
     ]);
 
