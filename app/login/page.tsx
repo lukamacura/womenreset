@@ -49,7 +49,22 @@ function LoginForm() {
       // Always use womenreset.com for email redirects
       const redirectTo = `${SITE_URL}${AUTH_CALLBACK_PATH}?next=${encodeURIComponent(redirectTarget)}`;
       
+      console.log("Login: SITE_URL:", SITE_URL);
+      console.log("Login: AUTH_CALLBACK_PATH:", AUTH_CALLBACK_PATH);
+      console.log("Login: redirectTarget:", redirectTarget);
       console.log("Login: Attempting signInWithOtp with redirectTo:", redirectTo);
+      console.log("Login: Supabase URL:", process.env.NEXT_PUBLIC_SUPABASE_URL);
+      
+      // Validate redirect URL format
+      try {
+        new URL(redirectTo);
+        console.log("Login: Redirect URL is valid");
+      } catch (urlError) {
+        console.error("Login: Invalid redirect URL format:", urlError);
+        setErr("Configuration error: Invalid redirect URL format. Please contact support.");
+        setLoading(false);
+        return;
+      }
 
       const { error } = await supabase.auth.signInWithOtp({
         email,
@@ -60,21 +75,25 @@ function LoginForm() {
         console.error("Login: Supabase error:", error);
         console.error("Login: Error message:", error.message);
         console.error("Login: Error status:", error.status);
+        console.error("Login: Full error object:", JSON.stringify(error, null, 2));
         
+        // Default to showing the actual error message
         let friendly = error.message || "An error occurred. Please try again.";
         
-        // Check for redirect URL errors specifically
+        // Check for redirect URL errors FIRST (most common issue)
+        const lowerMessage = error.message.toLowerCase();
         if (
-          error.message.includes("redirect") || 
-          error.message.includes("redirect_to") ||
-          error.message.includes("redirect URL") ||
-          error.message.includes("allowed values") ||
-          error.status === 400
+          lowerMessage.includes("redirect") || 
+          lowerMessage.includes("redirect_to") ||
+          lowerMessage.includes("redirect url") ||
+          lowerMessage.includes("allowed values") ||
+          lowerMessage.includes("not allowed") ||
+          lowerMessage.includes("invalid redirect") ||
+          lowerMessage.includes("redirect_to must") ||
+          error.status === 400 ||
+          error.status === 422
         ) {
-          friendly = `Configuration error: ${error.message}. Please contact support.`;
-        } else if (error.message.includes("email") && !error.message.includes("redirect")) {
-          // Only show invalid email if it's actually about email format, not redirect
-          friendly = "That email address is invalid. Please check and try again.";
+          friendly = `Redirect URL configuration error: ${error.message}. Please verify Supabase redirect URLs include: ${redirectTo}`;
         } else if (
           /rate/i.test(error.message) || 
           /too many/i.test(error.message) ||
@@ -85,7 +104,18 @@ function LoginForm() {
           friendly = error.message.includes("48 seconds") || error.message.includes("security purposes")
             ? error.message
             : "Too many attempts — please wait a moment and try again.";
+        } else if (
+          // Only show invalid email if it's explicitly about email format validation
+          (lowerMessage.includes("email") && 
+           (lowerMessage.includes("format") || 
+            lowerMessage.includes("malformed") || 
+            lowerMessage.includes("invalid email") ||
+            lowerMessage.includes("email address"))) &&
+          !lowerMessage.includes("redirect")
+        ) {
+          friendly = "That email address is invalid. Please check and try again.";
         }
+        // Otherwise, show the actual error message
         
         setErr(friendly);
         setLoading(false);
