@@ -5,10 +5,11 @@
 import type { Persona, RetrievalMode, OrchestrationResult } from "./types";
 import { classifyPersona } from "./persona-classifier";
 import { validateMenopauseQuery, generateRefusalResponse } from "./safety-validator";
-import { retrieveFromKB } from "./retrieval";
+import { retrieveFromKB, retrieveFromKBByIntentOnly } from "./retrieval";
 import { formatVerbatimResponse, formatKBContextForLLM } from "./response-formatter";
 import { getConversationHistory } from "./conversation-memory";
 import { shouldRouteWhyToMenopause, isWhyHormoneQuestion } from "./classifier/whyRouter";
+import type { RetrievalResult } from "./types";
 
 // Note: LLM calls are handled in the route to support tools (log_symptom, etc.)
 // The orchestrator only handles KB retrieval and persona classification
@@ -92,6 +93,48 @@ function enhanceQueryWithContext(
   }
   
   return query;
+}
+
+/**
+ * Check if retrieval result has exact intent match
+ * Returns the entry with exact intent match if found, null otherwise
+ */
+function findExactIntentMatch(retrievalResult: RetrievalResult, query: string): { entry: import("./types").KBEntry; intentScore: number } | null {
+  if (!retrievalResult.hasMatch || retrievalResult.kbEntries.length === 0) {
+    return null;
+  }
+  
+  // Normalize query for matching (same as in retrieval.ts)
+  const normalizeText = (text: string): string => {
+    let normalized = text.toLowerCase().replace(/[?!.,;:]/g, '').trim();
+    // Expand common contractions and variations
+    normalized = normalized.replace(/\b(can't|cannot|can not)\b/g, 'cannot');
+    normalized = normalized.replace(/\b(won't|will not)\b/g, 'will not');
+    normalized = normalized.replace(/\b(don't|do not)\b/g, 'do not');
+    normalized = normalized.replace(/\b(i'm|i am)\b/g, 'i am');
+    normalized = normalized.replace(/\b(it's|it is)\b/g, 'it is');
+    return normalized;
+  };
+  
+  const queryNormalized = normalizeText(query);
+  
+  // Check each entry for exact intent match
+  for (const entry of retrievalResult.kbEntries) {
+    const intentPatterns = entry.metadata.intent_patterns || [];
+    
+    for (const pattern of intentPatterns) {
+      const patternNormalized = normalizeText(pattern);
+      
+      // Exact match after normalization
+      if (queryNormalized === patternNormalized) {
+        console.log(`[Exact Intent Match] ✅ Found exact match: "${query}" === "${pattern}"`);
+        console.log(`[Exact Intent Match] Topic: ${entry.metadata.topic} | Subtopic: ${entry.metadata.subtopic}`);
+        return { entry, intentScore: 1.0 };
+      }
+    }
+  }
+  
+  return null;
 }
 
 /**
@@ -208,18 +251,29 @@ async function handleKBStrictMode(
   _conversationHistory?: Array<["user" | "assistant", string]>
 ): Promise<OrchestrationResult> {
   console.log(`[KB Strict Mode] Active for query: "${userQuery}"`);
+  console.log(`[KB Strict Mode] Using STRICT INTENT-BASED RETRIEVAL`);
+  console.log(`[KB Strict Mode] Documents must have intent match score >= 0.9`);
   
-  // IMPROVED: Dual threshold system - semantic similarity as primary gate
-  // Semantic threshold: 0.35 (primary gate - lower to catch paraphrases)
-  // Hybrid threshold: 0.45 (secondary filter - ensures good overall relevance)
-  // This prevents good semantic matches from being rejected due to metadata scoring
-  const semanticThreshold = 0.35;  // Lower to catch paraphrases
-  const hybridThreshold = 0.45;
-  console.log(`[KB Strict Mode] Retrieving with dual thresholds:`);
-  console.log(`  - Semantic threshold: ${semanticThreshold} (primary gate)`);
-  console.log(`  - Hybrid threshold: ${hybridThreshold} (secondary filter)`);
-  
-  const retrievalResult = await retrieveFromKB(userQuery, persona, 3, hybridThreshold);
+  // Use strict intent-based retrieval (intent threshold = 0.9)
+  // Falls back to semantic similarity if no intent matches found
+  const retrievalResult = await retrieveFromKBByIntentOnly(userQuery, persona, 3, 0.9);
+
+  // CRITICAL: Check for exact intent match first - always return verbatim if found
+  const exactMatch = findExactIntentMatch(retrievalResult, userQuery);
+  if (exactMatch) {
+    console.log(`[KB Strict Mode] ✅ EXACT INTENT MATCH - VERBATIM RESPONSE triggered`);
+    const verbatimResponse = formatVerbatimResponse([exactMatch.entry], true); // Pass excludeMetadata=true
+    
+    return {
+      response: verbatimResponse,
+      persona,
+      retrievalMode: mode,
+      usedKB: true,
+      source: "kb",
+      kbEntries: [exactMatch.entry],
+      isVerbatim: true,
+    };
+  }
 
   // Enhanced logging with semantic and hybrid scores
   console.log(`[KB Strict Mode] Retrieval results:`);
@@ -240,31 +294,20 @@ async function handleKBStrictMode(
     });
   }
 
-  // IMPROVED: Check both semantic and hybrid thresholds
-  // Allow verbatim mode if EITHER:
-  // 1. Both thresholds are met (strict match)
-  // 2. Hybrid score is high enough (>= 0.50) - indicates strong keyword/intent matching
-  //    even if semantic is slightly below threshold (paraphrases, etc.)
-  const hasSemanticMatch = retrievalResult.topSemanticScore !== undefined && retrievalResult.topSemanticScore >= semanticThreshold;
-  const hasHybridMatch = retrievalResult.topScore !== undefined && retrievalResult.topScore >= hybridThreshold;
-  const hasStrongHybridMatch = retrievalResult.topScore !== undefined && retrievalResult.topScore >= 0.50;
-  
-  // Trigger verbatim if: (both thresholds met) OR (strong hybrid match with reasonable semantic)
-  const shouldUseVerbatim = retrievalResult.hasMatch && retrievalResult.kbEntries.length > 0 && 
-    ((hasSemanticMatch && hasHybridMatch) || 
-     (hasStrongHybridMatch && retrievalResult.topSemanticScore !== undefined && retrievalResult.topSemanticScore >= 0.40));
+  // For intent-based retrieval, if we have matches, use them (regardless of score)
+  // The intent filter already ensures quality (score >= 0.9) or semantic fallback
+  const shouldUseVerbatim = retrievalResult.hasMatch && retrievalResult.kbEntries.length > 0;
   
   if (shouldUseVerbatim) {
     // KB match found - return verbatim
     console.log(`[KB Strict Mode] ✅ VERBATIM RESPONSE triggered`);
-    if (hasSemanticMatch && hasHybridMatch) {
-      console.log(`  - Semantic: ${retrievalResult.topSemanticScore!.toFixed(3)} >= ${semanticThreshold} ✓`);
-      console.log(`  - Hybrid: ${retrievalResult.topScore!.toFixed(3)} >= ${hybridThreshold} ✓`);
-    } else if (hasStrongHybridMatch) {
-      console.log(`  - Strong hybrid match: ${retrievalResult.topScore!.toFixed(3)} >= 0.50 ✓`);
-      console.log(`  - Semantic: ${retrievalResult.topSemanticScore!.toFixed(3)} >= 0.40 ✓ (lenient for high hybrid)`);
+    if (retrievalResult.topSemanticScore !== undefined) {
+      console.log(`  - Top semantic score: ${retrievalResult.topSemanticScore.toFixed(3)}`);
     }
-    const verbatimResponse = formatVerbatimResponse(retrievalResult.kbEntries);
+    if (retrievalResult.topScore !== undefined) {
+      console.log(`  - Top hybrid score: ${retrievalResult.topScore.toFixed(3)}`);
+    }
+    const verbatimResponse = formatVerbatimResponse(retrievalResult.kbEntries, true); // Pass excludeMetadata=true
     
     return {
       response: verbatimResponse,
@@ -277,21 +320,8 @@ async function handleKBStrictMode(
     };
   }
 
-  // No KB match - detailed logging of why
-  if (retrievalResult.topSemanticScore !== undefined || retrievalResult.topScore !== undefined) {
-    const semanticStatus = hasSemanticMatch ? '✓' : '✗';
-    const hybridStatus = hasHybridMatch ? '✓' : '✗';
-    const strongHybridStatus = hasStrongHybridMatch ? '✓' : '✗';
-    console.log(`[KB Strict Mode] ❌ No verbatim response:`);
-    if (retrievalResult.topSemanticScore !== undefined) {
-      console.log(`  - Semantic: ${retrievalResult.topSemanticScore.toFixed(3)} ${semanticStatus} (threshold: ${semanticThreshold}, lenient: 0.40)`);
-    }
-    if (retrievalResult.topScore !== undefined) {
-      console.log(`  - Hybrid: ${retrievalResult.topScore.toFixed(3)} ${hybridStatus} (threshold: ${hybridThreshold}, strong: 0.50 ${strongHybridStatus})`);
-    }
-  } else {
-    console.log(`[KB Strict Mode] ❌ No verbatim response (no KB entries found)`);
-  }
+  // No KB match
+  console.log(`[KB Strict Mode] ❌ No verbatim response (no KB entries found)`);
 
   // No KB match - check safety (mode-aware)
   const hasKBAnswer = retrievalResult.hasMatch && retrievalResult.kbEntries.length > 0;
@@ -359,6 +389,23 @@ async function handleHybridMode(
       const semanticScore = (entry.semanticSimilarity ?? 0).toFixed(3);
       console.log(`    [${idx + 1}] Hybrid: ${hybridScore} | Semantic: ${semanticScore} | Topic: ${entry.metadata.topic} | Subtopic: ${entry.metadata.subtopic}`);
     });
+  }
+
+  // CRITICAL: Check for exact intent match first - always return verbatim if found
+  const exactMatch = findExactIntentMatch(retrievalResult, userQuery);
+  if (exactMatch) {
+    console.log(`[Hybrid Mode] ✅ EXACT INTENT MATCH - VERBATIM RESPONSE triggered`);
+    const verbatimResponse = formatVerbatimResponse([exactMatch.entry], false);
+    
+    return {
+      response: verbatimResponse,
+      persona,
+      retrievalMode: mode,
+      usedKB: true,
+      source: "kb",
+      kbEntries: [exactMatch.entry],
+      isVerbatim: true,
+    };
   }
 
   // IMPROVED: Check for verbatim response opportunity (strong KB match)
@@ -447,6 +494,23 @@ async function handleLLMReasoningMode(
     // Query is already enhanced from orchestrateRAG, use it directly
     const retrievalResult = await retrieveFromKB(userQuery, persona, 3, 0.4);
     
+    // CRITICAL: Check for exact intent match first - always return verbatim if found
+    const exactMatch = findExactIntentMatch(retrievalResult, userQuery);
+    if (exactMatch) {
+      console.log(`[LLM Reasoning Mode] ✅ EXACT INTENT MATCH - VERBATIM RESPONSE triggered`);
+      const verbatimResponse = formatVerbatimResponse([exactMatch.entry], false);
+      
+      return {
+        response: verbatimResponse,
+        persona,
+        retrievalMode: mode,
+        usedKB: true,
+        source: "kb",
+        kbEntries: [exactMatch.entry],
+        isVerbatim: true,
+      };
+    }
+    
     if (retrievalResult.hasMatch && retrievalResult.kbEntries.length > 0) {
       console.log(`[LLM Reasoning Mode] KB match found for follow-up, using KB context`);
       const kbContext = formatKBContextForLLM(retrievalResult.kbEntries);
@@ -459,6 +523,25 @@ async function handleLLMReasoningMode(
         kbContext,
       };
     }
+  }
+  
+  // Also check for exact intent match even if not a follow-up
+  // This ensures exact matches always trigger verbatim regardless of mode
+  const regularRetrievalResult = await retrieveFromKB(userQuery, persona, 3, 0.3);
+  const exactMatchRegular = findExactIntentMatch(regularRetrievalResult, userQuery);
+  if (exactMatchRegular) {
+    console.log(`[LLM Reasoning Mode] ✅ EXACT INTENT MATCH - VERBATIM RESPONSE triggered`);
+    const verbatimResponse = formatVerbatimResponse([exactMatchRegular.entry], false);
+    
+    return {
+      response: verbatimResponse,
+      persona,
+      retrievalMode: mode,
+      usedKB: true,
+      source: "kb",
+      kbEntries: [exactMatchRegular.entry],
+      isVerbatim: true,
+    };
   }
   
   console.log(`[LLM Reasoning Mode] Active - skipping KB, using LLM only`);

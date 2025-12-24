@@ -107,14 +107,49 @@ function stripEnhancementText(content: string): string {
  * Format a single KB entry for display, hiding field names
  * Parses content and formats it naturally with clear dividers between sections
  * IMPROVED: Better section detection and formatting with explicit separators
+ * @param includeFollowUp - Whether to include follow-up questions (default: true, set to false for verbatim responses)
+ * @param excludeMetadata - Whether to exclude metadata fields (keywords, topic, subtopic, intents) from output (default: false)
  */
-export function formatKBEntryForDisplay(entry: KBEntry): string {
+export function formatKBEntryForDisplay(entry: KBEntry, includeFollowUp: boolean = true, excludeMetadata: boolean = false): string {
   if (!entry.content) {
     return "";
   }
 
   // First strip enhancement text (Topic, Subtopic, Keywords, Intent patterns)
-  const content = stripEnhancementText(entry.content).trim();
+  let content = stripEnhancementText(entry.content).trim();
+  
+  // If excludeMetadata is true, aggressively remove any remaining metadata references
+  if (excludeMetadata) {
+    // Remove any remaining topic/subtopic references
+    content = content.replace(/^Topic:.*$/gim, '');
+    content = content.replace(/^Subtopic:.*$/gim, '');
+    content = content.replace(/Topic:.*?Subtopic:.*?$/gim, '');
+    
+    // Remove keyword mentions
+    content = content.replace(/^Keywords?:.*$/gim, '');
+    content = content.replace(/Keywords?:.*?$/gim, '');
+    
+    // Remove intent pattern lines (questions that look like intent patterns)
+    const lines = content.split('\n');
+    const filteredLines = lines.filter(line => {
+      const trimmed = line.trim();
+      // Skip lines that are just questions (likely intent patterns)
+      if (trimmed.endsWith('?') && trimmed.length < 150) {
+        // Check if it looks like an intent pattern (question format)
+        const questionWords = ['what', 'how', 'why', 'when', 'where', 'can', 'should', 'will', 'is', 'are', 'do', 'does'];
+        const startsWithQuestion = questionWords.some(word => trimmed.toLowerCase().startsWith(word));
+        if (startsWithQuestion) {
+          return false; // Exclude this line
+        }
+      }
+      return true;
+    });
+    content = filteredLines.join('\n');
+    
+    // Clean up excessive whitespace
+    content = content.replace(/\n{3,}/g, '\n\n');
+    content = content.trim();
+  }
   
   // DEBUG: Log if content still has headers (for troubleshooting)
   if (content.includes('### **Content**') || content.includes('### **Action Tips**')) {
@@ -138,21 +173,22 @@ export function formatKBEntryForDisplay(entry: KBEntry): string {
   
   // Extract Content section (main content)
   // Stop at the FIRST ### **Action Tips** header (not at --- separators, which are part of content)
+  // PRESERVE all line breaks and spaces - don't filter out empty lines
   const contentMatch = content.match(/###\s*\*\*Content\*\*\s*\n([\s\S]*?)(?=\n---\s*\n###\s*\*\*Action Tips?\*\*)/i);
   if (contentMatch) {
-    let contentText = contentMatch[1].trim();
-    if (contentText) {
-      // Remove any --- separators at the end
-      contentText = contentText.replace(/\n*---\s*$/g, '');
-      sections.content = contentText.split('\n').filter(line => line.trim().length > 0);
-    }
+    let contentText = contentMatch[1];
+    // Remove any --- separators at the end only
+    contentText = contentText.replace(/\n*---\s*$/g, '');
+    // Preserve all lines including empty ones to maintain formatting
+    sections.content = contentText.split('\n');
   } else {
     // Try without the --- before Action Tips
     const contentMatch2 = content.match(/###\s*\*\*Content\*\*\s*\n([\s\S]*?)(?=###\s*\*\*(?:Action|Motivation|Habit|Follow-Up))/i);
     if (contentMatch2) {
-      let contentText = contentMatch2[1].trim();
+      let contentText = contentMatch2[1];
       contentText = contentText.replace(/\n*---\s*$/g, '');
-      sections.content = contentText.split('\n').filter(line => line.trim().length > 0);
+      // Preserve all lines including empty ones to maintain formatting
+      sections.content = contentText.split('\n');
     }
   }
   
@@ -218,26 +254,81 @@ export function formatKBEntryForDisplay(entry: KBEntry): string {
   if (habitMatch) {
     const habitText = habitMatch[1].trim();
     if (habitText) {
-      sections.habitStrategy = habitText.split('\n').filter(line => line.trim().length > 0);
+      // The ingestion script stores habit_strategy as values only (without field names)
+      // Order is: principle, explanation, example, habit_tip (one per line)
+      // Format them nicely with block quotes and bolds
+      const formattedHabitStrategy: string[] = [];
+      
+      // Split by lines and filter out empty lines
+      const lines = habitText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+      
+      // Try to parse as structured fields (principle:, explanation:, etc.)
+      let hasStructuredFields = false;
+      const extractField = (text: string, fieldName: string): string | null => {
+        // Try to match field: "quoted value" or field: unquoted value
+        const quotedMatch = text.match(new RegExp(`\\b${fieldName}:\\s*["']([^"']+)["']`, 'i'));
+        if (quotedMatch) {
+          hasStructuredFields = true;
+          return quotedMatch[1].trim();
+        }
+        // Try unquoted value (until end of line or next field marker)
+        const unquotedMatch = text.match(new RegExp(`\\b${fieldName}:\\s*([^\\n]+?)(?=\\n\\s*(?:principle|explanation|example|habit_tip|###|$))`, 'i'));
+        if (unquotedMatch) {
+          hasStructuredFields = true;
+          return unquotedMatch[1].trim();
+        }
+        return null;
+      };
+      
+      // First try structured format (with field names)
+      const principle = extractField(habitText, 'principle');
+      const explanation = extractField(habitText, 'explanation');
+      const example = extractField(habitText, 'example');
+      const habitTip = extractField(habitText, 'habit_tip');
+      
+      if (hasStructuredFields) {
+        // Format with field names
+        if (principle) formattedHabitStrategy.push(`> **Principle:** ${principle}`);
+        if (explanation) formattedHabitStrategy.push(`> **Explanation:** ${explanation}`);
+        if (example) formattedHabitStrategy.push(`> **Example:** ${example}`);
+        if (habitTip) formattedHabitStrategy.push(`> **Habit Tip:** ${habitTip}`);
+      } else if (lines.length >= 4) {
+        // Assume order: principle, explanation, example, habit_tip (as stored by ingestion script)
+        formattedHabitStrategy.push(`> **Principle:** ${lines[0]}`);
+        formattedHabitStrategy.push(`> **Explanation:** ${lines[1]}`);
+        formattedHabitStrategy.push(`> **Example:** ${lines[2]}`);
+        formattedHabitStrategy.push(`> **Habit Tip:** ${lines[3]}`);
+      } else {
+        // Fallback: format each line as a blockquote with bold label
+        lines.forEach((line, index) => {
+          const labels = ['Principle', 'Explanation', 'Example', 'Habit Tip'];
+          const label = labels[index] || 'Tip';
+          formattedHabitStrategy.push(`> **${label}:** ${line}`);
+        });
+      }
+      
+      sections.habitStrategy = formattedHabitStrategy;
     }
   }
   
-  // Extract Follow-Up Question section (CRITICAL - must be included)
-  // Try multiple patterns to catch all variations
-  // IMPORTANT: Follow-Up is usually the last section, so capture until end of content
-  const followUpMatch = content.match(/###\s*\*\*Follow-Up (?:Question|Questions)?\*\*\s*\n([\s\S]*?)$/i);
+  // Extract Follow-Up Question section (only if includeFollowUp is true)
+  if (includeFollowUp) {
+    // Try multiple patterns to catch all variations
+    // IMPORTANT: Follow-Up is usually the last section, so capture until end of content
+    const followUpMatch = content.match(/###\s*\*\*Follow-Up (?:Question|Questions)?\*\*\s*\n([\s\S]*?)$/i);
 
-  if (followUpMatch) {
-    let followUpText = followUpMatch[1].trim();
-    // Remove any trailing separators
-    followUpText = followUpText.replace(/\n*---\s*$/g, '');
-    if (followUpText) {
-      // Take all lines (follow-up questions can be multi-line)
-      const lines = followUpText.split('\n')
-        .map(line => line.trim())
-        .filter(line => line.length > 0 && !line.match(/^###/));
-      if (lines.length > 0) {
-        sections.followUp = lines;
+    if (followUpMatch) {
+      let followUpText = followUpMatch[1].trim();
+      // Remove any trailing separators
+      followUpText = followUpText.replace(/\n*---\s*$/g, '');
+      if (followUpText) {
+        // Take all lines (follow-up questions can be multi-line)
+        const lines = followUpText.split('\n')
+          .map(line => line.trim())
+          .filter(line => line.length > 0 && !line.match(/^###/));
+        if (lines.length > 0) {
+          sections.followUp = lines;
+        }
       }
     }
   }
@@ -245,7 +336,7 @@ export function formatKBEntryForDisplay(entry: KBEntry): string {
   // If no sections were found via regex, try fallback parsing
   if (sections.content.length === 0 && sections.actionTips.length === 0 && 
       sections.motivation.length === 0 && sections.habitStrategy.length === 0 && 
-      sections.followUp.length === 0) {
+      (!includeFollowUp || sections.followUp.length === 0)) {
     // Fallback: use cleaned content as-is
     const fallbackLines = content.split('\n').filter(line => {
       const trimmed = line.trim();
@@ -264,10 +355,12 @@ export function formatKBEntryForDisplay(entry: KBEntry): string {
   // IMPORTANT: All section headers (### **Content**, etc.) are already removed during extraction
   const parts: string[] = [];
 
-  // Main content section - preserve internal structure (including any --- separators)
+  // Main content section - preserve internal structure (including all line breaks and spaces)
   if (sections.content.length > 0) {
-    const contentText = sections.content.join('\n').trim();
-    parts.push(contentText);
+    // Join preserving all line breaks (including empty lines)
+    const contentText = sections.content.join('\n');
+    // Only trim leading/trailing whitespace, not internal formatting
+    parts.push(contentText.trimStart().trimEnd());
     // Add separator after content section
     parts.push('\n\n---\n\n');
   }
@@ -295,8 +388,8 @@ export function formatKBEntryForDisplay(entry: KBEntry): string {
     parts.push('\n\n---\n\n');
   }
 
-  // Follow-Up Question section (CRITICAL - ALWAYS include if present, no separator after)
-  if (sections.followUp.length > 0) {
+  // Follow-Up Question section (only include if includeFollowUp is true)
+  if (includeFollowUp && sections.followUp.length > 0) {
     const followUpText = sections.followUp.join('\n').trim();
     if (followUpText) {
       parts.push(followUpText);
@@ -329,21 +422,23 @@ export function formatKBEntryForDisplay(entry: KBEntry): string {
  * Format verbatim KB response for kb_strict mode
  * IMPROVED: Returns top entry formatted nicely, but includes additional entries if top entry is too short
  * Each section = 1 complete answer, but we can combine if needed for completeness
+ * @param excludeMetadata - Whether to exclude metadata fields from output (default: false, set to true for strict intent-based retrieval)
  */
-export function formatVerbatimResponse(kbEntries: KBEntry[]): string {
+export function formatVerbatimResponse(kbEntries: KBEntry[], excludeMetadata: boolean = false): string {
   if (kbEntries.length === 0) {
     return "";
   }
 
   // Get top entry (highest scoring) and format it
+  // Include follow-up questions in verbatim responses
   const topEntry = kbEntries[0];
-  let response = formatKBEntryForDisplay(topEntry);
+  let response = formatKBEntryForDisplay(topEntry, true, excludeMetadata);
   
   // IMPROVED: If top entry is very short (< 200 chars), consider including next entry
   // This helps when the top match is a brief intro but second match has more detail
   if (response.length < 200 && kbEntries.length > 1) {
     const secondEntry = kbEntries[1];
-    const secondContent = formatKBEntryForDisplay(secondEntry);
+    const secondContent = formatKBEntryForDisplay(secondEntry, true, excludeMetadata);
     
     // Only include second entry if:
     // 1. It's from the same topic/subtopic (likely continuation)
