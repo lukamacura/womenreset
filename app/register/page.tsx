@@ -1,8 +1,9 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
-import Link from "next/link";
+import React, { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabaseClient";
 import { getRedirectBaseUrl, AUTH_CALLBACK_PATH } from "@/lib/constants";
 import {
@@ -19,7 +20,35 @@ import {
   Mail,
   CheckCircle2,
   Loader2,
+  TrendingUp,
+  BarChart3,
+  AlertTriangle,
+  Clock,
+  Calendar,
+  CalendarClock,
+  CalendarRange,
+  Circle,
+  Pill,
+  UtensilsCrossed,
+  Dumbbell,
+  MessageSquare,
+  Smartphone,
+  Stethoscope,
+  UserCheck,
+  HeartPulse,
+  UserX,
+  UserCircle,
+  Check,
+  Sparkles,
+  Zap,
+  Search,
 } from "lucide-react";
+import {
+  getSimplifiedHeadline,
+  getEmotionalStatement,
+  getSymptomLabel,
+  SYMPTOM_LABELS,
+} from "@/lib/quiz-results-helpers";
 
 type Step = "q1_problems" | "q2_severity" | "q3_timing" | "q4_tried" | "q5_doctor" | "q6_goal" | "q7_name";
 
@@ -38,33 +67,33 @@ const PROBLEM_OPTIONS = [
 ];
 
 const SEVERITY_OPTIONS = [
-  { id: "mild", label: "Mild - Annoying but manageable" },
-  { id: "moderate", label: "Moderate - Affecting my work/relationships" },
-  { id: "severe", label: "Severe - I'm struggling every day" },
+  { id: "mild", label: "Mild - Annoying but manageable", icon: TrendingUp },
+  { id: "moderate", label: "Moderate - Affecting my work/relationships", icon: BarChart3 },
+  { id: "severe", label: "Severe - I'm struggling every day", icon: AlertTriangle },
 ];
 
 const TIMING_OPTIONS = [
-  { id: "just_started", label: "Just started (0-6 months)" },
-  { id: "been_while", label: "Been a while (6-12 months)" },
-  { id: "over_year", label: "Over a year" },
-  { id: "several_years", label: "Several years" },
+  { id: "just_started", label: "Just started (0-6 months)", icon: Clock },
+  { id: "been_while", label: "Been a while (6-12 months)", icon: Calendar },
+  { id: "over_year", label: "Over a year", icon: CalendarClock },
+  { id: "several_years", label: "Several years", icon: CalendarRange },
 ];
 
 const TRIED_OPTIONS = [
-  { id: "nothing", label: "Nothing yet" },
-  { id: "supplements", label: "Supplements / Vitamins" },
-  { id: "diet", label: "Diet changes" },
-  { id: "exercise", label: "Exercise" },
-  { id: "hrt", label: "HRT / Medication" },
-  { id: "doctor_talk", label: "Talked to doctor" },
-  { id: "apps", label: "Apps / Tracking" },
+  { id: "nothing", label: "Nothing yet", icon: Circle },
+  { id: "supplements", label: "Supplements / Vitamins", icon: Pill },
+  { id: "diet", label: "Diet changes", icon: UtensilsCrossed },
+  { id: "exercise", label: "Exercise", icon: Dumbbell },
+  { id: "hrt", label: "HRT / Medication", icon: Pill },
+  { id: "doctor_talk", label: "Talked to doctor", icon: MessageSquare },
+  { id: "apps", label: "Apps / Tracking", icon: Smartphone },
 ];
 
 const DOCTOR_OPTIONS = [
-  { id: "yes_actively", label: "Yes, actively" },
-  { id: "yes_not_helpful", label: "Yes, but they're not helpful" },
-  { id: "no_planning", label: "No, planning to" },
-  { id: "no_natural", label: "No, prefer natural approaches" },
+  { id: "yes_actively", label: "Yes, actively", icon: Stethoscope },
+  { id: "yes_not_helpful", label: "Yes, but they're not helpful", icon: UserX },
+  { id: "no_planning", label: "No, planning to", icon: HeartPulse },
+  { id: "no_natural", label: "No, prefer natural approaches", icon: UserCheck },
 ];
 
 const GOAL_OPTIONS = [
@@ -76,7 +105,7 @@ const GOAL_OPTIONS = [
   { id: "get_body_back", label: "Get my body back", icon: Battery },
 ];
 
-type Phase = "quiz" | "email" | "email-sent";
+type Phase = "quiz" | "results" | "email" | "email-sent";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -99,6 +128,51 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Results loading state
+  const [isResultsLoading, setIsResultsLoading] = useState(true);
+  const [messageIndex, setMessageIndex] = useState(0);
+  const [progress, setProgress] = useState(0);
+
+  // Loading messages for results screen
+  const loadingMessages = [
+    "Looking at your symptoms...",
+    "Finding connections...",
+    "Preparing your personalized plan...",
+  ];
+
+  // Handle results loading animation
+  useEffect(() => {
+    if (phase === "results") {
+      // Reset loading state when entering results phase
+      setIsResultsLoading(true);
+      setProgress(0);
+      setMessageIndex(0);
+
+      // Rotate messages every 1 second
+      const messageInterval = setInterval(() => {
+        setMessageIndex((prev) => (prev + 1) % loadingMessages.length);
+      }, 1000);
+
+      // Progress bar animation
+      const progressInterval = setInterval(() => {
+        setProgress((prev) => Math.min(prev + 2, 100));
+      }, 60);
+
+      // Hide loading after 3.5 seconds
+      const loadingTimer = setTimeout(() => {
+        setIsResultsLoading(false);
+        clearInterval(messageInterval);
+        clearInterval(progressInterval);
+      }, 3500);
+
+      return () => {
+        clearInterval(messageInterval);
+        clearInterval(progressInterval);
+        clearTimeout(loadingTimer);
+      };
+    }
+  }, [phase, loadingMessages.length]);
 
   // Validation
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -145,8 +219,8 @@ export default function RegisterPage() {
     if (stepIndex < STEPS.length - 1) {
       setStepIndex(stepIndex + 1);
     } else {
-      // Quiz complete - move to email phase
-      setPhase("email");
+      // Quiz complete - move to results phase
+      setPhase("results");
       // Save quiz answers to localStorage as backup
       saveQuizAnswers();
     }
@@ -304,10 +378,10 @@ export default function RegisterPage() {
   };
 
   // Check for authenticated session and redirect if profile exists
-  // Only check when NOT in email-sent phase (user should stay on email-sent page)
+  // Only check when NOT in email-sent or results phase (user should stay on those pages)
   useEffect(() => {
-    // Don't check session if user is in email-sent phase - let them stay there
-    if (phase === "email-sent") {
+    // Don't check session if user is in email-sent or results phase - let them stay there
+    if (phase === "email-sent" || phase === "results") {
       return;
     }
 
@@ -386,22 +460,210 @@ export default function RegisterPage() {
         <div className="absolute -bottom-24 -right-24 h-56 w-56 rounded-full bg-primary/10 blur-3xl" />
       </div>
 
+      {/* Results Phase */}
+      {phase === "results" && (
+        <div className="flex-1 flex flex-col bg-[#FDF8F6] min-h-screen -mx-6 sm:-mx-8 px-6 sm:px-8">
+          <AnimatePresence mode="wait">
+            {isResultsLoading ? (
+              // Loading Screen
+              <motion.div
+                key="loading"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="flex-1 flex flex-col items-center justify-center px-4"
+              >
+                {/* Animated icon - pulse + rotate */}
+                <div className="relative mb-8">
+                  <div className="w-20 h-20 rounded-full bg-[#D4A5A5] flex items-center justify-center animate-pulse">
+                    <Sparkles className="w-10 h-10 text-white animate-spin-slow" />
+                  </div>
+                  {/* Rotating ring around icon */}
+                  <div className="absolute inset-0 w-20 h-20 border-4 border-transparent border-t-[#D4A5A5]/30 rounded-full animate-spin" />
+                </div>
+
+                {/* Main text */}
+                <h2 className="text-xl font-medium text-[#3D3D3D] mb-3">
+                  Analyzing your answers...
+                </h2>
+
+                {/* Rotating message with fade */}
+                <p className="text-[#5A5A5A] h-6 transition-opacity duration-300">
+                  {loadingMessages[messageIndex]}
+                </p>
+
+                {/* Progress bar */}
+                <div className="w-48 h-1.5 bg-[#E8DDD9] rounded-full mt-8 overflow-hidden">
+                  <div
+                    className="h-full bg-[#D4A5A5] rounded-full transition-all duration-100 ease-out"
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+              </motion.div>
+            ) : (
+              // Results Page
+              <motion.div
+                key="results"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="max-w-md mx-auto w-full py-20"
+              >
+                {/* Lisa Icon */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="flex justify-center mb-6"
+                >
+                  <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center">
+                    <HeartPulse className="w-8 h-8 text-white" />
+                  </div>
+                </motion.div>
+
+                {/* Headline */}
+                <motion.h1
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 }}
+                  className="text-2xl font-semibold text-[#3D3D3D] text-center mb-4"
+                >
+                  {getSimplifiedHeadline(firstName || "you")}
+                </motion.h1>
+
+                {/* Emotional Statement */}
+                <motion.p
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.6 }}
+                  className="text-lg text-[#5A5A5A] text-center leading-relaxed mb-8"
+                >
+                  {getEmotionalStatement(
+                    severity,
+                    topProblems.length,
+                    firstName || "you"
+                  )}
+                </motion.p>
+
+                {/* Symptom Pills */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.8 }}
+                  className="bg-white rounded-2xl p-5 border border-[#E8DDD9] mb-6"
+                >
+                  <p className="text-sm text-[#8B7E74] mb-3">
+                    {getSymptomLabel(topProblems.length)}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {topProblems.map((symptom, index) => (
+                      <motion.span
+                        key={symptom}
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 1.0 + index * 0.1 }}
+                        className="px-3 py-1.5 bg-[#FDF8F6] text-[#3D3D3D] text-sm rounded-full border border-[#E8DDD9]"
+                      >
+                        {SYMPTOM_LABELS[symptom] || symptom}
+                      </motion.span>
+                    ))}
+                  </div>
+                </motion.div>
+
+                {/* Lisa Solution */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 1.2 }}
+                  className="mb-8"
+                >
+                  <h2 className="text-lg font-medium text-[#3D3D3D] mb-4 text-center">
+                    Lisa helps you:
+                  </h2>
+                  <div className="space-y-3">
+                    {[
+                      { icon: Zap, text: "Track symptoms in seconds" },
+                      { icon: Search, text: "Discover your hidden triggers" },
+                      { icon: Heart, text: "Finally understand your body" },
+                    ].map((benefit, index) => {
+                      const Icon = benefit.icon;
+                      return (
+                        <div key={index} className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-[#9DBEBB]/20 flex items-center justify-center shrink-0">
+                            <Icon className="w-5 h-5 text-[#9DBEBB]" />
+                          </div>
+                          <span className="text-[#3D3D3D]">{benefit.text}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </motion.div>
+
+                {/* Email CTA */}
+                <motion.form
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 1.4 }}
+                  onSubmit={handleEmailSubmit}
+                  className="space-y-3"
+                >
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Enter your email"
+                    required
+                    className="w-full px-4 py-4 rounded-xl border border-[#E8DDD9] bg-white text-[#3D3D3D] placeholder:text-[#9A9A9A] focus:outline-none focus:ring-2 focus:ring-[#D4A5A5]/50 focus:border-[#D4A5A5]"
+                  />
+
+                  <button
+                    type="submit"
+                    disabled={loading || !emailValid}
+                    className="w-full py-4 bg-linear-to-r from-pink-500 to-rose-600 font-bold hover:bg-[#C99494] text-white rounded-xl transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        Let&apos;s go!
+                      </>
+                    )}
+                  </button>
+
+                  <p className="text-center text-sm text-foreground-100">
+                    No credit card required
+                  </p>
+
+                  {error && (
+                    <div className="rounded-xl border border-error/30 bg-error/10 p-3 text-sm text-error">
+                      {error}
+                    </div>
+                  )}
+                </motion.form>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      )}
+
       {/* Quiz Phase */}
       {phase === "quiz" && (
         <div className="flex-1 flex flex-col pt-8 ">
           {/* Progress Bar */}
           <div className="mb-8 pt-8">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-muted-foreground">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm font-semibold text-foreground">
                 Question {stepIndex + 1} of {STEPS.length}
               </span>
-              <span className="text-sm font-medium text-muted-foreground">
+              <span className="text-sm font-semibold text-primary">
                 {Math.round(((stepIndex + 1) / STEPS.length) * 100)}%
               </span>
             </div>
-            <div className="h-2 w-full rounded-full bg-foreground/10 overflow-hidden">
+            <div className="h-3 w-full rounded-full bg-foreground/10 overflow-hidden shadow-inner">
               <div
-                className="h-full rounded-full bg-primary transition-all duration-300"
+                className="h-full rounded-full bg-linear-to-r from-primary to-primary/80 transition-all duration-500 ease-out shadow-sm"
                 style={{ width: `${((stepIndex + 1) / STEPS.length) * 100}%` }}
               />
             </div>
@@ -409,10 +671,10 @@ export default function RegisterPage() {
 
           {/* Question Content */}
           <div className="flex-1 flex flex-col">
-            <div className="rounded-2xl border border-foreground/10 bg-card/40 p-6 sm:p-8 space-y-6 flex-1">
+            <div className="rounded-2xl border border-foreground/10 bg-card/50 backdrop-blur-sm p-6 sm:p-8 space-y-6 flex-1 shadow-lg shadow-primary/5">
               {/* Q1: Top Problems */}
               {currentStep === "q1_problems" && (
-                <div className="space-y-6">
+                <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
                   <div>
                     <h2 className="text-2xl sm:text-3xl font-bold mb-2">
                       What&apos;s making life hardest right now?
@@ -429,85 +691,128 @@ export default function RegisterPage() {
                           type="button"
                           onClick={() => toggleProblem(option.id)}
                           disabled={!isSelected && topProblems.length >= 2}
-                          className={`p-4 rounded-xl border-2 transition-all text-left ${
+                          className={`p-4 rounded-xl border-2 transition-all duration-200 text-left group ${
                             isSelected
-                              ? "border-primary bg-primary/10"
-                              : "border-foreground/15 hover:border-primary/50"
+                              ? "border-primary bg-primary/10 shadow-md shadow-primary/20"
+                              : "border-foreground/15 hover:border-primary/50 hover:bg-foreground/5"
                           } ${!isSelected && topProblems.length >= 2 ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
                         >
                           <div className="flex items-center gap-3">
-                            <Icon className={`w-6 h-6 ${isSelected ? "text-primary" : "text-muted-foreground"}`} />
-                            <span className="font-medium">{option.label}</span>
+                            <div className={`p-2 rounded-lg transition-colors ${
+                              isSelected ? "bg-primary/20" : "bg-foreground/5 group-hover:bg-primary/10"
+                            }`}>
+                              <Icon className={`w-5 h-5 ${isSelected ? "text-primary" : "text-muted-foreground"}`} />
+                            </div>
+                            <span className="font-medium flex-1">{option.label}</span>
+                            {isSelected && (
+                              <Check className="w-5 h-5 text-primary animate-in zoom-in duration-200" />
+                            )}
                           </div>
                         </button>
                       );
                     })}
                   </div>
                   {topProblems.length > 0 && (
-                    <p className="text-sm text-muted-foreground">
-                      {topProblems.length} of 2 selected
-                    </p>
+                    <div className="flex items-center gap-2 text-sm">
+                      <div className="flex-1 h-2 rounded-full bg-foreground/10 overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-primary transition-all duration-300"
+                          style={{ width: `${(topProblems.length / 2) * 100}%` }}
+                        />
+                      </div>
+                      <span className="text-muted-foreground font-medium min-w-[100px] text-right">
+                        {topProblems.length} of 2 selected
+                      </span>
+                    </div>
                   )}
                 </div>
               )}
 
               {/* Q2: Severity */}
               {currentStep === "q2_severity" && (
-                <div className="space-y-6">
+                <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
                   <div>
                     <h2 className="text-2xl sm:text-3xl font-bold mb-2">
                       How much is this affecting your daily life?
                     </h2>
                   </div>
                   <div className="space-y-3">
-                    {SEVERITY_OPTIONS.map((option) => (
-                      <button
-                        key={option.id}
-                        type="button"
-                        onClick={() => setSeverity(option.id)}
-                        className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
-                          severity === option.id
-                            ? "border-primary bg-primary/10"
-                            : "border-foreground/15 hover:border-primary/50"
-                        }`}
-                      >
-                        <span className="font-medium">{option.label}</span>
-                      </button>
-                    ))}
+                    {SEVERITY_OPTIONS.map((option) => {
+                      const Icon = option.icon;
+                      const isSelected = severity === option.id;
+                      return (
+                        <button
+                          key={option.id}
+                          type="button"
+                          onClick={() => setSeverity(option.id)}
+                          className={`w-full p-4 rounded-xl border-2 text-left transition-all duration-200 group ${
+                            isSelected
+                              ? "border-primary bg-primary/10 shadow-md shadow-primary/20"
+                              : "border-foreground/15 hover:border-primary/50 hover:bg-foreground/5"
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`p-2 rounded-lg transition-colors ${
+                              isSelected ? "bg-primary/20" : "bg-foreground/5 group-hover:bg-primary/10"
+                            }`}>
+                              <Icon className={`w-5 h-5 ${isSelected ? "text-primary" : "text-muted-foreground"}`} />
+                            </div>
+                            <span className="font-medium flex-1">{option.label}</span>
+                            {isSelected && (
+                              <Check className="w-5 h-5 text-primary animate-in zoom-in duration-200" />
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               )}
 
               {/* Q3: Timing */}
               {currentStep === "q3_timing" && (
-                <div className="space-y-6">
+                <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
                   <div>
                     <h2 className="text-2xl sm:text-3xl font-bold mb-2">
                       When did symptoms start?
                     </h2>
                   </div>
                   <div className="space-y-3">
-                    {TIMING_OPTIONS.map((option) => (
-                      <button
-                        key={option.id}
-                        type="button"
-                        onClick={() => setTiming(option.id)}
-                        className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
-                          timing === option.id
-                            ? "border-primary bg-primary/10"
-                            : "border-foreground/15 hover:border-primary/50"
-                        }`}
-                      >
-                        <span className="font-medium">{option.label}</span>
-                      </button>
-                    ))}
+                    {TIMING_OPTIONS.map((option) => {
+                      const Icon = option.icon;
+                      const isSelected = timing === option.id;
+                      return (
+                        <button
+                          key={option.id}
+                          type="button"
+                          onClick={() => setTiming(option.id)}
+                          className={`w-full p-4 rounded-xl border-2 text-left transition-all duration-200 group ${
+                            isSelected
+                              ? "border-primary bg-primary/10 shadow-md shadow-primary/20"
+                              : "border-foreground/15 hover:border-primary/50 hover:bg-foreground/5"
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`p-2 rounded-lg transition-colors ${
+                              isSelected ? "bg-primary/20" : "bg-foreground/5 group-hover:bg-primary/10"
+                            }`}>
+                              <Icon className={`w-5 h-5 ${isSelected ? "text-primary" : "text-muted-foreground"}`} />
+                            </div>
+                            <span className="font-medium flex-1">{option.label}</span>
+                            {isSelected && (
+                              <Check className="w-5 h-5 text-primary animate-in zoom-in duration-200" />
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               )}
 
               {/* Q4: What They've Tried */}
               {currentStep === "q4_tried" && (
-                <div className="space-y-6">
+                <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
                   <div>
                     <h2 className="text-2xl sm:text-3xl font-bold mb-2">
                       What have you tried so far?
@@ -516,19 +821,30 @@ export default function RegisterPage() {
                   </div>
                   <div className="space-y-3">
                     {TRIED_OPTIONS.map((option) => {
+                      const Icon = option.icon;
                       const isSelected = triedOptions.includes(option.id);
                       return (
                         <button
                           key={option.id}
                           type="button"
                           onClick={() => toggleTriedOption(option.id)}
-                          className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
+                          className={`w-full p-4 rounded-xl border-2 text-left transition-all duration-200 group ${
                             isSelected
-                              ? "border-primary bg-primary/10"
-                              : "border-foreground/15 hover:border-primary/50"
+                              ? "border-primary bg-primary/10 shadow-md shadow-primary/20"
+                              : "border-foreground/15 hover:border-primary/50 hover:bg-foreground/5"
                           }`}
                         >
-                          <span className="font-medium">{option.label}</span>
+                          <div className="flex items-center gap-3">
+                            <div className={`p-2 rounded-lg transition-colors ${
+                              isSelected ? "bg-primary/20" : "bg-foreground/5 group-hover:bg-primary/10"
+                            }`}>
+                              <Icon className={`w-5 h-5 ${isSelected ? "text-primary" : "text-muted-foreground"}`} />
+                            </div>
+                            <span className="font-medium flex-1">{option.label}</span>
+                            {isSelected && (
+                              <Check className="w-5 h-5 text-primary animate-in zoom-in duration-200" />
+                            )}
+                          </div>
                         </button>
                       );
                     })}
@@ -538,34 +854,48 @@ export default function RegisterPage() {
 
               {/* Q5: Doctor Status */}
               {currentStep === "q5_doctor" && (
-                <div className="space-y-6">
+                <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
                   <div>
                     <h2 className="text-2xl sm:text-3xl font-bold mb-2">
                       Are you working with a doctor on this?
                     </h2>
                   </div>
                   <div className="space-y-3">
-                    {DOCTOR_OPTIONS.map((option) => (
-                      <button
-                        key={option.id}
-                        type="button"
-                        onClick={() => setDoctorStatus(option.id)}
-                        className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
-                          doctorStatus === option.id
-                            ? "border-primary bg-primary/10"
-                            : "border-foreground/15 hover:border-primary/50"
-                        }`}
-                      >
-                        <span className="font-medium">{option.label}</span>
-                      </button>
-                    ))}
+                    {DOCTOR_OPTIONS.map((option) => {
+                      const Icon = option.icon;
+                      const isSelected = doctorStatus === option.id;
+                      return (
+                        <button
+                          key={option.id}
+                          type="button"
+                          onClick={() => setDoctorStatus(option.id)}
+                          className={`w-full p-4 rounded-xl border-2 text-left transition-all duration-200 group ${
+                            isSelected
+                              ? "border-primary bg-primary/10 shadow-md shadow-primary/20"
+                              : "border-foreground/15 hover:border-primary/50 hover:bg-foreground/5"
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`p-2 rounded-lg transition-colors ${
+                              isSelected ? "bg-primary/20" : "bg-foreground/5 group-hover:bg-primary/10"
+                            }`}>
+                              <Icon className={`w-5 h-5 ${isSelected ? "text-primary" : "text-muted-foreground"}`} />
+                            </div>
+                            <span className="font-medium flex-1">{option.label}</span>
+                            {isSelected && (
+                              <Check className="w-5 h-5 text-primary animate-in zoom-in duration-200" />
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               )}
 
               {/* Q6: Goal */}
               {currentStep === "q6_goal" && (
-                <div className="space-y-6">
+                <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
                   <div>
                     <h2 className="text-2xl sm:text-3xl font-bold mb-2">
                       What would success look like for you?
@@ -581,15 +911,22 @@ export default function RegisterPage() {
                           key={option.id}
                           type="button"
                           onClick={() => setGoal(option.id)}
-                          className={`p-4 rounded-xl border-2 transition-all text-left ${
+                          className={`p-4 rounded-xl border-2 transition-all duration-200 text-left group ${
                             isSelected
-                              ? "border-primary bg-primary/10"
-                              : "border-foreground/15 hover:border-primary/50"
+                              ? "border-primary bg-primary/10 shadow-md shadow-primary/20"
+                              : "border-foreground/15 hover:border-primary/50 hover:bg-foreground/5"
                           }`}
                         >
                           <div className="flex items-center gap-3">
-                            <Icon className={`w-5 h-5 ${isSelected ? "text-primary" : "text-muted-foreground"}`} />
-                            <span className="font-medium">{option.label}</span>
+                            <div className={`p-2 rounded-lg transition-colors ${
+                              isSelected ? "bg-primary/20" : "bg-foreground/5 group-hover:bg-primary/10"
+                            }`}>
+                              <Icon className={`w-5 h-5 ${isSelected ? "text-primary" : "text-muted-foreground"}`} />
+                            </div>
+                            <span className="font-medium flex-1">{option.label}</span>
+                            {isSelected && (
+                              <Check className="w-5 h-5 text-primary animate-in zoom-in duration-200" />
+                            )}
                           </div>
                         </button>
                       );
@@ -600,7 +937,7 @@ export default function RegisterPage() {
 
               {/* Q7: Name */}
               {currentStep === "q7_name" && (
-                <div className="space-y-6">
+                <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
                   <div>
                     <h2 className="text-2xl sm:text-3xl font-bold mb-2">
                       What should Lisa call you?
@@ -609,24 +946,33 @@ export default function RegisterPage() {
                       Lisa will use this to personalize your experience
                     </p>
                   </div>
-                  <input
-                    type="text"
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    placeholder="First name"
-                    className="w-full p-4 rounded-xl border-2 border-foreground/15 bg-background focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
-                  />
+                  <div className="relative">
+                    <UserCircle className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                    <input
+                      type="text"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      placeholder="First name"
+                      className="w-full pl-12 pr-4 py-4 rounded-xl border-2 border-foreground/15 bg-background focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all duration-200 text-lg"
+                      autoFocus
+                    />
+                    {firstName.trim().length > 0 && (
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                        <CheckCircle2 className="w-5 h-5 text-primary animate-in zoom-in duration-200" />
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
 
             {/* Navigation Buttons */}
-            <div className="flex items-center justify-between mt-6 gap-4">
+            <div className="flex items-center justify-between mt-8 gap-4">
               <button
                 type="button"
                 onClick={goBack}
                 disabled={stepIndex === 0}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl border border-foreground/15 hover:bg-foreground/5 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-5 py-3 rounded-xl border-2 border-foreground/15 hover:bg-foreground/5 hover:border-foreground/25 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent font-medium"
               >
                 <ArrowLeft className="w-4 h-4" />
                 Back
@@ -635,84 +981,12 @@ export default function RegisterPage() {
                 type="button"
                 onClick={goNext}
                 disabled={!stepIsAnswered(currentStep)}
-                className="flex items-center gap-2 px-6 py-2 rounded-xl bg-primary text-primary-foreground hover:brightness-95 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-6 py-3 rounded-xl bg-primary text-primary-foreground hover:brightness-110 hover:shadow-lg hover:shadow-primary/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:brightness-100 disabled:hover:shadow-none font-semibold"
               >
                 {stepIndex === STEPS.length - 1 ? "Continue" : "Next"}
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Email Phase */}
-      {phase === "email" && (
-        <div className="flex-1 flex flex-col justify-center max-w-md mx-auto w-full">
-          <div className="space-y-6">
-            <div className="text-center">
-              <h1 className="text-3xl sm:text-4xl font-bold mb-3">
-                Almost there!
-              </h1>
-              <p className="text-muted-foreground">
-                Enter your email to create your account and save your progress.
-              </p>
-            </div>
-
-            <form onSubmit={handleEmailSubmit} className="space-y-4">
-              <div>
-                <label htmlFor="email" className="mb-2 block text-sm font-medium">
-                  Email
-                </label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                  <input
-                    id="email"
-                    name="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@example.com"
-                    className="w-full pl-10 pr-4 py-3 rounded-xl border-2 border-foreground/15 bg-background focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
-                    required
-                  />
-                </div>
-              </div>
-
-              {error && (
-                <div className="rounded-xl border border-error/30 bg-error/10 p-3 text-sm text-error">
-                  {error}
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={!canSubmit}
-                className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-primary text-primary-foreground hover:brightness-95 transition disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    Sending...
-                  </>
-                ) : (
-                  <>
-                    Send magic link
-                    <ArrowRight className="w-5 h-5" />
-                  </>
-                )}
-              </button>
-
-              <p className="text-xs text-center text-muted-foreground">
-                By continuing, you agree to our{" "}
-                <Link href="/terms" className="underline hover:opacity-80">
-                  Terms
-                </Link>{" "}
-                and{" "}
-                <Link href="/privacy" className="underline hover:opacity-80">
-                  Privacy Policy
-                </Link>
-              </p>
-            </form>
           </div>
         </div>
       )}
