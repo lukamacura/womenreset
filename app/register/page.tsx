@@ -195,6 +195,8 @@ export default function RegisterPage() {
     try {
       const redirectTo = `${SITE_URL}${AUTH_CALLBACK_PATH}?next=/register`;
       
+      console.log("Register: Attempting signInWithOtp with redirectTo:", redirectTo);
+      
       const { error: signInError } = await supabase.auth.signInWithOtp({
         email,
         options: {
@@ -203,23 +205,39 @@ export default function RegisterPage() {
       });
 
       if (signInError) {
-        let friendly = "An error occurred. Please try again.";
-        if (signInError.message.includes("email") || signInError.message.includes("invalid")) {
+        console.error("Register: Supabase error:", signInError);
+        console.error("Register: Error message:", signInError.message);
+        console.error("Register: Error status:", signInError.status);
+        
+        let friendly = signInError.message || "An error occurred. Please try again.";
+        
+        // Check for redirect URL errors specifically
+        if (
+          signInError.message.includes("redirect") || 
+          signInError.message.includes("redirect_to") ||
+          signInError.message.includes("redirect URL") ||
+          signInError.message.includes("allowed values") ||
+          signInError.status === 400
+        ) {
+          friendly = `Configuration error: ${signInError.message}. Please contact support.`;
+        } else if (signInError.message.includes("email") && !signInError.message.includes("redirect")) {
+          // Only show invalid email if it's actually about email format, not redirect
           friendly = "That email address is invalid. Please check and try again.";
         } else if (signInError.message.includes("rate limit") || signInError.message.includes("too many")) {
           friendly = "Too many attempts - please wait a moment and try again.";
-        } else if (signInError.message) {
-          friendly = signInError.message;
         }
+        
         setError(friendly);
         setLoading(false);
         return;
       }
 
+      console.log("Register: Magic link sent successfully");
       // Success - show email sent message
       setPhase("email-sent");
       setLoading(false);
     } catch (e) {
+      console.error("Register: Exception:", e);
       setError(e instanceof Error ? e.message : "An error occurred. Please try again.");
       setLoading(false);
     }

@@ -28,6 +28,8 @@ export default function MagicLinkClient() {
       // Always use womenreset.com for email redirects
       const redirectTarget = sp.get("next") || "/dashboard";
       const redirectTo = `${SITE_URL}${AUTH_CALLBACK_PATH}?next=${encodeURIComponent(redirectTarget)}`;
+      
+      console.log("MagicLink: Attempting signInWithOtp with redirectTo:", redirectTo);
 
       const { error } = await supabase.auth.signInWithOtp({
         email,
@@ -35,9 +37,23 @@ export default function MagicLinkClient() {
       });
 
       if (error) {
-        let friendly = "An error occurred. Please try again.";
+        console.error("MagicLink: Supabase error:", error);
+        console.error("MagicLink: Error message:", error.message);
+        console.error("MagicLink: Error status:", error.status);
         
-        if (error.message.includes("email") || error.message.includes("invalid")) {
+        let friendly = error.message || "An error occurred. Please try again.";
+        
+        // Check for redirect URL errors specifically
+        if (
+          error.message.includes("redirect") || 
+          error.message.includes("redirect_to") ||
+          error.message.includes("redirect URL") ||
+          error.message.includes("allowed values") ||
+          error.status === 400
+        ) {
+          friendly = `Configuration error: ${error.message}. Please contact support.`;
+        } else if (error.message.includes("email") && !error.message.includes("redirect")) {
+          // Only show invalid email if it's actually about email format, not redirect
           friendly = "Please check your email address.";
         } else if (
           /rate/i.test(error.message) || 
@@ -46,20 +62,19 @@ export default function MagicLinkClient() {
           error.message.includes("only request this after") ||
           /48 seconds/i.test(error.message)
         ) {
-          // Use the original error message if it contains specific rate limit info
           friendly = error.message.includes("48 seconds") || error.message.includes("security purposes")
             ? error.message
             : "Too many attempts — please wait a moment and try again.";
-        } else if (error.message) {
-          friendly = error.message;
         }
         
         setErr(friendly);
         return;
       }
 
+      console.log("MagicLink: Magic link sent successfully");
       setInfo("We sent you a magic link. Check your inbox.");
     } catch (e) {
+      console.error("MagicLink: Exception:", e);
       setErr(e instanceof Error ? e.message : "Unknown error occurred. Please try again.");
     } finally {
       setLoading(false);

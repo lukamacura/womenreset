@@ -48,6 +48,8 @@ function LoginForm() {
     try {
       // Always use womenreset.com for email redirects
       const redirectTo = `${SITE_URL}${AUTH_CALLBACK_PATH}?next=${encodeURIComponent(redirectTarget)}`;
+      
+      console.log("Login: Attempting signInWithOtp with redirectTo:", redirectTo);
 
       const { error } = await supabase.auth.signInWithOtp({
         email,
@@ -55,9 +57,23 @@ function LoginForm() {
       });
 
       if (error) {
-        let friendly = "An error occurred. Please try again.";
+        console.error("Login: Supabase error:", error);
+        console.error("Login: Error message:", error.message);
+        console.error("Login: Error status:", error.status);
         
-        if (error.message.includes("email") || error.message.includes("invalid")) {
+        let friendly = error.message || "An error occurred. Please try again.";
+        
+        // Check for redirect URL errors specifically
+        if (
+          error.message.includes("redirect") || 
+          error.message.includes("redirect_to") ||
+          error.message.includes("redirect URL") ||
+          error.message.includes("allowed values") ||
+          error.status === 400
+        ) {
+          friendly = `Configuration error: ${error.message}. Please contact support.`;
+        } else if (error.message.includes("email") && !error.message.includes("redirect")) {
+          // Only show invalid email if it's actually about email format, not redirect
           friendly = "That email address is invalid. Please check and try again.";
         } else if (
           /rate/i.test(error.message) || 
@@ -66,12 +82,9 @@ function LoginForm() {
           error.message.includes("only request this after") ||
           /48 seconds/i.test(error.message)
         ) {
-          // Use the original error message if it contains specific rate limit info
           friendly = error.message.includes("48 seconds") || error.message.includes("security purposes")
             ? error.message
             : "Too many attempts — please wait a moment and try again.";
-        } else if (error.message) {
-          friendly = error.message;
         }
         
         setErr(friendly);
@@ -79,10 +92,12 @@ function LoginForm() {
         return;
       }
 
+      console.log("Login: Magic link sent successfully");
       // Magic link sent successfully
       setInfo("Check your email! We sent you a magic link. Click it to log in.");
       setLoading(false);
     } catch (e) {
+      console.error("Login: Exception:", e);
       setErr(e instanceof Error ? e.message : "An unexpected error occurred. Please try again.");
       setLoading(false);
     }
