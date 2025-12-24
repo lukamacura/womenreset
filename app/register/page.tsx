@@ -227,34 +227,62 @@ export default function RegisterPage() {
         // Default to showing the actual error message
         let friendly = signInError.message || "An error occurred. Please try again.";
         
-        // Check for redirect URL errors FIRST (most common issue)
-        const lowerMessage = signInError.message.toLowerCase();
-        if (
-          lowerMessage.includes("redirect") || 
-          lowerMessage.includes("redirect_to") ||
-          lowerMessage.includes("redirect url") ||
-          lowerMessage.includes("allowed values") ||
-          lowerMessage.includes("not allowed") ||
-          lowerMessage.includes("invalid redirect") ||
-          lowerMessage.includes("redirect_to must") ||
+        // Handle 500 errors (server-side Supabase issues)
+        if (signInError.status === 500) {
+          const errorCode = (signInError as { code?: string }).code;
+          if (signInError.message.includes("magic link email") || errorCode === "unexpected_failure") {
+            friendly = "Unable to send magic link email. This may be due to:\n1. Redirect URL not configured in Supabase (check Authentication → URL Configuration)\n2. Email service configuration issue\n3. Temporary Supabase service issue\n\nPlease verify your Supabase redirect URLs include: " + redirectTo;
+          } else {
+            friendly = `Server error (500): ${signInError.message}. Please try again or contact support if the issue persists.`;
+          }
+        } else if (
+          // Check for redirect URL errors (400/422 status codes)
           signInError.status === 400 ||
           signInError.status === 422
         ) {
-          friendly = `Redirect URL configuration error: ${signInError.message}. Please verify Supabase redirect URLs include: ${redirectTo}`;
-        } else if (signInError.message.includes("rate limit") || signInError.message.includes("too many")) {
-          friendly = "Too many attempts - please wait a moment and try again.";
-        } else if (
-          // Only show invalid email if it's explicitly about email format validation
-          (lowerMessage.includes("email") && 
-           (lowerMessage.includes("format") || 
-            lowerMessage.includes("malformed") || 
-            lowerMessage.includes("invalid email") ||
-            lowerMessage.includes("email address"))) &&
-          !lowerMessage.includes("redirect")
-        ) {
-          friendly = "That email address is invalid. Please check and try again.";
+          const lowerMessage = signInError.message.toLowerCase();
+          if (
+            lowerMessage.includes("redirect") || 
+            lowerMessage.includes("redirect_to") ||
+            lowerMessage.includes("redirect url") ||
+            lowerMessage.includes("allowed values") ||
+            lowerMessage.includes("not allowed") ||
+            lowerMessage.includes("invalid redirect") ||
+            lowerMessage.includes("redirect_to must")
+          ) {
+            friendly = `Redirect URL configuration error: ${signInError.message}. Please verify Supabase redirect URLs include: ${redirectTo}`;
+          } else {
+            friendly = `Configuration error (${signInError.status}): ${signInError.message}. Please check your Supabase settings.`;
+          }
+        } else {
+          const lowerMessage = signInError.message.toLowerCase();
+          // Check for redirect URL errors in message
+          if (
+            lowerMessage.includes("redirect") || 
+            lowerMessage.includes("redirect_to") ||
+            lowerMessage.includes("redirect url") ||
+            lowerMessage.includes("allowed values") ||
+            lowerMessage.includes("not allowed") ||
+            lowerMessage.includes("invalid redirect") ||
+            lowerMessage.includes("redirect_to must")
+          ) {
+            friendly = `Redirect URL configuration error: ${signInError.message}. Please verify Supabase redirect URLs include: ${redirectTo}`;
+          } else if (signInError.message.includes("rate limit") || signInError.message.includes("too many")) {
+            friendly = "Too many attempts - please wait a moment and try again.";
+          } else if (
+            // Only show invalid email if it's explicitly about email format validation
+            (lowerMessage.includes("email") && 
+             (lowerMessage.includes("format") || 
+              lowerMessage.includes("malformed") || 
+              lowerMessage.includes("invalid email") ||
+              lowerMessage.includes("email address"))) &&
+            !lowerMessage.includes("redirect") &&
+            !lowerMessage.includes("sending")
+          ) {
+            friendly = "That email address is invalid. Please check and try again.";
+          }
+          // Otherwise, show the actual error message
         }
-        // Otherwise, show the actual error message
         
         setError(friendly);
         setLoading(false);

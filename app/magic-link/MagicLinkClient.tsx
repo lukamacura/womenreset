@@ -60,42 +60,70 @@ export default function MagicLinkClient() {
         // Default to showing the actual error message
         let friendly = error.message || "An error occurred. Please try again.";
         
-        // Check for redirect URL errors FIRST (most common issue)
-        const lowerMessage = error.message.toLowerCase();
-        if (
-          lowerMessage.includes("redirect") || 
-          lowerMessage.includes("redirect_to") ||
-          lowerMessage.includes("redirect url") ||
-          lowerMessage.includes("allowed values") ||
-          lowerMessage.includes("not allowed") ||
-          lowerMessage.includes("invalid redirect") ||
-          lowerMessage.includes("redirect_to must") ||
+        // Handle 500 errors (server-side Supabase issues)
+        if (error.status === 500) {
+          const errorCode = (error as { code?: string }).code;
+          if (error.message.includes("magic link email") || errorCode === "unexpected_failure") {
+            friendly = "Unable to send magic link email. This may be due to:\n1. Redirect URL not configured in Supabase (check Authentication → URL Configuration)\n2. Email service configuration issue\n3. Temporary Supabase service issue\n\nPlease verify your Supabase redirect URLs include: " + redirectTo;
+          } else {
+            friendly = `Server error (500): ${error.message}. Please try again or contact support if the issue persists.`;
+          }
+        } else if (
+          // Check for redirect URL errors (400/422 status codes)
           error.status === 400 ||
           error.status === 422
         ) {
-          friendly = `Redirect URL configuration error: ${error.message}. Please verify Supabase redirect URLs include: ${redirectTo}`;
-        } else if (
-          /rate/i.test(error.message) || 
-          /too many/i.test(error.message) ||
-          error.message.includes("security purposes") ||
-          error.message.includes("only request this after") ||
-          /48 seconds/i.test(error.message)
-        ) {
-          friendly = error.message.includes("48 seconds") || error.message.includes("security purposes")
-            ? error.message
-            : "Too many attempts — please wait a moment and try again.";
-        } else if (
-          // Only show invalid email if it's explicitly about email format validation
-          (lowerMessage.includes("email") && 
-           (lowerMessage.includes("format") || 
-            lowerMessage.includes("malformed") || 
-            lowerMessage.includes("invalid email") ||
-            lowerMessage.includes("email address"))) &&
-          !lowerMessage.includes("redirect")
-        ) {
-          friendly = "Please check your email address.";
+          const lowerMessage = error.message.toLowerCase();
+          if (
+            lowerMessage.includes("redirect") || 
+            lowerMessage.includes("redirect_to") ||
+            lowerMessage.includes("redirect url") ||
+            lowerMessage.includes("allowed values") ||
+            lowerMessage.includes("not allowed") ||
+            lowerMessage.includes("invalid redirect") ||
+            lowerMessage.includes("redirect_to must")
+          ) {
+            friendly = `Redirect URL configuration error: ${error.message}. Please verify Supabase redirect URLs include: ${redirectTo}`;
+          } else {
+            friendly = `Configuration error (${error.status}): ${error.message}. Please check your Supabase settings.`;
+          }
+        } else {
+          const lowerMessage = error.message.toLowerCase();
+          // Check for redirect URL errors in message
+          if (
+            lowerMessage.includes("redirect") || 
+            lowerMessage.includes("redirect_to") ||
+            lowerMessage.includes("redirect url") ||
+            lowerMessage.includes("allowed values") ||
+            lowerMessage.includes("not allowed") ||
+            lowerMessage.includes("invalid redirect") ||
+            lowerMessage.includes("redirect_to must")
+          ) {
+            friendly = `Redirect URL configuration error: ${error.message}. Please verify Supabase redirect URLs include: ${redirectTo}`;
+          } else if (
+            /rate/i.test(error.message) || 
+            /too many/i.test(error.message) ||
+            error.message.includes("security purposes") ||
+            error.message.includes("only request this after") ||
+            /48 seconds/i.test(error.message)
+          ) {
+            friendly = error.message.includes("48 seconds") || error.message.includes("security purposes")
+              ? error.message
+              : "Too many attempts — please wait a moment and try again.";
+          } else if (
+            // Only show invalid email if it's explicitly about email format validation
+            (lowerMessage.includes("email") && 
+             (lowerMessage.includes("format") || 
+              lowerMessage.includes("malformed") || 
+              lowerMessage.includes("invalid email") ||
+              lowerMessage.includes("email address"))) &&
+            !lowerMessage.includes("redirect") &&
+            !lowerMessage.includes("sending")
+          ) {
+            friendly = "Please check your email address.";
+          }
+          // Otherwise, show the actual error message
         }
-        // Otherwise, show the actual error message
         
         setErr(friendly);
         return;
