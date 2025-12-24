@@ -4,6 +4,23 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { SITE_URL } from "@/lib/constants";
 
 export async function GET(request: NextRequest) {
+  // Validate required environment variables
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+    console.error("❌ NEXT_PUBLIC_SUPABASE_URL is not set");
+    const baseUrl = SITE_URL;
+    return NextResponse.redirect(
+      `${baseUrl}/login?error=auth_callback_error&message=${encodeURIComponent("Server configuration error: Supabase URL not configured. Please contact support.")}`
+    );
+  }
+
+  if (!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    console.error("❌ NEXT_PUBLIC_SUPABASE_ANON_KEY is not set");
+    const baseUrl = SITE_URL;
+    return NextResponse.redirect(
+      `${baseUrl}/login?error=auth_callback_error&message=${encodeURIComponent("Server configuration error: Supabase key not configured. Please contact support.")}`
+    );
+  }
+
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
   
@@ -19,13 +36,18 @@ export async function GET(request: NextRequest) {
   console.log("Auth callback: redirect target from query:", queryRedirectTarget);
   console.log("Auth callback: final redirect target:", next);
 
-  // Use request origin in development, SITE_URL in production
-  // This ensures magic links work in both dev and prod
-  const baseUrl = process.env.NODE_ENV === "production" 
-    ? SITE_URL 
-    : `${requestUrl.protocol}//${requestUrl.host}`;
+  // Determine base URL for redirects
+  // In production, always use SITE_URL to ensure consistency
+  // In development, use the request origin
+  // This ensures magic links work correctly in both environments
+  const isProduction = process.env.NODE_ENV === "production" || requestUrl.hostname === "womenreset.com";
+  const baseUrl = isProduction ? SITE_URL : `${requestUrl.protocol}//${requestUrl.host}`;
   
+  console.log("Auth callback: NODE_ENV =", process.env.NODE_ENV);
+  console.log("Auth callback: request hostname =", requestUrl.hostname);
+  console.log("Auth callback: isProduction =", isProduction);
   console.log("Auth callback: baseUrl =", baseUrl);
+  console.log("Auth callback: SITE_URL constant =", SITE_URL);
 
   if (!code) {
     console.error("Auth callback: No code parameter found");
