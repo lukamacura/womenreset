@@ -136,6 +136,8 @@ export const nutritionPersonaSpec: NutritionPersonaSpec = {
     "End with: 'Does this feel doable for you this week? We can adjust it 💜'",
     "Must be protein-anchored (mentions protein target / protein-first)",
     "Must include at least one habit-building follow-up prompt",
+    "NEVER use numbered lists (1., 2., 3.) - use natural paragraph flow or bullet points instead",
+    "Write conversationally, as if talking to a trusted friend over coffee",
   ],
 };
 

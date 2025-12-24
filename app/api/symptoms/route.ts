@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { checkTrialExpired } from "@/lib/checkTrialStatus";
+import { DEFAULT_SYMPTOMS } from "@/lib/symptom-tracker-constants";
 
 export const runtime = "nodejs";
 
@@ -55,6 +56,29 @@ export async function GET(req: NextRequest) {
         { error: "Failed to fetch symptoms" },
         { status: 500 }
       );
+    }
+
+    // If user has no symptoms, seed default symptoms
+    if (!data || data.length === 0) {
+      const defaultSymptomsToInsert = DEFAULT_SYMPTOMS.map((symptom) => ({
+        user_id: user.id,
+        name: symptom.name,
+        icon: symptom.icon,
+        is_default: true,
+      }));
+
+      const { data: insertedData, error: insertError } = await supabaseAdmin
+        .from("symptoms")
+        .insert(defaultSymptomsToInsert)
+        .select();
+
+      if (insertError) {
+        console.error("Failed to seed default symptoms:", insertError);
+        // Return empty array instead of failing - user can still add custom symptoms
+        return NextResponse.json({ data: [] });
+      }
+
+      return NextResponse.json({ data: insertedData || [] });
     }
 
     return NextResponse.json({ data: data || [] });

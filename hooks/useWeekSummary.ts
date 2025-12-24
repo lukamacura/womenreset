@@ -12,8 +12,8 @@ interface WeekSummary {
   averageSeverity: number;
 }
 
-export function useWeekSummary(): WeekSummary & { loading: boolean; error: string | null } {
-  const { logs, loading, error } = useSymptomLogs(7); // Last 7 days
+export function useWeekSummary(): WeekSummary & { loading: boolean; error: string | null; refetch: () => Promise<void> } {
+  const { logs, loading, error, refetch } = useSymptomLogs(7); // Last 7 days
 
   const summary = useMemo(() => {
     const weekLogs = logs.filter((log) => {
@@ -64,6 +64,7 @@ export function useWeekSummary(): WeekSummary & { loading: boolean; error: strin
     ...summary,
     loading,
     error,
+    refetch,
   };
 }
 

@@ -1,11 +1,29 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import { useSymptomLogs } from "@/hooks/useSymptomLogs";
 import CircleStat from "./CircleStat";
 
+function Skeleton({ className }: { className?: string }) {
+  return <div className={`animate-pulse rounded-xl bg-[#E8E0DB]/30 ${className}`} />;
+}
+
 export default function AnalyticsSection() {
-  const { logs, loading } = useSymptomLogs(30); // Last 30 days
+  const { logs, loading, refetch } = useSymptomLogs(30); // Last 30 days
+
+  // Listen for custom event when symptom logs are updated
+  useEffect(() => {
+    const handleLogUpdate = () => {
+      refetch();
+    };
+
+    // Listen for custom event
+    window.addEventListener('symptom-log-updated', handleLogUpdate);
+
+    return () => {
+      window.removeEventListener('symptom-log-updated', handleLogUpdate);
+    };
+  }, [refetch]);
 
   const analyticsData = useMemo(() => {
     const now = new Date();
@@ -59,47 +77,52 @@ export default function AnalyticsSection() {
         : 0;
 
     // Most frequent symptom
-    const symptomCounts = new Map<string, { name: string; count: number }>();
+    type SymptomCount = { name: string; count: number };
+    const symptomCounts = new Map<string, SymptomCount>();
     monthLogs.forEach((log) => {
       if (log.symptoms) {
         const key = log.symptom_id;
-        const existing = symptomCounts.get(key) || {
-          name: log.symptoms.name,
-          count: 0,
-        };
-        existing.count += 1;
-        symptomCounts.set(key, existing);
+        const existing = symptomCounts.get(key);
+        if (existing) {
+          existing.count += 1;
+        } else {
+          symptomCounts.set(key, {
+            name: log.symptoms.name,
+            count: 1,
+          });
+        }
       }
     });
 
-    let mostFrequent: { name: string; count: number } | null = null;
-    symptomCounts.forEach((value) => {
-      if (!mostFrequent || value.count > mostFrequent.count) {
+    let mostFrequent: SymptomCount | null = null;
+    for (const value of symptomCounts.values()) {
+      if (mostFrequent === null || value.count > mostFrequent.count) {
         mostFrequent = value;
       }
-    });
+    }
+
+    const mostFrequentName: string | null = mostFrequent !== null ? mostFrequent.name : null;
 
     return {
       totalSymptoms,
       averageSeverity: Math.round(averageSeverity * 10) / 10,
       streak,
-      mostFrequent: mostFrequent?.name || null,
+      mostFrequent: mostFrequentName,
     };
   }, [logs]);
 
+  // Always show skeleton when loading
   if (loading) {
     return (
-      <div className="bg-white rounded-2xl border border-[#E8E0DB] p-6 mb-6">
-        <div className="animate-pulse">
-          <div className="h-6 w-32 bg-[#E8E0DB] rounded mb-6" />
-          <div className="grid grid-cols-3 gap-6">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="flex flex-col items-center">
-                <div className="w-28 h-28 bg-[#E8E0DB] rounded-full mb-3" />
-                <div className="h-4 w-20 bg-[#E8E0DB] rounded" />
-              </div>
-            ))}
-          </div>
+      <div className="bg-white rounded-2xl border border-[#E8E0DB] p-6 mb-6 shadow-sm">
+        <Skeleton className="h-6 w-32 mb-6" />
+        <div className="grid grid-cols-3 gap-6">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="flex flex-col items-center">
+              <Skeleton className="w-28 h-28 rounded-full mb-3" />
+              <Skeleton className="h-4 w-20" />
+            </div>
+          ))}
         </div>
       </div>
     );

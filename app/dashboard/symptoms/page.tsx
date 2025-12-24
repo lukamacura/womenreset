@@ -108,6 +108,9 @@ export default function SymptomsPage() {
 
         // Refetch logs and symptoms
         await Promise.all([refetchLogs(), refetchSymptoms()]);
+        
+        // Dispatch custom event to notify AnalyticsSection to refresh
+        window.dispatchEvent(new CustomEvent('symptom-log-updated'));
       } catch (error) {
         throw error;
       }
@@ -148,9 +151,7 @@ export default function SymptomsPage() {
         </div>
         <button
           onClick={() => {
-            if (symptoms.length > 0) {
-              setIsSelectorOpen(true);
-            }
+            setIsSelectorOpen(true);
           }}
           className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-dark text-white font-semibold rounded-xl transition-colors shadow-md cursor-pointer"
         >
@@ -236,7 +237,9 @@ export default function SymptomsPage() {
       <SymptomSelectorModal
         symptoms={symptoms}
         isOpen={isSelectorOpen}
-        onClose={() => setIsSelectorOpen(false)}
+        onClose={() => {
+          setIsSelectorOpen(false);
+        }}
         onSelect={(symptom) => {
           setSelectedSymptom(symptom);
           setIsModalOpen(true);

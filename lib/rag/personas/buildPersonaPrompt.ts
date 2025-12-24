@@ -68,8 +68,8 @@ function buildExercisePrompt(userQuery: string, isWhyHormoneQuestion: boolean): 
   
   // CORE TRAINING PRINCIPLES (Seven Pillars)
   parts.push("CORE TRAINING PRINCIPLES:");
-  spec.seven_pillars.forEach((pillar, index) => {
-    parts.push(`${index + 1}. ${pillar}`);
+  spec.seven_pillars.forEach((pillar) => {
+    parts.push(`- ${pillar}`);
   });
   parts.push("");
   
@@ -151,8 +151,8 @@ function buildExercisePrompt(userQuery: string, isWhyHormoneQuestion: boolean): 
   
   // Pre-plan questions
   parts.push("PRE-PLAN QUESTIONS (3-5 max):");
-  spec.preplan_questions.forEach((question, index) => {
-    parts.push(`${index + 1}. "${question}"`);
+  spec.preplan_questions.forEach((question) => {
+    parts.push(`- "${question}"`);
   });
   parts.push("");
   parts.push(`PRE-PLAN LOGIC: ${spec.preplan_logic}`);
@@ -164,6 +164,26 @@ function buildExercisePrompt(userQuery: string, isWhyHormoneQuestion: boolean): 
   spec.output_guidelines.forEach(guideline => {
     parts.push(`- ${guideline}`);
   });
+  parts.push("");
+  parts.push("FORMATTING GUIDELINES:");
+  parts.push("- NEVER use numbered lists (1., 2., 3.) in your responses");
+  parts.push("- Use natural paragraph flow, bullet points (-), or conversational transitions instead");
+  parts.push("- Write as if talking to a friend over coffee - natural and flowing, not structured like a manual");
+  parts.push("- Break up information into conversational sentences and short paragraphs");
+  parts.push("");
+  parts.push("CONVERSATIONAL STYLE:");
+  parts.push("- Write in natural, flowing sentences as if chatting with a trusted friend");
+  parts.push("- Use transitional phrases: \"You know what else helps?\", \"Here's the thing...\", \"Let's talk about...\"");
+  parts.push("- Vary sentence length - mix short impactful sentences with longer explanatory ones");
+  parts.push("- Use contractions naturally: \"you're\", \"it's\", \"don't\" for warmth");
+  parts.push("- Avoid clinical enumeration - present information conversationally");
+  parts.push("");
+  parts.push("AUDIENCE AWARENESS:");
+  parts.push("- You're speaking to women 40+ navigating menopause");
+  parts.push("- Acknowledge their life experience and wisdom");
+  parts.push("- Use validating language: \"You probably already know...\", \"As you've likely noticed...\"");
+  parts.push("- Be warm and understanding, like a knowledgeable friend who gets it");
+  parts.push("- Avoid condescension - they're smart, just dealing with new symptoms");
   parts.push("");
   
   // Empathy starters
@@ -207,13 +227,13 @@ function buildNutritionPrompt(isWhyHormoneQuestion: boolean): string {
   
   // CORE NUTRITION PRINCIPLES
   parts.push("CORE NUTRITION PRINCIPLES:");
-  parts.push(`1. Protein-Anchored: ${spec.protein_guidelines.per_meal}, ${spec.protein_guidelines.breakfast}, ${spec.protein_guidelines.carb_pairing}`);
-  parts.push(`2. Mediterranean-Style: ${spec.mediterranean_pattern.join(", ")}`);
-  parts.push(`3. Smart Carbs & Fiber: ${spec.smart_carbs_fiber.join(", ")}`);
-  parts.push(`4. Healthy Fats: ${spec.healthy_fats.join(", ")}`);
-  parts.push(`5. Smart Snacks: ${spec.smart_snacks}`);
-  parts.push(`6. Meal Rhythm: ${spec.meal_rhythm.spacing}, ${spec.meal_rhythm.overnight_fast}`);
-  parts.push(`7. ${spec.plant_diversity}`);
+  parts.push(`- Protein-Anchored: ${spec.protein_guidelines.per_meal}, ${spec.protein_guidelines.breakfast}, ${spec.protein_guidelines.carb_pairing}`);
+  parts.push(`- Mediterranean-Style: ${spec.mediterranean_pattern.join(", ")}`);
+  parts.push(`- Smart Carbs & Fiber: ${spec.smart_carbs_fiber.join(", ")}`);
+  parts.push(`- Healthy Fats: ${spec.healthy_fats.join(", ")}`);
+  parts.push(`- Smart Snacks: ${spec.smart_snacks}`);
+  parts.push(`- Meal Rhythm: ${spec.meal_rhythm.spacing}, ${spec.meal_rhythm.overnight_fast}`);
+  parts.push(`- ${spec.plant_diversity}`);
   parts.push("");
   
   // Habit-building approach
@@ -240,8 +260,8 @@ function buildNutritionPrompt(isWhyHormoneQuestion: boolean): string {
   
   // Pre-plan questions
   parts.push("PRE-PLAN QUESTIONS (3-6 max, no hormone questions):");
-  spec.preplan_questions.forEach((question, index) => {
-    parts.push(`${index + 1}. "${question}"`);
+  spec.preplan_questions.forEach((question) => {
+    parts.push(`- "${question}"`);
   });
   parts.push("");
   parts.push(`PRE-PLAN LOGIC: ${spec.preplan_logic}`);
@@ -254,6 +274,26 @@ function buildNutritionPrompt(isWhyHormoneQuestion: boolean): string {
   spec.output_guidelines.forEach(guideline => {
     parts.push(`- ${guideline}`);
   });
+  parts.push("");
+  parts.push("FORMATTING GUIDELINES:");
+  parts.push("- NEVER use numbered lists (1., 2., 3.) in your responses");
+  parts.push("- Use natural paragraph flow, bullet points (-), or conversational transitions instead");
+  parts.push("- Write as if talking to a friend over coffee - natural and flowing, not structured like a manual");
+  parts.push("- Break up information into conversational sentences and short paragraphs");
+  parts.push("");
+  parts.push("CONVERSATIONAL STYLE:");
+  parts.push("- Write in natural, flowing sentences as if chatting with a trusted friend");
+  parts.push("- Use transitional phrases: \"You know what else helps?\", \"Here's the thing...\", \"Let's talk about...\"");
+  parts.push("- Vary sentence length - mix short impactful sentences with longer explanatory ones");
+  parts.push("- Use contractions naturally: \"you're\", \"it's\", \"don't\" for warmth");
+  parts.push("- Avoid clinical enumeration - present information conversationally");
+  parts.push("");
+  parts.push("AUDIENCE AWARENESS:");
+  parts.push("- You're speaking to women 40+ navigating menopause");
+  parts.push("- Acknowledge their life experience and wisdom");
+  parts.push("- Use validating language: \"You probably already know...\", \"As you've likely noticed...\"");
+  parts.push("- Be warm and understanding, like a knowledgeable friend who gets it");
+  parts.push("- Avoid condescension - they're smart, just dealing with new symptoms");
   parts.push("");
   
   // Empathy starters
@@ -285,19 +325,19 @@ function buildEmpathyPrompt(): string {
   
   // CORE CBT FRAMEWORK (Validate → Reframe → Tiny Action)
   parts.push("CORE CBT FRAMEWORK (Validate → Reframe → Tiny Action):");
-  parts.push("1. **Validate the feeling**");
+  parts.push("- **Validate the feeling**");
   spec.cbt_micro_flow.validate.forEach(example => {
-    parts.push(`   - "${example}"`);
+    parts.push(`  - "${example}"`);
   });
   parts.push("");
-  parts.push("2. **Gently reframe**");
+  parts.push("- **Gently reframe**");
   spec.cbt_micro_flow.reframe.forEach(example => {
-    parts.push(`   - "${example}"`);
+    parts.push(`  - "${example}"`);
   });
   parts.push("");
-  parts.push("3. **Tiny calming action**");
+  parts.push("- **Tiny calming action**");
   spec.cbt_micro_flow.tiny_action.forEach(example => {
-    parts.push(`   - "${example}"`);
+    parts.push(`  - "${example}"`);
   });
   parts.push("");
   
@@ -353,8 +393,29 @@ function buildEmpathyPrompt(): string {
   parts.push("- Must follow Validate → Reframe → Tiny Action structure");
   parts.push("- Must include at least one grounding micro-action");
   parts.push("End emotional explorations with:");
-  parts.push("  1. Grounding invitation: 'Take one slow breath — just for a moment'");
-  parts.push("  2. Gentle choice: 'Would you like to explore this more, or shift to something lighter?'");
+  parts.push("  - Grounding invitation: 'Take one slow breath — just for a moment'");
+  parts.push("  - Gentle choice: 'Would you like to explore this more, or shift to something lighter?'");
+  parts.push("");
+  parts.push("FORMATTING GUIDELINES:");
+  parts.push("- NEVER use numbered lists (1., 2., 3.) in your responses");
+  parts.push("- Use natural paragraph flow, bullet points (-), or conversational transitions instead");
+  parts.push("- Write as if talking to a friend over coffee - natural and flowing, not structured like a manual");
+  parts.push("- Break up information into conversational sentences and short paragraphs");
+  parts.push("");
+  parts.push("CONVERSATIONAL STYLE:");
+  parts.push("- Write in natural, flowing sentences as if chatting with a trusted friend");
+  parts.push("- Use transitional phrases: \"You know what else helps?\", \"Here's the thing...\", \"Let's talk about...\"");
+  parts.push("- Vary sentence length - mix short impactful sentences with longer explanatory ones");
+  parts.push("- Use contractions naturally: \"you're\", \"it's\", \"don't\" for warmth");
+  parts.push("- Avoid clinical enumeration - present information conversationally");
+  parts.push("");
+  parts.push("AUDIENCE AWARENESS:");
+  parts.push("- You're speaking to women 40+ navigating menopause");
+  parts.push("- Acknowledge their life experience and wisdom");
+  parts.push("- Use validating language: \"You probably already know...\", \"As you've likely noticed...\"");
+  parts.push("- Be warm and understanding, like a knowledgeable friend who gets it");
+  parts.push("- Avoid condescension - they're smart, just dealing with new symptoms");
+  parts.push("");
   
   return parts.join("\n");
 }

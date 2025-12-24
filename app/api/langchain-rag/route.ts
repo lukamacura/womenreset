@@ -527,7 +527,9 @@ IMPORTANT: The user is engaging in casual conversation, not asking for informati
 - NEVER use generic phrases like "If there's anything on your mind" or "I'm here for you"
 - NEVER repeat responses you've given before in this conversation
 - If they ask "how am I doing?", reference their actual tracker data or ask about something specific
-- Keep it short, natural, and personal - not formal or robotic`);
+- Keep it short, natural, and personal - not formal or robotic
+- NEVER use numbered lists (1., 2., 3.) - use natural paragraph flow or conversational transitions
+- Write as if chatting with a friend over coffee - flowing and natural, not structured like a manual`);
     }
 
     const systemMessage = systemParts.join("\n");
@@ -689,18 +691,13 @@ IMPORTANT: The user is engaging in casual conversation, not asking for informati
       }),
       new DynamicStructuredTool({
         name: "update_long_term_memory",
-        description: "Update the user's long-term memory/profile information in the user_profiles table. Use this when the user explicitly mentions wanting to save something to their long-term memory, profile, or when they want to remember something important about themselves. This includes preferences, important facts, goals, or any information they want stored permanently. Only use this when the user explicitly requests to save/remember something long-term.",
+        description: "Update the user's basic profile information in the user_profiles table. Use this when the user explicitly mentions wanting to save something to their long-term memory, profile, or when they want to remember something important about themselves (like their name or age). Only use this when the user explicitly requests to save/remember something long-term.",
         schema: z.object({
           field_to_update: z.enum([
             "name",
-            "age",
-            "menopause_profile",
-            "nutrition_profile",
-            "exercise_profile",
-            "emotional_stress_profile",
-            "lifestyle_context"
-          ]).describe("The field in the user profile to update"),
-          value: z.string().describe("The value to save. For lifestyle_context, this can be a longer text describing preferences, goals, important facts, or context the user wants remembered. For other fields, use appropriate values matching the field type."),
+            "age"
+          ]).describe("The field in the user profile to update (name or age)"),
+          value: z.string().describe("The value to save. For age, provide a number as a string (e.g., '45'). For name, provide the full name."),
         }),
         func: async ({ field_to_update, value }) => {
           try {

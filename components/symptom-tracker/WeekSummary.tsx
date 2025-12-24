@@ -1,18 +1,36 @@
 "use client";
 
+import { useEffect } from "react";
 import { useWeekSummary } from "@/hooks/useWeekSummary";
 
+function Skeleton({ className }: { className?: string }) {
+  return <div className={`animate-pulse rounded-xl bg-[#E8E0DB]/30 ${className}`} />;
+}
+
 export default function WeekSummary() {
-  const { totalLogged, mostFrequentSymptom, averageSeverity, loading, error } =
+  const { totalLogged, mostFrequentSymptom, averageSeverity, loading, error, refetch } =
     useWeekSummary();
 
+  // Listen for custom event when symptom logs are updated
+  useEffect(() => {
+    const handleLogUpdate = () => {
+      refetch();
+    };
+
+    // Listen for custom event
+    window.addEventListener('symptom-log-updated', handleLogUpdate);
+
+    return () => {
+      window.removeEventListener('symptom-log-updated', handleLogUpdate);
+    };
+  }, [refetch]);
+
+  // Always show skeleton when loading
   if (loading) {
     return (
       <div className="rounded-xl border border-[#E8E0DB] bg-white p-6 shadow-sm">
-        <div className="animate-pulse">
-          <div className="h-6 w-32 bg-[#E8E0DB] rounded mb-4" />
-          <div className="h-8 w-48 bg-[#E8E0DB] rounded" />
-        </div>
+        <Skeleton className="h-6 w-32 mb-4" />
+        <Skeleton className="h-8 w-48" />
       </div>
     );
   }
