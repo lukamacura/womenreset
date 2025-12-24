@@ -193,11 +193,17 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      const redirectTo = `${SITE_URL}${AUTH_CALLBACK_PATH}?next=/register`;
+      // Store redirect target in cookie for callback route to retrieve
+      // Use simplified redirect URL to avoid query parameter issues with Supabase
+      document.cookie = `auth_redirect_target=${encodeURIComponent("/register")}; path=/; max-age=900; SameSite=Lax`; // 15 minutes
+      
+      // Use simplified redirect URL without query parameters
+      const redirectTo = `${SITE_URL}${AUTH_CALLBACK_PATH}`;
       
       console.log("Register: SITE_URL:", SITE_URL);
       console.log("Register: AUTH_CALLBACK_PATH:", AUTH_CALLBACK_PATH);
-      console.log("Register: Attempting signInWithOtp with redirectTo:", redirectTo);
+      console.log("Register: redirectTarget (stored in cookie): /register");
+      console.log("Register: Attempting signInWithOtp with simplified redirectTo:", redirectTo);
       console.log("Register: Supabase URL:", process.env.NEXT_PUBLIC_SUPABASE_URL);
       
       // Validate redirect URL format

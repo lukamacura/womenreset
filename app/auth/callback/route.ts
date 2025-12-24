@@ -6,7 +6,18 @@ import { SITE_URL } from "@/lib/constants";
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
-  const next = requestUrl.searchParams.get("next") ?? "/dashboard";
+  
+  // Try to get redirect target from cookie first (set before sending magic link)
+  // Fallback to query parameter (for backwards compatibility) or default
+  const cookieRedirectTarget = request.cookies.get("auth_redirect_target")?.value;
+  const queryRedirectTarget = requestUrl.searchParams.get("next");
+  const next = cookieRedirectTarget 
+    ? decodeURIComponent(cookieRedirectTarget)
+    : (queryRedirectTarget ?? "/dashboard");
+  
+  console.log("Auth callback: redirect target from cookie:", cookieRedirectTarget);
+  console.log("Auth callback: redirect target from query:", queryRedirectTarget);
+  console.log("Auth callback: final redirect target:", next);
 
   // Use request origin in development, SITE_URL in production
   // This ensures magic links work in both dev and prod
@@ -123,6 +134,13 @@ export async function GET(request: NextRequest) {
         secure: cookie.secure ?? (process.env.NODE_ENV === "production"),
         sameSite: (cookie.sameSite as "lax" | "strict" | "none" | undefined) ?? "lax",
       });
+    });
+    
+    // Clear the auth_redirect_target cookie after use
+    finalResponse.cookies.set("auth_redirect_target", "", {
+      path: "/",
+      maxAge: 0,
+      expires: new Date(0),
     });
 
     console.log("Auth callback: Cookies copied, returning response");

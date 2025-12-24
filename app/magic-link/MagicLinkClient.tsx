@@ -25,14 +25,18 @@ export default function MagicLinkClient() {
     setLoading(true);
 
     try {
-      // Always use womenreset.com for email redirects
+      // Store redirect target in cookie for callback route to retrieve
+      // Use simplified redirect URL to avoid query parameter issues with Supabase
       const redirectTarget = sp.get("next") || "/dashboard";
-      const redirectTo = `${SITE_URL}${AUTH_CALLBACK_PATH}?next=${encodeURIComponent(redirectTarget)}`;
+      document.cookie = `auth_redirect_target=${encodeURIComponent(redirectTarget)}; path=/; max-age=900; SameSite=Lax`; // 15 minutes
+      
+      // Use simplified redirect URL without query parameters
+      const redirectTo = `${SITE_URL}${AUTH_CALLBACK_PATH}`;
       
       console.log("MagicLink: SITE_URL:", SITE_URL);
       console.log("MagicLink: AUTH_CALLBACK_PATH:", AUTH_CALLBACK_PATH);
-      console.log("MagicLink: redirectTarget:", redirectTarget);
-      console.log("MagicLink: Attempting signInWithOtp with redirectTo:", redirectTo);
+      console.log("MagicLink: redirectTarget (stored in cookie):", redirectTarget);
+      console.log("MagicLink: Attempting signInWithOtp with simplified redirectTo:", redirectTo);
       console.log("MagicLink: Supabase URL:", process.env.NEXT_PUBLIC_SUPABASE_URL);
       
       // Validate redirect URL format
