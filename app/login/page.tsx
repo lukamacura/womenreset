@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
 import { useEffect, useMemo, useState, Suspense } from "react";
@@ -6,9 +5,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import { SITE_URL, AUTH_CALLBACK_PATH } from "@/lib/constants";
+import { getRedirectBaseUrl, AUTH_CALLBACK_PATH } from "@/lib/constants";
 
-// (opciono, ali bezbedno): spreči statički prerender
 export const dynamic = "force-dynamic";
 
 function LoginForm() {
@@ -46,107 +44,87 @@ function LoginForm() {
     setLoading(true);
 
     try {
-      // Store redirect target in cookie for callback route to retrieve
-      // Use simplified redirect URL to avoid query parameter issues with Supabase
-      document.cookie = `auth_redirect_target=${encodeURIComponent(redirectTarget)}; path=/; max-age=900; SameSite=Lax`; // 15 minutes
+      // Use the current origin for redirects (localhost in dev, production URL in prod)
+      const redirectTo = `${getRedirectBaseUrl()}${AUTH_CALLBACK_PATH}?next=${encodeURIComponent(redirectTarget)}`;
       
-      // Use simplified redirect URL without query parameters
-      const redirectTo = `${SITE_URL}${AUTH_CALLBACK_PATH}`;
-      
-      console.log("Login: SITE_URL:", SITE_URL);
-      console.log("Login: AUTH_CALLBACK_PATH:", AUTH_CALLBACK_PATH);
-      console.log("Login: redirectTarget (stored in cookie):", redirectTarget);
-      console.log("Login: Attempting signInWithOtp with simplified redirectTo:", redirectTo);
-      console.log("Login: Supabase URL:", process.env.NEXT_PUBLIC_SUPABASE_URL);
-      
-      // Validate redirect URL format
-      try {
-        new URL(redirectTo);
-        console.log("Login: Redirect URL is valid");
-      } catch (urlError) {
-        console.error("Login: Invalid redirect URL format:", urlError);
-        setErr("Configuration error: Invalid redirect URL format. Please contact support.");
-        setLoading(false);
-        return;
-      }
+      // Debug logging
+      console.log("Login attempt:", { email, redirectTo });
 
-      const { error } = await supabase.auth.signInWithOtp({
+      const { error, data } = await supabase.auth.signInWithOtp({
         email,
         options: { emailRedirectTo: redirectTo },
       });
 
       if (error) {
-        console.error("Login: Supabase error:", error);
-        console.error("Login: Error message:", error.message);
-        console.error("Login: Error status:", error.status);
-        console.error("Login: Full error object:", JSON.stringify(error, null, 2));
+        // Log the full error for debugging
+        console.error("Supabase auth error:", {
+          message: error.message,
+          status: error.status,
+          name: error.name,
+          fullError: error,
+        });
+
+        let friendly = "An error occurred. Please try again.";
         
-        // Default to showing the actual error message
-        let friendly = error.message || "An error occurred. Please try again.";
+        // Check for specific error types
+        const errorMsg = error.message.toLowerCase();
         
-        // Handle 500 errors (server-side Supabase issues)
-        if (error.status === 500) {
-          const errorCode = (error as { code?: string }).code;
-          if (error.message.includes("magic link email") || errorCode === "unexpected_failure") {
-            friendly = "Unable to send magic link email. This may be due to:\n1. Redirect URL not configured in Supabase (check Authentication → URL Configuration)\n2. Email service configuration issue\n3. Temporary Supabase service issue\n\nPlease verify your Supabase redirect URLs include: " + redirectTo;
-          } else {
-            friendly = `Server error (500): ${error.message}. Please try again or contact support if the issue persists.`;
-          }
-        } else if (
-          // Check for redirect URL errors (400/422 status codes)
-          error.status === 400 ||
-          error.status === 422
+        // Email validation errors (be more specific)
+        if (
+          errorMsg.includes("invalid email") ||
+          errorMsg.includes("email format") ||
+          errorMsg === "invalid email address" ||
+          errorMsg.includes("email is not valid")
         ) {
-          const lowerMessage = error.message.toLowerCase();
-          if (
-            lowerMessage.includes("redirect") || 
-            lowerMessage.includes("redirect_to") ||
-            lowerMessage.includes("redirect url") ||
-            lowerMessage.includes("allowed values") ||
-            lowerMessage.includes("not allowed") ||
-            lowerMessage.includes("invalid redirect") ||
-            lowerMessage.includes("redirect_to must")
-          ) {
-            friendly = `Redirect URL configuration error: ${error.message}. Please verify Supabase redirect URLs include: ${redirectTo}`;
-          } else {
-            friendly = `Configuration error (${error.status}): ${error.message}. Please check your Supabase settings.`;
-          }
-        } else {
-          const lowerMessage = error.message.toLowerCase();
-          // Check for redirect URL errors in message
-          if (
-            lowerMessage.includes("redirect") || 
-            lowerMessage.includes("redirect_to") ||
-            lowerMessage.includes("redirect url") ||
-            lowerMessage.includes("allowed values") ||
-            lowerMessage.includes("not allowed") ||
-            lowerMessage.includes("invalid redirect") ||
-            lowerMessage.includes("redirect_to must")
-          ) {
-            friendly = `Redirect URL configuration error: ${error.message}. Please verify Supabase redirect URLs include: ${redirectTo}`;
-          } else if (
-            /rate/i.test(error.message) || 
-            /too many/i.test(error.message) ||
-            error.message.includes("security purposes") ||
-            error.message.includes("only request this after") ||
-            /48 seconds/i.test(error.message)
-          ) {
-            friendly = error.message.includes("48 seconds") || error.message.includes("security purposes")
-              ? error.message
-              : "Too many attempts — please wait a moment and try again.";
-          } else if (
-            // Only show invalid email if it's explicitly about email format validation
-            (lowerMessage.includes("email") && 
-             (lowerMessage.includes("format") || 
-              lowerMessage.includes("malformed") || 
-              lowerMessage.includes("invalid email") ||
-              lowerMessage.includes("email address"))) &&
-            !lowerMessage.includes("redirect") &&
-            !lowerMessage.includes("sending")
-          ) {
-            friendly = "That email address is invalid. Please check and try again.";
-          }
-          // Otherwise, show the actual error message
+          friendly = "That email address is invalid. Please check and try again.";
+        }
+        // Redirect URL errors
+        else if (
+          errorMsg.includes("redirect") ||
+          errorMsg.includes("redirect_to") ||
+          errorMsg.includes("redirect url") ||
+          errorMsg.includes("url configuration")
+        ) {
+          friendly = "Redirect URL not configured. Please contact support or check Supabase settings.";
+        }
+        // Rate limiting errors
+        else if (
+          /rate/i.test(error.message) || 
+          /too many/i.test(error.message) ||
+          error.message.includes("security purposes") ||
+          error.message.includes("only request this after") ||
+          /48 seconds/i.test(error.message) ||
+          /60 seconds/i.test(error.message)
+        ) {
+          friendly = error.message.includes("48 seconds") || 
+                     error.message.includes("60 seconds") || 
+                     error.message.includes("security purposes")
+            ? error.message
+            : "Too many attempts — please wait a moment and try again.";
+        }
+        // Email provider/SMTP errors
+        else if (
+          errorMsg.includes("email provider") ||
+          errorMsg.includes("email not enabled") ||
+          errorMsg.includes("smtp") ||
+          errorMsg.includes("mail") ||
+          errorMsg.includes("sending email") ||
+          errorMsg.includes("email service") ||
+          errorMsg.includes("email delivery")
+        ) {
+          friendly = "Email service is not configured. Please check Supabase email settings or contact support.";
+        }
+        // Network/connection errors
+        else if (
+          errorMsg.includes("network") ||
+          errorMsg.includes("fetch") ||
+          errorMsg.includes("connection")
+        ) {
+          friendly = "Network error. Please check your connection and try again.";
+        }
+        // Show the actual error message for other cases
+        else if (error.message) {
+          friendly = error.message;
         }
         
         setErr(friendly);
@@ -154,12 +132,12 @@ function LoginForm() {
         return;
       }
 
-      console.log("Login: Magic link sent successfully");
       // Magic link sent successfully
+      console.log("Magic link sent successfully:", data);
       setInfo("Check your email! We sent you a magic link. Click it to log in.");
       setLoading(false);
     } catch (e) {
-      console.error("Login: Exception:", e);
+      console.error("Unexpected error during login:", e);
       setErr(e instanceof Error ? e.message : "An unexpected error occurred. Please try again.");
       setLoading(false);
     }
@@ -167,90 +145,90 @@ function LoginForm() {
 
   return (
     <>
-    <main className="relative overflow-hidden mx-auto max-w-md p-6 sm:p-8">
-      {/* Subtle background accents */}
-      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 opacity-40">
-        <div className="absolute -top-24 -left-24 h-56 w-56 rounded-full bg-primary/20 blur-3xl" />
-        <div className="absolute -bottom-24 -right-24 h-56 w-56 rounded-full bg-primary/10 blur-3xl" />
-      </div>
+      <main className="relative overflow-hidden mx-auto max-w-md p-6 sm:p-8">
+        {/* Subtle background accents */}
+        <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 opacity-40">
+          <div className="absolute -top-24 -left-24 h-56 w-56 rounded-full bg-primary/20 blur-3xl" />
+          <div className="absolute -bottom-24 -right-24 h-56 w-56 rounded-full bg-primary/10 blur-3xl" />
+        </div>
 
-      <h1 className="text-3xl sm:text-5xl font-script font-extrabold tracking-tight mb-6 text-balance pt-16">
-        Log in
-      </h1>
+        <h1 className="text-3xl sm:text-5xl font-script font-extrabold tracking-tight mb-6 text-balance pt-16">
+          Log in
+        </h1>
 
-      <form onSubmit={onSubmit} className="space-y-4" noValidate>
-        {/* Email */}
-        <div>
-          <label htmlFor="email" className="mb-2 block text-sm font-medium">
-            Email
-          </label>
-          <input
-            id="email"
-            name="email"
-            inputMode="email"
-            autoComplete="email"
-            className="w-full rounded-xl border border-foreground/15 bg-background px-3 py-2 ring-offset-background placeholder:text-muted-foreground/70 focus:outline-none focus:ring-2 focus:ring-primary/40"
-            type="email"
-            placeholder="you@example.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            aria-invalid={email.length > 0 && !emailValid}
-            required
+        <form onSubmit={onSubmit} className="space-y-4" noValidate>
+          {/* Email */}
+          <div>
+            <label htmlFor="email" className="mb-2 block text-sm font-medium">
+              Email
+            </label>
+            <input
+              id="email"
+              name="email"
+              inputMode="email"
+              autoComplete="email"
+              className="w-full rounded-xl border border-foreground/15 bg-background px-3 py-2 ring-offset-background placeholder:text-muted-foreground/70 focus:outline-none focus:ring-2 focus:ring-primary/40"
+              type="email"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              aria-invalid={email.length > 0 && !emailValid}
+              required
+            />
+          </div>
+
+          {/* Submit */}
+          <button
+            className="group w-full inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 font-semibold text-primary-foreground shadow-sm ring-1 ring-inset ring-primary/20 transition hover:brightness-95 disabled:opacity-60 disabled:cursor-not-allowed"
+            type="submit"
+            disabled={!canSubmit}
+          >
+            {loading ? (
+              <>
+                <svg className="h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeOpacity=".25" strokeWidth="4" />
+                  <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" strokeWidth="4" />
+                </svg>
+                Sending magic link…
+              </>
+            ) : (
+              <>Continue with email</>
+            )}
+          </button>
+        </form>
+
+        {info && (
+          <div role="status" className="mt-4 rounded-xl border border-emerald-400/30 bg-emerald-100 p-3 text-sm text-emerald-500 font-bold">
+            {info}
+          </div>
+        )}
+        {err && (
+          <div role="alert" className="mt-4 rounded-xl border border-error/30 bg-error/10 p-3 text-sm text-error font-bold">
+            {err}
+          </div>
+        )}
+
+        <p className="mt-6 text-md text-muted-foreground">
+          Don&apos;t have an account? {" "}
+          <Link href="/register" className="bg-primary-light text-primary-dark rounded-md px-2 py-1 font-bold underline-offset-4 hover:opacity-80">
+            Sign up
+          </Link>
+        </p>
+      </main>
+
+      {/* Register Illustration - 70-80% Width (outside main to break max-w-md constraint) */}
+      <div className="w-full flex justify-center">
+        <div className="w-[75%] max-w-4xl">
+          <Image
+            src="/register.svg"
+            alt="Registration illustration"
+            width={1920}
+            height={400}
+            className="w-full h-auto"
+            priority
           />
         </div>
-
-        {/* Submit */}
-        <button
-          className="group w-full inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 font-semibold text-primary-foreground shadow-sm ring-1 ring-inset ring-primary/20 transition hover:brightness-95 disabled:opacity-60 disabled:cursor-not-allowed"
-          type="submit"
-          disabled={!canSubmit}
-        >
-          {loading ? (
-            <>
-              <svg className="h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeOpacity=".25" strokeWidth="4" />
-                <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" strokeWidth="4" />
-              </svg>
-              Sending magic link…
-            </>
-          ) : (
-            <>Continue with email</>
-          )}
-        </button>
-      </form>
-
-      {info && (
-        <div role="status" className="mt-4 rounded-xl border border-emerald-400/30 bg-emerald-100 p-3 text-sm text-emerald-500 font-bold">
-          {info}
-        </div>
-      )}
-      {err && (
-        <div role="alert" className="mt-4 rounded-xl border border-error/30 bg-error/10 p-3 text-sm text-error font-bold">
-          {err}
-        </div>
-      )}
-
-      <p className="mt-6 text-md text-muted-foreground">
-        Don&apos;t have an account? {" "}
-        <Link href="/register" className="bg-primary-light text-primary-dark rounded-md px-2 py-1 font-bold underline-offset-4 hover:opacity-80">
-          Sign up
-        </Link>
-      </p>
-    </main>
-
-    {/* Register Illustration - 70-80% Width (outside main to break max-w-md constraint) */}
-    <div className="w-full flex justify-center">
-      <div className="w-[75%] max-w-4xl">
-        <Image
-          src="/register.svg"
-          alt="Registration illustration"
-          width={1920}
-          height={400}
-          className="w-full h-auto"
-          priority
-        />
       </div>
-    </div>
     </>
   );
 }

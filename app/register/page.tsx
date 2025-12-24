@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import { SITE_URL, AUTH_CALLBACK_PATH } from "@/lib/constants";
+import { getRedirectBaseUrl, AUTH_CALLBACK_PATH } from "@/lib/constants";
 import {
   Flame,
   Moon,
@@ -126,6 +126,20 @@ export default function RegisterPage() {
     }
   }, [topProblems, severity, timing, triedOptions, doctorStatus, goal, firstName]);
 
+  // Save quiz answers to localStorage as backup
+  const saveQuizAnswers = useCallback(() => {
+    const quizAnswers = {
+      top_problems: topProblems,
+      severity: severity,
+      timing: timing,
+      tried_options: triedOptions,
+      doctor_status: doctorStatus,
+      goal: goal,
+      name: firstName.trim() || null,
+    };
+    localStorage.setItem("pending_quiz_answers", JSON.stringify(quizAnswers));
+  }, [topProblems, severity, timing, triedOptions, doctorStatus, goal, firstName]);
+
   const goNext = useCallback(() => {
     if (!stepIsAnswered(currentStep)) return;
     if (stepIndex < STEPS.length - 1) {
@@ -133,8 +147,10 @@ export default function RegisterPage() {
     } else {
       // Quiz complete - move to email phase
       setPhase("email");
+      // Save quiz answers to localStorage as backup
+      saveQuizAnswers();
     }
-  }, [currentStep, stepIndex, stepIsAnswered]);
+  }, [currentStep, stepIndex, stepIsAnswered, saveQuizAnswers]);
 
   const goBack = useCallback(() => {
     if (stepIndex > 0) {
@@ -163,27 +179,6 @@ export default function RegisterPage() {
     });
   };
 
-  // Save quiz answers to localStorage when moving to email phase
-  const saveQuizAnswers = useCallback(() => {
-    const quizAnswers = {
-      top_problems: topProblems,
-      severity: severity,
-      timing: timing,
-      tried_options: triedOptions,
-      doctor_status: doctorStatus,
-      goal: goal,
-      name: firstName.trim() || null,
-    };
-    localStorage.setItem("pending_quiz_answers", JSON.stringify(quizAnswers));
-  }, [topProblems, severity, timing, triedOptions, doctorStatus, goal, firstName]);
-
-  // When quiz is complete, save and move to email
-  useEffect(() => {
-    if (phase === "email" && stepIndex === STEPS.length - 1) {
-      saveQuizAnswers();
-    }
-  }, [phase, stepIndex, saveQuizAnswers]);
-
   // Handle email submission
   const handleEmailSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -193,31 +188,27 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      // Store redirect target in cookie for callback route to retrieve
-      // Use simplified redirect URL to avoid query parameter issues with Supabase
-      document.cookie = `auth_redirect_target=${encodeURIComponent("/register")}; path=/; max-age=900; SameSite=Lax`; // 15 minutes
+      // Prepare quiz answers to pass through auth flow
+      const quizAnswers = {
+        top_problems: topProblems,
+        severity: severity,
+        timing: timing,
+        tried_options: triedOptions,
+        doctor_status: doctorStatus,
+        goal: goal,
+        name: firstName.trim() || null,
+      };
       
-      // Use simplified redirect URL without query parameters
-      const redirectTo = `${SITE_URL}${AUTH_CALLBACK_PATH}`;
+      // Encode quiz answers as base64 to pass through URL
+      const encodedAnswers = btoa(JSON.stringify(quizAnswers));
       
-      console.log("Register: SITE_URL:", SITE_URL);
-      console.log("Register: AUTH_CALLBACK_PATH:", AUTH_CALLBACK_PATH);
-      console.log("Register: redirectTarget (stored in cookie): /register");
-      console.log("Register: Attempting signInWithOtp with simplified redirectTo:", redirectTo);
-      console.log("Register: Supabase URL:", process.env.NEXT_PUBLIC_SUPABASE_URL);
+      // Use the current origin for redirects (localhost in dev, production URL in prod)
+      const redirectTo = `${getRedirectBaseUrl()}${AUTH_CALLBACK_PATH}?next=/register&quiz=${encodeURIComponent(encodedAnswers)}`;
       
-      // Validate redirect URL format
-      try {
-        new URL(redirectTo);
-        console.log("Register: Redirect URL is valid");
-      } catch (urlError) {
-        console.error("Register: Invalid redirect URL format:", urlError);
-        setError("Configuration error: Invalid redirect URL format. Please contact support.");
-        setLoading(false);
-        return;
-      }
-      
-      const { error: signInError } = await supabase.auth.signInWithOtp({
+      // Debug logging
+      console.log("Registration attempt:", { email, redirectTo });
+
+      const { error: signInError, data } = await supabase.auth.signInWithOtp({
         email,
         options: {
           emailRedirectTo: redirectTo,
@@ -225,69 +216,75 @@ export default function RegisterPage() {
       });
 
       if (signInError) {
-        console.error("Register: Supabase error:", signInError);
-        console.error("Register: Error message:", signInError.message);
-        console.error("Register: Error status:", signInError.status);
-        console.error("Register: Full error object:", JSON.stringify(signInError, null, 2));
+        // Log the full error for debugging
+        console.error("Supabase auth error:", {
+          message: signInError.message,
+          status: signInError.status,
+          name: signInError.name,
+          fullError: signInError,
+        });
+
+        let friendly = "An error occurred. Please try again.";
         
-        // Default to showing the actual error message
-        let friendly = signInError.message || "An error occurred. Please try again.";
+        // Check for specific error types
+        const errorMsg = signInError.message.toLowerCase();
         
-        // Handle 500 errors (server-side Supabase issues)
-        if (signInError.status === 500) {
-          const errorCode = (signInError as { code?: string }).code;
-          if (signInError.message.includes("magic link email") || errorCode === "unexpected_failure") {
-            friendly = "Unable to send magic link email. This may be due to:\n1. Redirect URL not configured in Supabase (check Authentication → URL Configuration)\n2. Email service configuration issue\n3. Temporary Supabase service issue\n\nPlease verify your Supabase redirect URLs include: " + redirectTo;
-          } else {
-            friendly = `Server error (500): ${signInError.message}. Please try again or contact support if the issue persists.`;
-          }
-        } else if (
-          // Check for redirect URL errors (400/422 status codes)
-          signInError.status === 400 ||
-          signInError.status === 422
+        // Email validation errors (be more specific)
+        if (
+          errorMsg.includes("invalid email") ||
+          errorMsg.includes("email format") ||
+          errorMsg === "invalid email address" ||
+          errorMsg.includes("email is not valid")
         ) {
-          const lowerMessage = signInError.message.toLowerCase();
-          if (
-            lowerMessage.includes("redirect") || 
-            lowerMessage.includes("redirect_to") ||
-            lowerMessage.includes("redirect url") ||
-            lowerMessage.includes("allowed values") ||
-            lowerMessage.includes("not allowed") ||
-            lowerMessage.includes("invalid redirect") ||
-            lowerMessage.includes("redirect_to must")
-          ) {
-            friendly = `Redirect URL configuration error: ${signInError.message}. Please verify Supabase redirect URLs include: ${redirectTo}`;
-          } else {
-            friendly = `Configuration error (${signInError.status}): ${signInError.message}. Please check your Supabase settings.`;
-          }
-        } else {
-          const lowerMessage = signInError.message.toLowerCase();
-          // Check for redirect URL errors in message
-          if (
-            lowerMessage.includes("redirect") || 
-            lowerMessage.includes("redirect_to") ||
-            lowerMessage.includes("redirect url") ||
-            lowerMessage.includes("allowed values") ||
-            lowerMessage.includes("not allowed") ||
-            lowerMessage.includes("invalid redirect") ||
-            lowerMessage.includes("redirect_to must")
-          ) {
-            friendly = `Redirect URL configuration error: ${signInError.message}. Please verify Supabase redirect URLs include: ${redirectTo}`;
-          } else if (signInError.message.includes("rate limit") || signInError.message.includes("too many")) {
-            friendly = "Too many attempts - please wait a moment and try again.";
-          } else if (
-            // Only show invalid email if it's explicitly about email format validation
-            (lowerMessage.includes("email") && 
-             (lowerMessage.includes("format") || 
-              lowerMessage.includes("malformed") || 
-              lowerMessage.includes("invalid email") ||
-              lowerMessage.includes("email address"))) &&
-            !lowerMessage.includes("redirect") &&
-            !lowerMessage.includes("sending")
-          ) {
-            friendly = "That email address is invalid. Please check and try again.";
-          }
-          // Otherwise, show the actual error message
+          friendly = "That email address is invalid. Please check and try again.";
+        }
+        // Redirect URL errors
+        else if (
+          errorMsg.includes("redirect") ||
+          errorMsg.includes("redirect_to") ||
+          errorMsg.includes("redirect url") ||
+          errorMsg.includes("url configuration")
+        ) {
+          friendly = "Redirect URL not configured. Please contact support or check Supabase settings.";
+        }
+        // Rate limiting errors
+        else if (
+          /rate/i.test(signInError.message) || 
+          /too many/i.test(signInError.message) ||
+          signInError.message.includes("security purposes") ||
+          signInError.message.includes("only request this after") ||
+          /48 seconds/i.test(signInError.message) ||
+          /60 seconds/i.test(signInError.message)
+        ) {
+          friendly = signInError.message.includes("48 seconds") || 
+                     signInError.message.includes("60 seconds") || 
+                     signInError.message.includes("security purposes")
+            ? signInError.message
+            : "Too many attempts - please wait a moment and try again.";
+        }
+        // Email provider/SMTP errors
+        else if (
+          errorMsg.includes("email provider") ||
+          errorMsg.includes("email not enabled") ||
+          errorMsg.includes("smtp") ||
+          errorMsg.includes("mail") ||
+          errorMsg.includes("sending email") ||
+          errorMsg.includes("email service") ||
+          errorMsg.includes("email delivery")
+        ) {
+          friendly = "Email service is not configured. Please check Supabase email settings or contact support.";
+        }
+        // Network/connection errors
+        else if (
+          errorMsg.includes("network") ||
+          errorMsg.includes("fetch") ||
+          errorMsg.includes("connection")
+        ) {
+          friendly = "Network error. Please check your connection and try again.";
+        }
+        // Show the actual error message for other cases
+        else if (signInError.message) {
+          friendly = signInError.message;
         }
         
         setError(friendly);
@@ -295,86 +292,91 @@ export default function RegisterPage() {
         return;
       }
 
-      console.log("Register: Magic link sent successfully");
       // Success - show email sent message
+      console.log("Magic link sent successfully:", data);
       setPhase("email-sent");
       setLoading(false);
     } catch (e) {
-      console.error("Register: Exception:", e);
+      console.error("Unexpected error during registration:", e);
       setError(e instanceof Error ? e.message : "An error occurred. Please try again.");
       setLoading(false);
     }
   };
 
-  // Auto-save profile when user returns from magic link
+  // Check for authenticated session and redirect if profile exists
+  // Only check when NOT in email-sent phase (user should stay on email-sent page)
   useEffect(() => {
+    // Don't check session if user is in email-sent phase - let them stay there
+    if (phase === "email-sent") {
+      return;
+    }
+
     let mounted = true;
 
-    async function checkAndSaveProfile() {
-      // Wait a bit for session to be available
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
+    async function checkSessionAndRedirect() {
       if (!mounted) return;
 
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      // Check if profile exists
-      const { data: existingProfile } = await supabase
-        .from("user_profiles")
-        .select("user_id")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (existingProfile) {
-        // Profile exists - redirect to dashboard
-        router.replace("/dashboard");
-        return;
-      }
-
-      // No profile - check for quiz answers
-      const storedAnswers = localStorage.getItem("pending_quiz_answers");
-      if (!storedAnswers) return;
-
-      // Save profile
       try {
-        const quizAnswers = JSON.parse(storedAnswers);
-        const res = await fetch("/api/intake", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            user_id: user.id,
-            name: quizAnswers.name || null,
-            top_problems: quizAnswers.top_problems || [],
-            severity: quizAnswers.severity || null,
-            timing: quizAnswers.timing || null,
-            tried_options: quizAnswers.tried_options || [],
-            doctor_status: quizAnswers.doctor_status || null,
-            goal: quizAnswers.goal || null,
-          }),
-        });
+        // Check for session
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error("Session check error:", sessionError);
+          return;
+        }
 
-        if (res.ok) {
-          localStorage.removeItem("pending_quiz_answers");
-          router.replace("/dashboard");
-          router.refresh();
+        if (!sessionData?.session?.user) {
+          // No session - user hasn't clicked magic link yet
+          return;
+        }
+
+        const user = sessionData.session.user;
+
+        // Check if profile already exists
+        const { data: existingProfile, error: profileError } = await supabase
+          .from("user_profiles")
+          .select("user_id")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        if (profileError && profileError.code !== "PGRST116") {
+          console.error("Error checking profile:", profileError);
+          return;
+        }
+
+        if (existingProfile) {
+          // Profile already exists - redirect to dashboard
+          if (mounted) {
+            localStorage.removeItem("pending_quiz_answers");
+            router.replace("/dashboard");
+            router.refresh();
+          }
+          return;
+        }
+
+        // Profile doesn't exist - user might need to complete quiz
+        // This should rarely happen now since profile is created in auth callback
+        // But keep this as a fallback
+        if (mounted) {
+          // User has confirmed email but profile wasn't created
+          // This might happen if quiz answers weren't passed correctly
+          // Let them complete the quiz again
+          setPhase("quiz");
+          setStepIndex(0);
         }
       } catch (e) {
-        console.error("Error saving profile:", e);
+        if (!mounted) return;
+        console.error("Error checking session:", e);
       }
     }
 
-    checkAndSaveProfile();
+    // Check session on mount
+    checkSessionAndRedirect();
 
     return () => {
       mounted = false;
     };
-  }, [router]);
-
-
+  }, [router, phase]);
 
   return (
     <main className="relative mx-auto max-w-2xl p-6 sm:p-8 min-h-screen flex flex-col">
@@ -736,6 +738,11 @@ export default function RegisterPage() {
             <CheckCircle2 className="w-4 h-4 text-primary" />
             <span>Your quiz answers are saved</span>
           </div>
+          {error && (
+            <div className="rounded-xl border border-error/30 bg-error/10 p-3 text-sm text-error max-w-md">
+              {error}
+            </div>
+          )}
         </div>
       )}
     </main>

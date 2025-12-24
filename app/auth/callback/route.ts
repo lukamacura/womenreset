@@ -1,53 +1,18 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
-import { SITE_URL } from "@/lib/constants";
+import { getRedirectBaseUrl } from "@/lib/constants";
 
 export async function GET(request: NextRequest) {
-  // Validate required environment variables
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
-    console.error("❌ NEXT_PUBLIC_SUPABASE_URL is not set");
-    const baseUrl = SITE_URL;
-    return NextResponse.redirect(
-      `${baseUrl}/login?error=auth_callback_error&message=${encodeURIComponent("Server configuration error: Supabase URL not configured. Please contact support.")}`
-    );
-  }
-
-  if (!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    console.error("❌ NEXT_PUBLIC_SUPABASE_ANON_KEY is not set");
-    const baseUrl = SITE_URL;
-    return NextResponse.redirect(
-      `${baseUrl}/login?error=auth_callback_error&message=${encodeURIComponent("Server configuration error: Supabase key not configured. Please contact support.")}`
-    );
-  }
-
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
-  
-  // Try to get redirect target from cookie first (set before sending magic link)
-  // Fallback to query parameter (for backwards compatibility) or default
-  const cookieRedirectTarget = request.cookies.get("auth_redirect_target")?.value;
-  const queryRedirectTarget = requestUrl.searchParams.get("next");
-  const next = cookieRedirectTarget 
-    ? decodeURIComponent(cookieRedirectTarget)
-    : (queryRedirectTarget ?? "/dashboard");
-  
-  console.log("Auth callback: redirect target from cookie:", cookieRedirectTarget);
-  console.log("Auth callback: redirect target from query:", queryRedirectTarget);
-  console.log("Auth callback: final redirect target:", next);
+  const next = requestUrl.searchParams.get("next") ?? "/dashboard";
 
-  // Determine base URL for redirects
-  // In production, always use SITE_URL to ensure consistency
-  // In development, use the request origin
-  // This ensures magic links work correctly in both environments
-  const isProduction = process.env.NODE_ENV === "production" || requestUrl.hostname === "womenreset.com";
-  const baseUrl = isProduction ? SITE_URL : `${requestUrl.protocol}//${requestUrl.host}`;
+  // Use request origin to ensure we redirect to the same host the user is accessing
+  // This works for both localhost and production
+  const baseUrl = `${requestUrl.protocol}//${requestUrl.host}`;
   
-  console.log("Auth callback: NODE_ENV =", process.env.NODE_ENV);
-  console.log("Auth callback: request hostname =", requestUrl.hostname);
-  console.log("Auth callback: isProduction =", isProduction);
   console.log("Auth callback: baseUrl =", baseUrl);
-  console.log("Auth callback: SITE_URL constant =", SITE_URL);
 
   if (!code) {
     console.error("Auth callback: No code parameter found");
@@ -119,7 +84,6 @@ export async function GET(request: NextRequest) {
     let redirectUrl: string;
     if (next === "/register") {
       // User is coming from REGISTRATION flow - check if they already have a profile
-      // If they do, redirect to dashboard; otherwise, redirect to register to complete quiz
       const { data: profile } = await supabase
         .from("user_profiles")
         .select("user_id")
@@ -130,8 +94,77 @@ export async function GET(request: NextRequest) {
         // User already has a profile - redirect to dashboard
         redirectUrl = `${baseUrl}/dashboard`;
       } else {
-        // User needs to complete registration - redirect to register page
-        redirectUrl = `${baseUrl}/register`;
+        // Check for quiz answers in URL parameters
+        const quizParam = requestUrl.searchParams.get("quiz");
+        
+        if (quizParam) {
+          // Decode and parse quiz answers
+          try {
+            const decodedAnswers = JSON.parse(atob(decodeURIComponent(quizParam)));
+            
+            // Create profile immediately using admin client
+            const { getSupabaseAdmin } = await import("@/lib/supabaseAdmin");
+            const adminSupabase = getSupabaseAdmin();
+            
+            // Prepare profile data
+            const profileData: {
+              user_id: string;
+              name?: string | null;
+              top_problems?: string[];
+              severity?: string | null;
+              timing?: string | null;
+              tried_options?: string[];
+              doctor_status?: string | null;
+              goal?: string | null;
+            } = {
+              user_id: data.user.id,
+            };
+            
+            if (decodedAnswers.name !== undefined) {
+              profileData.name = decodedAnswers.name || null;
+            }
+            if (decodedAnswers.top_problems !== undefined) {
+              profileData.top_problems = decodedAnswers.top_problems;
+            }
+            if (decodedAnswers.severity !== undefined) {
+              profileData.severity = decodedAnswers.severity || null;
+            }
+            if (decodedAnswers.timing !== undefined) {
+              profileData.timing = decodedAnswers.timing || null;
+            }
+            if (decodedAnswers.tried_options !== undefined) {
+              profileData.tried_options = decodedAnswers.tried_options;
+            }
+            if (decodedAnswers.doctor_status !== undefined) {
+              profileData.doctor_status = decodedAnswers.doctor_status || null;
+            }
+            if (decodedAnswers.goal !== undefined) {
+              profileData.goal = decodedAnswers.goal || null;
+            }
+            
+            // Insert profile
+            const { error: profileError } = await adminSupabase
+              .from("user_profiles")
+              .insert([profileData]);
+            
+            if (profileError) {
+              console.error("Error creating profile in auth callback:", profileError);
+              // If profile creation fails, redirect to register page to try again
+              redirectUrl = `${baseUrl}/register`;
+            } else {
+              console.log("Profile created successfully in auth callback");
+              // Profile created - redirect to dashboard
+              redirectUrl = `${baseUrl}/dashboard`;
+            }
+          } catch (parseError) {
+            console.error("Error parsing quiz answers:", parseError);
+            // If parsing fails, redirect to register page
+            redirectUrl = `${baseUrl}/register`;
+          }
+        } else {
+          // No quiz answers - redirect to register page to complete quiz
+          redirectUrl = `${baseUrl}/register`;
+        }
       }
     } else {
       // User is coming from LOGIN flow - always redirect to dashboard (or the specified next target)
@@ -156,13 +189,6 @@ export async function GET(request: NextRequest) {
         secure: cookie.secure ?? (process.env.NODE_ENV === "production"),
         sameSite: (cookie.sameSite as "lax" | "strict" | "none" | undefined) ?? "lax",
       });
-    });
-    
-    // Clear the auth_redirect_target cookie after use
-    finalResponse.cookies.set("auth_redirect_target", "", {
-      path: "/",
-      maxAge: 0,
-      expires: new Date(0),
     });
 
     console.log("Auth callback: Cookies copied, returning response");

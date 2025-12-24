@@ -16,19 +16,26 @@ export default function ConditionalNavbar({ isAuthenticated: initialIsAuthentica
 
   // Check authentication state on client side
   useEffect(() => {
-    // Check initial session
+    let mounted = true;
+
+    // Check initial session to sync with client state
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setIsAuthenticated(!!session);
+      if (mounted) {
+        setIsAuthenticated(!!session);
+      }
     });
 
     // Listen for auth state changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsAuthenticated(!!session);
+      if (mounted) {
+        setIsAuthenticated(!!session);
+      }
     });
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
   }, []);
