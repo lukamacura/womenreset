@@ -461,10 +461,15 @@ export async function orchestrateRAG(
         };
       }
       
-      // No follow-up links found, use normal enhancement
-      console.log(`[RAG Orchestrator] Follow-up question detected, enhancing with conversation context`);
-      queryForKB = enhanceQueryWithContext(userQuery, allHistory);
-      console.log(`[RAG Orchestrator] Enhanced query: "${queryForKB}" (original: "${userQuery}")`);
+      // No follow-up links found - skip KB search and route to LLM for unlinked follow-up questions
+      console.log(`[RAG Orchestrator] Follow-up question detected but no follow_up_links found - routing to LLM (skipping KB search)`);
+      const retrievalModeForLLM = mode || getRetrievalMode(persona);
+      return {
+        persona,
+        retrievalMode: retrievalModeForLLM,
+        usedKB: false,
+        source: "llm",
+      };
     }
 
     // Step 2.5: Check for WHY hormone questions and potentially route to menopause persona

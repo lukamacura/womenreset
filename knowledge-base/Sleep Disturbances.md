@@ -18,6 +18,11 @@ action_tips:
 motivation_nudge: "🌸 Your body isn’t failing — it’s learning a new rhythm. With awareness and consistency, deep rest returns."
 
 follow_up_question: "Would you like your *Sleep Recovery Roadmap* 💤 — a gentle, step-by-step guide to rebuild deep rest through rhythm and routine?"
+follow_up_links:
+- persona: "menopause"
+topic: "Sleep Disturbances in Menopause"
+subtopic: "Sleep Recovery Roadmap – Step-by-Step Plan"
+label: step-by-step guide to rebuild deep rest
 
 intent_patterns:
   - "Why do I wake up every night?"
@@ -466,6 +471,11 @@ habit_strategy:
   example: "Keep a cool cloth and water by your bed → breathe slowly → ground → rest again."
 
 follow_up_question: "Would you like to learn about the importance of morning sunlight for sleep?"
+follow_up_links:
+-persona: "menopause"
+topic: "Sleep Disturbances in Menopause"
+subtopic: "Solutions – Morning Sunlight"
+label: "learn about the importance of morning sunlight for sleep"
 
 intent_patterns:
   - "Why do I wake up at 3am every night?"
@@ -690,7 +700,17 @@ action_tips:
 
 motivation_nudge: "🌸 Awareness builds calm — every observation is a gentle step toward confidence and deeper rest."
 
-follow_up_question: "Would you like to learn about Non-Sleep Deep Rest?"
+follow_up_question: "Would you like to learn how you should set up your room for sleep or are you curious about Non-Sleep Deep Rest?"
+follow_up_links:
+-persona: "menopause"
+topic: "Sleep Disturbances in Menopause"
+subtopic: "Solutions – Bedroom Environment"
+label: "learn about ideal bedroom environment"
+-persona: "menopause"
+topic: "Sleep Disturbances in Menopause"
+subtopic: "Solutions – Non-Sleep Deep Rest (NSDR)"
+label: "learn about NSDR"
+
 
 intent_patterns:
   - "Should I track my sleep?"
@@ -921,7 +941,12 @@ action_tips:
 
 motivation_nudge: "😴 Your bedroom isn’t just a place to sleep — it’s your nightly sanctuary. Calm space, calm body, calm mind."
 
-follow_up_question: "Would you like to learn about *Lifestyle & Bedtime Routine* — small calm habits often create the biggest shift?"
+follow_up_question: "Would you like to learn why you get up at the same time every night and what to do about it?"
+follow_up_links:
+-persona: "menopause"
+topic: "Sleep Disturbances in Menopause"
+subtopic: "3 a.m. Calm Reset Technique (Night Waking Support)"
+label: "learn 3 a.m. Calm Reset Technique" 
 
 intent_patterns:
   - "How should I set up my bedroom for sleep?"
@@ -1312,7 +1337,12 @@ action_tips:
 
 motivation_nudge: "🌸 Dimming your world after sunset is a love letter to your hormones — it’s how your body remembers peace."
 
-follow_up_question: "Would you like to learn a relaxation technique to help you wind down before bed?"
+follow_up_question: "Would you like to learn about exercise and relaxation to help you with sleep?"
+follow_up_links:
+-persona: "menopause"
+topic: "Sleep Disturbances in Menopause"
+subtopic: "Solutions – Exercise & Relaxation for Sleep"
+label: "learn about exercise and relation for sleep"
 
 intent_patterns:
   - "Why can't I fall asleep after using my phone?"
@@ -1557,7 +1587,12 @@ action_tips:
 
 motivation_nudge: "💖 Motion by day builds restoration by night. Every walk, lift, or stretch tells your body, *“I’m safe — it’s okay to rest now.”*"
 
-follow_up_question: "Would you like a personalized movement plan that supports both your energy during the day and your sleep at night?"
+follow_up_question: "Would you like to learn how important it is to go to bed at the same time?"
+follow_up_links:
+-persona: "menopause"
+topic: "Sleep Disturbances in Menopause"
+subtopic: "Solutions – Consistent Sleep Routine"
+label: "learn about consistent sleep routine"
 
 intent_patterns:
   - "When is the best time to exercise for sleep?"
@@ -1830,6 +1865,11 @@ action_tips:
 motivation_nudge: "💖 You don’t need perfection — just rhythm. Every peaceful evening teaches your body how to feel safe again."
 
 follow_up_question: "Want to know about the best supplements and food for sleep?"
+follow_up_links:
+-persona: "menopause"
+topic: "Sleep Disturbances in Menopause"
+subtopic: "Solutions – Nutrition & Supplements for Sleep"
+label: "learn about the best supplements and food for sleep"
 
 intent_patterns:
   - "Why won't my mind stop racing at bedtime?"
@@ -2073,6 +2113,11 @@ action_tips:
 motivation_nudge: "🌸 Every sunrise you meet whispers to your body, *“It’s time to wake, move, and shine again.”*"
 
 follow_up_question: "Would you like to focus on improving your evening light habits?"
+follow_up_links:
+-persona: "menopause"
+topic: "Sleep Disturbances in Menopause"
+subtopic: "Solutions – Evening Light Hygiene"
+label: "learn about evening light hygiene"
 
 intent_patterns:
   - "How does morning light help sleep?"
@@ -2279,7 +2324,12 @@ action_tips:
 
 motivation_nudge: "🌸 Deep rest is a skill — not a luxury. Each session trains your body to feel safe enough to sleep again."
 
-follow_up_question: "Would you like to know how exercise helps you sleep better in menopause?"
+follow_up_question: "Would you like to learn how exercise can help with your sleep in menopause?"
+follow_up_links:
+-persona: "menopause"
+topic: "Sleep Disturbances in Menopause"
+subtopic: "Solutions – Exercise & Relaxation for Sleep"
+label: "learn about exercise for sleep"
 
 intent_patterns:
   - "What is NSDR?"
@@ -2624,7 +2674,12 @@ action_tips:
 
 motivation_nudge: "💖 Getting help isn’t giving up — it’s giving your body the balance it’s been asking for."
 
-follow_up_question: "Would you like me to walk you through *Sleep Recovery Roadmap* which shows how all your sleep habits connect and build over time?"
+follow_up_question: "Would you like me to walk you through 3 a.m. Calm Reset Technique"
+follow_up_links:
+-persona: "menopause"
+topic: "Sleep Disturbances in Menopause"
+subtopic: "3 a.m. Calm Reset Technique (Night Waking Support)"
+label: learn night waking support"
 
 intent_patterns:
   - "When should I talk to my doctor about my sleep problems?"

@@ -112,20 +112,43 @@ function detectFormat(content: string): FileFormat {
  */
 function parseYAMLSections(content: string): string[] {
   const sections: string[] = [];
-  // Split by --- separators (handle variations: --- with trailing whitespace, multiple --- lines)
-  const parts = content.split(/^---\s*$/gm).filter(p => p.trim().length > 0);
   
-  for (const part of parts) {
+  // Handle files that start with --- by removing leading separator
+  let normalizedContent = content.trim();
+  if (normalizedContent.startsWith('---')) {
+    normalizedContent = normalizedContent.replace(/^---\s*\n?/m, '');
+  }
+  
+  // Split by --- separators (handle variations: --- with trailing whitespace, multiple --- lines)
+  // Use a more robust split that handles blank lines between separators
+  const parts = normalizedContent.split(/^---\s*$/gm);
+  
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i];
     const trimmed = part.trim();
-    // Verify required fields exist
-    if (trimmed.includes('persona:') && trimmed.includes('topic:') && trimmed.includes('subtopic:')) {
-      // Verify persona: is at the top level (starts at beginning of line, not indented)
-      // This ensures we don't pick up follow_up_links entries which have indented persona: fields
-      const personaMatch = trimmed.match(/^persona:/m);
-      if (personaMatch) {
-        sections.push(trimmed);
-      } else {
-        console.warn(`   ⚠️  Skipping section: persona: found but not at top level`);
+    
+    // Skip empty parts (blank lines between --- separators)
+    if (!trimmed || trimmed.length === 0) {
+      continue;
+    }
+    
+    // Check for required fields at top level (not indented)
+    // Use regex to ensure they're at the start of a line (not indented)
+    const hasPersona = /^persona:/m.test(trimmed);
+    const hasTopic = /^topic:/m.test(trimmed);
+    const hasSubtopic = /^subtopic:/m.test(trimmed);
+    
+    // Verify all three required fields exist at top level
+    if (hasPersona && hasTopic && hasSubtopic) {
+      sections.push(trimmed);
+    } else {
+      // Log when a part doesn't have all required fields at top level (for debugging)
+      // This helps identify if sections are being incorrectly split or have formatting issues
+      if (hasPersona || hasTopic || hasSubtopic) {
+        console.warn(`   ⚠️  [Part ${i + 1}] Skipping section: missing required fields at top level (persona: ${hasPersona}, topic: ${hasTopic}, subtopic: ${hasSubtopic})`);
+        // Log first few lines to help debug
+        const firstLines = trimmed.split('\n').slice(0, 5).join(' | ');
+        console.warn(`      First lines: ${firstLines.substring(0, 100)}...`);
       }
     }
   }
@@ -927,10 +950,11 @@ function chunkContentIfNeeded(content: string, maxTokens: number = 2000, maxChar
 /**
  * Enhance content with intents and keywords for better vector search
  * Optimized for maximum semantic matching accuracy by:
- * - Adding topic/subtopic explicitly at the start
- * - Repeating intent patterns 2-3 times for emphasis (embedding models weight repeated patterns)
- * - Including ALL intent patterns (they're designed to match user queries exactly)
+ * - Adding topic/subtopic explicitly at the start for context
+ * - Clearly labeling intent patterns with heading so embedding models understand these are user queries to match
+ * - Including ALL intent patterns as a single clear list (they're designed to match user queries exactly)
  * - Adding keywords for additional semantic coverage
+ * - Prioritizing intent patterns before content for intent-first retrieval approach
  */
 function enhanceContentWithMetadata(
   content: string,
@@ -945,8 +969,8 @@ function enhanceContentWithMetadata(
   enhancementParts.push(`Topic: ${topic}. Subtopic: ${subtopic}.`);
   enhancementParts.push(''); // Empty line for readability
   
-  // Add intent patterns - repeat 2-3 times for maximum semantic matching
-  // Embedding models weight repeated patterns more heavily
+  // Add intent patterns with clear heading and context
+  // This makes it explicit to embedding models that these are user queries to match
   if (intent_patterns.length > 0) {
     // Clean intent patterns (remove PRIMARY/SECONDARY markers, trim quotes)
     const cleanedIntents = intent_patterns
@@ -954,28 +978,15 @@ function enhanceContentWithMetadata(
       .filter(ip => ip.length > 0);
     
     if (cleanedIntents.length > 0) {
-      // Include ALL intent patterns (not limited) - they're designed to match queries exactly
-      // Format each as a standalone question/statement for better embedding matching
-      const intentLines = cleanedIntents.map(intent => intent);
+      // Add clear heading and context for embedding models
+      enhancementParts.push('### Intent Patterns:');
+      enhancementParts.push('These intent patterns represent common user queries that match this content:');
+      enhancementParts.push(''); // Empty line
       
-      // Repeat intent patterns 2-3 times for emphasis (embedding models weight repeated content)
-      // First pass: all intents
+      // Single clear list of all intents formatted as bullet points
+      // This provides clearer semantic signals than repetition
+      const intentLines = cleanedIntents.map(intent => `- ${intent}`);
       enhancementParts.push(...intentLines);
-      
-      // Second pass: repeat top 5-10 most important intents (if we have many)
-      if (cleanedIntents.length > 5) {
-        // Repeat the first 5-10 intents for extra emphasis
-        const repeatCount = Math.min(10, cleanedIntents.length);
-        enhancementParts.push(...cleanedIntents.slice(0, repeatCount));
-      } else {
-        // If we have 5 or fewer, repeat all of them
-        enhancementParts.push(...intentLines);
-      }
-      
-      // Third pass: repeat the first intent pattern one more time (most important)
-      if (cleanedIntents.length > 0) {
-        enhancementParts.push(cleanedIntents[0]);
-      }
       
       enhancementParts.push(''); // Empty line separator
     }
@@ -1145,6 +1156,20 @@ async function loadDocuments(): Promise<Document[]> {
       // Parse into sections based on format
       const sections = format === 'yaml' ? parseYAMLSections(content) : parseMarkdownSections(content);
       console.log(`   📑 ${file}: Found ${sections.length} section(s)`);
+      
+      // Log each section's subtopic for debugging and validation
+      if (sections.length > 0 && format === 'yaml') {
+        sections.forEach((section, idx) => {
+          const subtopicMatch = section.match(/^subtopic:\s*["']([^"']+)["']|^subtopic:\s*([^\n]+)/m);
+          const subtopic = subtopicMatch ? (subtopicMatch[1] || subtopicMatch[2] || '').trim() : `Section ${idx + 1}`;
+          // Verify section has all required fields
+          const hasPersona = /^persona:/m.test(section);
+          const hasTopic = /^topic:/m.test(section);
+          const hasSubtopic = /^subtopic:/m.test(section);
+          const status = (hasPersona && hasTopic && hasSubtopic) ? '✓' : '⚠️';
+          console.log(`      ${status} Section ${idx + 1}: "${subtopic.substring(0, 60)}"`);
+        });
+      }
       
       let sectionIndex = 0;
       let successfulSections = 0;
