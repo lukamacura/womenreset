@@ -35,9 +35,9 @@ export async function POST(req: Request) {
     // Validate required fields for new question structure (only if provided)
     // Allow partial updates for webhook/trigger created profiles
     if (top_problems !== undefined) {
-      if (!Array.isArray(top_problems) || top_problems.length !== 2) {
+      if (!Array.isArray(top_problems) || top_problems.length !== 3) {
         return NextResponse.json(
-          { error: "Please select exactly 2 top problems." },
+          { error: "Please select exactly 3 top problems." },
           { status: 400 }
         );
       }
@@ -80,9 +80,19 @@ export async function POST(req: Request) {
     }
 
     if (goal !== undefined && goal !== null) {
-      if (!["sleep_through_night", "think_clearly", "feel_like_myself", "understand_patterns", "data_for_doctor", "get_body_back"].includes(goal)) {
+      // Handle both array and string for backward compatibility
+      const validGoals = ["sleep_through_night", "think_clearly", "feel_like_myself", "understand_patterns", "data_for_doctor", "get_body_back"];
+      if (Array.isArray(goal)) {
+        // Validate array contains only valid values
+        if (!goal.every(g => validGoals.includes(g))) {
+          return NextResponse.json(
+            { error: "Please select valid goals." },
+            { status: 400 }
+          );
+        }
+      } else if (!validGoals.includes(goal)) {
         return NextResponse.json(
-          { error: "Please select your primary goal." },
+          { error: "Please select a valid goal." },
           { status: 400 }
         );
       }
@@ -160,7 +170,13 @@ export async function POST(req: Request) {
       profileData.doctor_status = doctor_status || null;
     }
     if (goal !== undefined) {
-      profileData.goal = goal || null;
+      // Handle both array and string for backward compatibility
+      if (Array.isArray(goal)) {
+        // Store as JSON string for multiple goals
+        profileData.goal = JSON.stringify(goal);
+      } else {
+        profileData.goal = goal || null;
+      }
     }
 
     if (existingProfile) {

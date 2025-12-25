@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { createClient } from "@supabase/supabase-js";
+import type { SymptomLog } from "./symptom-tracker-constants";
 
 const supabaseClient = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -7,12 +8,9 @@ const supabaseClient = createClient(
 );
 
 // Types
-interface Symptom {
-  id: string;
-  name: string;
-  severity: number;
-  notes?: string;
-  occurred_at: string;
+interface SymptomLogWithName extends SymptomLog {
+  symptom_name?: string;
+  symptom_icon?: string;
 }
 
 interface Nutrition {
@@ -35,13 +33,19 @@ interface Fitness {
   performed_at: string;
 }
 
-interface TrackerSummary {
+export interface PlainLanguageInsight {
+  text: string;
+  type: 'progress' | 'pattern' | 'correlation' | 'time-of-day' | 'trigger';
+  priority: 'high' | 'medium' | 'low';
+}
+
+export interface TrackerSummary {
   symptoms: {
     total: number;
     byName: Record<string, { count: number; avgSeverity: number; trend: string }>;
     avgSeverity: number;
     trend: string;
-    recent: Symptom[];
+    recent: SymptomLogWithName[];
   };
   nutrition: {
     total: number;
@@ -60,6 +64,7 @@ interface TrackerSummary {
     correlations: string[];
     insights: string[];
   };
+  plainLanguageInsights: PlainLanguageInsight[];
 }
 
 // Fetch tracker data for a user
@@ -67,7 +72,7 @@ export async function fetchTrackerData(
   userId: string,
   days: number = 30
 ): Promise<{
-  symptoms: Symptom[];
+  symptomLogs: SymptomLogWithName[];
   nutrition: Nutrition[];
   fitness: Fitness[];
 }> {
@@ -75,13 +80,16 @@ export async function fetchTrackerData(
   cutoffDate.setDate(cutoffDate.getDate() - days);
   const cutoffISO = cutoffDate.toISOString();
 
-  const [symptomsResult, nutritionResult, fitnessResult] = await Promise.all([
+  const [symptomLogsResult, nutritionResult, fitnessResult] = await Promise.all([
     supabaseClient
-      .from("symptoms")
-      .select("*")
+      .from("symptom_logs")
+      .select(`
+        *,
+        symptoms (name, icon)
+      `)
       .eq("user_id", userId)
-      .gte("occurred_at", cutoffISO)
-      .order("occurred_at", { ascending: false }),
+      .gte("logged_at", cutoffISO)
+      .order("logged_at", { ascending: false }),
     supabaseClient
       .from("nutrition")
       .select("*")
@@ -96,16 +104,217 @@ export async function fetchTrackerData(
       .order("performed_at", { ascending: false }),
   ]);
 
+  // Transform symptom logs to include name and icon
+  const symptomLogs: SymptomLogWithName[] = (symptomLogsResult.data || []).map((log: any) => ({
+    ...log,
+    symptom_name: log.symptoms?.name,
+    symptom_icon: log.symptoms?.icon,
+  }));
+
   return {
-    symptoms: symptomsResult.data || [],
+    symptomLogs,
     nutrition: nutritionResult.data || [],
     fitness: fitnessResult.data || [],
   };
 }
 
+// Generate plain-language insights
+function generatePlainLanguageInsights(
+  symptomLogs: SymptomLogWithName[],
+  nutrition: Nutrition[],
+  fitness: Fitness[]
+): PlainLanguageInsight[] {
+  const insights: PlainLanguageInsight[] = [];
+
+  if (symptomLogs.length === 0) {
+    return insights;
+  }
+
+  // Group logs by symptom name
+  const logsBySymptom: Record<string, SymptomLogWithName[]> = {};
+  symptomLogs.forEach((log) => {
+    const name = log.symptom_name || 'Unknown';
+    if (!logsBySymptom[name]) {
+      logsBySymptom[name] = [];
+    }
+    logsBySymptom[name].push(log);
+  });
+
+  // Time-of-day analysis
+  const timeOfDayCounts: Record<string, Record<string, number>> = {};
+  Object.entries(logsBySymptom).forEach(([symptomName, logs]) => {
+    timeOfDayCounts[symptomName] = { morning: 0, afternoon: 0, evening: 0, night: 0 };
+    logs.forEach((log) => {
+      const timeOfDay = log.time_of_day || getTimeOfDayFromDate(log.logged_at);
+      if (timeOfDay && timeOfDayCounts[symptomName][timeOfDay]) {
+        timeOfDayCounts[symptomName][timeOfDay]++;
+      }
+    });
+  });
+
+  // Find most common time of day for each symptom
+  Object.entries(timeOfDayCounts).forEach(([symptomName, counts]) => {
+    const total = Object.values(counts).reduce((a, b) => a + b, 0);
+    if (total >= 3) {
+      const maxCount = Math.max(...Object.values(counts));
+      const maxTimeOfDay = Object.entries(counts).find(([_, count]) => count === maxCount)?.[0];
+      if (maxTimeOfDay && maxCount / total > 0.4) {
+        const timeLabel = {
+          morning: '6am-12pm',
+          afternoon: '12pm-6pm',
+          evening: '6pm-10pm',
+          night: '10pm-6am',
+        }[maxTimeOfDay] || maxTimeOfDay;
+        insights.push({
+          text: `${symptomName} happen most between ${timeLabel}`,
+          type: 'time-of-day',
+          priority: 'medium',
+        });
+      }
+    }
+  });
+
+  // Trigger analysis
+  const triggerFrequency: Record<string, Record<string, number>> = {};
+  Object.entries(logsBySymptom).forEach(([symptomName, logs]) => {
+    triggerFrequency[symptomName] = {};
+    logs.forEach((log) => {
+      (log.triggers || []).forEach((trigger) => {
+        triggerFrequency[symptomName][trigger] = (triggerFrequency[symptomName][trigger] || 0) + 1;
+      });
+    });
+  });
+
+  Object.entries(triggerFrequency).forEach(([symptomName, triggers]) => {
+    const totalLogs = logsBySymptom[symptomName].length;
+    Object.entries(triggers).forEach(([trigger, count]) => {
+      const percentage = Math.round((count / totalLogs) * 100);
+      if (percentage >= 50 && totalLogs >= 3) {
+        insights.push({
+          text: `${trigger} appears in ${percentage}% of your ${symptomName} logs`,
+          type: 'trigger',
+          priority: 'high',
+        });
+      }
+    });
+  });
+
+  // Progress analysis (compare last 2 weeks vs first 2 weeks)
+  if (symptomLogs.length >= 10) {
+    const sortedLogs = [...symptomLogs].sort((a, b) => 
+      new Date(a.logged_at).getTime() - new Date(b.logged_at).getTime()
+    );
+    const firstHalf = sortedLogs.slice(0, Math.floor(sortedLogs.length / 2));
+    const secondHalf = sortedLogs.slice(Math.floor(sortedLogs.length / 2));
+
+    Object.entries(logsBySymptom).forEach(([symptomName, allLogs]) => {
+      const firstHalfLogs = allLogs.filter(log => 
+        firstHalf.some(f => f.id === log.id)
+      );
+      const secondHalfLogs = allLogs.filter(log => 
+        secondHalf.some(s => s.id === log.id)
+      );
+
+      if (firstHalfLogs.length >= 3 && secondHalfLogs.length >= 3) {
+        const firstCount = firstHalfLogs.length;
+        const secondCount = secondHalfLogs.length;
+        const firstAvgSeverity = firstHalfLogs.reduce((sum, log) => sum + log.severity, 0) / firstCount;
+        const secondAvgSeverity = secondHalfLogs.reduce((sum, log) => sum + log.severity, 0) / secondCount;
+
+        const countChange = ((secondCount - firstCount) / firstCount) * 100;
+        const severityChange = ((secondAvgSeverity - firstAvgSeverity) / firstAvgSeverity) * 100;
+
+        if (countChange < -20 && severityChange < -10) {
+          insights.push({
+            text: `Good news: ${symptomName} are down ${Math.round(Math.abs(countChange))}% with ${Math.round(Math.abs(severityChange))}% less severity compared to earlier`,
+            type: 'progress',
+            priority: 'high',
+          });
+        } else if (countChange > 20 || severityChange > 10) {
+          insights.push({
+            text: `${symptomName} have increased ${Math.round(countChange)}% - let's discuss strategies to manage this`,
+            type: 'progress',
+            priority: 'high',
+          });
+        }
+      }
+    });
+  }
+
+  // Day of week patterns
+  const dayOfWeekCounts: Record<string, Record<string, number>> = {};
+  Object.entries(logsBySymptom).forEach(([symptomName, logs]) => {
+    dayOfWeekCounts[symptomName] = {};
+    logs.forEach((log) => {
+      const day = new Date(log.logged_at).toLocaleDateString('en-US', { weekday: 'long' });
+      dayOfWeekCounts[symptomName][day] = (dayOfWeekCounts[symptomName][day] || 0) + 1;
+    });
+  });
+
+  Object.entries(dayOfWeekCounts).forEach(([symptomName, days]) => {
+    const total = Object.values(days).reduce((a, b) => a + b, 0);
+    if (total >= 5) {
+      const maxDay = Object.entries(days).reduce((max, [day, count]) => 
+        count > max[1] ? [day, count] : max, ['', 0]
+      );
+      const maxDayPercentage = (maxDay[1] / total) * 100;
+      if (maxDayPercentage > 30) {
+        insights.push({
+          text: `${symptomName} peak on ${maxDay[0]}s`,
+          type: 'pattern',
+          priority: 'medium',
+        });
+      }
+    }
+  });
+
+  // Nutrition correlation (if available)
+  if (nutrition.length > 0 && symptomLogs.length > 0) {
+    const nutritionDays = new Set(
+      nutrition.map((n) => new Date(n.consumed_at).toDateString())
+    );
+    const symptomDays = symptomLogs.map((s) => ({
+      date: new Date(s.logged_at).toDateString(),
+      severity: s.severity,
+    }));
+
+    const nutritionDaySymptoms = symptomDays.filter((s) => nutritionDays.has(s.date));
+    const nonNutritionDaySymptoms = symptomDays.filter((s) => !nutritionDays.has(s.date));
+
+    if (nutritionDaySymptoms.length > 0 && nonNutritionDaySymptoms.length > 0) {
+      const nutritionAvg = nutritionDaySymptoms.reduce((a, b) => a + b.severity, 0) / nutritionDaySymptoms.length;
+      const nonNutritionAvg = nonNutritionDaySymptoms.reduce((a, b) => a + b.severity, 0) / nonNutritionDaySymptoms.length;
+      
+      if (nonNutritionAvg > nutritionAvg + 0.5) {
+        insights.push({
+          text: `Your symptoms are ${Math.round(((nonNutritionAvg - nutritionAvg) / nonNutritionAvg) * 100)}% worse on days you skip logging meals`,
+          type: 'correlation',
+          priority: 'medium',
+        });
+      }
+    }
+  }
+
+  // Sort insights by priority
+  const priorityOrder = { high: 0, medium: 1, low: 2 };
+  insights.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
+
+  return insights.slice(0, 8); // Limit to top 8 insights
+}
+
+// Helper to get time of day from date
+function getTimeOfDayFromDate(dateString: string): 'morning' | 'afternoon' | 'evening' | 'night' | null {
+  const date = new Date(dateString);
+  const hour = date.getHours();
+  if (hour >= 6 && hour < 12) return 'morning';
+  if (hour >= 12 && hour < 18) return 'afternoon';
+  if (hour >= 18 && hour < 22) return 'evening';
+  return 'night';
+}
+
 // Analyze patterns and generate insights
 export function analyzeTrackerData(
-  symptoms: Symptom[],
+  symptomLogs: SymptomLogWithName[],
   nutrition: Nutrition[],
   fitness: Fitness[]
 ): TrackerSummary {
@@ -113,13 +322,14 @@ export function analyzeTrackerData(
   const symptomByName: Record<string, { severities: number[]; dates: Date[] }> = {};
   let totalSeverity = 0;
 
-  symptoms.forEach((s) => {
-    if (!symptomByName[s.name]) {
-      symptomByName[s.name] = { severities: [], dates: [] };
+  symptomLogs.forEach((log) => {
+    const name = log.symptom_name || 'Unknown';
+    if (!symptomByName[name]) {
+      symptomByName[name] = { severities: [], dates: [] };
     }
-    symptomByName[s.name].severities.push(s.severity);
-    symptomByName[s.name].dates.push(new Date(s.occurred_at));
-    totalSeverity += s.severity;
+    symptomByName[name].severities.push(log.severity);
+    symptomByName[name].dates.push(new Date(log.logged_at));
+    totalSeverity += log.severity;
   });
 
   const symptomStats: Record<string, { count: number; avgSeverity: number; trend: string }> = {};
@@ -145,14 +355,14 @@ export function analyzeTrackerData(
     symptomStats[name] = { count, avgSeverity: Math.round(avgSeverity * 10) / 10, trend };
   });
 
-  const avgSeverity = symptoms.length > 0 ? totalSeverity / symptoms.length : 0;
+  const avgSeverity = symptomLogs.length > 0 ? totalSeverity / symptomLogs.length : 0;
   
   // Calculate overall symptom trend
   let overallTrend = "stable";
-  if (symptoms.length >= 4) {
-    const mid = Math.floor(symptoms.length / 2);
-    const firstHalf = symptoms.slice(0, mid);
-    const secondHalf = symptoms.slice(mid);
+  if (symptomLogs.length >= 4) {
+    const mid = Math.floor(symptomLogs.length / 2);
+    const firstHalf = symptomLogs.slice(0, mid);
+    const secondHalf = symptomLogs.slice(mid);
     const firstAvg = firstHalf.reduce((a, b) => a + b.severity, 0) / firstHalf.length;
     const secondAvg = secondHalf.reduce((a, b) => a + b.severity, 0) / secondHalf.length;
     const change = ((secondAvg - firstAvg) / firstAvg) * 100;
@@ -206,12 +416,12 @@ export function analyzeTrackerData(
   const insights: string[] = [];
 
   // Check if workout days correlate with lower symptoms
-  if (symptoms.length > 0 && fitness.length > 0) {
+  if (symptomLogs.length > 0 && fitness.length > 0) {
     const workoutDays = new Set(
       fitness.map((f) => new Date(f.performed_at).toDateString())
     );
-    const symptomDays = symptoms.map((s) => ({
-      date: new Date(s.occurred_at).toDateString(),
+    const symptomDays = symptomLogs.map((s) => ({
+      date: new Date(s.logged_at).toDateString(),
       severity: s.severity,
     }));
 
@@ -246,10 +456,10 @@ export function analyzeTrackerData(
     }
   }
 
-  // Symptom frequency insights
+  // Symptom frequency insights (updated for 1-3 scale)
   Object.entries(symptomStats).forEach(([name, stats]) => {
-    if (stats.count >= 5 && stats.avgSeverity >= 7) {
-      insights.push(`"${name}" appears frequently with high severity (avg ${stats.avgSeverity}/10) - consider discussing with healthcare provider`);
+    if (stats.count >= 5 && stats.avgSeverity >= 2.5) {
+      insights.push(`"${name}" appears frequently with high severity (avg ${stats.avgSeverity}/3) - consider discussing with healthcare provider`);
     }
     if (stats.trend === "decreasing") {
       insights.push(`Good news: "${name}" symptoms are trending downward`);
@@ -258,13 +468,16 @@ export function analyzeTrackerData(
     }
   });
 
+  // Generate plain-language insights
+  const plainLanguageInsights = generatePlainLanguageInsights(symptomLogs, nutrition, fitness);
+
   return {
     symptoms: {
-      total: symptoms.length,
+      total: symptomLogs.length,
       byName: symptomStats,
       avgSeverity: Math.round(avgSeverity * 10) / 10,
       trend: overallTrend,
-      recent: symptoms.slice(0, 5),
+      recent: symptomLogs.slice(0, 5),
     },
     nutrition: {
       total: nutrition.length,
@@ -283,6 +496,7 @@ export function analyzeTrackerData(
       correlations,
       insights,
     },
+    plainLanguageInsights,
   };
 }
 
@@ -298,13 +512,13 @@ export function formatTrackerSummary(summary: TrackerSummary): string {
     parts.push("- No symptoms logged");
   } else {
     parts.push(`- Total logged: ${summary.symptoms.total}`);
-    parts.push(`- Average severity: ${summary.symptoms.avgSeverity}/10`);
+    parts.push(`- Average severity: ${summary.symptoms.avgSeverity}/3`);
     parts.push(`- Overall trend: ${summary.symptoms.trend}`);
     
     if (Object.keys(summary.symptoms.byName).length > 0) {
       parts.push("- By symptom:");
       Object.entries(summary.symptoms.byName).forEach(([name, stats]) => {
-        parts.push(`  • ${name}: ${stats.count} occurrences, avg severity ${stats.avgSeverity}/10, trend: ${stats.trend}`);
+        parts.push(`  • ${name}: ${stats.count} occurrences, avg severity ${stats.avgSeverity}/3, trend: ${stats.trend}`);
       });
     }
   }
@@ -355,4 +569,3 @@ export function formatTrackerSummary(summary: TrackerSummary): string {
 
   return parts.join("\n");
 }
-

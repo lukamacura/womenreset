@@ -48,16 +48,30 @@ export interface SymptomLog {
   id: string;
   user_id: string;
   symptom_id: string;
-  severity: number; // 1-10
+  severity: number; // 1-3 (Mild=1, Moderate=2, Severe=3)
   triggers: string[]; // Array of trigger names
   notes: string | null;
   logged_at: string;
+  time_of_day?: 'morning' | 'afternoon' | 'evening' | 'night' | null;
   // Joined fields from symptoms table (Supabase returns as table name)
   symptoms?: {
     name: string;
     icon: string;
   };
 }
+
+// Severity levels
+export const SEVERITY_LEVELS = {
+  MILD: 1,
+  MODERATE: 2,
+  SEVERE: 3,
+} as const;
+
+export const SEVERITY_LABELS = {
+  1: { emoji: '😊', label: 'Mild', description: 'Noticeable but manageable' },
+  2: { emoji: '😐', label: 'Moderate', description: 'Affecting my day' },
+  3: { emoji: '😫', label: 'Severe', description: 'Hard to function' },
+} as const;
 
 export interface UserPreferences {
   id: string;

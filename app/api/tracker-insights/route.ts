@@ -47,7 +47,7 @@ export async function GET(req: NextRequest) {
     // Fetch and analyze tracker data
     const trackerData = await fetchTrackerData(user.id, days);
     const summary = analyzeTrackerData(
-      trackerData.symptoms,
+      trackerData.symptomLogs,
       trackerData.nutrition,
       trackerData.fitness
     );

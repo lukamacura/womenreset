@@ -111,11 +111,11 @@ export async function POST(req: NextRequest) {
     if (
       typeof severity !== "number" ||
       severity < 1 ||
-      severity > 10 ||
+      severity > 3 ||
       !Number.isInteger(severity)
     ) {
       return NextResponse.json(
-        { error: "Severity must be an integer between 1 and 10" },
+        { error: "Severity must be an integer between 1 and 3" },
         { status: 400 }
       );
     }
@@ -189,11 +189,11 @@ export async function PUT(req: NextRequest) {
       if (
         typeof severity !== "number" ||
         severity < 1 ||
-        severity > 10 ||
+        severity > 3 ||
         !Number.isInteger(severity)
       ) {
         return NextResponse.json(
-          { error: "Severity must be an integer between 1 and 10" },
+          { error: "Severity must be an integer between 1 and 3" },
           { status: 400 }
         );
       }

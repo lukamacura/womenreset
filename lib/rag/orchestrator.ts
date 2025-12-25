@@ -2,10 +2,10 @@
  * RAG Orchestrator - Main orchestration logic for persona-based RAG
  */
 
-import type { Persona, RetrievalMode, OrchestrationResult } from "./types";
+import type { Persona, RetrievalMode, OrchestrationResult, FollowUpLink, KBEntry } from "./types";
 import { classifyPersona } from "./persona-classifier";
 import { validateMenopauseQuery, generateRefusalResponse } from "./safety-validator";
-import { retrieveFromKB, retrieveFromKBByIntentOnly } from "./retrieval";
+import { retrieveFromKB, retrieveFromKBByIntentOnly, normalizeTextForIntentMatching } from "./retrieval";
 import { formatVerbatimResponse, formatKBContextForLLM } from "./response-formatter";
 import { getConversationHistory } from "./conversation-memory";
 import { shouldRouteWhyToMenopause, isWhyHormoneQuestion } from "./classifier/whyRouter";
@@ -104,26 +104,15 @@ function findExactIntentMatch(retrievalResult: RetrievalResult, query: string): 
     return null;
   }
   
-  // Normalize query for matching (same as in retrieval.ts)
-  const normalizeText = (text: string): string => {
-    let normalized = text.toLowerCase().replace(/[?!.,;:]/g, '').trim();
-    // Expand common contractions and variations
-    normalized = normalized.replace(/\b(can't|cannot|can not)\b/g, 'cannot');
-    normalized = normalized.replace(/\b(won't|will not)\b/g, 'will not');
-    normalized = normalized.replace(/\b(don't|do not)\b/g, 'do not');
-    normalized = normalized.replace(/\b(i'm|i am)\b/g, 'i am');
-    normalized = normalized.replace(/\b(it's|it is)\b/g, 'it is');
-    return normalized;
-  };
-  
-  const queryNormalized = normalizeText(query);
+  // Use consistent normalization from retrieval.ts
+  const queryNormalized = normalizeTextForIntentMatching(query);
   
   // Check each entry for exact intent match
   for (const entry of retrievalResult.kbEntries) {
     const intentPatterns = entry.metadata.intent_patterns || [];
     
     for (const pattern of intentPatterns) {
-      const patternNormalized = normalizeText(pattern);
+      const patternNormalized = normalizeTextForIntentMatching(pattern);
       
       // Exact match after normalization
       if (queryNormalized === patternNormalized) {
@@ -155,6 +144,224 @@ function getRetrievalMode(persona: Persona): RetrievalMode {
 }
 
 /**
+ * Extract follow-up question from KB entry content
+ */
+function extractFollowUpQuestion(content: string): string | null {
+  const match = content.match(/###\s*\*\*Follow-Up (?:Question|Questions)?\*\*\s*\n([\s\S]*?)(?=###|$)/i);
+  return match ? match[1].trim() : null;
+}
+
+/**
+ * Find matching follow-up link for an option text
+ */
+function findMatchingLink(
+  optionText: string,
+  followUpLinks: FollowUpLink[]
+): FollowUpLink | null {
+  const normalized = optionText.toLowerCase();
+  
+  // Try exact label match first
+  for (const link of followUpLinks) {
+    if (link.label.toLowerCase() === normalized) {
+      return link;
+    }
+  }
+  
+  // Try partial match (contains key terms)
+  for (const link of followUpLinks) {
+    const linkLabel = link.label.toLowerCase();
+    const linkTopic = link.topic.toLowerCase();
+    const linkSubtopic = link.subtopic.toLowerCase();
+    
+    // Check if option text contains key terms from link
+    const linkTerms = [...linkLabel.split(' '), ...linkTopic.split(' '), ...linkSubtopic.split(' ')]
+      .filter(term => term.length > 3);
+    
+    const hasMatch = linkTerms.some(term => normalized.includes(term));
+    if (hasMatch) {
+      return link;
+    }
+  }
+  
+  return null;
+}
+
+/**
+ * Parse follow-up question to extract options and match to follow-up links
+ */
+function parseFollowUpOptions(
+  followUpQuestion: string,
+  followUpLinks: FollowUpLink[]
+): Array<{ option: string; link: FollowUpLink | null }> {
+  const options: Array<{ option: string; link: FollowUpLink | null }> = [];
+  
+  // Pattern 1: Square brackets [option A], [option B]
+  const bracketPattern = /\[([^\]]+)\]/g;
+  let match;
+  while ((match = bracketPattern.exec(followUpQuestion)) !== null) {
+    const optionText = match[1].trim();
+    const link = findMatchingLink(optionText, followUpLinks);
+    options.push({ option: optionText, link });
+  }
+  
+  // Pattern 2: Comma-separated options (if no brackets found)
+  if (options.length === 0) {
+    // Split by "or" and comma patterns, extract meaningful phrases
+    // Look for patterns like: "Would you like to [X], [Y], or [Z]?"
+    const orPattern = /(?:^|,|\s+or\s+)([^,]+?)(?=,|\s+or\s+|$)/gi;
+    while ((match = orPattern.exec(followUpQuestion)) !== null) {
+      const optionText = match[1].trim();
+      // Filter out question starters and short phrases
+      if (optionText.length > 10 && !/^(would|like|to|learn|understand|explore|or)$/i.test(optionText)) {
+        const link = findMatchingLink(optionText, followUpLinks);
+        options.push({ option: optionText, link });
+      }
+    }
+  }
+  
+  return options;
+}
+
+/**
+ * Extract key phrases from text for reverse KB lookup
+ */
+function extractKeyPhrases(text: string): string[] {
+  // Extract meaningful phrases (3+ words) that are likely KB-related
+  const phrases: string[] = [];
+  
+  // Remove markdown and special characters
+  const cleaned = text.replace(/[#*`\[\]()]/g, ' ').replace(/\s+/g, ' ').trim();
+  
+  // Extract noun phrases (simplified - look for capitalized words and common terms)
+  const words = cleaned.split(/\s+/);
+  const menopauseTerms = ['hormone', 'menopause', 'estrogen', 'progesterone', 'hot flash', 'night sweat', 'sleep', 'nutrition', 'exercise', 'workout', 'diet', 'symptom'];
+  
+  // Find phrases containing menopause-related terms
+  for (let i = 0; i < words.length - 2; i++) {
+    const threeWords = words.slice(i, i + 3).join(' ').toLowerCase();
+    if (menopauseTerms.some(term => threeWords.includes(term))) {
+      phrases.push(threeWords);
+    }
+  }
+  
+  // Also extract capitalized phrases (likely proper nouns or topics)
+  const capitalizedPhrases = cleaned.match(/\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,2}\b/g);
+  if (capitalizedPhrases) {
+    phrases.push(...capitalizedPhrases.map(p => p.toLowerCase()));
+  }
+  
+  return [...new Set(phrases)].slice(0, 5); // Return unique phrases, max 5
+}
+
+/**
+ * Retrieve KB entry by exact metadata match
+ */
+async function retrieveKBEntryByMetadata(
+  persona: string,
+  topic: string,
+  subtopic: string
+): Promise<KBEntry | null> {
+  // Use retrieval with strict metadata filter
+  const retrievalResult = await retrieveFromKB(
+    `${topic} ${subtopic}`,
+    persona as Persona,
+    5, // Get more results to find exact match
+    0.7 // Moderate threshold
+  );
+  
+  // Filter by exact metadata match
+  for (const entry of retrievalResult.kbEntries) {
+    if (
+      entry.metadata.persona === persona &&
+      entry.metadata.topic === topic &&
+      entry.metadata.subtopic === subtopic
+    ) {
+      return entry;
+    }
+  }
+  
+  return null;
+}
+
+/**
+ * Handle follow-up question with link resolution
+ */
+async function handleFollowUpWithLinks(
+  userQuery: string,
+  currentKBEntry: KBEntry,
+  persona: Persona,
+  mode: RetrievalMode
+): Promise<OrchestrationResult | null> {
+  const followUpLinks = currentKBEntry.metadata.follow_up_links || [];
+  
+  // If no follow-up links, return null to use default flow
+  if (followUpLinks.length === 0) {
+    return null;
+  }
+  
+  // Get the follow-up question from the current KB entry
+  const followUpQuestion = extractFollowUpQuestion(currentKBEntry.content);
+  if (!followUpQuestion) {
+    return null;
+  }
+  
+  // Parse options and match to links
+  const options = parseFollowUpOptions(followUpQuestion, followUpLinks);
+  
+  if (options.length === 0) {
+    return null;
+  }
+  
+  // Check if user query matches any option with a link
+  const normalizedQuery = userQuery.toLowerCase().trim();
+  
+  for (const { option, link } of options) {
+    const normalizedOption = option.toLowerCase();
+    
+    // Check if user query matches this option (contains key terms)
+    const optionTerms = normalizedOption.split(/\s+/).filter(term => term.length > 3);
+    const matchesOption = optionTerms.some(term => normalizedQuery.includes(term));
+    
+    if (matchesOption && link) {
+      // Found a match with a link - retrieve the linked KB entry
+      console.log(`[Follow-up Link] Matched option "${option}" to KB entry: ${link.topic} > ${link.subtopic}`);
+      
+      // Retrieve the linked KB entry
+      const linkedEntry = await retrieveKBEntryByMetadata(
+        link.persona,
+        link.topic,
+        link.subtopic
+      );
+      
+      if (linkedEntry) {
+        const verbatimResponse = formatVerbatimResponse([linkedEntry], true);
+        return {
+          response: verbatimResponse,
+          persona: link.persona as Persona,
+          retrievalMode: mode,
+          usedKB: true,
+          source: "kb",
+          kbEntries: [linkedEntry],
+          isVerbatim: true,
+        };
+      }
+    } else if (matchesOption && !link) {
+      // Matched option but no link - route to LLM
+      console.log(`[Follow-up Link] Matched option "${option}" but no link - routing to LLM`);
+      return {
+        persona,
+        retrievalMode: mode,
+        usedKB: false,
+        source: "llm",
+      };
+    }
+  }
+  
+  // No match found - return null to use default flow
+  return null;
+}
+
+/**
  * Main RAG orchestration function
  * 
  * @param userQuery - User's query message
@@ -183,14 +390,84 @@ export async function orchestrateRAG(
     const isFollowUp = isFollowUpQuestion(userQuery, allHistory);
     let queryForKB = userQuery;
     
+    // Step 2: Classify persona (use original query, not enhanced) - do this early for follow-up link resolution
+    let persona = classifyPersona(userQuery);
+    
     if (isFollowUp) {
+      console.log(`[RAG Orchestrator] Follow-up question detected`);
+      
+      // Try to get the last KB entry from conversation history
+      // Look for the last assistant message and try to find the KB entry it came from
+      let lastKBEntry: KBEntry | null = null;
+      
+      // Get the last assistant message
+      for (let i = allHistory.length - 1; i >= 0; i--) {
+        const [role, content] = allHistory[i];
+        if (role === "assistant" && content) {
+          // Try to retrieve KB entry that matches this content
+          // Use a reverse lookup: search for KB entries that contain key phrases from the response
+          const keyPhrases = extractKeyPhrases(content);
+          if (keyPhrases.length > 0) {
+            const searchQuery = keyPhrases.slice(0, 3).join(' ');
+            const reverseLookup = await retrieveFromKB(searchQuery, persona, 3, 0.6);
+            
+            // Check if any retrieved entry has follow_up_links
+            for (const entry of reverseLookup.kbEntries) {
+              if (entry.metadata.follow_up_links && entry.metadata.follow_up_links.length > 0) {
+                // Check if this entry's content matches the assistant response (partial match)
+                const entryContent = entry.content.toLowerCase();
+                const responseContent = content.toLowerCase();
+                const hasOverlap = keyPhrases.some(phrase => 
+                  entryContent.includes(phrase.toLowerCase()) || 
+                  responseContent.includes(phrase.toLowerCase())
+                );
+                
+                if (hasOverlap) {
+                  lastKBEntry = entry;
+                  console.log(`[RAG Orchestrator] Found last KB entry with follow-up links: ${entry.metadata.topic} > ${entry.metadata.subtopic}`);
+                  break;
+                }
+              }
+            }
+          }
+          break; // Only check the last assistant message
+        }
+      }
+      
+      // If we found a KB entry with follow-up links, try to resolve the follow-up
+      if (lastKBEntry && lastKBEntry.metadata.follow_up_links && lastKBEntry.metadata.follow_up_links.length > 0) {
+        // Step 3: Determine retrieval mode (use provided mode or default based on persona)
+        const retrievalModeForLink = mode || getRetrievalMode(persona);
+        
+        const linkResult = await handleFollowUpWithLinks(
+          userQuery,
+          lastKBEntry,
+          persona,
+          retrievalModeForLink
+        );
+        
+        if (linkResult) {
+          console.log(`[RAG Orchestrator] Follow-up link resolved, returning result`);
+          return linkResult;
+        }
+        
+        // If no link match but we have follow-up links, skip KB search and go to LLM
+        console.log(`[RAG Orchestrator] Follow-up question with links but no match - routing to LLM (skipping KB search)`);
+        return {
+          persona,
+          retrievalMode: retrievalModeForLink,
+          usedKB: false,
+          source: "llm",
+        };
+      }
+      
+      // No follow-up links found, use normal enhancement
       console.log(`[RAG Orchestrator] Follow-up question detected, enhancing with conversation context`);
       queryForKB = enhanceQueryWithContext(userQuery, allHistory);
       console.log(`[RAG Orchestrator] Enhanced query: "${queryForKB}" (original: "${userQuery}")`);
     }
 
-    // Step 2: Classify persona (use original query, not enhanced)
-    let persona = classifyPersona(userQuery);
+    // Step 2.5: Check for WHY hormone questions and potentially route to menopause persona
     
     // Step 2.5: Check for WHY hormone questions and potentially route to menopause persona
     // If it's a pure WHY hormone question (not asking for a plan), route to menopause
@@ -210,6 +487,7 @@ export async function orchestrateRAG(
     }
     
     // Step 3: Determine retrieval mode (use provided mode or default based on persona)
+    // Only set if not already set in follow-up link handling
     const retrievalMode = mode || getRetrievalMode(persona);
 
     console.log(`[RAG Orchestrator] Query: "${userQuery}"`);
@@ -294,13 +572,11 @@ async function handleKBStrictMode(
     });
   }
 
-  // For intent-based retrieval, if we have matches, use them (regardless of score)
-  // The intent filter already ensures quality (score >= 0.9) or semantic fallback
-  const shouldUseVerbatim = retrievalResult.hasMatch && retrievalResult.kbEntries.length > 0;
-  
-  if (shouldUseVerbatim) {
-    // KB match found - return verbatim
-    console.log(`[KB Strict Mode] ✅ VERBATIM RESPONSE triggered`);
+  // TRUST RETRIEVAL RESULTS: If retrieveFromKBByIntentOnly returned entries with hasMatch=true,
+  // those entries already passed the 0.9 intent threshold, so return verbatim immediately
+  // No need to recalculate intent scores - retrieval already did that
+  if (retrievalResult.hasMatch && retrievalResult.kbEntries.length > 0) {
+    console.log(`[KB Strict Mode] ✅ VERBATIM RESPONSE triggered (intent-matched entries from retrieval)`);
     if (retrievalResult.topSemanticScore !== undefined) {
       console.log(`  - Top semantic score: ${retrievalResult.topSemanticScore.toFixed(3)}`);
     }

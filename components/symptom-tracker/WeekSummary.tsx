@@ -62,7 +62,7 @@ export default function WeekSummary() {
         </div>
         {averageSeverity > 0 && (
           <div className="text-sm text-[#6B6B6B]">
-            Average severity: {averageSeverity.toFixed(1)}/10
+            Average severity: {averageSeverity.toFixed(1)}/3
           </div>
         )}
       </div>

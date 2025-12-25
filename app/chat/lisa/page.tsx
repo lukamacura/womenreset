@@ -86,7 +86,20 @@ const THEME = {
 } as const;
 
 /* ===== Types & Keys ===== */
-type Msg = { role: "user" | "assistant"; content: string; ts?: number; isGreeting?: boolean };
+type FollowUpLink = {
+  persona: string;
+  topic: string;
+  subtopic: string;
+  label: string;
+};
+
+type Msg = { 
+  role: "user" | "assistant"; 
+  content: string; 
+  ts?: number; 
+  isGreeting?: boolean;
+  follow_up_links?: FollowUpLink[];
+};
 type Conversation = {
   id: string;
   title: string;
@@ -1698,6 +1711,24 @@ function ChatPageInner() {
                           // Don't auto-scroll during streaming - keep view at top of message
                         });
                       }
+                    }
+                    // Handle follow_up_links
+                    else if (data.type === "follow_up_links" && data.links) {
+                      // Store follow_up_links to attach to message when done
+                      setSessions((prev) => {
+                        const updated = prev.map((s) => {
+                          if (s.id === id) {
+                            const msgs = [...s.messages];
+                            const lastMsg = msgs[msgs.length - 1];
+                            if (lastMsg && lastMsg.role === "assistant") {
+                              msgs[msgs.length - 1] = { ...lastMsg, follow_up_links: data.links };
+                            }
+                            return { ...s, messages: msgs, updatedAt: Date.now() };
+                          }
+                          return s;
+                        });
+                        return updated;
+                      });
                     } else if (data.type === "done") {
                       // Streaming complete
                       const reply = normalizeMarkdown(fullResponse);
@@ -2234,18 +2265,49 @@ function ChatPageInner() {
                                 {m.content}
                               </div>
                             ) : (
-                              <div className="wrap-break-words" style={{
-                                fontSize: '1rem',
-                                lineHeight: '1.4',
-                                color: THEME.text[900],
-                                fontWeight: 500,
-                                letterSpacing: '0.01em',
-                                textShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
-                                WebkitFontSmoothing: 'antialiased',
-                                MozOsxFontSmoothing: 'grayscale',
-                              }}>
-                                {renderMarkdownText(m.content)}
-                              </div>
+                              <>
+                                <div className="wrap-break-words" style={{
+                                  fontSize: '1rem',
+                                  lineHeight: '1.4',
+                                  color: THEME.text[900],
+                                  fontWeight: 500,
+                                  letterSpacing: '0.01em',
+                                  textShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+                                  WebkitFontSmoothing: 'antialiased',
+                                  MozOsxFontSmoothing: 'grayscale',
+                                }}>
+                                  {renderMarkdownText(m.content)}
+                                </div>
+                                {/* Follow-up links */}
+                                {!isUser && m.follow_up_links && m.follow_up_links.length > 0 && (
+                                  <div className="mt-4 pt-4 border-t" style={{ borderColor: THEME.pink[200] }}>
+                                    <div className="text-sm font-medium mb-2" style={{ color: THEME.text[700] }}>
+                                      Related topics:
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                      {m.follow_up_links.map((link, linkIdx) => (
+                                        <button
+                                          key={linkIdx}
+                                          onClick={async () => {
+                                            if (loading) return;
+                                            const id = activeId ?? await newChat();
+                                            void sendToAPI(link.label, id);
+                                          }}
+                                          className="px-4 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer hover:scale-105 active:scale-95"
+                                          style={{
+                                            backgroundColor: THEME.pink[100],
+                                            color: THEME.pink[700],
+                                            border: `1px solid ${THEME.pink[300]}`,
+                                          }}
+                                        >
+                                          <LinkIcon className="inline h-3 w-3 mr-1.5" />
+                                          {link.label}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </>
                             )}
                           </>
                         )}

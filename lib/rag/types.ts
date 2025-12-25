@@ -21,6 +21,13 @@ export interface ContentSections {
   has_habit_strategy: boolean;
 }
 
+export interface FollowUpLink {
+  persona: string;
+  topic: string;
+  subtopic: string;
+  label: string; // User-friendly text describing what they'll learn
+}
+
 export interface KBEntry {
   id: string;
   content: string;  // Already formatted, readable text from DB
@@ -31,6 +38,7 @@ export interface KBEntry {
     keywords: string[];
     intent_patterns: string[];
     content_sections: ContentSections;
+    follow_up_links?: FollowUpLink[]; // Cross-reference related content
     source?: string;
     section_index?: number;
   };

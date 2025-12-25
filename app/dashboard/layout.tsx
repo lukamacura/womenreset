@@ -57,7 +57,7 @@ export default function DashboardLayout({
     },
     {
       href: "/dashboard/symptoms",
-      label: "Symptom Tracker",
+      label: "Daily Check-in",
       icon: Activity,
       requiresActiveTrial: true,
     },

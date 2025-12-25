@@ -139,7 +139,13 @@ export async function GET(request: NextRequest) {
               profileData.doctor_status = decodedAnswers.doctor_status || null;
             }
             if (decodedAnswers.goal !== undefined) {
-              profileData.goal = decodedAnswers.goal || null;
+              // Handle both array and string for backward compatibility
+              if (Array.isArray(decodedAnswers.goal)) {
+                // Store as JSON string for multiple goals
+                profileData.goal = JSON.stringify(decodedAnswers.goal);
+              } else {
+                profileData.goal = decodedAnswers.goal || null;
+              }
             }
             
             // Insert profile

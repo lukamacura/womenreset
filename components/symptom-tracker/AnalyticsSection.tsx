@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useSymptomLogs } from "@/hooks/useSymptomLogs";
-import CircleStat from "./CircleStat";
+import type { PlainLanguageInsight } from "@/lib/trackerAnalysis";
 
 function Skeleton({ className }: { className?: string }) {
   return <div className={`animate-pulse rounded-xl bg-[#E8E0DB]/30 ${className}`} />;
@@ -10,11 +10,15 @@ function Skeleton({ className }: { className?: string }) {
 
 export default function AnalyticsSection() {
   const { logs, loading, refetch } = useSymptomLogs(30); // Last 30 days
+  const [insights, setInsights] = useState<PlainLanguageInsight[]>([]);
+  const [insightsLoading, setInsightsLoading] = useState(true);
+  const [showFullPatterns, setShowFullPatterns] = useState(false);
 
   // Listen for custom event when symptom logs are updated
   useEffect(() => {
     const handleLogUpdate = () => {
       refetch();
+      fetchInsights();
     };
 
     // Listen for custom event
@@ -25,144 +29,73 @@ export default function AnalyticsSection() {
     };
   }, [refetch]);
 
-  const analyticsData = useMemo(() => {
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    startOfMonth.setHours(0, 0, 0, 0);
-
-    // Filter logs for this month (from start of current month to now)
-    const monthLogs = logs.filter((log) => {
-      const logDate = new Date(log.logged_at);
-      logDate.setHours(0, 0, 0, 0);
-      return logDate >= startOfMonth;
-    });
-
-    // Calculate streak (consecutive days with at least one log, counting backwards from today)
-    let streak = 0;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    // Start from today and go backwards
-    for (let i = 0; i < 30; i++) {
-      const checkDate = new Date(today);
-      checkDate.setDate(checkDate.getDate() - i);
-      checkDate.setHours(0, 0, 0, 0);
-      
-      const hasLog = logs.some((log) => {
-        const logDate = new Date(log.logged_at);
-        logDate.setHours(0, 0, 0, 0);
-        return logDate.getTime() === checkDate.getTime();
-      });
-      
-      if (hasLog) {
-        streak++;
-      } else {
-        // Break streak if we hit a day without logs
-        // But only break if it's not today (allow today to be empty and still count yesterday's streak)
-        if (i === 0) {
-          // Today has no logs, but continue checking yesterday
-          continue;
-        } else {
-          // Yesterday or earlier has no logs, break streak
-          break;
-        }
-      }
+  const fetchInsights = async () => {
+    try {
+      setInsightsLoading(true);
+      const response = await fetch('/api/tracker-insights?days=30');
+      if (!response.ok) throw new Error('Failed to fetch insights');
+      const { data } = await response.json();
+      setInsights(data.plainLanguageInsights || []);
+    } catch (error) {
+      console.error('Error fetching insights:', error);
+      setInsights([]);
+    } finally {
+      setInsightsLoading(false);
     }
+  };
 
-    const totalSymptoms = monthLogs.length;
-    const averageSeverity =
-      monthLogs.length > 0
-        ? monthLogs.reduce((sum, log) => sum + log.severity, 0) /
-          monthLogs.length
-        : 0;
-
-    // Most frequent symptom
-    type SymptomCount = { name: string; count: number };
-    const symptomCounts = new Map<string, SymptomCount>();
-    monthLogs.forEach((log) => {
-      if (log.symptoms) {
-        const key = log.symptom_id;
-        const existing = symptomCounts.get(key);
-        if (existing) {
-          existing.count += 1;
-        } else {
-          symptomCounts.set(key, {
-            name: log.symptoms.name,
-            count: 1,
-          });
-        }
-      }
-    });
-
-    let mostFrequent: SymptomCount | null = null;
-    for (const value of symptomCounts.values()) {
-      if (mostFrequent === null || value.count > mostFrequent.count) {
-        mostFrequent = value;
-      }
-    }
-
-    const mostFrequentName: string | null = mostFrequent !== null ? mostFrequent.name : null;
-
-    return {
-      totalSymptoms,
-      averageSeverity: Math.round(averageSeverity * 10) / 10,
-      streak,
-      mostFrequent: mostFrequentName,
-    };
-  }, [logs]);
+  useEffect(() => {
+    fetchInsights();
+  }, []);
 
   // Always show skeleton when loading
-  if (loading) {
+  if (loading || insightsLoading) {
     return (
       <div className="bg-white rounded-2xl border border-[#E8E0DB] p-6 mb-6 shadow-sm">
-        <Skeleton className="h-6 w-32 mb-6" />
-        <div className="grid grid-cols-3 gap-6">
+        <Skeleton className="h-6 w-48 mb-6" />
+        <div className="space-y-4">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="flex flex-col items-center">
-              <Skeleton className="w-28 h-28 rounded-full mb-3" />
-              <Skeleton className="h-4 w-20" />
-            </div>
+            <Skeleton key={i} className="h-16 w-full" />
           ))}
         </div>
       </div>
     );
   }
 
+  const displayedInsights = showFullPatterns ? insights : insights.slice(0, 5);
+
   return (
     <div className="bg-white rounded-2xl border border-[#E8E0DB] p-6 mb-6 shadow-sm">
-      <h3 className="text-[#8B7E74] font-medium mb-6 text-lg">Your Progress</h3>
+      <h3 className="text-[#8B7E74] font-medium mb-6 text-lg">What Lisa Noticed This Week</h3>
 
-      <div className="grid grid-cols-3 gap-6">
-        <CircleStat
-          value={analyticsData.totalSymptoms}
-          label="Symptoms"
-          sublabel="This month"
-          color="rose"
-        />
-
-        <CircleStat
-          value={analyticsData.averageSeverity.toFixed(1)}
-          label="Average"
-          sublabel="Severity"
-          color="amber"
-        />
-
-        <CircleStat
-          value={analyticsData.streak}
-          label="Day Streak"
-          sublabel="Keep it up!"
-          color="sage"
-        />
-      </div>
-
-      {/* Most frequent symptom */}
-      {analyticsData.mostFrequent && (
-        <div className="mt-6 pt-6 border-t border-[#E8E0DB] text-center">
-          <span className="text-[#9A9A9A] text-sm">Most frequent: </span>
-          <span className="text-[#3D3D3D] font-medium">
-            {analyticsData.mostFrequent}
-          </span>
+      {insights.length === 0 ? (
+        <div className="text-center py-8">
+          <p className="text-[#9A9A9A] text-sm">
+            Keep logging symptoms to see insights and patterns!
+          </p>
         </div>
+      ) : (
+        <>
+          <div className="space-y-4">
+            {displayedInsights.map((insight, index) => (
+              <div key={index} className="flex gap-3 items-start">
+                <span className="text-xl mt-0.5">💡</span>
+                <p className="text-[#3D3D3D] text-sm flex-1 leading-relaxed">
+                  {insight.text}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          {insights.length > 5 && (
+            <button
+              onClick={() => setShowFullPatterns(!showFullPatterns)}
+              className="mt-6 text-[#D4A5A5] hover:text-[#C49494] text-sm font-medium transition-colors cursor-pointer"
+            >
+              {showFullPatterns ? 'Show less' : 'See full patterns →'}
+            </button>
+          )}
+        </>
       )}
     </div>
   );

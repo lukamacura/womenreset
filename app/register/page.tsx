@@ -20,7 +20,7 @@ import {
   Mail,
   CheckCircle2,
   Loader2,
-  TrendingUp,
+  Goal,
   BarChart3,
   AlertTriangle,
   Clock,
@@ -40,13 +40,10 @@ import {
   UserCircle,
   Check,
   Sparkles,
-  Zap,
-  Search,
+  Info,
+  Users,
 } from "lucide-react";
 import {
-  getSimplifiedHeadline,
-  getEmotionalStatement,
-  getSymptomLabel,
   SYMPTOM_LABELS,
 } from "@/lib/quiz-results-helpers";
 
@@ -67,7 +64,7 @@ const PROBLEM_OPTIONS = [
 ];
 
 const SEVERITY_OPTIONS = [
-  { id: "mild", label: "Mild - Annoying but manageable", icon: TrendingUp },
+  { id: "mild", label: "Mild - Annoying but manageable", icon: Goal },
   { id: "moderate", label: "Moderate - Affecting my work/relationships", icon: BarChart3 },
   { id: "severe", label: "Severe - I'm struggling every day", icon: AlertTriangle },
 ];
@@ -107,6 +104,86 @@ const GOAL_OPTIONS = [
 
 type Phase = "quiz" | "results" | "email" | "email-sent";
 
+// Quality of Life Score calculation
+const calculateQualityScore = (
+  symptoms: string[],
+  severity: string,
+  timing: string,
+  triedOptions: string[]
+): number => {
+  // Start at 100, subtract based on answers
+  let score = 100;
+
+  // Subtract for each symptom (5-8 points each)
+  score -= symptoms.length * 7;
+
+  // Subtract for severity
+  const severityPenalty: Record<string, number> = {
+    mild: 5,
+    moderate: 15,
+    severe: 25,
+  };
+  score -= severityPenalty[severity] || 10;
+
+  // Subtract for duration (longer = worse)
+  const durationPenalty: Record<string, number> = {
+    just_started: 0, // 0-6 months
+    been_while: 5, // 6-12 months
+    over_year: 10, // over a year
+    several_years: 15, // several years
+  };
+  score -= durationPenalty[timing] || 5;
+
+  // Small bonus if they've tried things (shows effort)
+  if (triedOptions.length > 0 && !triedOptions.includes("nothing")) {
+    score += 3;
+  }
+
+  // Clamp between 31-52 (warning zone, not too comfortable, not hopeless)
+  return Math.max(31, Math.min(52, Math.round(score)));
+};
+
+const getScoreColor = (score: number): string => {
+  if (score < 40) return "text-red-500";
+  return "text-orange-500";
+};
+
+const getScoreLabel = (score: number): string => {
+  if (score < 40) return "Needs attention - symptoms are controlling your daily life";
+  if (score < 50) return "Below average - symptoms are significantly impacting daily life";
+  return "Room to improve - symptoms are affecting your quality of life";
+};
+
+const getSeverityHeadline = (severity: string, name: string): string => {
+  const displayName = name || "you";
+  switch (severity) {
+    case "severe":
+      return `${displayName}, this can't continue.`;
+    case "moderate":
+      return `${displayName}, I need to be honest with you.`;
+    case "mild":
+    default:
+      return `${displayName}, let's talk about what's really going on.`;
+  }
+};
+
+const getSeverityPainText = (
+  severity: string,
+  symptomCount: number,
+  name: string
+): string => {
+  const displayName = name || "you";
+  switch (severity) {
+    case "severe":
+      return `${symptomCount} symptoms controlling your life. You've probably tried to explain it to people who don't get it. You've probably wondered if this is just your new normal. It's not. And ${displayName}, you don't have to keep living like this.`;
+    case "moderate":
+      return `${symptomCount} symptoms. Affecting your work. Your mood. Your relationships. ${displayName}, you're spending so much energy just trying to function normally - energy you shouldn't have to spend.`;
+    case "mild":
+    default:
+      return `${displayName}, these ${symptomCount} symptoms might feel manageable now. But without understanding what's causing them, they often get worse. Let's figure this out before they do.`;
+  }
+};
+
 export default function RegisterPage() {
   const router = useRouter();
 
@@ -121,7 +198,7 @@ export default function RegisterPage() {
   const [timing, setTiming] = useState<string>("");
   const [triedOptions, setTriedOptions] = useState<string[]>([]);
   const [doctorStatus, setDoctorStatus] = useState<string>("");
-  const [goal, setGoal] = useState<string>("");
+  const [goal, setGoal] = useState<string[]>([]);
   const [firstName, setFirstName] = useState<string>("");
 
   // Email state
@@ -133,6 +210,7 @@ export default function RegisterPage() {
   const [isResultsLoading, setIsResultsLoading] = useState(true);
   const [messageIndex, setMessageIndex] = useState(0);
   const [progress, setProgress] = useState(0);
+  const [displayScore, setDisplayScore] = useState(0);
 
   // Loading messages for results screen
   const loadingMessages = [
@@ -148,6 +226,7 @@ export default function RegisterPage() {
       setIsResultsLoading(true);
       setProgress(0);
       setMessageIndex(0);
+      setDisplayScore(0);
 
       // Rotate messages every 1 second
       const messageInterval = setInterval(() => {
@@ -174,6 +253,35 @@ export default function RegisterPage() {
     }
   }, [phase, loadingMessages.length]);
 
+  // Animate score counting up
+  useEffect(() => {
+    if (phase === "results" && !isResultsLoading) {
+      const targetScore = calculateQualityScore(
+        topProblems,
+        severity,
+        timing,
+        triedOptions
+      );
+      
+      const duration = 1500; // 1.5 seconds
+      const steps = 30;
+      const increment = targetScore / steps;
+      let current = 0;
+
+      const timer = setInterval(() => {
+        current += increment;
+        if (current >= targetScore) {
+          setDisplayScore(targetScore);
+          clearInterval(timer);
+        } else {
+          setDisplayScore(Math.round(current));
+        }
+      }, duration / steps);
+
+      return () => clearInterval(timer);
+    }
+  }, [phase, isResultsLoading, topProblems, severity, timing, triedOptions]);
+
   // Validation
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   const canSubmit = emailValid && !loading;
@@ -182,7 +290,7 @@ export default function RegisterPage() {
   const stepIsAnswered = useCallback((step: Step) => {
     switch (step) {
       case "q1_problems":
-        return topProblems.length === 2;
+        return topProblems.length === 3;
       case "q2_severity":
         return severity !== "";
       case "q3_timing":
@@ -192,7 +300,7 @@ export default function RegisterPage() {
       case "q5_doctor":
         return doctorStatus !== "";
       case "q6_goal":
-        return goal !== "";
+        return goal.length > 0;
       case "q7_name":
         return firstName.trim().length > 0;
       default:
@@ -237,7 +345,7 @@ export default function RegisterPage() {
       if (prev.includes(problemId)) {
         return prev.filter((id) => id !== problemId);
       }
-      if (prev.length >= 2) {
+      if (prev.length >= 3) {
         return prev;
       }
       return [...prev, problemId];
@@ -250,6 +358,15 @@ export default function RegisterPage() {
         return prev.filter((id) => id !== optionId);
       }
       return [...prev, optionId];
+    });
+  };
+
+  const toggleGoal = (goalId: string) => {
+    setGoal((prev) => {
+      if (prev.includes(goalId)) {
+        return prev.filter((id) => id !== goalId);
+      }
+      return [...prev, goalId];
     });
   };
 
@@ -506,7 +623,7 @@ export default function RegisterPage() {
                 key="results"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="max-w-md mx-auto w-full py-20"
+                className="max-w-md mx-auto w-full pt-12"
               >
                 {/* Lisa Icon */}
                 <motion.div
@@ -527,41 +644,106 @@ export default function RegisterPage() {
                   transition={{ delay: 0.4 }}
                   className="text-2xl font-semibold text-[#3D3D3D] text-center mb-4"
                 >
-                  {getSimplifiedHeadline(firstName || "you")}
+                  {getSeverityHeadline(severity, firstName || "you")}
                 </motion.h1>
 
-                {/* Emotional Statement */}
+                {/* Pain Paragraph */}
                 <motion.p
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.6 }}
-                  className="text-lg text-[#5A5A5A] text-center leading-relaxed mb-8"
+                  className="text-md text-[#5A5A5A] text-center leading-relaxed mb-8"
                 >
-                  {getEmotionalStatement(
+                  {getSeverityPainText(
                     severity,
                     topProblems.length,
                     firstName || "you"
                   )}
                 </motion.p>
 
-                {/* Symptom Pills */}
+                {/* Quality of Life Score */}
+                {!isResultsLoading && (() => {
+                  const score = calculateQualityScore(
+                    topProblems,
+                    severity,
+                    timing,
+                    triedOptions
+                  );
+                  
+                  return (
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.8 }}
+                      className="bg-white rounded-2xl p-5 border border-[#E8DDD9] mb-6"
+                    >
+                      {/* Header */}
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                          <AlertTriangle className="w-4 h-4 text-orange-500" />
+                          <span className="text-sm font-medium text-[#3D3D3D]">Your Menopause Score</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-xs text-[#9A9A9A]">
+                          <Info className="w-3 h-3" />
+                          <span>Based on your answers</span>
+                        </div>
+                      </div>
+
+                      {/* Score Display */}
+                      <div className="flex items-end gap-2 mb-3">
+                        <span className={`text-5xl font-bold ${getScoreColor(score)}`}>
+                          {displayScore}
+                        </span>
+                        <span className="text-2xl text-[#CCCCCC] mb-1">/100</span>
+                      </div>
+
+                      {/* Score Label */}
+                      <p className="text-sm text-orange-600 mb-4">
+                        {getScoreLabel(score)}
+                      </p>
+
+                      {/* Progress Bar */}
+                      <div className="relative h-3 bg-[#F0EDED] rounded-full mb-4 overflow-hidden">
+                        {/* Current score */}
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${score}%` }}
+                          transition={{ duration: 1.5, ease: "easeOut" }}
+                          className="absolute left-0 top-0 h-full bg-linear-to-r from-red-400 via-orange-400 to-orange-300 rounded-full"
+                        />
+                        {/* Target marker at 80% */}
+                        <div
+                          className="absolute top-0 h-full w-1 bg-green-500 rounded-full"
+                          style={{ left: "80%" }}
+                        />
+                      </div>
+
+                      {/* Target Text */}
+                      <div className="flex items-center gap-2 text-sm">
+                        <Goal className="w-4 h-4 text-green-600" />
+                        <span className="text-[#5A5A5A]">
+                          Your target: <span className="font-bold">80+</span> (reachable in 8 weeks)
+                        </span>
+                      </div>
+                    </motion.div>
+                  );
+                })()}
+
+                {/* Symptom Pills - Smaller, muted, under score card */}
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.8 }}
-                  className="bg-white rounded-2xl p-5 border border-[#E8DDD9] mb-6"
+                  transition={{ delay: 1.0 }}
+                  className="mb-4"
                 >
-                  <p className="text-sm text-[#8B7E74] mb-3">
-                    {getSymptomLabel(topProblems.length)}
-                  </p>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2 justify-center">
                     {topProblems.map((symptom, index) => (
                       <motion.span
                         key={symptom}
                         initial={{ opacity: 0, scale: 0.8 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: 1.0 + index * 0.1 }}
-                        className="px-3 py-1.5 bg-[#FDF8F6] text-[#3D3D3D] text-sm rounded-full border border-[#E8DDD9]"
+                        transition={{ delay: 1.2 + index * 0.1 }}
+                        className="px-2 py-1 bg-red-100  text-red-500 text-sm rounded-full"
                       >
                         {SYMPTOM_LABELS[symptom] || symptom}
                       </motion.span>
@@ -569,7 +751,7 @@ export default function RegisterPage() {
                   </div>
                 </motion.div>
 
-                {/* Lisa Solution */}
+                {/* Outcomes Section */}
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -577,24 +759,34 @@ export default function RegisterPage() {
                   className="mb-8"
                 >
                   <h2 className="text-lg font-medium text-[#3D3D3D] mb-4 text-center">
-                    Lisa helps you:
+                    In 8 weeks, women like you:
                   </h2>
                   <div className="space-y-3">
                     {[
-                      { icon: Zap, text: "Track symptoms in seconds" },
-                      { icon: Search, text: "Discover your hidden triggers" },
-                      { icon: Heart, text: "Finally understand your body" },
-                    ].map((benefit, index) => {
-                      const Icon = benefit.icon;
-                      return (
-                        <div key={index} className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-[#9DBEBB]/20 flex items-center justify-center shrink-0">
-                            <Icon className="w-5 h-5 text-[#9DBEBB]" />
-                          </div>
-                          <span className="text-[#3D3D3D]">{benefit.text}</span>
+                      { text: "Sleep through the night again" },
+                      { text: "Know exactly what triggers their symptoms" },
+                      { text: "Feel in control of their body again" },
+                    ].map((outcome, index) => (
+                      <div key={index} className="flex items-center gap-3">
+                        <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+                          <Check className="w-4 h-4 text-green-600" />
                         </div>
-                      );
-                    })}
+                        <span className="text-[#3D3D3D]">{outcome.text}</span>
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
+
+                {/* Social Proof */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 1.4 }}
+                  className="mb-8 text-center"
+                >
+                  <div className="flex items-center justify-center gap-2 text-sm text-[#5A5A5A]">
+                    <Users className="w-4 h-4 text-[#9DBEBB]" />
+                    <span>8,382 women joined this month</span>
                   </div>
                 </motion.div>
 
@@ -627,13 +819,14 @@ export default function RegisterPage() {
                       </>
                     ) : (
                       <>
-                        Let&apos;s go!
+                        Start my free trial
+                        <ArrowRight className="w-5 h-5" />
                       </>
                     )}
                   </button>
 
-                  <p className="text-center text-sm text-foreground-100">
-                    No credit card required
+                  <p className="text-center text-sm text-[#5A5A5A]">
+                    Free for 3 days • No credit card required
                   </p>
 
                   {error && (
@@ -679,7 +872,7 @@ export default function RegisterPage() {
                     <h2 className="text-2xl sm:text-3xl font-bold mb-2">
                       What&apos;s making life hardest right now?
                     </h2>
-                    <p className="text-muted-foreground">Pick your TOP 2:</p>
+                    <p className="text-muted-foreground">Pick your TOP 3:</p>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {PROBLEM_OPTIONS.map((option) => {
@@ -690,12 +883,12 @@ export default function RegisterPage() {
                           key={option.id}
                           type="button"
                           onClick={() => toggleProblem(option.id)}
-                          disabled={!isSelected && topProblems.length >= 2}
+                          disabled={!isSelected && topProblems.length >= 3}
                           className={`p-4 rounded-xl border-2 transition-all duration-200 text-left group ${
                             isSelected
                               ? "border-primary bg-primary/10 shadow-md shadow-primary/20"
                               : "border-foreground/15 hover:border-primary/50 hover:bg-foreground/5"
-                          } ${!isSelected && topProblems.length >= 2 ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+                          } ${!isSelected && topProblems.length >= 3 ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
                         >
                           <div className="flex items-center gap-3">
                             <div className={`p-2 rounded-lg transition-colors ${
@@ -717,11 +910,11 @@ export default function RegisterPage() {
                       <div className="flex-1 h-2 rounded-full bg-foreground/10 overflow-hidden">
                         <div
                           className="h-full rounded-full bg-primary transition-all duration-300"
-                          style={{ width: `${(topProblems.length / 2) * 100}%` }}
+                          style={{ width: `${(topProblems.length / 3) * 100}%` }}
                         />
                       </div>
                       <span className="text-muted-foreground font-medium min-w-[100px] text-right">
-                        {topProblems.length} of 2 selected
+                        {topProblems.length} of 3 selected
                       </span>
                     </div>
                   )}
@@ -900,17 +1093,17 @@ export default function RegisterPage() {
                     <h2 className="text-2xl sm:text-3xl font-bold mb-2">
                       What would success look like for you?
                     </h2>
-                    <p className="text-muted-foreground">Pick ONE:</p>
+                    <p className="text-muted-foreground">Pick any that apply:</p>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {GOAL_OPTIONS.map((option) => {
                       const Icon = option.icon;
-                      const isSelected = goal === option.id;
+                      const isSelected = goal.includes(option.id);
                       return (
                         <button
                           key={option.id}
                           type="button"
-                          onClick={() => setGoal(option.id)}
+                          onClick={() => toggleGoal(option.id)}
                           className={`p-4 rounded-xl border-2 transition-all duration-200 text-left group ${
                             isSelected
                               ? "border-primary bg-primary/10 shadow-md shadow-primary/20"

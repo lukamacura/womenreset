@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { X } from "lucide-react";
-import { TRIGGER_OPTIONS } from "@/lib/symptom-tracker-constants";
+import { TRIGGER_OPTIONS, SEVERITY_LABELS } from "@/lib/symptom-tracker-constants";
 import type { LogSymptomData, Symptom, SymptomLog } from "@/lib/symptom-tracker-constants";
 
 interface LogSymptomModalProps {
@@ -20,7 +20,7 @@ export default function LogSymptomModal({
   onSave,
   editingLog = null,
 }: LogSymptomModalProps) {
-  const [severity, setSeverity] = useState(5);
+  const [severity, setSeverity] = useState(2); // Default to Moderate
   const [selectedTriggers, setSelectedTriggers] = useState<string[]>([]);
   const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -38,7 +38,7 @@ export default function LogSymptomModal({
         setNotes(editingLog.notes || "");
       } else {
         // Reset to defaults for new log
-        setSeverity(5);
+        setSeverity(2); // Default to Moderate
         setSelectedTriggers([]);
         setNotes("");
       }
@@ -84,7 +84,7 @@ export default function LogSymptomModal({
       });
 
       // Reset form
-      setSeverity(5);
+      setSeverity(2); // Default to Moderate
       setSelectedTriggers([]);
       setNotes("");
       onClose();
@@ -123,27 +123,32 @@ export default function LogSymptomModal({
         {/* Severity */}
         <div className="mb-6">
           <label className="text-[#6B6B6B] text-sm mb-3 block">
-            How severe? ({severity}/10)
+            How severe?
           </label>
-          <div className="flex gap-2 flex-wrap">
-            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
-              <button
-                key={num}
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setSeverity(num);
-                }}
-                className={`w-10 h-10 rounded-full text-sm font-medium transition-all cursor-pointer
-                  ${
-                    severity === num
-                      ? "bg-[#D4A5A5] text-white scale-110"
-                      : "bg-[#F5EDE8] text-[#6B6B6B] hover:bg-[#E8E0DB] hover:text-[#3D3D3D]"
-                  }`}
-              >
-                {num}
-              </button>
-            ))}
+          <div className="flex gap-4 justify-center">
+            {[1, 2, 3].map((level) => {
+              const severityInfo = SEVERITY_LABELS[level as keyof typeof SEVERITY_LABELS];
+              return (
+                <button
+                  key={level}
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSeverity(level);
+                  }}
+                  className={`flex flex-col items-center gap-2 px-6 py-4 rounded-xl transition-all cursor-pointer
+                    ${
+                      severity === level
+                        ? "bg-[#D4A5A5] text-white scale-105 shadow-md"
+                        : "bg-[#F5EDE8] text-[#6B6B6B] hover:bg-[#E8E0DB] hover:text-[#3D3D3D]"
+                    }`}
+                >
+                  <span className="text-4xl">{severityInfo.emoji}</span>
+                  <span className="font-medium text-sm">{severityInfo.label}</span>
+                  <span className="text-xs opacity-80">{severityInfo.description}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
 

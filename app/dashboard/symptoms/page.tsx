@@ -13,6 +13,12 @@ import LogSymptomModal from "@/components/symptom-tracker/LogSymptomModal";
 import AnalyticsSection from "@/components/symptom-tracker/AnalyticsSection";
 import WeekSummary from "@/components/symptom-tracker/WeekSummary";
 import RecentLogs from "@/components/symptom-tracker/RecentLogs";
+import PersonalizedGreeting from "@/components/symptom-tracker/PersonalizedGreeting";
+import BadDaySupport from "@/components/symptom-tracker/BadDaySupport";
+import EmptyState from "@/components/symptom-tracker/EmptyState";
+import MilestoneCelebration from "@/components/symptom-tracker/MilestoneCelebration";
+import ProgressComparison from "@/components/symptom-tracker/ProgressComparison";
+import DoctorReportButton from "@/components/symptom-tracker/DoctorReportButton";
 import type { Symptom, LogSymptomData, SymptomLog } from "@/lib/symptom-tracker-constants";
 
 export const dynamic = "force-dynamic";
@@ -42,6 +48,53 @@ export default function SymptomsPage() {
   };
 
   const topSymptoms = getTopSymptoms();
+
+  // Get last logged time for each symptom
+  const getLastLoggedTime = (symptomId: string): string | null => {
+    const symptomLogs = logs.filter((log) => log.symptom_id === symptomId);
+    if (symptomLogs.length === 0) return null;
+    // Sort by logged_at descending and get the most recent
+    const sorted = [...symptomLogs].sort((a, b) => 
+      new Date(b.logged_at).getTime() - new Date(a.logged_at).getTime()
+    );
+    return sorted[0].logged_at;
+  };
+
+  // Quick log handler - auto-log as moderate (severity 2)
+  const handleQuickLog = useCallback(
+    async (symptom: Symptom) => {
+      try {
+        const response = await fetch("/api/symptom-logs", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            symptomId: symptom.id,
+            severity: 2, // Moderate
+            triggers: [],
+            notes: "",
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Failed to quick log symptom");
+        }
+
+        // Refetch logs and symptoms
+        await Promise.all([refetchLogs(), refetchSymptoms()]);
+        
+        // Dispatch custom event to notify AnalyticsSection to refresh
+        window.dispatchEvent(new CustomEvent('symptom-log-updated'));
+      } catch (error) {
+        console.error("Quick log error:", error);
+        // On error, fall back to opening modal
+        handleSymptomClick(symptom);
+      }
+    },
+    [refetchLogs, refetchSymptoms]
+  );
 
   // Handle symptom card click
   const handleSymptomClick = (symptom: Symptom) => {
@@ -146,22 +199,34 @@ export default function SymptomsPage() {
       <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#D4A5A5]">
-            Symptom Tracker
+            Daily Check-in
           </h1>
         </div>
-        <button
-          onClick={() => {
-            setIsSelectorOpen(true);
-          }}
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-dark text-white font-semibold rounded-xl transition-colors shadow-md cursor-pointer"
-        >
-          <Plus className="h-5 w-5" />
-          Add Symptom
-        </button>
+        <div className="flex gap-3">
+          <DoctorReportButton />
+          <button
+            onClick={() => {
+              setIsSelectorOpen(true);
+            }}
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-dark text-white font-semibold rounded-xl transition-colors shadow-md cursor-pointer"
+          >
+            <Plus className="h-5 w-5" />
+            Add Symptom
+          </button>
+        </div>
       </header>
 
       {/* Main Content */}
       <div className="space-y-8">
+        {/* Personalized Greeting */}
+        <PersonalizedGreeting />
+
+        {/* Bad Day Support */}
+        <BadDaySupport />
+
+        {/* Empty State */}
+        <EmptyState />
+
         {/* Title */}
         <div>
           <h2 className="text-2xl font-semibold text-[#8B7E74] mb-2">
@@ -187,6 +252,8 @@ export default function SymptomsPage() {
                   key={symptom.id}
                   symptom={symptom}
                   onClick={() => handleSymptomClick(symptom)}
+                  lastLoggedAt={getLastLoggedTime(symptom.id)}
+                  onQuickLog={() => handleQuickLog(symptom)}
                 />
               ))}
             </div>
@@ -217,6 +284,11 @@ export default function SymptomsPage() {
         {/* Analytics Section */}
         <section>
           <AnalyticsSection />
+        </section>
+
+        {/* Progress Comparison */}
+        <section>
+          <ProgressComparison />
         </section>
 
         {/* Week Summary */}
@@ -256,6 +328,9 @@ export default function SymptomsPage() {
           editingLog={editingLog}
         />
       )}
+
+      {/* Milestone Celebrations */}
+      <MilestoneCelebration />
     </div>
   );
 }

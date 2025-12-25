@@ -60,12 +60,20 @@ interface ContentSections {
   has_habit_strategy: boolean;
 }
 
+interface FollowUpLink {
+  persona: string;
+  topic: string;
+  subtopic: string;
+  label: string;
+}
+
 interface ParsedSection {
   metadata: SectionMetadata;
   content: string;
   intent_patterns: string[];
   keywords: string[];
   content_sections: ContentSections;
+  follow_up_links?: FollowUpLink[];
 }
 
 type FileFormat = 'yaml' | 'markdown';
@@ -104,14 +112,21 @@ function detectFormat(content: string): FileFormat {
  */
 function parseYAMLSections(content: string): string[] {
   const sections: string[] = [];
-  // Split by --- separators (YAML frontmatter delimiters)
-  const parts = content.split(/^---$/gm).filter(p => p.trim().length > 0);
+  // Split by --- separators (handle variations: --- with trailing whitespace, multiple --- lines)
+  const parts = content.split(/^---\s*$/gm).filter(p => p.trim().length > 0);
   
   for (const part of parts) {
     const trimmed = part.trim();
-    // Only process sections that have persona, topic, and subtopic
+    // Verify required fields exist
     if (trimmed.includes('persona:') && trimmed.includes('topic:') && trimmed.includes('subtopic:')) {
-      sections.push(trimmed);
+      // Verify persona: is at the top level (starts at beginning of line, not indented)
+      // This ensures we don't pick up follow_up_links entries which have indented persona: fields
+      const personaMatch = trimmed.match(/^persona:/m);
+      if (personaMatch) {
+        sections.push(trimmed);
+      } else {
+        console.warn(`   ⚠️  Skipping section: persona: found but not at top level`);
+      }
     }
   }
   
@@ -198,18 +213,25 @@ function parseMarkdownSections(content: string): string[] {
  * Extract metadata from YAML format
  */
 function extractYAMLMetadata(section: string): SectionMetadata | null {
-  const personaMatch = section.match(/^persona:\s*["']?([^"'\n]+)["']?/m);
-  const topicMatch = section.match(/^topic:\s*["']?([^"'\n]+)["']?/m);
-  const subtopicMatch = section.match(/^subtopic:\s*["']?([^"'\n]+)["']?/m);
+  // Handle quoted values first (double quotes, single quotes), then unquoted
+  // Use comprehensive pattern that handles special characters (em dashes, ampersands, etc.)
+  const personaMatch = section.match(/^persona:\s*"([^"]+)"|^persona:\s*'([^']+)'|^persona:\s*([^\n\r]+)/m);
+  const topicMatch = section.match(/^topic:\s*"([^"]+)"|^topic:\s*'([^']+)'|^topic:\s*([^\n\r]+)/m);
+  const subtopicMatch = section.match(/^subtopic:\s*"([^"]+)"|^subtopic:\s*'([^']+)'|^subtopic:\s*([^\n\r]+)/m);
   
   if (!personaMatch || !topicMatch || !subtopicMatch) {
     return null;
   }
   
+  // Extract the matched value (first non-empty capture group)
+  const getValue = (match: RegExpMatchArray): string => {
+    return (match[1] || match[2] || match[3] || '').trim();
+  };
+  
   return {
-    persona: personaMatch[1].trim(),
-    topic: topicMatch[1].trim(),
-    subtopic: subtopicMatch[1].trim(),
+    persona: getValue(personaMatch),
+    topic: getValue(topicMatch),
+    subtopic: getValue(subtopicMatch),
   };
 }
 
@@ -385,6 +407,93 @@ function extractYAMLContent(section: string): { content: string; contentSections
 }
 
 /**
+ * Parse follow_up_links from YAML format
+ */
+function parseYAMLFollowUpLinks(section: string): FollowUpLink[] {
+  const followUpLinks: FollowUpLink[] = [];
+  
+  // Match follow_up_links field
+  const linksMatch = section.match(/^follow_up_links:\s*\n([\s\S]*?)(?=^(?:[a-z_]+:|---$|\Z))/m);
+  
+  if (!linksMatch) {
+    return followUpLinks;
+  }
+  
+  const linksText = linksMatch[1].trim();
+  
+  // Parse YAML list format:
+  // - persona: "nutrition"
+  //   topic: "Nutrition in Menopause"
+  //   subtopic: "Protein Needs & Muscle Protection"
+  //   label: "Learn about protein needs for muscle protection"
+  
+  // Split by list items (lines starting with -)
+  const lines = linksText.split('\n');
+  let currentLink: Partial<FollowUpLink> | null = null;
+  
+  for (const line of lines) {
+    const trimmed = line.trim();
+    
+    // Skip empty lines
+    if (!trimmed) {
+      continue;
+    }
+    
+    // Check if this is a new list item (starts with -)
+    // Handle both formats: "-persona:" and "- persona:"
+    if (trimmed.startsWith('-')) {
+      // Save previous link if complete
+      if (currentLink && currentLink.persona && currentLink.topic && currentLink.subtopic && currentLink.label) {
+        followUpLinks.push(currentLink as FollowUpLink);
+      }
+      
+      // Start new link
+      currentLink = {};
+      // Remove the - and any following space, then continue parsing
+      const restOfLine = trimmed.substring(1).trim();
+      if (restOfLine) {
+        // Handle inline format: - persona: "value" or -persona: "value"
+        const inlineMatch = restOfLine.match(/^persona:\s*["']?([^"'\n]+)["']?/);
+        if (inlineMatch) {
+          currentLink.persona = inlineMatch[1].trim();
+        }
+      }
+      continue;
+    }
+    
+    // Parse key-value pairs (handles both indented and non-indented formats)
+    if (currentLink) {
+      // Remove any leading indentation before matching
+      const personaMatch = trimmed.match(/^persona:\s*["']?([^"'\n]+)["']?/);
+      const topicMatch = trimmed.match(/^topic:\s*["']?([^"'\n]+)["']?/);
+      const subtopicMatch = trimmed.match(/^subtopic:\s*["']?([^"'\n]+)["']?/);
+      const labelMatch = trimmed.match(/^label:\s*["']?([^"'\n]+)["']?/);
+      
+      if (personaMatch) {
+        currentLink.persona = personaMatch[1].trim();
+      } else if (topicMatch) {
+        currentLink.topic = topicMatch[1].trim();
+      } else if (subtopicMatch) {
+        currentLink.subtopic = subtopicMatch[1].trim();
+      } else if (labelMatch) {
+        // Handle label with or without quotes
+        let labelValue = labelMatch[1].trim();
+        // Remove quotes if present
+        labelValue = labelValue.replace(/^["']|["']$/g, '');
+        currentLink.label = labelValue;
+      }
+    }
+  }
+  
+  // Don't forget the last link
+  if (currentLink && currentLink.persona && currentLink.topic && currentLink.subtopic && currentLink.label) {
+    followUpLinks.push(currentLink as FollowUpLink);
+  }
+  
+  return followUpLinks;
+}
+
+/**
  * Extract content from Markdown format
  */
 function extractMarkdownContent(section: string): { content: string; contentSections: ContentSections } {
@@ -498,20 +607,62 @@ function extractMarkdownContent(section: string): { content: string; contentSect
 /**
  * Parse Intent Patterns from YAML format
  * Handles edge cases and validates results
+ * Uses line-by-line parsing to handle all field order variations
  */
 function parseYAMLIntentPatterns(section: string): string[] {
   const patterns: string[] = [];
-  // Improved regex: captures until next field, section separator, or end of section
-  const intentPatternsMatch = section.match(/^intent_patterns:\s*\n([\s\S]*?)(?=^(?:[a-z_]+:|---$|\Z))/m);
   
-  if (!intentPatternsMatch) {
+  // Find the intent_patterns field
+  const intentPatternsIndex = section.search(/^intent_patterns:/m);
+  if (intentPatternsIndex === -1) {
     return patterns;
   }
   
-  const patternsText = intentPatternsMatch[1];
-  const lines = patternsText.split('\n');
+  // Extract from intent_patterns: to next field or end
+  const afterIntentPatterns = section.substring(intentPatternsIndex);
+  const lines = afterIntentPatterns.split('\n');
   
-  for (const line of lines) {
+  // Skip the "intent_patterns:" line
+  const contentLines: string[] = [];
+  
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+    
+    // Stop if we hit another top-level field (starts at column 0 with fieldname:)
+    // Check for various YAML field formats: fieldname:, fieldname: |, fieldname: "value", fieldname: 'value'
+    if (trimmed.match(/^[a-z_]+:\s*$/) || trimmed.match(/^[a-z_]+:\s*\|/) || trimmed.match(/^[a-z_]+:\s*["']/)) {
+      // Verify it's actually at column 0 (not indented)
+      const originalLine = lines[i];
+      if (originalLine.match(/^[a-z_]+:/)) {
+        break;
+      }
+    }
+    
+    // Also check for unquoted values (fieldname: value)
+    if (trimmed.match(/^[a-z_]+:\s+[^"'\n]/)) {
+      const originalLine = lines[i];
+      if (originalLine.match(/^[a-z_]+:/)) {
+        break;
+      }
+    }
+    
+    // Stop if we hit section separator
+    if (trimmed === '---') {
+      break;
+    }
+    
+    contentLines.push(line);
+  }
+  
+  const patternsText = contentLines.join('\n').trim();
+  if (!patternsText) {
+    return patterns;
+  }
+  
+  const patternLines = patternsText.split('\n');
+  
+  for (const line of patternLines) {
     const trimmed = line.trim();
     // Skip empty lines
     if (!trimmed) {
@@ -866,6 +1017,7 @@ function parseSection(section: string, format: FileFormat, source: string, secti
   let contentSections: ContentSections;
   let intent_patterns: string[];
   let keywords: string[];
+  let follow_up_links: FollowUpLink[] = [];
   
   if (format === 'yaml') {
     metadata = extractYAMLMetadata(section);
@@ -878,6 +1030,7 @@ function parseSection(section: string, format: FileFormat, source: string, secti
     contentSections = contentResult.contentSections;
     intent_patterns = parseYAMLIntentPatterns(section);
     keywords = parseYAMLKeywords(section);
+    follow_up_links = parseYAMLFollowUpLinks(section);
   } else {
     metadata = extractMarkdownMetadata(section);
     if (!metadata) {
@@ -889,6 +1042,8 @@ function parseSection(section: string, format: FileFormat, source: string, secti
     contentSections = contentResult.contentSections;
     intent_patterns = parseMarkdownIntentPatterns(section);
     keywords = parseMarkdownKeywords(section);
+    // Markdown format doesn't support follow_up_links yet (can be added later if needed)
+    follow_up_links = [];
   }
   
   // Validate parsed section
@@ -905,8 +1060,9 @@ function parseSection(section: string, format: FileFormat, source: string, secti
   }
   
   // Warn if no intent patterns (not fatal, but important for retrieval)
+  // This is a critical issue that needs attention
   if (intent_patterns.length === 0) {
-    console.warn(`   ⚠️  [${source}:${sectionIndex}] No intent patterns found for "${metadata.topic}" / "${metadata.subtopic}" - retrieval may be less accurate`);
+    console.warn(`   ⚠️  [${source}:${sectionIndex}] No intent patterns found for "${metadata.topic}" / "${metadata.subtopic}" - THIS IS A PROBLEM - retrieval may be less accurate`);
   }
   
   // Enhance content with intents and keywords for better vector search
@@ -922,10 +1078,15 @@ function parseSection(section: string, format: FileFormat, source: string, secti
   // CRITICAL: Each section = 1 complete answer, so NO chunking
   // Only chunk if content is extremely large (exceeds embedding model limits)
   // Using very high limits to preserve section integrity
-  const MAX_TOKENS_PER_SECTION = 6000; // High limit to avoid chunking (model max is 8192)
-  const MAX_CHARS_PER_SECTION = 24000; // High limit for Supabase (well below 10,240 UI limit)
+  const MAX_TOKENS_PER_SECTION = 8000; // Increased from 6000 (model max is 8192)
+  const MAX_CHARS_PER_SECTION = 30000; // Increased from 24000 for Supabase
   
   const contentChunks = chunkContentIfNeeded(enhancedContent, MAX_TOKENS_PER_SECTION, MAX_CHARS_PER_SECTION);
+  
+  // Validate that sections aren't being split (this should be rare)
+  if (contentChunks.length > 1) {
+    console.warn(`   ⚠️  [${source}:${sectionIndex}] Section "${metadata.subtopic}" was split into ${contentChunks.length} chunks - this should be rare!`);
+  }
   
   // Return one document per section (chunking only as last resort for extremely large sections)
   return contentChunks.map((chunk, chunkIndex) => {
@@ -939,6 +1100,7 @@ function parseSection(section: string, format: FileFormat, source: string, secti
       intent_patterns: chunkIntentPatterns,
       keywords, // Keywords included in all chunks for context
       content_sections: contentSections,
+      follow_up_links: follow_up_links.length > 0 ? follow_up_links : undefined,
     };
   });
 }
@@ -986,6 +1148,8 @@ async function loadDocuments(): Promise<Document[]> {
       
       let sectionIndex = 0;
       let successfulSections = 0;
+      let sectionsWithIntentPatterns = 0;
+      let totalIntentPatterns = 0;
       
       for (const section of sections) {
         try {
@@ -993,6 +1157,12 @@ async function loadDocuments(): Promise<Document[]> {
           
           for (const parsed of parsedSections) {
             if (parsed && parsed.content.trim().length > 0) {
+              // Track intent patterns statistics
+              if (parsed.intent_patterns.length > 0) {
+                sectionsWithIntentPatterns++;
+                totalIntentPatterns += parsed.intent_patterns.length;
+              }
+              
               // Build metadata object for Supabase
               const metadata = {
                 persona: parsed.metadata.persona,
@@ -1003,6 +1173,7 @@ async function loadDocuments(): Promise<Document[]> {
                 intent_patterns: parsed.intent_patterns,
                 keywords: parsed.keywords,
                 content_sections: parsed.content_sections,
+                ...(parsed.follow_up_links && parsed.follow_up_links.length > 0 ? { follow_up_links: parsed.follow_up_links } : {}),
               };
               
               documents.push(new Document({
@@ -1029,7 +1200,11 @@ async function loadDocuments(): Promise<Document[]> {
         }
       }
       
-      console.log(`   ✓ Loaded ${successfulSections} section(s) from ${file}`);
+      // Enhanced logging with intent patterns statistics
+      const intentPatternsInfo = sectionsWithIntentPatterns > 0 
+        ? ` (${sectionsWithIntentPatterns} with intent patterns, ${totalIntentPatterns} total patterns)`
+        : ' (⚠️ NO INTENT PATTERNS FOUND)';
+      console.log(`   ✓ Loaded ${successfulSections} section(s) from ${file}${intentPatternsInfo}`);
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       failedFiles.push({ file, error: errorMessage });
@@ -1234,10 +1409,14 @@ async function ingestDocuments() {
       const totalPatterns = ingestedDocs.reduce((sum, d) => sum + (d.metadata.intent_patterns?.length || 0), 0);
       const avgPatterns = totalPatterns > 0 ? (totalPatterns / ingestedDocs.length).toFixed(1) : '0';
       const sectionsWithPatterns = ingestedDocs.filter(d => (d.metadata.intent_patterns?.length || 0) > 0).length;
+      const sectionsWithoutPatterns = ingestedDocs.length - sectionsWithPatterns;
       console.log(`   💬 Intent patterns:`);
       console.log(`      - Total: ${totalPatterns}`);
       console.log(`      - Average per section: ${avgPatterns}`);
       console.log(`      - Sections with patterns: ${sectionsWithPatterns}/${ingestedDocs.length}`);
+      if (sectionsWithoutPatterns > 0) {
+        console.log(`      - ⚠️  Sections WITHOUT patterns: ${sectionsWithoutPatterns} (THIS IS A PROBLEM)`);
+      }
       
       // Keyword statistics
       const totalKeywords = ingestedDocs.reduce((sum, d) => sum + (d.metadata.keywords?.length || 0), 0);

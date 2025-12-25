@@ -159,7 +159,7 @@ function expandSynonyms(word: string, synonymMap: Record<string, string[]>): Set
  * Normalize text for intent pattern matching
  * Removes punctuation, normalizes whitespace, and expands contractions
  */
-function normalizeTextForIntentMatching(text: string): string {
+export function normalizeTextForIntentMatching(text: string): string {
   let normalized = text.toLowerCase().replace(/[?!.,;:]/g, '').trim();
   
   // Expand common contractions and variations
@@ -1021,6 +1021,7 @@ export async function retrieveFromKB(
             keywords: (doc.metadata?.keywords as string[]) || [],
             intent_patterns: (doc.metadata?.intent_patterns as string[]) || [],
             content_sections: contentSections,
+            follow_up_links: (doc.metadata?.follow_up_links as import("./types").FollowUpLink[]) || undefined,
             source: doc.metadata?.source as string,
             section_index: doc.metadata?.section_index as number,
           },
@@ -1169,6 +1170,7 @@ export async function retrieveFromKB(
           keywords: (doc.metadata?.keywords as string[]) || [],
           intent_patterns: (doc.metadata?.intent_patterns as string[]) || [],
           content_sections: contentSections,
+          follow_up_links: (doc.metadata?.follow_up_links as import("./types").FollowUpLink[]) || undefined,
           source: doc.metadata?.source as string,
           section_index: doc.metadata?.section_index as number,
         },

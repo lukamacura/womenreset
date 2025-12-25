@@ -152,7 +152,7 @@ async function generatePersonalizedGreeting(user_id: string): Promise<string> {
 
     const userProfile = profileResult.data;
     const trackerSummary = analyzeTrackerData(
-      trackerData.symptoms,
+      trackerData.symptomLogs,
       trackerData.nutrition,
       trackerData.fitness
     );
@@ -272,7 +272,7 @@ export async function POST(req: NextRequest) {
     const recentConversations = conversationsResult.data;
 
     const trackerSummary = analyzeTrackerData(
-      trackerData.symptoms,
+      trackerData.symptomLogs,
       trackerData.nutrition,
       trackerData.fitness
     );
@@ -313,6 +313,9 @@ export async function POST(req: NextRequest) {
 
     // If verbatim response (KB strict mode with KB match) or refusal response, return directly
     if (orchestrationResult.response && (orchestrationResult.isVerbatim || orchestrationResult.retrievalMode === "kb_strict")) {
+      // Extract follow_up_links from KB entries
+      const followUpLinks = orchestrationResult.kbEntries?.[0]?.metadata?.follow_up_links || [];
+      
       // Store conversation in memory
       addMessage(sessionId, {
         role: "user",
@@ -345,6 +348,13 @@ export async function POST(req: NextRequest) {
                 await new Promise(resolve => setTimeout(resolve, 1));
               }
 
+              // Send follow_up_links after content is done
+              if (followUpLinks.length > 0) {
+                controller.enqueue(
+                  new TextEncoder().encode(`data: ${JSON.stringify({ type: "follow_up_links", links: followUpLinks })}\n\n`)
+                );
+              }
+
               controller.enqueue(
                 new TextEncoder().encode(`data: ${JSON.stringify({ type: "done" })}\n\n`)
               );
@@ -368,11 +378,12 @@ export async function POST(req: NextRequest) {
           },
         });
       } else {
-        // Non-streaming - return proper format
+        // Non-streaming - return proper format with follow_up_links
         return NextResponse.json({
           content: orchestrationResult.response,
           persona: orchestrationResult.persona,
           source: orchestrationResult.source,
+          follow_up_links: followUpLinks.length > 0 ? followUpLinks : undefined,
         });
       }
     }
@@ -563,38 +574,80 @@ IMPORTANT: The user is engaging in casual conversation, not asking for informati
     const tools = [
       new DynamicStructuredTool({
         name: "log_symptom",
-        description: "Automatically log a symptom entry for the user WITHOUT asking for permission. Use this immediately when the user mentions experiencing a symptom, even casually. Extract the symptom name, severity (1-10), optional notes, and date/time reference from the user's message (e.g., 'yesterday', '2 days ago', 'this morning'). If no date is mentioned, use current time. Do NOT ask the user if they want to log it - just log it automatically.",
+        description: "Automatically log a symptom entry for the user WITHOUT asking for permission. Use this immediately when the user mentions experiencing a symptom, even casually. Extract the symptom name, severity level (mild/moderate/severe), optional notes, and date/time reference from the user's message (e.g., 'yesterday', '2 days ago', 'this morning'). If no date is mentioned, use current time. Do NOT ask the user if they want to log it - just log it automatically.",
         schema: z.object({
           name: z.string().describe("The name of the symptom (e.g., 'hot flashes', 'sleep disturbance', 'mood swings')"),
-          severity: z.number().min(1).max(10).describe("Severity level from 1 (mild) to 10 (severe)"),
+          severity: z.enum(["mild", "moderate", "severe"]).describe("Severity level: 'mild' (noticeable but manageable), 'moderate' (affecting my day), or 'severe' (hard to function)"),
           notes: z.string().optional().describe("Optional additional notes about the symptom"),
           date_reference: z.string().optional().describe("Date/time reference from user's message (e.g., 'yesterday', '2 days ago', 'this morning', 'last night'). Use the exact phrase from the user's message if present, otherwise omit."),
         }),
         func: async ({ name, severity, notes, date_reference }) => {
           try {
-            const occurredAt = date_reference
+            const loggedAt = date_reference
               ? parseDateTimeReference(date_reference, new Date())
               : new Date().toISOString();
 
+            // Map severity text to number (1=mild, 2=moderate, 3=severe)
+            const severityMap: Record<string, number> = {
+              mild: 1,
+              moderate: 2,
+              severe: 3,
+            };
+            const severityNumber = severityMap[severity.toLowerCase()] || 2; // Default to moderate
+
             const supabaseClient = getSupabaseAdmin();
-            const { error } = await supabaseClient
+            
+            // First, find or create the symptom definition
+            let symptomDef;
+            const { data: existingSymptom } = await supabaseClient
               .from("symptoms")
+              .select("id")
+              .eq("user_id", user_id)
+              .eq("name", name.trim())
+              .single();
+
+            if (existingSymptom) {
+              symptomDef = existingSymptom;
+            } else {
+              // Create symptom definition if it doesn't exist
+              const { data: newSymptom, error: createError } = await supabaseClient
+                .from("symptoms")
+                .insert([
+                  {
+                    user_id,
+                    name: name.trim(),
+                    icon: "🔴",
+                    is_default: false,
+                  },
+                ])
+                .select("id")
+                .single();
+
+              if (createError) {
+                return `Error creating symptom definition: ${createError.message}`;
+              }
+              symptomDef = newSymptom;
+            }
+
+            // Now insert into symptom_logs
+            const { error: logError } = await supabaseClient
+              .from("symptom_logs")
               .insert([
                 {
                   user_id,
-                  name: name.trim(),
-                  severity,
+                  symptom_id: symptomDef.id,
+                  severity: severityNumber,
+                  triggers: [],
                   notes: notes?.trim() || null,
-                  occurred_at: occurredAt,
                 },
-              ])
-              .select()
-              .single();
+              ]);
 
-            if (error) {
-              return `Error logging symptom: ${error.message}`;
+            if (logError) {
+              return `Error logging symptom: ${logError.message}`;
             }
-            return `Successfully logged 📝 symptom: ${name} (severity ${severity}/10)`;
+            
+            const severityLabel = severity.charAt(0).toUpperCase() + severity.slice(1);
+            return `Successfully logged 📝 symptom: ${name} (${severityLabel})`;
           } catch (e: unknown) {
             const errorMessage = e instanceof Error ? e.message : String(e);
             return `Error logging symptom: ${errorMessage}`;

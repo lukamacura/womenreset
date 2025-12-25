@@ -242,7 +242,7 @@ topic: "Metabolic Changes & Weight Gain"
 subtopic: "Causes – Insulin Resistance"
 
 content_text: |
-  Your metabolism really changed the rules without asking for permission. Surprise!
+  Your metabolism has changed the rules without asking for permission. Surprise!
   
   Estrogen dips and sneaky muscle loss slow your daily burn by about 100–200 calories. Add in lower insulin sensitivity (your body is more likely to store glucose as fat rather than burn it), and suddenly carbs turn clingy — especially around the belly.
   
@@ -261,7 +261,13 @@ habit_strategy:
   explanation: "Small, consistent muscle and blood sugar habits retrain your metabolism to burn instead of store energy."
   example: "Pair each meal with 10 minutes of walking or light activity to keep glucose and insulin stable."
 
-follow_up_question: "Curious which anti-inflammatory foods steady blood sugar?"
+follow_up_question: "Want to learn about anti-inflammatory and balanced eating?"
+follow_up_links:
+  - persona: "nutrition"
+    topic: "Nutrition in Menopause"
+    subtopic: "Core Principles – Anti-Inflammatory & Balanced Eating"
+    label: "learn about Anti-Inflammatory & Balanced Eating"
+
 
 intent_patterns:
   - "Why do I crash after eating?"
@@ -302,55 +308,126 @@ intent_patterns:
 ---
 persona: "menopause"
 topic: "Metabolic Changes & Weight Gain"
-subtopic: "Causes – Muscle Loss"
-
+subtopic: "Causes – Muscle Loss Impact on Metabolism"
 content_text: |
-  Losing muscle after menopause is incredibly common — but it’s *not* inevitable 💪.
-  
-  Less muscle means slower fat burning, because muscle tissue uses more energy than fat, even at rest. When estrogen drops, the body loses some of its anabolic (muscle-building) signals, leading to gradual muscle breakdown.
-  
-  Without resistance training and enough protein, this process accelerates — leaving you feeling weaker, softer, and more fatigued. The solution is movement, nourishment, and strength — not restriction 🌿.
+  When estrogen drops, the body loses some of its anabolic (muscle-building) signals, leading to gradual muscle breakdown.
+
+Muscle is your calorie-burning engine — even at rest. Less muscle means slower fat burning, because muscle tissue uses more energy than fat, even at rest. 
+
+When you lose muscle mass, your resting metabolic rate drops (by about 25–30 calories per pound of lost muscle). That means you burn fewer calories doing nothing, making weight gain easier and fat loss harder.
+
+Muscle also acts as a glucose sink — it pulls sugar from your bloodstream and stores it as energy. Less muscle = poorer blood sugar control = more fat storage, especially around the belly.
+
+The good news? Rebuilding muscle reverses this metabolic slowdown 💪. Even small gains in lean mass can meaningfully boost your metabolism.
+
 
 action_tips:
-  - "🏋️ Strength train 2–3× per week — use bands, dumbbells, or your own body weight."
-  - "🍳 Eat 100–150 g of protein daily (~30 g per meal) to preserve muscle and balance blood sugar."
-  - "🥦 Add fiber and colorful plants to reduce inflammation and support recovery."
-  - "😴 Sleep 7–8 hours — muscle repair happens overnight."
-  - "💊 Consider creatine (3–5 g daily) to boost strength and energy, if approved by your clinician."
+  - "📊 Understand the math: 1 lb of muscle burns ~6 calories/day at rest vs. 2 calories for fat."
+  - "🔬 Track body composition (not just weight) to see muscle vs. fat changes."
+  - "🏋️ Strength train 2–3× per week — use bands, dumbbells, or your own body weight."  
+  - "🍳 Eat 100–150 g of protein daily (~30 g per meal) to preserve muscle and balance blood sugar."  
+  - "🥦 Add fiber and colorful plants to reduce inflammation and support recovery."  
+  - "😴 Sleep 7–8 hours — muscle repair happens overnight."  
+  - "💊 Consider creatine (3–5 g daily) to boost strength and energy, if approved by your clinician." 
 
 motivation_nudge: "💪 Every rep is a deposit in your future independence — strong is your new steady."
 
 habit_strategy:
-  explanation: "Pairing short, consistent strength sessions with protein-rich meals signals your body to grow stronger again."
-  example: "After breakfast, do a 10-minute band workout — then refuel with a protein shake."
+  principle: "Body Composition Awareness"
+  explanation: "Understanding the muscle-metabolism connection helps you focus on building metabolic tissue, not just losing weight."
+  example: "Instead of 'I need to lose 10 pounds,' think 'I need to build muscle to boost my metabolism.'"
+  habit_tip: "📸 Take monthly progress photos and track how clothes fit — better metrics than the scale for muscle changes."
 
-follow_up_question: "Would you like a simple strength plan tailored to rebuilding muscle during menopause?"
+follow_up_question: "Would you like to explore Strength Training guide to rebuild muscle, learn about Protein Needs & Muscle Protection for optimal nutrition, or understand other metabolic factors like insulin resistance?"
 
+follow_up_links:
+  - persona: "exercise"
+    topic: "Exercise in Menopause"
+    subtopic: "Strength Training"
+    label: "Explore strength training to rebuild muscle and boost metabolism"
+  
+  - persona: "nutrition"
+    topic: "Nutrition in Menopause"
+    subtopic: "Protein Needs & Muscle Protection"
+    label: "Learn about protein needs for muscle protection and growth"
+    # Note: Third option has no link, so it will route to LLM
 intent_patterns:
-  - "Why am I so weak suddenly?"
-  - "Why can't I lift things I used to?"
-  - "Why do I feel frail all of a sudden?"
-  - "Why are my arms so weak now?"
-  - "I used to be strong what happened?"
-  - "Why do simple tasks feel harder?"
-  - "Why can't I open jars anymore?"
-  - "Why do my legs feel weak?"
-  - "I feel like I have no strength left"
-  - "Why does my body feel so soft?"
-  - "Why is everything jiggly now?"
-  - "Where did my muscle tone go?"
-  - "Why do my arms look flabby suddenly?"
-  - "Why is my body so flabby now?"
-  - "I look deflated what happened?"
-  - "Why is everything saggy suddenly?"
-  - "My body feels mushy why?"
-  - "Why did I lose definition everywhere?"
-  - "Why do I look skinny-fat?"
-  - "Why am I smaller but softer?"
-  - "Why do I weigh less but look worse?"
-  - "Why is my body composition so different?"
-  - "Why do I look undefined now?"
-  - "Why did I lose my shape?"
+  - "How does muscle loss affect my metabolism?"
+  - "Why is my metabolism slower after losing muscle?"
+  - "Does losing muscle make weight gain easier?"
+  - "Can muscle loss cause metabolic slowdown?"
+  - "How does muscle affect calorie burning?"
+  - "Why can't I lose weight since losing muscle?"
+  - "Does muscle loss make fat loss harder?"
+  - "How is muscle connected to metabolism?"
+  - "Why does muscle matter for weight management?"
+  - "Can rebuilding muscle fix my metabolism?"
+  - "Why is it harder to lose weight after losing muscle?"
+  - "Does less muscle mean slower metabolism?"
+  - "Is muscle loss why I gain weight easily now?"
+  - "Can gaining muscle speed up my metabolism?"
+  - "Why does muscle matter for my weight?"
+  - "Is my slow metabolism because I lost muscle?"
+  - "Does building muscle help with weight loss?"
+  - "Why can't I burn calories like I used to?"
+  - "Is muscle the reason my metabolism is slow?"
+  - "Can muscle loss explain my weight gain?"
+  - "I lost muscle and now I gain weight easily"
+  - "My metabolism tanked after losing muscle"
+  - "I can't lose fat since my muscle decreased"
+  - "I eat the same but gain weight after muscle loss"
+  - "My body composition changed and so did my metabolism"
+  - "I weigh the same but look fatter after losing muscle"
+  - "My calorie needs dropped with my muscle mass"
+  - "I'm burning fewer calories since losing muscle"
+  - "My metabolism slowed down as I lost muscle"
+  - "I store fat easier now that I have less muscle"
+  - "I don't understand why my metabolism is so slow now"
+  - "Is muscle loss the reason I can't control my weight?"
+  - "I'm confused about the connection between muscle and metabolism"
+  - "I want to understand how muscle affects my weight"
+  - "Is rebuilding muscle the key to fixing my metabolism?"
+  - "I need to know if muscle loss explains my weight struggles"
+  - "Can muscle really make that much difference for metabolism?"
+  - "I'm desperate to understand the muscle-metabolism link"
+keywords:
+  Metabolic Connection Core:
+    - "muscle affects metabolism"
+    - "resting metabolic rate"
+    - "muscle loss metabolism"
+    - "metabolic slowdown muscle"
+    - "muscle calorie burning"
+    - "lean mass metabolism"
+    - "basal metabolic rate"
+  Metabolic Consequences:
+    - "energy expenditure decline"
+    - "glucose metabolism muscle"
+    - "insulin sensitivity muscle"
+    - "fat storage increase"
+    - "caloric needs reduction"
+    - "metabolic tissue"
+    - "thermogenic capacity"
+  Body Composition:
+    - "body composition metabolism"
+    - "lean mass vs fat mass"
+    - "muscle to fat ratio"
+    - "skinny fat phenomenon"
+    - "weight same look different"
+  Everyday Language:
+    - "metabolism slower muscle loss"
+    - "burn fewer calories"
+    - "gain weight easier"
+    - "cant lose weight muscle"
+    - "metabolism tanked"
+    - "slow metabolism muscle"
+    - "dont understand why metabolism slow"
+    - "muscle loss reason cant control weight"
+    - "confused connection muscle metabolism"
+    - "want understand muscle affects weight"
+    - "rebuilding muscle key fixing metabolism"
+    - "muscle loss explains weight struggles"
+    - "muscle make difference metabolism"
+    - "desperate understand muscle metabolism link"
 
 ---
 
@@ -375,7 +452,13 @@ action_tips:
 
 motivation_nudge: "🌱 Sometimes weight gain isn’t lack of willpower — it’s biology asking for rhythm and repair."
 
-follow_up_question: "Want to learn how gut health supports metabolism? I can show you how balanced digestion helps hormone stability and energy."
+follow_up_question: "Want to learn how gut health changes in menopause? I can show you how balanced digestion helps hormone stability and energy."
+follow_up_links:
+  - persona: "nutrition"
+    topic: "Nutrition in Menopause"
+    subtopic: "Gut Health & Hormone Balance"
+    label: "learn about Gut Health & Hormone Balance"
+
 
 intent_patterns:
   - "Could this be my thyroid?"
@@ -431,6 +514,21 @@ habit_strategy:
   example: "Focus on protein, resistance training, and stress relief before cutting calories — this teaches your body it’s safe to burn energy again."
 
 follow_up_question: "Would you like to know more about optimizing protein, resistance training or stress recovery?"
+follow_up_links:
+  - persona: "nutrition"
+    topic: "Nutrition in Menopause"
+    subtopic: "Protein Needs & Muscle Protection"
+    label: "learn about protein needs"
+  - persona: "exercise"
+    topic: "Exercise in Menopause"
+    subtopic: "Strength Training"
+    label: "learn about resistance training"
+  - persona: "menopause"
+    topic: "Stress in Menopause"
+    subtopic: "Mind–Body Stress Recovery"
+    label: "learn about stress recovery"
+
+
 
 intent_patterns:
   - "How do I lose weight in menopause?"
@@ -464,13 +562,13 @@ subtopic: "Overview – Why Metabolism Changes in Menopause"
 content_text: |
   You’re not the only one wondering what the heck your body’s doing — it’s like our bodies hit ‘update software’ at 45 and forgot to warn us about the side effects 💜.
   
-  During menopause, your metabolism naturally slows — not because you’ve done anything wrong, but because your hormones are shifting their rhythm.
+  During menopause, **your metabolism naturally slows** — not because you’ve done anything wrong, but because your hormones are shifting their rhythm.
   
-  As estrogen levels drop, muscle mass gradually declines and your body becomes more sensitive to insulin. That means it handles carbohydrates differently, storing more around the belly and burning fewer calories at rest.
+  As estrogen levels drop, **muscle mass gradually declines and your body becomes more sensitive to insulin**. That means it handles carbohydrates differently, storing more around the belly and burning fewer calories at rest.
   
-  Appetite signals change too: declining estrogen and progesterone alter leptin and ghrelin — the hormones that tell you when you’re full or hungry. So cravings and hunger cues can suddenly feel unpredictable.
+  **Appetite signals change too**: declining estrogen and progesterone alter leptin and ghrelin — the hormones that tell you when you’re full or hungry. So cravings and hunger cues can suddenly feel unpredictable.
   
-  Add in stress, sleep changes, and slower recovery, and your system feels ‘off balance.’ But your metabolism isn’t broken — it’s adaptive. With better blood sugar balance, strength training, and consistent sleep, you can absolutely help it recalibrate 🌿.
+  Add in stress, sleep changes, and slower recovery, and your system feels ‘off balance.’ But your metabolism isn’t broken — it’s adaptive. **With better blood sugar balance, strength training, and consistent sleep**, you can absolutely help it recalibrate 🌿.
 
 action_tips:
   - "🏋️ Include strength training — muscle is your metabolic engine."
@@ -480,7 +578,22 @@ action_tips:
 
 motivation_nudge: "🌸 Your metabolism isn’t your enemy — it’s responding to change. You can teach it to work *with* you again."
 
-follow_up_question: "Would you like to understand what’s driving your changes — hormones, insulin resistance, or muscle loss?"
+follow_up_question: "Would you like to understand what's driving your changes — insulin resistance, muscle loss or stress?"
+follow_up_links:
+  - persona: "menopause"
+    topic: "Metabolic Changes & Weight Gain"
+    subtopic: "Causes – Insulin Resistance"
+    label: "learn about insulin resistance"
+  - persona: "menopause"
+    topic: "Metabolic Changes & Weight Gain"
+    subtopic: "Causes – Muscle Loss Impact on Metabolism"
+    label: "learn about muscle loss"
+  - persona: "menopause"
+    topic: "Metabolic Changes & Weight Gain"
+    subtopic: "Causes – Hormonal Stress & Cortisol"
+    label: "learn about stress"
+
+
 
 intent_patterns:
   - "Why am I suddenly gaining weight?"
@@ -656,7 +769,13 @@ habit_strategy:
   explanation: "Combine hormone support with consistent nutrition, movement, and rest for best results."
   example: "Add protein to breakfast, lift weights twice a week, and build a calming evening routine."
 
-follow_up_question: "🌿 Prefer a **natural, hormone-free approach**? Let’s explore how food, movement, and stress balance can lift your energy naturally."
+follow_up_question: "🌿 Prefer a **natural, hormone-free approach**? Let's explore how food, movement, and stress balance can lift your energy naturally."
+follow_up_links:
+  - persona: "menopause"
+    topic: "Hormone Support in Perimenopause"
+    subtopic: "Nutrition, Movement & Recovery Pillars"
+    label: "explore how food, movement, and stress balance can balance hormones"
+
 
 intent_patterns:
   - "Will HRT help me lose weight?"
@@ -778,6 +897,12 @@ habit_strategy:
   example: "Build each meal with ⅓ protein, ⅓ colorful carbs, and ⅓ healthy fats — no counting, just balance."
 
 follow_up_question: "Would you like to know what the best diet in menopause looks like?"
+follow_up_links:
+  - persona: "nutrition"
+    topic: "Nutrition in Menopause"
+    subtopic: "Core Principles – Anti-Inflammatory & Balanced Eating"
+    label: "learn about Anti-Inflammatory & Balanced Eating"
+
 
 intent_patterns:
   - "What should I eat to lose weight in menopause?"
@@ -852,7 +977,17 @@ habit_strategy:
   explanation: "Repeating simple recovery cues daily trains your body to rest, repair, and rebalance hormones."
   example: "Dim lights 30 minutes before bed, breathe deeply, and stretch gently to unwind."
 
-follow_up_question: "Would you like help building a bedtime or stress-recovery routine that supports your metabolism?"
+follow_up_question: "Would you like to learn how to fix your sleep or stress-recovery routine that supports your metabolism?"
+follow_up_links:
+  - persona: "menopause"
+    topic: "Sleep Disturbances in Menopause"
+    subtopic: "Sleep Recovery Roadmap – Step-by-Step Plan"
+    label: "how to fix sleep"
+  - persona: "menopause"
+    topic: "Stress in Menopause"
+    subtopic: "Mind–Body Stress Recovery"
+    label: "learn about stress recovery"
+
 
 intent_patterns:
   - "Is my insomnia making me fat?"
@@ -965,7 +1100,7 @@ habit_strategy:
   explanation: "Focusing on fuel, movement, and recovery creates early wins without overwhelm."
   example: "Start with protein at breakfast, a 10-minute walk, and a fixed bedtime — one habit from each anchor."
 
-follow_up_question: "Would you like to know what and when to eat for hormone balance and sustainable fat loss?"
+follow_up_question: "Would you like a daily meal and exercise plan to start with?"
 
 intent_patterns:
   - "Where should I start if I want to lose weight in menopause?"
