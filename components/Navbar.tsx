@@ -23,8 +23,8 @@ const Navbar: React.FC<NavbarProps> = ({ isAuthenticated }) => {
         />
       )}
 
-      <div className="fixed left-0 right-0 top-0 z-50 flex justify-center pt-3 sm:pt-4 px-3 sm:px-4">
-        <nav className="flex w-full max-w-[780px] items-center justify-between rounded-full bg-gray-900 px-4 sm:px-5 py-2.5 sm:py-2 shadow-lg backdrop-blur-lg border border-white/25">
+      <div className="fixed left-0 right-0 top-0 z-50 flex justify-center pt-3 sm:pt-4 px-3 sm:px-4 max-w-full">
+        <nav className="flex w-full max-w-[780px] items-center justify-between rounded-full bg-gray-900 px-3 sm:px-5 py-2.5 sm:py-2 shadow-lg backdrop-blur-lg border border-white/25 overflow-hidden">
           {/* Left: Logo + Brand */}
           <Link href="/" className="flex items-center gap-2">
             <div className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-primary-light shadow-md">
@@ -108,7 +108,7 @@ const Navbar: React.FC<NavbarProps> = ({ isAuthenticated }) => {
 
       {/* Mobile Menu */}
       <div
-        className={`fixed top-22 sm:top-20 left-3 right-3 z-40 rounded-2xl bg-linear-to-br from-navy/95 to-navy-dark/95 backdrop-blur-lg border border-white/25 shadow-2xl transition-transform duration-300 ease-in-out lg:hidden ${
+        className={`fixed top-22 sm:top-20 left-3 right-3 z-40 rounded-2xl bg-linear-to-br from-navy/95 to-navy-dark/95 backdrop-blur-lg border border-white/25 shadow-2xl transition-transform duration-300 ease-in-out lg:hidden max-w-[calc(100vw-1.5rem)] ${
           mobileMenuOpen ? "translate-y-0 opacity-100" : "-translate-y-4 opacity-0 pointer-events-none"
         }`}
       >

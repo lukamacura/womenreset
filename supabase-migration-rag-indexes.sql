@@ -64,3 +64,4 @@ ON documents USING GIN ((metadata->'keywords'));
 
 
 
+
