@@ -1,18 +1,9 @@
 
-import React, { FormEvent, useEffect, useState } from "react";
+import React, { FormEvent } from "react";
 import { Lock, FileText, Gift } from "lucide-react";
 import Image from 'next/image';
 
 const MenoLisaHero: React.FC = () => {
-  const [isMounted, setIsMounted] = useState(false);
-  
-  // #region agent log
-  useEffect(() => {
-    setIsMounted(true);
-    fetch('http://127.0.0.1:7242/ingest/117acbca-7710-4e6c-a5b5-905727104271',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Hero.tsx:6',message:'MenoLisaHero render CLIENT',data:{hasWindow:true,className:'min-h-screen w-full text-navy flex flex-col',hasStyle:true},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'A'})}).catch(()=>{});
-  }, []);
-  // #endregion
-  
   const handleSubmit = (e?: FormEvent) => {
     if (e) e.preventDefault();
     if (typeof window !== "undefined") {
@@ -23,15 +14,6 @@ const MenoLisaHero: React.FC = () => {
   const rootDivClassName = "min-h-screen w-full text-navy flex flex-col";
   const rootDivStyle = { background: 'linear-gradient(to bottom, #ffb4d5 0%, #fff5f9 30%, #f0f9ff 60%, #a6eaff 100%)' };
   
-  // #region agent log
-  useEffect(() => {
-    if (isMounted) {
-      fetch('http://127.0.0.1:7242/ingest/117acbca-7710-4e6c-a5b5-905727104271',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Hero.tsx:20',message:'CLIENT div props before render',data:{className:rootDivClassName,styleExists:!!rootDivStyle},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'B'})}).catch(()=>{});
-    }
-  }, [isMounted, rootDivClassName, rootDivStyle]);
-  // #endregion
-  
-  // Ensure server and client render the same initial HTML
   return (
     <div className={rootDivClassName} style={rootDivStyle} suppressHydrationWarning>
       {/* Hero content */}

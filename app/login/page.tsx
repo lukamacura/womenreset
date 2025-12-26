@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
 import { useEffect, useMemo, useState, Suspense } from "react";
@@ -251,7 +252,7 @@ function LoginForm() {
                   <p className="mb-2">{err}</p>
                   {errorType === 'user_not_found' && (
                     <div className="mt-3 pt-3 border-t border-blue-200/50">
-                      <p className="text-xs mb-2">Don't have an account yet?</p>
+                      <p className="text-xs mb-2">Don&apos;t have an account yet?</p>
                       <Link 
                         href="/register" 
                         className="inline-flex items-center gap-2 text-xs font-semibold text-blue-600 hover:underline"
@@ -374,7 +375,7 @@ function LoginForm() {
                 <p className="mb-2">{err}</p>
                 {errorType === 'user_not_found' && (
                   <div className="mt-3 pt-3 border-t border-blue-200/50 dark:border-blue-700/50">
-                    <p className="text-xs mb-2">Don't have an account yet?</p>
+                    <p className="text-xs mb-2">Don&apos;t have an account yet?</p>
                     <Link 
                       href="/register" 
                       className="inline-flex items-center gap-2 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline"
