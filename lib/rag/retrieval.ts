@@ -131,6 +131,10 @@ const intentSynonymMap: Record<string, string[]> = {
   'evening': ['night', 'nighttime'],
   'each': ['every', 'all'],
   'always': ['every', 'each'],
+  // Temporal phrase variations for robust matching
+  'at night': ['every night', 'each night', 'nightly', 'during the night', 'in the night', 'throughout the night'],
+  'every night': ['at night', 'each night', 'nightly', 'night after night'],
+  'each night': ['every night', 'at night', 'nightly'],
 };
 
 /**
@@ -158,6 +162,7 @@ function expandSynonyms(word: string, synonymMap: Record<string, string[]>): Set
 /**
  * Normalize text for intent pattern matching
  * Removes punctuation, normalizes whitespace, and expands contractions
+ * FIX: Comprehensive temporal phrase normalization for robust matching
  */
 export function normalizeTextForIntentMatching(text: string): string {
   let normalized = text.toLowerCase().replace(/[?!.,;:]/g, '').trim();
@@ -168,6 +173,20 @@ export function normalizeTextForIntentMatching(text: string): string {
   normalized = normalized.replace(/\b(don't|do not)\b/g, 'do not');
   normalized = normalized.replace(/\b(i'm|i am)\b/g, 'i am');
   normalized = normalized.replace(/\b(it's|it is)\b/g, 'it is');
+  
+  // FIX: Comprehensive temporal phrase normalization
+  // Handle all variations of "at night" / "every night" patterns
+  // This ensures "Why do I wake up at night?" matches "Why do I wake up every night?"
+  normalized = normalized.replace(/\b(at|every|each|during|throughout|in)\s+(the\s+)?night(s)?\b/g, 'night');
+  normalized = normalized.replace(/\bnightly\b/g, 'night');
+  normalized = normalized.replace(/\bnight\s+after\s+night\b/g, 'night');
+  
+  // Normalize time-specific phrases but preserve numeric context for specificity
+  // e.g., "3am" stays as "3am" to distinguish from general night waking
+  normalized = normalized.replace(/\b(\d+)\s*(am|pm|a\.m\.|p\.m\.)\b/g, '$1$2');
+  
+  // Normalize multiple spaces to single space
+  normalized = normalized.replace(/\s+/g, ' ').trim();
   
   return normalized;
 }
@@ -549,11 +568,23 @@ function applyHybridSearch(
     
     // CRITICAL FIX: Adaptive weighting based on semantic similarity AND intent matches
     // Perfect intent matches should win even if semantic similarity is slightly lower
+    // FIX: Treat very high intent scores (>= 0.85) similarly to perfect matches
+    // This catches cases like "at night" vs "every night" that normalize differently
+    // but have very high semantic overlap
+    const isHighIntentMatch = hasPerfectMatch || intentScore >= 0.85;
+    
+    // Log when high intent matches are found for debugging
+    if (isHighIntentMatch && !hasPerfectMatch) {
+      const topic = doc.metadata?.topic as string || 'Unknown';
+      const subtopic = doc.metadata?.subtopic as string || 'Unknown';
+      console.log(`[KB Retrieval] ⚠️ High intent match (not perfect): Score ${intentScore.toFixed(3)} | Query: "${userQuery.substring(0, 50)}" | Topic: ${topic} | Subtopic: ${subtopic}`);
+    }
+    
     let semanticWeight: number;
     let metadataWeight: number;
     
-    if (hasPerfectMatch) {
-      // Perfect intent match - prioritize metadata VERY heavily (40% semantic, 60% metadata)
+    if (isHighIntentMatch) {
+      // Perfect/high intent match - prioritize metadata VERY heavily (40% semantic, 60% metadata)
       // This ensures exact intent matches win even if semantic similarity is slightly lower
       // Example: Sleep Disturbances with perfect match beats Hot Flashes with higher semantic
       // If semantic similarity is still reasonable (>= 0.5), perfect match should win
@@ -580,11 +611,11 @@ function applyHybridSearch(
       metadataWeight = 0.4;
     }
 
-    // Calculate metadata contribution with boosted intent weight for perfect matches
+    // Calculate metadata contribution with boosted intent weight for perfect/high matches
     // Perfect matches get even higher intent weight to ensure they win
-    const intentWeight = hasPerfectMatch ? 0.8 : 0.5;
-    const keywordWeight = hasPerfectMatch ? 0.15 : 0.35;
-    const sectionWeight = hasPerfectMatch ? 0.05 : 0.15;
+    const intentWeight = isHighIntentMatch ? 0.8 : 0.5;
+    const keywordWeight = isHighIntentMatch ? 0.15 : 0.35;
+    const sectionWeight = isHighIntentMatch ? 0.05 : 0.15;
     
     const metadataScore = 
       (intentScore * intentWeight) +    // Intent patterns are strong signals, boosted for perfect matches
@@ -596,10 +627,10 @@ function applyHybridSearch(
       (semanticScore * semanticWeight) + 
       (metadataScore * metadataWeight);
     
-    // CRITICAL: Add bonus boost for perfect matches to ensure they always win
+    // CRITICAL: Add bonus boost for perfect/high matches to ensure they always win
     // This is a safety net to guarantee perfect intent matches rank highest
     // Perfect matches should win even if semantic similarity is lower (e.g., 0.3-0.5)
-    if (hasPerfectMatch) {
+    if (isHighIntentMatch) {
       // Add a significant boost (0.20-0.30) to ensure perfect matches win
       // Lower semantic scores get bigger boosts to compensate
       let bonus: number;
@@ -623,7 +654,7 @@ function applyHybridSearch(
       doc,
       score: finalScore,
       similarity,
-      hasPerfectMatch, // Add flag for perfect matches
+      hasPerfectMatch: isHighIntentMatch, // Use expanded definition for sorting
     };
   });
 
@@ -751,6 +782,7 @@ export async function retrieveFromKBByIntentOnly(
     } else {
       // No intent matches - fallback to semantic similarity
       finalEntries = semanticResult.kbEntries.slice(0, topK);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       usedFallback = true;
       console.log(`[Intent-Only Retrieval] ⚠️  No intent matches found (all ${excludedEntries.length} candidates excluded)`);
       console.log(`[Intent-Only Retrieval] 🔄 Falling back to semantic similarity (${finalEntries.length} documents)`);

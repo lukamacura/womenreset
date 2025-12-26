@@ -2,7 +2,7 @@
  * RAG Orchestrator - Main orchestration logic for persona-based RAG
  */
 
-import type { Persona, RetrievalMode, OrchestrationResult, FollowUpLink, KBEntry } from "./types";
+import type { Persona, RetrievalMode, OrchestrationResult, FollowUpLink, KBEntry, ContentSections } from "./types";
 import { classifyPersona } from "./persona-classifier";
 import { validateMenopauseQuery, generateRefusalResponse } from "./safety-validator";
 import { retrieveFromKB, retrieveFromKBByIntentOnly, normalizeTextForIntentMatching } from "./retrieval";
@@ -10,9 +10,24 @@ import { formatVerbatimResponse, formatKBContextForLLM } from "./response-format
 import { getConversationHistory } from "./conversation-memory";
 import { shouldRouteWhyToMenopause, isWhyHormoneQuestion } from "./classifier/whyRouter";
 import type { RetrievalResult } from "./types";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
 // Note: LLM calls are handled in the route to support tools (log_symptom, etc.)
 // The orchestrator only handles KB retrieval and persona classification
+
+// Type for Supabase document metadata
+interface SupabaseDocumentMetadata {
+  persona?: string;
+  topic?: string;
+  subtopic?: string;
+  keywords?: string[];
+  intent_patterns?: string[];
+  content_sections?: Partial<ContentSections>;
+  follow_up_links?: FollowUpLink[];
+  source?: string;
+  section_index?: number;
+  id?: string;
+}
 
 /**
  * Detect if a query is a follow-up question that needs context enhancement
@@ -152,13 +167,14 @@ function extractFollowUpQuestion(content: string): string | null {
 }
 
 /**
- * Find matching follow-up link for an option text
+ * Find matching follow-up link for an option text or user query
+ * Matches by label, topic, and subtopic for better accuracy
  */
 function findMatchingLink(
-  optionText: string,
+  queryText: string,
   followUpLinks: FollowUpLink[]
 ): FollowUpLink | null {
-  const normalized = optionText.toLowerCase();
+  const normalized = queryText.toLowerCase().trim();
   
   // Try exact label match first
   for (const link of followUpLinks) {
@@ -167,18 +183,46 @@ function findMatchingLink(
     }
   }
   
-  // Try partial match (contains key terms)
+  // Try partial label match (query contains label or label contains query)
+  for (const link of followUpLinks) {
+    const linkLabel = link.label.toLowerCase();
+    if (normalized.includes(linkLabel) || linkLabel.includes(normalized)) {
+      // Only match if substantial overlap (at least 5 characters or key terms match)
+      if (linkLabel.length >= 5 && normalized.length >= 5) {
+        return link;
+      }
+      // Check for key terms match
+      const labelWords = linkLabel.split(/\s+/).filter(w => w.length > 3);
+      const queryWords = normalized.split(/\s+/).filter(w => w.length > 3);
+      const matchingWords = labelWords.filter(w => queryWords.includes(w));
+      if (matchingWords.length >= 2 || (matchingWords.length === 1 && labelWords.length <= 2)) {
+        return link;
+      }
+    }
+  }
+  
+  // Try matching by topic/subtopic keywords
   for (const link of followUpLinks) {
     const linkLabel = link.label.toLowerCase();
     const linkTopic = link.topic.toLowerCase();
     const linkSubtopic = link.subtopic.toLowerCase();
     
-    // Check if option text contains key terms from link
-    const linkTerms = [...linkLabel.split(' '), ...linkTopic.split(' '), ...linkSubtopic.split(' ')]
-      .filter(term => term.length > 3);
+    // Extract meaningful terms from query (length > 3)
+    const queryTerms = normalized.split(/\s+/).filter(term => term.length > 3);
     
-    const hasMatch = linkTerms.some(term => normalized.includes(term));
-    if (hasMatch) {
+    // Extract terms from label, topic, and subtopic
+    const linkTerms = [
+      ...linkLabel.split(/\s+/),
+      ...linkTopic.split(/\s+/),
+      ...linkSubtopic.split(/\s+/)
+    ].filter(term => term.length > 3);
+    
+    // Count matching terms
+    const matchingTerms = queryTerms.filter(term => linkTerms.includes(term));
+    
+    // Match if at least 2 key terms match, or 1 term matches in short queries/labels
+    if (matchingTerms.length >= 2 || 
+        (matchingTerms.length >= 1 && (queryTerms.length <= 3 || linkTerms.length <= 5))) {
       return link;
     }
   }
@@ -255,36 +299,144 @@ function extractKeyPhrases(text: string): string[] {
 
 /**
  * Retrieve KB entry by exact metadata match
+ * FIX: Direct database query instead of semantic search to avoid wrong chunk
+ * Uses exact topic & subtopic matching to guarantee correct chunk retrieval
  */
 async function retrieveKBEntryByMetadata(
   persona: string,
   topic: string,
   subtopic: string
 ): Promise<KBEntry | null> {
-  // Use retrieval with strict metadata filter
-  const retrievalResult = await retrieveFromKB(
-    `${topic} ${subtopic}`,
-    persona as Persona,
-    5, // Get more results to find exact match
-    0.7 // Moderate threshold
-  );
-  
-  // Filter by exact metadata match
-  for (const entry of retrievalResult.kbEntries) {
-    if (
-      entry.metadata.persona === persona &&
-      entry.metadata.topic === topic &&
-      entry.metadata.subtopic === subtopic
-    ) {
-      return entry;
+  try {
+    const supabaseClient = getSupabaseAdmin();
+    
+    // Map persona if needed (menopause_specialist -> menopause)
+    // Follow-up links should already have correct persona, but handle both cases
+    const metadataPersona = persona === "menopause_specialist" ? "menopause" : persona;
+    
+    // Direct database query by exact metadata match using JSONB containment
+    // This bypasses semantic search to ensure we get the exact chunk
+    const { data: matches, error } = await supabaseClient
+      .from('documents')
+      .select('id, content, metadata')
+      .contains('metadata', { persona: metadataPersona, topic, subtopic });
+    
+    if (error) {
+      console.error(`[Follow-up Link] Error querying KB entry: ${error.message}`);
+      console.log(`[Follow-up Link] Falling back to semantic search for: ${metadataPersona} > ${topic} > ${subtopic}`);
+      
+      // Fallback to semantic search if direct query fails
+      const retrievalResult = await retrieveFromKB(
+        `${topic} ${subtopic}`,
+        persona as Persona,
+        10, // Get more results
+        0.7
+      );
+      
+      // Find exact match in results
+      for (const entry of retrievalResult.kbEntries) {
+        const entryPersona = entry.metadata.persona === "menopause_specialist" ? "menopause" : entry.metadata.persona;
+        if (
+          entryPersona === metadataPersona &&
+          entry.metadata.topic === topic &&
+          entry.metadata.subtopic === subtopic
+        ) {
+          console.log(`[Follow-up Link] Found match via fallback semantic search`);
+          return entry;
+        }
+      }
+      return null;
     }
+    
+    if (!matches || matches.length === 0) {
+      console.log(`[Follow-up Link] ⚠️ No KB entry found for: ${metadataPersona} > ${topic} > ${subtopic}`);
+      return null;
+    }
+    
+    // CRITICAL FIX: Filter to exact matches only
+    // JSONB contains() might return partial matches, so we need explicit exact string matching
+    const exactMatches = matches.filter(m => {
+      const meta = m.metadata as SupabaseDocumentMetadata;
+      const exactPersonaMatch = meta.persona === metadataPersona;
+      const exactTopicMatch = meta.topic === topic;
+      const exactSubtopicMatch = meta.subtopic === subtopic;
+      
+      return exactPersonaMatch && exactTopicMatch && exactSubtopicMatch;
+    });
+    
+    if (exactMatches.length === 0) {
+      console.log(`[Follow-up Link] ⚠️ No EXACT match found for: ${metadataPersona} > ${topic} > ${subtopic}`);
+      console.log(`[Follow-up Link] Found ${matches.length} potential match(es), but none matched exactly:`);
+      // Log what was found for debugging
+      matches.slice(0, 5).forEach((m, idx) => {
+        const meta = m.metadata as SupabaseDocumentMetadata;
+        const personaMatch = meta.persona === metadataPersona ? '✓' : '✗';
+        const topicMatch = meta.topic === topic ? '✓' : '✗';
+        const subtopicMatch = meta.subtopic === subtopic ? '✓' : '✗';
+        console.log(`  [${idx + 1}] Persona: ${personaMatch} Topic: ${topicMatch} Subtopic: ${subtopicMatch}`);
+        console.log(`      Found: "${meta.persona}" > "${meta.topic}" > "${meta.subtopic}"`);
+      });
+      return null;
+    }
+    
+    // If multiple exact matches exist (should be rare - only if section was split), prefer section_index: 0
+    if (exactMatches.length > 1) {
+      console.log(`[Follow-up Link] Multiple exact matches found (${exactMatches.length}) for: ${metadataPersona} > ${topic} > ${subtopic}`);
+      const firstChunk = exactMatches.find(m => {
+        const meta = m.metadata as SupabaseDocumentMetadata;
+        return meta?.section_index === 0;
+      });
+      if (firstChunk) {
+        console.log(`[Follow-up Link] Using section_index: 0 (first chunk)`);
+      }
+    }
+    
+    // Select from exact matches only
+    const match = exactMatches.find(m => {
+      const meta = m.metadata as SupabaseDocumentMetadata;
+      return meta?.section_index === 0;
+    }) || exactMatches[0];
+    
+    // Convert Supabase result to KBEntry format
+    const metadata = match.metadata as SupabaseDocumentMetadata;
+    const rawContentSections = metadata.content_sections as Partial<ContentSections> | undefined;
+    const contentSections: ContentSections = {
+      has_content: rawContentSections?.has_content ?? false,
+      has_action_tips: rawContentSections?.has_action_tips ?? false,
+      has_motivation: rawContentSections?.has_motivation ?? false,
+      has_followup: rawContentSections?.has_followup ?? false,
+      has_habit_strategy: rawContentSections?.has_habit_strategy ?? false,
+    };
+    
+    const kbEntry: KBEntry = {
+      id: match.id || '',
+      content: match.content,
+      metadata: {
+        persona: metadata.persona || '',
+        topic: metadata.topic || '',
+        subtopic: metadata.subtopic || '',
+        keywords: metadata.keywords || [],
+        intent_patterns: metadata.intent_patterns || [],
+        content_sections: contentSections,
+        follow_up_links: metadata.follow_up_links as FollowUpLink[] | undefined,
+        source: metadata.source,
+        section_index: metadata.section_index,
+      },
+    };
+    
+    console.log(`[Follow-up Link] ✅ Retrieved KB entry: ${metadata.persona} > ${metadata.topic} > ${metadata.subtopic}`);
+    return kbEntry;
+    
+  } catch (error) {
+    console.error(`[Follow-up Link] Unexpected error in retrieveKBEntryByMetadata:`, error);
+    return null;
   }
-  
-  return null;
 }
 
 /**
  * Handle follow-up question with link resolution
+ * FIX: Do not use semantic search - match user query directly to follow_up_links
+ * Route linked options to KB, unlinked options to LLM
  */
 async function handleFollowUpWithLinks(
   userQuery: string,
@@ -299,57 +451,39 @@ async function handleFollowUpWithLinks(
     return null;
   }
   
-  // Get the follow-up question from the current KB entry
-  const followUpQuestion = extractFollowUpQuestion(currentKBEntry.content);
-  if (!followUpQuestion) {
-    return null;
-  }
+  console.log(`[Follow-up Link] Processing follow-up with ${followUpLinks.length} link(s), skipping semantic search`);
   
-  // Parse options and match to links
-  const options = parseFollowUpOptions(followUpQuestion, followUpLinks);
+  // Try to match user query directly to follow_up_links by label/topic
+  // This bypasses option parsing and matches directly
+  const matchedLink = findMatchingLink(userQuery, followUpLinks);
   
-  if (options.length === 0) {
-    return null;
-  }
-  
-  // Check if user query matches any option with a link
-  const normalizedQuery = userQuery.toLowerCase().trim();
-  
-  for (const { option, link } of options) {
-    const normalizedOption = option.toLowerCase();
+  if (matchedLink) {
+    // Found a direct match to a link - retrieve the linked KB entry
+    console.log(`[Follow-up Link] ✅ Direct match found! Query: "${userQuery.substring(0, 50)}" -> Link: ${matchedLink.topic} > ${matchedLink.subtopic} (label: "${matchedLink.label.substring(0, 50)}")`);
     
-    // Check if user query matches this option (contains key terms)
-    const optionTerms = normalizedOption.split(/\s+/).filter(term => term.length > 3);
-    const matchesOption = optionTerms.some(term => normalizedQuery.includes(term));
+    // Retrieve the linked KB entry using direct metadata query (no semantic search)
+    const linkedEntry = await retrieveKBEntryByMetadata(
+      matchedLink.persona,
+      matchedLink.topic,
+      matchedLink.subtopic
+    );
     
-    if (matchesOption && link) {
-      // Found a match with a link - retrieve the linked KB entry
-      console.log(`[Follow-up Link] Matched option "${option}" to KB entry: ${link.topic} > ${link.subtopic}`);
-      
-      // Retrieve the linked KB entry
-      const linkedEntry = await retrieveKBEntryByMetadata(
-        link.persona,
-        link.topic,
-        link.subtopic
-      );
-      
-      if (linkedEntry) {
-        const verbatimResponse = formatVerbatimResponse([linkedEntry], true);
-        return {
-          response: verbatimResponse,
-          persona: link.persona as Persona,
-          retrievalMode: mode,
-          usedKB: true,
-          source: "kb",
-          kbEntries: [linkedEntry],
-          isVerbatim: true,
-        };
-      }
-    } else if (matchesOption && !link) {
-      // Matched option but no link - route to LLM
-      console.log(`[Follow-up Link] Matched option "${option}" but no link - routing to LLM`);
+    if (linkedEntry) {
+      const verbatimResponse = formatVerbatimResponse([linkedEntry], true);
       return {
-        persona,
+        response: verbatimResponse,
+        persona: matchedLink.persona as Persona,
+        retrievalMode: mode,
+        usedKB: true,
+        source: "kb",
+        kbEntries: [linkedEntry],
+        isVerbatim: true,
+      };
+    } else {
+      console.log(`[Follow-up Link] ⚠️ Linked KB entry not found: ${matchedLink.persona} > ${matchedLink.topic} > ${matchedLink.subtopic}`);
+      // Still route to LLM if KB entry not found
+      return {
+        persona: matchedLink.persona as Persona,
         retrievalMode: mode,
         usedKB: false,
         source: "llm",
@@ -357,8 +491,65 @@ async function handleFollowUpWithLinks(
     }
   }
   
-  // No match found - return null to use default flow
-  return null;
+  // If no direct match, try parsing follow-up question to match options
+  // This is a fallback for cases where user query doesn't directly match link labels
+  const followUpQuestion = extractFollowUpQuestion(currentKBEntry.content);
+  if (followUpQuestion) {
+    const options = parseFollowUpOptions(followUpQuestion, followUpLinks);
+    const normalizedQuery = userQuery.toLowerCase().trim();
+    
+    for (const { option, link } of options) {
+      const normalizedOption = option.toLowerCase();
+      
+      // Check if user query matches this option (contains key terms)
+      const optionTerms = normalizedOption.split(/\s+/).filter(term => term.length > 3);
+      const matchesOption = optionTerms.length > 0 && optionTerms.some(term => normalizedQuery.includes(term));
+      
+      if (matchesOption) {
+        if (link) {
+          // Matched option with a link - retrieve the linked KB entry
+          console.log(`[Follow-up Link] ✅ Matched option "${option}" to KB entry: ${link.topic} > ${link.subtopic}`);
+          
+          const linkedEntry = await retrieveKBEntryByMetadata(
+            link.persona,
+            link.topic,
+            link.subtopic
+          );
+          
+          if (linkedEntry) {
+            const verbatimResponse = formatVerbatimResponse([linkedEntry], true);
+            return {
+              response: verbatimResponse,
+              persona: link.persona as Persona,
+              retrievalMode: mode,
+              usedKB: true,
+              source: "kb",
+              kbEntries: [linkedEntry],
+              isVerbatim: true,
+            };
+          }
+        } else {
+          // Matched option but no link - route to LLM
+          console.log(`[Follow-up Link] Matched option "${option}" but no link - routing to LLM`);
+          return {
+            persona,
+            retrievalMode: mode,
+            usedKB: false,
+            source: "llm",
+          };
+        }
+      }
+    }
+  }
+  
+  // No match found - route to LLM (do not use semantic search)
+  console.log(`[Follow-up Link] No match found for query: "${userQuery.substring(0, 50)}" - routing to LLM (skipping KB search)`);
+  return {
+    persona,
+    retrievalMode: mode,
+    usedKB: false,
+    source: "llm",
+  };
 }
 
 /**
@@ -388,7 +579,7 @@ export async function orchestrateRAG(
 
     // Step 1.5: Detect and enhance follow-up questions
     const isFollowUp = isFollowUpQuestion(userQuery, allHistory);
-    let queryForKB = userQuery;
+    const queryForKB = userQuery;
     
     // Step 2: Classify persona (use original query, not enhanced) - do this early for follow-up link resolution
     let persona = classifyPersona(userQuery);
@@ -396,6 +587,7 @@ export async function orchestrateRAG(
     if (isFollowUp) {
       console.log(`[RAG Orchestrator] Follow-up question detected`);
       
+      // FIX: Skip semantic search when follow_up_links exist
       // Try to get the last KB entry from conversation history
       // Look for the last assistant message and try to find the KB entry it came from
       let lastKBEntry: KBEntry | null = null;
@@ -434,11 +626,15 @@ export async function orchestrateRAG(
         }
       }
       
-      // If we found a KB entry with follow-up links, try to resolve the follow-up
+      // If we found a KB entry with follow-up links, resolve without semantic search
       if (lastKBEntry && lastKBEntry.metadata.follow_up_links && lastKBEntry.metadata.follow_up_links.length > 0) {
+        console.log(`[RAG Orchestrator] KB entry with follow_up_links found - skipping semantic search, matching directly to links`);
+        
         // Step 3: Determine retrieval mode (use provided mode or default based on persona)
         const retrievalModeForLink = mode || getRetrievalMode(persona);
         
+        // Handle follow-up with links - this will match user query to links and route accordingly
+        // It will NOT use semantic search, only direct link matching
         const linkResult = await handleFollowUpWithLinks(
           userQuery,
           lastKBEntry,
@@ -451,7 +647,8 @@ export async function orchestrateRAG(
           return linkResult;
         }
         
-        // If no link match but we have follow-up links, skip KB search and go to LLM
+        // handleFollowUpWithLinks now handles routing to LLM if no match
+        // This should not happen, but just in case:
         console.log(`[RAG Orchestrator] Follow-up question with links but no match - routing to LLM (skipping KB search)`);
         return {
           persona,
