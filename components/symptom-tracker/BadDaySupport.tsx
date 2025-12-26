@@ -25,7 +25,7 @@ export default function BadDaySupport() {
   if (!isBadDay) return null;
 
   return (
-    <div className="rounded-xl border border-[#D4A5A5]/50 bg-[#D4A5A5]/10 p-6 mb-6">
+    <div className="rounded-xl border border-[#ff74b1]/50 bg-[#ff74b1]/10 p-6 mb-6">
       <p className="text-[#3D3D3D] font-medium mb-2">
         Tough day. You've logged {logs.length} symptoms today, mostly severe. That's hard.
       </p>
@@ -34,7 +34,7 @@ export default function BadDaySupport() {
       </p>
       <button
         onClick={() => router.push("/chat/lisa")}
-        className="text-[#D4A5A5] hover:text-[#C49494] text-sm font-medium transition-colors cursor-pointer underline"
+        className="text-[#ff74b1] hover:text-[#d85a9a] text-sm font-medium transition-colors cursor-pointer underline"
       >
         💬 Want to talk to Lisa about how you're feeling?
       </button>

@@ -176,11 +176,11 @@ export default function SymptomsPage() {
     return (
       <div className="mx-auto max-w-7xl p-6 sm:p-8 space-y-8">
         <div className="animate-pulse">
-          <div className="h-10 w-64 bg-[#333333] rounded mb-4" />
-          <div className="h-6 w-96 bg-[#333333] rounded mb-8" />
+          <div className="h-10 w-64 bg-foreground/10 rounded mb-4" />
+          <div className="h-6 w-96 bg-foreground/10 rounded mb-8" />
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
             {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="h-32 bg-[#242424] rounded-2xl" />
+              <div key={i} className="h-32 bg-foreground/10 rounded-2xl" />
             ))}
           </div>
         </div>
@@ -194,11 +194,11 @@ export default function SymptomsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl p-6 sm:p-8 space-y-8 min-h-screen bg-[#FDF8F6]">
+    <div className="mx-auto max-w-7xl p-6 sm:p-8 space-y-8 min-h-screen" style={{ background: 'linear-gradient(to bottom, #fff5f9, #f0f9ff)' }}>
       {/* Header */}
       <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#D4A5A5]">
+          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight bg-clip-text text-transparent" style={{ backgroundImage: 'linear-gradient(to right, #ff74b1 0%, #ffeb76 50%, #65dbff 100%)' }}>
             Daily Check-in
           </h1>
         </div>
@@ -208,7 +208,7 @@ export default function SymptomsPage() {
             onClick={() => {
               setIsSelectorOpen(true);
             }}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-dark text-white font-semibold rounded-xl transition-colors shadow-md cursor-pointer"
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white font-semibold rounded-xl transition-colors shadow-md cursor-pointer"
           >
             <Plus className="h-5 w-5" />
             Add Symptom
@@ -265,7 +265,7 @@ export default function SymptomsPage() {
                     // For now, just show a message
                     alert("View all symptoms feature coming soon!");
                   }}
-                  className="text-[#D4A5A5] hover:text-[#C49494] text-sm font-medium transition-colors cursor-pointer"
+                  className="text-[#ff74b1] hover:text-primary-dark text-sm font-medium transition-colors cursor-pointer"
                 >
                   View All Symptoms
                 </button>

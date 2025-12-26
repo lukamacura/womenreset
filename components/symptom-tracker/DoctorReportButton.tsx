@@ -68,7 +68,7 @@ ${report.questions.map((q: string, i: number) => `  ${i + 1}. ${q}`).join("\n")}
       <button
         onClick={handleGenerateReport}
         disabled={isGenerating}
-        className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#D4A5A5] hover:bg-[#C49494] text-white font-semibold rounded-xl transition-colors shadow-md cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+        className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#ff74b1] hover:bg-[#d85a9a] text-white font-semibold rounded-xl transition-colors shadow-md cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {isGenerating ? (
           <>
@@ -83,7 +83,7 @@ ${report.questions.map((q: string, i: number) => `  ${i + 1}. ${q}`).join("\n")}
         )}
       </button>
       {error && (
-        <p className="mt-2 text-sm text-[#D4A5A5]">{error}</p>
+        <p className="mt-2 text-sm text-[#ff74b1]">{error}</p>
       )}
     </div>
   );

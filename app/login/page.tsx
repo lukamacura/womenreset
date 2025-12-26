@@ -2,10 +2,10 @@
 
 import { useEffect, useMemo, useState, Suspense } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { getRedirectBaseUrl, AUTH_CALLBACK_PATH } from "@/lib/constants";
+import { Mail, CheckCircle2 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +16,7 @@ function LoginForm() {
   const [err, setErr] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
 
   // Get redirect target from URL params
   const redirectTarget = searchParams.get("redirectedFrom") || "/dashboard";
@@ -134,7 +135,7 @@ function LoginForm() {
 
       // Magic link sent successfully
       console.log("Magic link sent successfully:", data);
-      setInfo("Check your email! We sent you a magic link. Click it to log in.");
+      setEmailSent(true);
       setLoading(false);
     } catch (e) {
       console.error("Unexpected error during login:", e);
@@ -143,23 +144,63 @@ function LoginForm() {
     }
   }
 
-  return (
-    <>
-      <main className="relative overflow-hidden mx-auto max-w-md p-6 sm:p-8">
+  // Email sent view
+  if (emailSent) {
+    return (
+      <main className="relative overflow-hidden mx-auto max-w-md p-6 sm:p-8 min-h-screen flex flex-col justify-center">
         {/* Subtle background accents */}
         <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 opacity-40">
           <div className="absolute -top-24 -left-24 h-56 w-56 rounded-full bg-primary/20 blur-3xl" />
           <div className="absolute -bottom-24 -right-24 h-56 w-56 rounded-full bg-primary/10 blur-3xl" />
         </div>
 
-        <h1 className="text-3xl sm:text-5xl font-script font-extrabold tracking-tight mb-6 text-balance pt-16">
-          Log in
-        </h1>
+        <div className="flex-1 flex flex-col justify-center items-center max-w-md mx-auto w-full text-center space-y-6">
+          <div className="rounded-full bg-primary/10 p-6">
+            <Mail className="w-12 h-12 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-3xl sm:text-4xl font-bold mb-3">
+              Check your email
+            </h1>
+            <p className="text-lg text-muted-foreground">
+              We sent you a magic link at <strong>{email}</strong>
+            </p>
+            <p className="text-muted-foreground mt-2">
+              Click the link in your email to log in to your account.
+            </p>
+          </div>
+          {err && (
+            <div className="rounded-xl border border-error/30 bg-error/10 p-3 text-sm text-error max-w-md">
+              {err}
+            </div>
+          )}
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <main className="relative overflow-hidden mx-auto max-w-md p-6 sm:p-8 min-h-screen flex flex-col justify-center">
+      {/* Subtle background accents */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 opacity-40">
+        <div className="absolute -top-24 -left-24 h-56 w-56 rounded-full bg-primary/20 blur-3xl" />
+        <div className="absolute -bottom-24 -right-24 h-56 w-56 rounded-full bg-primary/10 blur-3xl" />
+      </div>
+
+      <div className="flex-1 flex flex-col justify-center">
+        <div className="mb-8">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight mb-3 text-balance">
+            Welcome back
+          </h1>
+          <p className="text-lg text-muted-foreground">
+            We&apos;re so glad you&apos;re here. Let&apos;s get you back to your journey.
+          </p>
+        </div>
 
         <form onSubmit={onSubmit} className="space-y-4" noValidate>
           {/* Email */}
           <div>
-            <label htmlFor="email" className="mb-2 block text-sm font-medium">
+            <label htmlFor="email" className="mb-2 block text-sm font-medium text-foreground">
               Email
             </label>
             <input
@@ -167,7 +208,7 @@ function LoginForm() {
               name="email"
               inputMode="email"
               autoComplete="email"
-              className="w-full rounded-xl border border-foreground/15 bg-background px-3 py-2 ring-offset-background placeholder:text-muted-foreground/70 focus:outline-none focus:ring-2 focus:ring-primary/40"
+              className="w-full rounded-xl border border-foreground/15 bg-background px-4 py-3 ring-offset-background placeholder:text-muted-foreground/70 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
               type="email"
               placeholder="you@example.com"
               value={email}
@@ -179,7 +220,7 @@ function LoginForm() {
 
           {/* Submit */}
           <button
-            className="group w-full inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 font-semibold text-primary-foreground shadow-sm ring-1 ring-inset ring-primary/20 transition hover:brightness-95 disabled:opacity-60 disabled:cursor-not-allowed"
+            className="group w-full inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 font-semibold text-primary-foreground shadow-sm ring-1 ring-inset ring-primary/20 transition hover:brightness-95 hover:shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
             type="submit"
             disabled={!canSubmit}
           >
@@ -208,28 +249,14 @@ function LoginForm() {
           </div>
         )}
 
-        <p className="mt-6 text-md text-muted-foreground">
+        <p className="mt-6 text-md text-muted-foreground text-center">
           Don&apos;t have an account? {" "}
-          <Link href="/register" className="bg-primary-light text-primary-dark rounded-md px-2 py-1 font-bold underline-offset-4 hover:opacity-80">
+          <Link href="/register" className="text-primary font-semibold underline-offset-4 hover:opacity-80">
             Sign up
           </Link>
         </p>
-      </main>
-
-      {/* Register Illustration - 70-80% Width (outside main to break max-w-md constraint) */}
-      <div className="w-full flex justify-center">
-        <div className="w-[75%] max-w-4xl">
-          <Image
-            src="/register.svg"
-            alt="Registration illustration"
-            width={1920}
-            height={400}
-            className="w-full h-auto"
-            priority
-          />
-        </div>
       </div>
-    </>
+    </main>
   );
 }
 

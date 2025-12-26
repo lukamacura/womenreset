@@ -119,7 +119,7 @@ export default function MilestoneCelebration() {
           </p>
           <button
             onClick={handleDismiss}
-            className="px-6 py-2 bg-[#D4A5A5] hover:bg-[#C49494] text-white font-medium rounded-xl transition-colors cursor-pointer"
+            className="px-6 py-2 bg-[#ff74b1] hover:bg-[#d85a9a] text-white font-medium rounded-xl transition-colors cursor-pointer"
           >
             Continue
           </button>

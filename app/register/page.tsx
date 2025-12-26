@@ -214,9 +214,12 @@ export default function RegisterPage() {
 
   // Loading messages for results screen
   const loadingMessages = [
-    "Looking at your symptoms...",
-    "Finding connections...",
-    "Preparing your personalized plan...",
+    "Taking it all in...",
+    "Connecting the dots...",
+    "Doing the math...",
+    "Designing your plan...",
+    "Getting ready to launch...",
+    "Launching your plan...",
   ];
 
   // Handle results loading animation
@@ -228,22 +231,22 @@ export default function RegisterPage() {
       setMessageIndex(0);
       setDisplayScore(0);
 
-      // Rotate messages every 1 second
+      // Rotate messages every 600ms (faster rotation to show more messages)
       const messageInterval = setInterval(() => {
         setMessageIndex((prev) => (prev + 1) % loadingMessages.length);
-      }, 1000);
+      }, 600);
 
       // Progress bar animation
       const progressInterval = setInterval(() => {
-        setProgress((prev) => Math.min(prev + 2, 100));
+        setProgress((prev) => Math.min(prev + 1.5, 100));
       }, 60);
 
-      // Hide loading after 3.5 seconds
+      // Hide loading after 5 seconds (longer duration to show more messages)
       const loadingTimer = setTimeout(() => {
         setIsResultsLoading(false);
         clearInterval(messageInterval);
         clearInterval(progressInterval);
-      }, 3500);
+      }, 5000);
 
       return () => {
         clearInterval(messageInterval);
@@ -389,6 +392,17 @@ export default function RegisterPage() {
         goal: goal,
         name: firstName.trim() || null,
       };
+      
+      // Debug logging - verify all quiz answers are present
+      console.log("Quiz answers to encode:", {
+        top_problems: quizAnswers.top_problems,
+        severity: quizAnswers.severity,
+        timing: quizAnswers.timing,
+        tried_options: quizAnswers.tried_options,
+        doctor_status: quizAnswers.doctor_status,
+        goal: quizAnswers.goal,
+        name: quizAnswers.name,
+      });
       
       // Encode quiz answers as base64 to pass through URL
       const encodedAnswers = btoa(JSON.stringify(quizAnswers));
@@ -579,7 +593,7 @@ export default function RegisterPage() {
 
       {/* Results Phase */}
       {phase === "results" && (
-        <div className="flex-1 flex flex-col bg-[#FDF8F6] min-h-screen -mx-6 sm:-mx-8 px-6 sm:px-8">
+        <div className="flex-1 flex flex-col min-h-screen -mx-6 sm:-mx-8 px-6 sm:px-8" style={{ background: 'linear-gradient(to bottom, #fff5f9, #f0f9ff)' }}>
           <AnimatePresence mode="wait">
             {isResultsLoading ? (
               // Loading Screen
@@ -592,16 +606,16 @@ export default function RegisterPage() {
               >
                 {/* Animated icon - pulse + rotate */}
                 <div className="relative mb-8">
-                  <div className="w-20 h-20 rounded-full bg-[#D4A5A5] flex items-center justify-center animate-pulse">
+                  <div className="w-20 h-20 rounded-full flex items-center justify-center animate-pulse" style={{ background: 'linear-gradient(135deg, #ff74b1 0%, #ffeb76 50%, #65dbff 100%)' }}>
                     <Sparkles className="w-10 h-10 text-white animate-spin-slow" />
                   </div>
                   {/* Rotating ring around icon */}
-                  <div className="absolute inset-0 w-20 h-20 border-4 border-transparent border-t-[#D4A5A5]/30 rounded-full animate-spin" />
+                  <div className="absolute inset-0 w-20 h-20 border-4 border-transparent rounded-full animate-spin" style={{ borderTopColor: 'rgba(255, 116, 177, 0.3)', borderRightColor: 'rgba(255, 235, 118, 0.3)', borderBottomColor: 'rgba(101, 219, 255, 0.3)', borderLeftColor: 'rgba(255, 180, 213, 0.3)' }} />
                 </div>
 
                 {/* Main text */}
                 <h2 className="text-xl font-medium text-[#3D3D3D] mb-3">
-                  Analyzing your answers...
+                Getting to know you better...
                 </h2>
 
                 {/* Rotating message with fade */}
@@ -612,8 +626,8 @@ export default function RegisterPage() {
                 {/* Progress bar */}
                 <div className="w-48 h-1.5 bg-[#E8DDD9] rounded-full mt-8 overflow-hidden">
                   <div
-                    className="h-full bg-[#D4A5A5] rounded-full transition-all duration-100 ease-out"
-                    style={{ width: `${progress}%` }}
+                    className="h-full rounded-full transition-all duration-100 ease-out"
+                    style={{ width: `${progress}%`, background: 'linear-gradient(to right, #ff74b1, #ffeb76, #65dbff)' }}
                   />
                 </div>
               </motion.div>
@@ -632,7 +646,7 @@ export default function RegisterPage() {
                   transition={{ delay: 0.2 }}
                   className="flex justify-center mb-6"
                 >
-                  <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center">
+                  <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #ff74b1 0%, #ffb4d5 100%)' }}>
                     <HeartPulse className="w-8 h-8 text-white" />
                   </div>
                 </motion.div>
@@ -785,7 +799,7 @@ export default function RegisterPage() {
                   className="mb-8 text-center"
                 >
                   <div className="flex items-center justify-center gap-2 text-sm text-[#5A5A5A]">
-                    <Users className="w-4 h-4 text-[#9DBEBB]" />
+                    <Users className="w-4 h-4 text-info" />
                     <span>8,382 women joined this month</span>
                   </div>
                 </motion.div>
@@ -804,13 +818,14 @@ export default function RegisterPage() {
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="Enter your email"
                     required
-                    className="w-full px-4 py-4 rounded-xl border border-[#E8DDD9] bg-white text-[#3D3D3D] placeholder:text-[#9A9A9A] focus:outline-none focus:ring-2 focus:ring-[#D4A5A5]/50 focus:border-[#D4A5A5]"
+                    className="w-full px-4 py-4 rounded-xl border border-[#E8DDD9] bg-white text-[#3D3D3D] placeholder:text-[#9A9A9A] focus:outline-none focus:ring-2 focus:ring-[#ff74b1]/50 focus:border-[#ff74b1]"
                   />
 
                   <button
                     type="submit"
                     disabled={loading || !emailValid}
-                    className="w-full py-4 bg-linear-to-r from-pink-500 to-rose-600 font-bold hover:bg-[#C99494] text-white rounded-xl transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full py-4 font-bold text-white rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] hover:shadow-lg"
+                    style={{ background: 'linear-gradient(135deg, #ff74b1 0%, #ffeb76 50%, #65dbff 100%)', boxShadow: '0 4px 15px rgba(255, 116, 177, 0.4)' }}
                   >
                     {loading ? (
                       <>

@@ -12,7 +12,7 @@ const MenoLisaHero: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen w-full bg-linear-to-b from-primary-light via-primary-light/80 to-primary/30 text-navy flex flex-col">
+    <div className="min-h-screen w-full text-navy flex flex-col" style={{ background: 'linear-gradient(to bottom, #ffb4d5 0%, #fff5f9 30%, #f0f9ff 60%, #a6eaff 100%)' }}>
       {/* Hero content */}
       <main className="mx-auto flex max-w-8xl flex-col items-center px-2 pb-16 pt-0 flex-1 w-full">
         {/* Avatar */}
@@ -22,7 +22,7 @@ const MenoLisaHero: React.FC = () => {
 
         {/* Headline */}
         <section className="flex flex-col justify-start items-center w-full text-center py-0 font-sans flex-1">
-          <h1 className="mx-auto max-w-4xl text-5xl pt-14 sm:text-6xl md:text-7xl font-extrabold leading-tight tracking-tight bg-linear-to-r from-primary-dark via-primary to-gold bg-clip-text text-transparent drop-shadow-xl">
+          <h1 className="mx-auto max-w-4xl text-5xl pt-14 sm:text-6xl md:text-7xl font-extrabold leading-tight tracking-tight bg-clip-text text-transparent drop-shadow-xl" style={{ backgroundImage: 'linear-gradient(to right, #ff74b1 0%, #ffeb76 50%, #65dbff 100%)' }}>
             Smart AI Coach for Women in Menopause
           </h1>
           <p className="mx-auto mt-4 max-w-2xl font-script text-lg sm:text-2xl md:text-3xl font-medium text-navy/70">
@@ -48,7 +48,8 @@ const MenoLisaHero: React.FC = () => {
 
             <form
               onSubmit={handleSubmit}
-              className="rounded-4xl bg-linear-to-br from-primary-light via-primary-light/90 to-blue-bell-light/90 p-4 text-foreground shadow-2xl backdrop-blur w-full max-w-2xl border border-primary-light/50"
+              className="rounded-4xl p-4 text-foreground shadow-2xl backdrop-blur w-full max-w-2xl border-2 border-white/50"
+              style={{ background: 'linear-gradient(135deg, #ffb4d5 0%, #fff4a3 30%, #a6eaff 60%, rgba(255,255,255,0.9) 100%)' }}
             >
 
 
@@ -66,15 +67,15 @@ const MenoLisaHero: React.FC = () => {
 
               {/* Badges */}
               <div className="mt-4 flex flex-wrap items-center justify-center gap-3 text-md">
-                <div className="flex items-center gap-2 rounded-full bg-primary-light/50 px-4 py-2 shadow-sm transition-transform duration-300 hover:scale-105">
+                <div className="flex items-center gap-2 rounded-full px-4 py-2 shadow-sm transition-transform duration-300 hover:scale-105 text-white font-medium" style={{ background: 'linear-gradient(135deg, #ff74b1 0%, #ffb4d5 100%)' }}>
                   <FileText className="h-4 w-4" />
                   <span>Evidence informed</span>
                 </div>
-                <div className="flex items-center gap-2 rounded-full bg-primary-light/50 px-4 py-2 shadow-sm transition-transform duration-300 hover:scale-105">
+                <div className="flex items-center gap-2 rounded-full px-4 py-2 shadow-sm transition-transform duration-300 hover:scale-105 text-[#1D3557] font-medium" style={{ background: 'linear-gradient(135deg, #ffeb76 0%, #fff4a3 100%)' }}>
                   <Lock className="h-4 w-4" />
                   <span>Private &amp; secure</span>
                 </div>
-                <div className="flex items-center gap-2 rounded-full bg-primary-light/50 px-4 py-2 shadow-sm transition-transform duration-300 hover:scale-105">
+                <div className="flex items-center gap-2 rounded-full px-4 py-2 shadow-sm transition-transform duration-300 hover:scale-105 text-white font-medium" style={{ background: 'linear-gradient(135deg, #65dbff 0%, #a6eaff 100%)' }}>
                   <Gift className="h-4 w-4" />
                   <span>3 days free</span>
                 </div>

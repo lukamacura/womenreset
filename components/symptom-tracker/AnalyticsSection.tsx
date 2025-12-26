@@ -90,7 +90,7 @@ export default function AnalyticsSection() {
           {insights.length > 5 && (
             <button
               onClick={() => setShowFullPatterns(!showFullPatterns)}
-              className="mt-6 text-[#D4A5A5] hover:text-[#C49494] text-sm font-medium transition-colors cursor-pointer"
+              className="mt-6 text-[#ff74b1] hover:text-[#d85a9a] text-sm font-medium transition-colors cursor-pointer"
             >
               {showFullPatterns ? 'Show less' : 'See full patterns →'}
             </button>

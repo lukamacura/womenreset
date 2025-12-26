@@ -10,7 +10,7 @@ interface PersonalizedGreetingProps {
 
 export default function PersonalizedGreeting({ userName }: PersonalizedGreetingProps) {
   const { logs } = useSymptomLogs(30);
-  const { totalLogged } = useWeekSummary();
+  useWeekSummary();
 
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
@@ -58,7 +58,6 @@ export default function PersonalizedGreeting({ userName }: PersonalizedGreetingP
     }).length;
   }, [logs]);
 
-  const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
   const currentDay = new Date().getDate();
 
   return (
@@ -68,7 +67,7 @@ export default function PersonalizedGreeting({ userName }: PersonalizedGreetingP
       </h2>
       {streak > 0 && (
         <p className="text-[#3D3D3D] text-sm mb-1">
-          🔥 {streak}-day streak — You're building great habits{userName ? `, ${userName}` : ""}!
+          🔥 {streak}-day streak - You&lsquo;re building great habits{userName ? `, ${userName}` : ""}!
         </p>
       )}
       <p className="text-[#6B6B6B] text-sm">

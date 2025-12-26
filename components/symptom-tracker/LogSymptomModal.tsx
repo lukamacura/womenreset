@@ -139,7 +139,7 @@ export default function LogSymptomModal({
                   className={`flex flex-col items-center gap-2 px-6 py-4 rounded-xl transition-all cursor-pointer
                     ${
                       severity === level
-                        ? "bg-[#D4A5A5] text-white scale-105 shadow-md"
+                        ? "bg-[#ff74b1] text-white scale-105 shadow-md"
                         : "bg-[#F5EDE8] text-[#6B6B6B] hover:bg-[#E8E0DB] hover:text-[#3D3D3D]"
                     }`}
                 >
@@ -166,7 +166,7 @@ export default function LogSymptomModal({
                 className={`px-4 py-2 rounded-full text-sm transition-all cursor-pointer
                   ${
                     selectedTriggers.includes(trigger)
-                      ? "bg-[#D4A5A5] text-white"
+                      ? "bg-[#ff74b1] text-white"
                       : "bg-[#F5EDE8] text-[#3D3D3D] hover:bg-[#E8E0DB]"
                   }`}
               >
@@ -187,15 +187,15 @@ export default function LogSymptomModal({
             onChange={(e) => setNotes(e.target.value)}
             onClick={(e) => e.stopPropagation()}
             placeholder="Add any notes..."
-            className="w-full bg-[#FDF8F6] text-[#3D3D3D] rounded-xl p-4 text-sm 
+            className="w-full bg-white text-[#3D3D3D] rounded-xl p-4 text-sm 
                        placeholder-[#9A9A9A] resize-none h-20
-                       focus:outline-none focus:ring-2 focus:ring-[#D4A5A5] border border-[#E8E0DB]"
+                       focus:outline-none focus:ring-2 focus:ring-[#ff74b1] border border-[#E8E0DB]"
           />
         </div>
 
         {/* Error Message */}
         {error && (
-          <div className="mb-4 rounded-lg border border-[#D4A5A5]/30 bg-[#D4A5A5]/10 p-3 text-sm text-[#D4A5A5]">
+          <div className="mb-4 rounded-lg border border-[#ff74b1]/30 bg-[#ff74b1]/10 p-3 text-sm text-[#ff74b1]">
             {error}
           </div>
         )}

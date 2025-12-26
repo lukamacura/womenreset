@@ -8,9 +8,9 @@
   --font-script: var(--font-script), cursive;
 
   /* Brand Colors - Primary (Pink) */
-  --color-primary: #FF7B9C;
-  --color-primary-light: #FFC3D0;
-  --color-primary-dark: #E36280;
+  --color-primary: #ff74b1;
+  --color-primary-light: #ffb4d5;
+  --color-primary-dark: #d85a9a;
 
 
 
@@ -19,16 +19,16 @@
   --color-success-dark: #2F6B46;
   --color-error: #D64545;
   --color-warning: #E8B63A;
-  --color-info: #3E92CC;
-  --color-info-dark: #2B6A94;
+  --color-info: #65dbff;
+  --color-info-dark: #4bc4e6;
 
   /* Background & Foreground */
-  --color-background: #FFF5F7; /* Very soft pink tint */
+  --color-background: linear-gradient(to bottom, #fff5f9, #f0f9ff); /* Gradient from light pink to light blue */
   --color-foreground: #1D3557; /* Neutral dark gray for body text */
 
   /* Typography Colors */
   --color-headline: #1D3557; /* Navy for headlines */
-  --color-link: #E36280; /* Pink Dark for links */
+  --color-link: #ff74b1; /* Primary pink for links */
 }
 
 /* Global rendering tweaks */
@@ -46,21 +46,21 @@
   --font-script: "Dancing Script", "Segoe Script", cursive;
 
   /* Symptom Tracker Light Theme Colors */
-  --bg-primary: #FDF8F6;        /* Warm off-white (main background) */
+  --bg-primary: linear-gradient(to bottom, #fff5f9, #f0f9ff);        /* Gradient background (main background) */
   --bg-secondary: #FFFFFF;       /* Pure white (cards) */
-  --bg-tertiary: #F5EDE8;        /* Soft beige (hover states) */
+  --bg-tertiary: linear-gradient(to right, #ffb4d5, #a6eaff);        /* Gradient hover states */
   
-  --brand-primary: #D4A5A5;      /* Dusty rose (main accent) */
-  --brand-secondary: #9DBEBB;    /* Sage green (secondary accent) */
-  --brand-dark: #8B7E74;         /* Warm taupe (headers) */
+  --brand-primary: #ff74b1;      /* Bright pink (main accent) */
+  --brand-secondary: #65dbff;    /* Bright blue (secondary accent) */
+  --brand-dark: #1D3557;         /* Dark navy (headers) */
   
   --text-primary: #3D3D3D;       /* Dark gray (main text) */
   --text-secondary: #6B6B6B;     /* Medium gray (secondary text) */
   --text-muted: #9A9A9A;         /* Light gray (hints, timestamps) */
   
-  --severity-low: #A8D5BA;       /* Mint green (1-3) */
-  --severity-medium: #F5D697;    /* Soft yellow (4-6) */
-  --severity-high: #E8B4B4;      /* Soft coral (7-10) */
+  --severity-low: #A8D5BA;       /* Mint green (1-3) - keep for notifications */
+  --severity-medium: #ffeb76;    /* Yellow (4-6) - using new yellow */
+  --severity-high: #ff74b1;      /* Bright pink (7-10) - using new primary */
   
   --border-color: #E8E0DB;
   --shadow-sm: 0 2px 8px rgba(139, 126, 116, 0.08);
@@ -104,7 +104,7 @@ body {
   font-family: var(--font-script);
 }
 
-/* Button Styles */
+/* Button Styles - Colorful Gradients */
 .btn-primary,
 .btn-navy,
 .btn-blue,
@@ -112,57 +112,70 @@ body {
 .btn-green {
   border-radius: 8px;
   font-weight: 600;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
 }
 
 .btn-primary {
-  background-color: var(--PRIMARY_DARK);
-  color: var(--background);
+  background: linear-gradient(135deg, #ff74b1 0%, #ffb4d5 100%);
+  color: white;
+  box-shadow: 0 4px 15px rgba(255, 116, 177, 0.4);
 }
 
 .btn-primary:hover {
-  background-color: var(--PRIMARY);
-  color: #fff;
+  background: linear-gradient(135deg, #d85a9a 0%, #ff74b1 100%);
+  box-shadow: 0 6px 20px rgba(255, 116, 177, 0.6);
+  transform: translateY(-2px);
 }
 
 .btn-navy {
-  background-color: var(--NAVY_LIGHT);
-  color: var(--NAVY_DARK);
+  background: linear-gradient(135deg, #1D3557 0%, #4E6583 100%);
+  color: white;
+  box-shadow: 0 4px 15px rgba(29, 53, 87, 0.3);
 }
 
 .btn-navy:hover {
-  background-color: var(--NAVY);
-  color: #fff;
+  background: linear-gradient(135deg, #0F1E33 0%, #1D3557 100%);
+  box-shadow: 0 6px 20px rgba(29, 53, 87, 0.5);
+  transform: translateY(-2px);
 }
 
 .btn-blue {
-  background-color: var(--BLUE_LIGHT);
-  color: var(--BLUE_DARK);
+  background: linear-gradient(135deg, #65dbff 0%, #a6eaff 100%);
+  color: #1D3557;
+  box-shadow: 0 4px 15px rgba(101, 219, 255, 0.4);
 }
 
 .btn-blue:hover {
-  background-color: var(--BLUE);
-  color: #fff;
+  background: linear-gradient(135deg, #4bc4e6 0%, #65dbff 100%);
+  box-shadow: 0 6px 20px rgba(101, 219, 255, 0.6);
+  transform: translateY(-2px);
+  color: white;
 }
 
 .btn-gold {
-  background-color: var(--GOLD_LIGHT);
-  color: var(--GOLD_DARK);
+  background: linear-gradient(135deg, #ffeb76 0%, #fff4a3 100%);
+  color: #1D3557;
+  box-shadow: 0 4px 15px rgba(255, 235, 118, 0.4);
 }
 
 .btn-gold:hover {
-  background-color: var(--GOLD);
-  color: var(--NAVY);
+  background: linear-gradient(135deg, #e6d468 0%, #ffeb76 100%);
+  box-shadow: 0 6px 20px rgba(255, 235, 118, 0.6);
+  transform: translateY(-2px);
 }
 
 .btn-green {
-  background-color: var(--GREEN_LIGHT);
-  color: var(--GREEN_DARK);
+  background: linear-gradient(135deg, #499F68 0%, #7CCF99 100%);
+  color: white;
+  box-shadow: 0 4px 15px rgba(73, 159, 104, 0.4);
 }
 
 .btn-green:hover {
-  background-color: var(--GREEN);
-  color: #fff;
+  background: linear-gradient(135deg, #2F6B46 0%, #499F68 100%);
+  box-shadow: 0 6px 20px rgba(73, 159, 104, 0.6);
+  transform: translateY(-2px);
 }
 
 /* Link Styles */
@@ -202,7 +215,7 @@ textarea:focus,
 select:focus {
   outline: none;
   border-color: var(--PRIMARY);
-  box-shadow: 0 0 0 2px rgba(255, 123, 156, 0.25); /* soft pink ring */
+  box-shadow: 0 0 0 2px rgba(255, 116, 177, 0.25); /* soft pink ring using new primary */
 }
 
 label {

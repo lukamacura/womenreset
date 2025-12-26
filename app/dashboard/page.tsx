@@ -202,8 +202,8 @@ function TrialStatusCard({
 }) {
   return (
     <AnimatedCard index={0} delay={0}>
-      <div className="relative overflow-hidden rounded-2xl bg-linear-to-br from-blue-bell-light/30 via-primary-light/30 to-white border-2 border-primary-light/50 p-6 lg:p-8 shadow-lg transition-all duration-300 hover:shadow-xl">
-      <div className="absolute top-0 right-0 w-64 h-64 bg-linear-to-br from-blue-bell/20 to-primary/20 rounded-full blur-3xl" />
+      <div className="relative overflow-hidden rounded-2xl border-2 border-info/30 p-6 lg:p-8 shadow-lg transition-all duration-300 hover:shadow-xl" style={{ background: 'linear-gradient(135deg, #a6eaff 0%, #65dbff 20%, #ffb4d5 40%, #fff5f9 100%)' }}>
+      <div className="absolute top-0 right-0 w-64 h-64 bg-linear-to-br from-info/25 via-[#ff74b1]/20 to-[#ffeb76]/15 rounded-full blur-3xl" />
       <div className="relative">
         <div className="flex items-start justify-between mb-4">
           <div className="flex-1 min-w-0">
@@ -239,10 +239,10 @@ function TrialStatusCard({
           </div>
           <div className="h-3 w-full overflow-hidden rounded-full bg-foreground/10">
             <div
-              className={`h-full bg-linear-to-r transition-[width] duration-500 ${
+              className={`h-full transition-[width] duration-500 ${
                 trial.expired
-                  ? "from-error to-error"
-                  : "from-primary to-primary-dark"
+                  ? "bg-linear-to-r from-error to-error"
+                  : "bg-linear-to-r from-[#ff74b1] via-[#ffeb76] to-info"
               }`}
               style={{ width: `${Math.max(0, Math.min(100, trial.progressPct))}%` }}
             />
@@ -279,15 +279,16 @@ function SymptomsOverviewCard({
     <AnimatedCard index={1} delay={100}>
       <Link
         href="/dashboard/symptoms"
-        className="group relative overflow-hidden block h-full rounded-2xl bg-linear-to-br from-orange-50 via-orange-100/50 to-white border-2 border-orange-200/50 p-6 shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-[1.02]"
+        className="group relative overflow-hidden block h-full rounded-2xl border-2 border-[#ff74b1]/30 p-6 shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-[1.02]"
+        style={{ background: 'linear-gradient(135deg, #fff5f9 0%, #ffb4d5 30%, #ffffff 100%)' }}
         >
-      <div className="absolute top-0 right-0 w-32 h-32 bg-linear-to-br from-orange-400/20 to-transparent rounded-full blur-2xl" />
+      <div className="absolute top-0 right-0 w-40 h-40 bg-linear-to-br from-[#ff74b1]/30 to-transparent rounded-full blur-3xl" />
       <div className="relative">
         <div className="flex items-start justify-between mb-4">
-          <div className="p-3 rounded-xl bg-linear-to-br from-orange-500 to-orange-800 shadow-md">
+          <div className="p-3 rounded-xl shadow-md" style={{ background: 'linear-gradient(135deg, #ff74b1 0%, #d85a9a 100%)' }}>
             <Activity className="h-6 w-6 text-white" />
           </div>
-          <ArrowRight className="h-5 w-5 text-orange-500 transition-transform group-hover:translate-x-1" />
+          <ArrowRight className="h-5 w-5 text-[#ff74b1] transition-transform group-hover:translate-x-1" />
         </div>
         <div>
           <h3 className="text-base font-medium text-muted-foreground mb-1">Symptom Tracker</h3>
@@ -338,8 +339,8 @@ function RecentSymptomsCard({
 
   return (
     <AnimatedCard index={4} delay={300}>
-      <div className="relative overflow-hidden rounded-2xl bg-linear-to-br from-white via-primary-light/20 to-white border-2 border-primary-light/50 p-6 shadow-lg transition-all duration-300 hover:shadow-xl">
-      <div className="absolute top-0 right-0 w-40 h-40 bg-linear-to-br from-green-100 to-transparent rounded-full blur-3xl" />
+      <div className="relative overflow-hidden rounded-2xl border-2 border-primary-light/40 p-6 shadow-lg transition-all duration-300 hover:shadow-xl" style={{ background: 'linear-gradient(135deg, #fff5f9 0%, #ffb4d5 30%, #ffffff 100%)' }}>
+      <div className="absolute top-0 right-0 w-40 h-40 bg-linear-to-br from-[#ff74b1]/20 to-transparent rounded-full blur-3xl" />
       <div className="relative">
         <div className="flex items-center justify-between mb-5">
           <h3 className="text-lg font-bold text-foreground">Recent Symptoms</h3>
@@ -389,10 +390,10 @@ function RecentSymptomsCard({
               };
               const { date, time } = formatDateTime(symptom.occurred_at);
               const severityColor = symptom.severity <= 3 
-                ? "bg-green-500/20 text-green-700" 
+                ? "bg-[#a6eaff]/30 text-[#65dbff] border border-[#a6eaff]/40" 
                 : symptom.severity <= 6 
-                ? "bg-yellow-500/20 text-yellow-700" 
-                : "bg-red-500/20 text-red-700";
+                ? "bg-[#ffeb76]/30 text-[#e6d468] border border-[#ffeb76]/40" 
+                : "bg-[#ff74b1]/30 text-[#d85a9a] border border-[#ff74b1]/40";
 
               return (
                 <AnimatedListItem key={symptom.id} index={index}>
@@ -463,15 +464,16 @@ function NutritionOverviewCard({
     <AnimatedCard index={2} delay={150}>
       <Link
         href="/dashboard/nutrition"
-        className="group relative overflow-hidden block h-full rounded-2xl bg-linear-to-br from-green-100/30 via-green-200/20 to-white border-2 border-primary-light/50 p-6 shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-[1.02]"
+        className="group relative overflow-hidden block h-full rounded-2xl border-2 border-[#ffeb76]/40 p-6 shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-[1.02]"
+        style={{ background: 'linear-gradient(135deg, #fffef5 0%, #fff4a3 30%, #ffffff 100%)' }}
       >
-      <div className="absolute top-0 right-0 w-32 h-32 bg-linear-to-br from-primary/20 to-transparent rounded-full blur-2xl" />
+      <div className="absolute top-0 right-0 w-40 h-40 bg-linear-to-br from-[#ffeb76]/30 to-transparent rounded-full blur-3xl" />
       <div className="relative">
         <div className="flex items-start justify-between mb-4">
-          <div className="p-3 rounded-xl bg-linear-to-br from-green-500 to-green-800 shadow-md">
-            <UtensilsCrossed className="h-6 w-6 text-white" />
+          <div className="p-3 rounded-xl shadow-md" style={{ background: 'linear-gradient(135deg, #ffeb76 0%, #e6d468 100%)' }}>
+            <UtensilsCrossed className="h-6 w-6 text-[#1D3557]" />
           </div>
-          <ArrowRight className="h-5 w-5 text-primary transition-transform group-hover:translate-x-1" />
+          <ArrowRight className="h-5 w-5 text-[#e6d468] transition-transform group-hover:translate-x-1" />
         </div>
         <div>
           <h3 className="text-base font-medium text-muted-foreground mb-1">Nutrition Tracker</h3>
@@ -511,13 +513,13 @@ function RecentNutritionCard({
   const getMealTypeColor = (mealType: string) => {
     switch (mealType.toLowerCase()) {
       case "breakfast":
-        return "bg-orange-500/20 text-orange-700";
+        return "bg-[#ffeb76]/30 text-[#e6d468] border border-[#ffeb76]/40";
       case "lunch":
-        return "bg-blue-500/20 text-blue-700";
+        return "bg-[#65dbff]/30 text-[#4bc4e6] border border-[#65dbff]/40";
       case "dinner":
-        return "bg-purple-500/20 text-purple-700";
+        return "bg-[#ff74b1]/30 text-[#d85a9a] border border-[#ff74b1]/40";
       case "snack":
-        return "bg-green-500/20 text-green-700";
+        return "bg-[#a6eaff]/30 text-[#65dbff] border border-[#a6eaff]/40";
       default:
         return "bg-gray-500/20 text-gray-700";
     }
@@ -544,7 +546,7 @@ function RecentNutritionCard({
 
   return (
     <AnimatedCard index={5} delay={350}>
-      <div className="relative overflow-hidden rounded-2xl bg-linear-to-br from-white via-orange-50/30 to-white border-2 border-orange-200/50 p-6 shadow-lg transition-all duration-300 hover:shadow-xl">
+      <div className="relative overflow-hidden rounded-2xl border-2 border-[#ffeb76]/30 p-6 shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-[1.01]" style={{ background: 'linear-gradient(135deg, #fffef5 0%, #fff4a3 20%, #ffffff 100%)' }}>
       <div className="absolute top-0 right-0 w-40 h-40 bg-linear-to-br from-orange-300/10 to-transparent rounded-full blur-3xl" />
       <div className="relative">
         <div className="flex items-center justify-between mb-5">
@@ -675,15 +677,16 @@ function FitnessOverviewCard({
     <AnimatedCard index={3} delay={200}>
       <Link
         href="/dashboard/fitness"
-        className="group relative overflow-hidden block h-full rounded-2xl bg-linear-to-br from-blue-50 via-blue-100/50 to-white border-2 border-blue-200/50 p-6 shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-[1.02]"
+        className="group relative overflow-hidden block h-full rounded-2xl border-2 border-info/30 p-6 shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-[1.02]"
+        style={{ background: 'linear-gradient(135deg, #f0f9ff 0%, #a6eaff 30%, #ffffff 100%)' }}
       >
-      <div className="absolute top-0 right-0 w-32 h-32 bg-linear-to-br from-blue-400/20 to-transparent rounded-full blur-2xl" />
+      <div className="absolute top-0 right-0 w-40 h-40 bg-linear-to-br from-info/30 to-transparent rounded-full blur-3xl" />
       <div className="relative">
         <div className="flex items-start justify-between mb-4">
-          <div className="p-3 rounded-xl bg-linear-to-br from-blue-500 to-blue-800 shadow-md">
+          <div className="p-3 rounded-xl shadow-md" style={{ background: 'linear-gradient(135deg, #65dbff 0%, #4bc4e6 100%)' }}>
             <Dumbbell className="h-6 w-6 text-white" />
           </div>
-          <ArrowRight className="h-5 w-5 text-blue-500 transition-transform group-hover:translate-x-1" />
+          <ArrowRight className="h-5 w-5 text-info transition-transform group-hover:translate-x-1" />
         </div>
         <div>
           <h3 className="text-base font-medium text-muted-foreground mb-1">Fitness Tracker</h3>
@@ -723,13 +726,13 @@ function RecentFitnessCard({
   const getExerciseTypeColor = (exerciseType: string) => {
     switch (exerciseType.toLowerCase()) {
       case "cardio":
-        return "bg-red-500/20 text-red-700";
+        return "bg-[#ff74b1]/30 text-[#d85a9a] border border-[#ff74b1]/40";
       case "strength":
-        return "bg-blue-500/20 text-blue-700";
+        return "bg-[#65dbff]/30 text-[#4bc4e6] border border-[#65dbff]/40";
       case "flexibility":
-        return "bg-purple-500/20 text-purple-700";
+        return "bg-[#ffeb76]/30 text-[#e6d468] border border-[#ffeb76]/40";
       case "sports":
-        return "bg-green-500/20 text-green-700";
+        return "bg-[#a6eaff]/30 text-[#65dbff] border border-[#a6eaff]/40";
       case "other":
         return "bg-gray-500/20 text-gray-700";
       default:
@@ -760,8 +763,8 @@ function RecentFitnessCard({
 
   return (
     <AnimatedCard index={6} delay={400}>
-      <div className="relative overflow-hidden rounded-2xl bg-linear-to-br from-white via-blue-50/30 to-white border-2 border-blue-200/50 p-6 shadow-lg transition-all duration-300 hover:shadow-xl">
-      <div className="absolute top-0 right-0 w-40 h-40 bg-linear-to-br from-blue-300/10 to-transparent rounded-full blur-3xl" />
+      <div className="relative overflow-hidden rounded-2xl border-2 border-info/30 p-6 shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-[1.01]" style={{ background: 'linear-gradient(135deg, #f0f9ff 0%, #a6eaff 20%, #ffffff 100%)' }}>
+      <div className="absolute top-0 right-0 w-40 h-40 bg-linear-to-br from-info/20 via-[#ffeb76]/10 to-transparent rounded-full blur-3xl" />
       <div className="relative">
         <div className="flex items-center justify-between mb-5">
           <h3 className="text-lg font-bold text-foreground">Recent Workouts</h3>
@@ -816,11 +819,11 @@ function RecentFitnessCard({
               if (!intensity) return "";
               switch (intensity.toLowerCase()) {
                 case "low":
-                  return "bg-green-500/20 text-green-700";
+                  return "bg-[#a6eaff]/30 text-[#65dbff] border border-[#a6eaff]/40";
                 case "medium":
-                  return "bg-yellow-500/20 text-yellow-700";
+                  return "bg-[#ffeb76]/30 text-[#e6d468] border border-[#ffeb76]/40";
                 case "high":
-                  return "bg-red-500/20 text-red-700";
+                  return "bg-[#ff74b1]/30 text-[#d85a9a] border border-[#ff74b1]/40";
                 default:
                   return "";
               }
@@ -844,14 +847,16 @@ function RecentFitnessCard({
                       <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
                         <span
                           className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${exerciseTypeColor}`}
+                          style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}
                         >
                           {getExerciseTypeIcon(entry.exercise_type)}
                           {exerciseTypeLabel}
                         </span>
                         {entry.intensity && (
-                          <span
-                            className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${intensityColor}`}
-                          >
+                        <span
+                          className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${intensityColor}`}
+                          style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}
+                        >
                             {entry.intensity.charAt(0).toUpperCase() + entry.intensity.slice(1)}
                           </span>
                         )}

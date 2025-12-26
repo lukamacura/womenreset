@@ -37,8 +37,8 @@ export default function WeekSummary() {
 
   if (error) {
     return (
-      <div className="rounded-xl border border-[#D4A5A5]/30 bg-[#D4A5A5]/10 p-6">
-        <p className="text-[#D4A5A5] text-sm">Error loading summary</p>
+      <div className="rounded-xl border border-[#ff74b1]/30 bg-[#ff74b1]/10 p-6">
+        <p className="text-[#ff74b1] text-sm">Error loading summary</p>
       </div>
     );
   }

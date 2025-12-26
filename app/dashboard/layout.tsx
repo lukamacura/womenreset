@@ -140,7 +140,8 @@ export default function DashboardLayout({
             <div className="relative lg:hidden" ref={dropdownRef}>
               <button
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold bg-primary-light text-primary-dark transition-colors duration-200 w-full min-w-[200px]"
+                className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold text-white transition-all duration-200 w-full min-w-[200px] hover:scale-105"
+                style={{ background: 'linear-gradient(135deg, #ff74b1 0%, #ffb4d5 100%)', boxShadow: '0 2px 8px rgba(255, 116, 177, 0.3)' }}
               >
                 <ActiveIcon className="h-5 w-5" />
                 <span className="flex-1 text-left">{activeItem.label}</span>
@@ -171,12 +172,13 @@ export default function DashboardLayout({
                         className={`
                           flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors duration-200
                           ${isActive
-                            ? "bg-primary/20 text-foreground"
+                            ? "text-white"
                             : isDisabled
                             ? "text-muted-foreground/50 cursor-not-allowed opacity-50"
                             : "text-foreground! hover:bg-foreground/5"
                           }
                         `}
+                        style={isActive ? { background: 'linear-gradient(135deg, #ff74b1 0%, #ffb4d5 100%)' } : {}}
                       >
                         <Icon className="h-5 w-5" />
                         <span>{item.label}</span>
@@ -211,9 +213,9 @@ export default function DashboardLayout({
                       href={item.href}
                       onClick={(e) => handleNavClick(item, e)}
                       className={`
-                        flex items-center gap-2 rounded-lg px-4 py-2 font-medium text-sm transition-all duration-300
+                        flex  items-center gap-2 rounded-lg px-4 py-2 font-medium text-sm transition-all duration-300
                         ${isActive
-                          ? "bg-primary-light text-primary-dark font-semibold scale-105"
+                          ? "text-white font-semibold scale-105 bg-pink-200"
                           : isDisabled
                           ? "text-muted-foreground/50 cursor-not-allowed opacity-50"
                           : "text-foreground! hover:bg-foreground/5 hover:scale-105"

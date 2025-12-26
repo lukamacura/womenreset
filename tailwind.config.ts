@@ -14,9 +14,9 @@ export default {
       },
       colors: {
         primary: {
-          DEFAULT: "#FF7B9C",
-          light: "#FFC3D0",
-          dark: "#E36280",
+          DEFAULT: "#ff74b1",
+          light: "#ffb4d5",
+          dark: "#d85a9a",
         },
         navy: {
           DEFAULT: "#1D3557",
@@ -24,14 +24,14 @@ export default {
           dark: "#0F1E33",
         },
         "blue-bell": {
-          DEFAULT: "#3E92CC",
-          light: "#89C4EA",
-          dark: "#2B6A94",
+          DEFAULT: "#65dbff",
+          light: "#a6eaff",
+          dark: "#4bc4e6",
         },
         gold: {
-          DEFAULT: "#F9DB6D",
-          light: "#FFF1B5",
-          dark: "#D9B44D",
+          DEFAULT: "#ffeb76",
+          light: "#fff4a3",
+          dark: "#e6d468",
         },
         shamrock: {
           DEFAULT: "#499F68",
@@ -49,8 +49,8 @@ export default {
           DEFAULT: "#E8B63A",
         },
         info: {
-          DEFAULT: "#3E92CC",
-          dark: "#2B6A94",
+          DEFAULT: "#65dbff",
+          dark: "#4bc4e6",
         },
       },
     },

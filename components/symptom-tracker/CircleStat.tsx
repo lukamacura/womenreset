@@ -16,8 +16,8 @@ export default function CircleStat({
   size = "md",
 }: CircleStatProps) {
   const colorClasses = {
-    rose: "bg-[#D4A5A5]/20 text-[#D4A5A5]",
-    sage: "bg-[#9DBEBB]/20 text-[#9DBEBB]",
+    rose: "bg-[#ff74b1]/20 text-[#ff74b1]",
+    sage: "bg-[#65dbff]/20 text-[#65dbff]",
     amber: "bg-[#E8B86D]/20 text-[#8B7E74]",
   };
 

@@ -71,7 +71,7 @@ export default function ProgressComparison({ symptomName }: ProgressComparisonPr
           </div>
           <div className="h-3 bg-[#F5EDE8] rounded-full overflow-hidden">
             <div
-              className="h-full bg-[#D4A5A5] rounded-full"
+              className="h-full bg-[#ff74b1] rounded-full"
               style={{ width: `${Math.min(100, (comparison.firstCount / 20) * 100)}%` }}
             />
           </div>
@@ -86,7 +86,7 @@ export default function ProgressComparison({ symptomName }: ProgressComparisonPr
           </div>
           <div className="h-3 bg-[#F5EDE8] rounded-full overflow-hidden">
             <div
-              className="h-full bg-[#D4A5A5] rounded-full"
+              className="h-full bg-[#ff74b1] rounded-full"
               style={{ width: `${Math.min(100, (comparison.secondCount / 20) * 100)}%` }}
             />
           </div>

@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
-import { getRedirectBaseUrl } from "@/lib/constants";
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
@@ -82,95 +81,227 @@ export async function GET(request: NextRequest) {
 
     // Determine redirect URL based on the flow (login vs registration)
     let redirectUrl: string;
-    if (next === "/register") {
-      // User is coming from REGISTRATION flow - check if they already have a profile
-      const { data: profile } = await supabase
-        .from("user_profiles")
-        .select("user_id")
-        .eq("user_id", data.user.id)
-        .maybeSingle();
+    
+    // Check if user already has a profile
+    const { data: existingProfile } = await supabase
+      .from("user_profiles")
+      .select("user_id, name, top_problems, severity, timing, tried_options, doctor_status, goal")
+      .eq("user_id", data.user.id)
+      .maybeSingle();
 
-      if (profile) {
-        // User already has a profile - redirect to dashboard
-        redirectUrl = `${baseUrl}/dashboard`;
-      } else {
-        // Check for quiz answers in URL parameters
-        const quizParam = requestUrl.searchParams.get("quiz");
+    // Check for quiz answers in URL parameters (for registration flow)
+    const quizParam = requestUrl.searchParams.get("quiz");
+    
+    if (existingProfile && quizParam && next === "/register") {
+      // Profile exists but we have quiz answers - update it with quiz data
+      console.log("Auth callback: Profile exists but quiz answers provided, updating profile");
+      
+      try {
+        const decodedAnswers = JSON.parse(atob(decodeURIComponent(quizParam)));
+        const { getSupabaseAdmin } = await import("@/lib/supabaseAdmin");
+        const adminSupabase = getSupabaseAdmin();
         
-        if (quizParam) {
-          // Decode and parse quiz answers
-          try {
-            const decodedAnswers = JSON.parse(atob(decodeURIComponent(quizParam)));
-            
-            // Create profile immediately using admin client
-            const { getSupabaseAdmin } = await import("@/lib/supabaseAdmin");
-            const adminSupabase = getSupabaseAdmin();
-            
-            // Prepare profile data
-            const profileData: {
-              user_id: string;
-              name?: string | null;
-              top_problems?: string[];
-              severity?: string | null;
-              timing?: string | null;
-              tried_options?: string[];
-              doctor_status?: string | null;
-              goal?: string | null;
-            } = {
-              user_id: data.user.id,
-            };
-            
-            if (decodedAnswers.name !== undefined) {
-              profileData.name = decodedAnswers.name || null;
-            }
-            if (decodedAnswers.top_problems !== undefined) {
+        // Prepare update data
+        const updateData: {
+          name?: string | null;
+          top_problems?: string[];
+          severity?: string | null;
+          timing?: string | null;
+          tried_options?: string[];
+          doctor_status?: string | null;
+          goal?: string | null;
+        } = {};
+        
+        if (decodedAnswers.name !== undefined && decodedAnswers.name !== null) {
+          updateData.name = String(decodedAnswers.name).trim() || null;
+        }
+        if (decodedAnswers.top_problems !== undefined && Array.isArray(decodedAnswers.top_problems) && decodedAnswers.top_problems.length > 0) {
+          updateData.top_problems = decodedAnswers.top_problems;
+        }
+        if (decodedAnswers.severity !== undefined && decodedAnswers.severity !== null) {
+          updateData.severity = String(decodedAnswers.severity);
+        }
+        if (decodedAnswers.timing !== undefined && decodedAnswers.timing !== null) {
+          updateData.timing = String(decodedAnswers.timing);
+        }
+        if (decodedAnswers.tried_options !== undefined && Array.isArray(decodedAnswers.tried_options) && decodedAnswers.tried_options.length > 0) {
+          updateData.tried_options = decodedAnswers.tried_options;
+        }
+        if (decodedAnswers.doctor_status !== undefined && decodedAnswers.doctor_status !== null) {
+          updateData.doctor_status = String(decodedAnswers.doctor_status);
+        }
+        if (decodedAnswers.goal !== undefined) {
+          if (Array.isArray(decodedAnswers.goal) && decodedAnswers.goal.length > 0) {
+            updateData.goal = String(decodedAnswers.goal[0]);
+          } else if (decodedAnswers.goal !== null) {
+            updateData.goal = String(decodedAnswers.goal);
+          }
+        }
+        
+        const { error: updateError } = await adminSupabase
+          .from("user_profiles")
+          .update(updateData)
+          .eq("user_id", data.user.id);
+        
+        if (updateError) {
+          console.error("Error updating profile with quiz answers:", updateError);
+        } else {
+          console.log("Profile updated successfully with quiz answers");
+        }
+      } catch (updateError) {
+        console.error("Error updating existing profile:", updateError);
+      }
+      
+      redirectUrl = `${baseUrl}/dashboard`;
+    } else if (existingProfile) {
+      // User already has a profile - always redirect to dashboard
+      console.log("Auth callback: Profile already exists, redirecting to dashboard");
+      redirectUrl = `${baseUrl}/dashboard`;
+    } else if (next === "/register") {
+      // User is coming from REGISTRATION flow - check for quiz answers in URL parameters
+      const quizParam = requestUrl.searchParams.get("quiz");
+      
+      if (quizParam) {
+        // Decode and parse quiz answers
+        try {
+          const decodedAnswers = JSON.parse(atob(decodeURIComponent(quizParam)));
+          
+          console.log("Auth callback: Parsed quiz answers:", {
+            hasName: decodedAnswers.name !== undefined,
+            hasTopProblems: decodedAnswers.top_problems !== undefined,
+            hasSeverity: decodedAnswers.severity !== undefined,
+            hasTiming: decodedAnswers.timing !== undefined,
+            hasTriedOptions: decodedAnswers.tried_options !== undefined,
+            hasDoctorStatus: decodedAnswers.doctor_status !== undefined,
+            hasGoal: decodedAnswers.goal !== undefined,
+          });
+          
+          // Create profile immediately using admin client
+          const { getSupabaseAdmin } = await import("@/lib/supabaseAdmin");
+          const adminSupabase = getSupabaseAdmin();
+          
+          // Prepare profile data - ensure ALL fields are included
+          const profileData: {
+            user_id: string;
+            name?: string | null;
+            top_problems?: string[];
+            severity?: string | null;
+            timing?: string | null;
+            tried_options?: string[];
+            doctor_status?: string | null;
+            goal?: string | null;
+          } = {
+            user_id: data.user.id,
+          };
+          
+          // Store all quiz answers - ensure every field is captured
+          if (decodedAnswers.name !== undefined && decodedAnswers.name !== null) {
+            profileData.name = String(decodedAnswers.name).trim() || null;
+          }
+          
+          if (decodedAnswers.top_problems !== undefined) {
+            if (Array.isArray(decodedAnswers.top_problems) && decodedAnswers.top_problems.length > 0) {
               profileData.top_problems = decodedAnswers.top_problems;
             }
-            if (decodedAnswers.severity !== undefined) {
-              profileData.severity = decodedAnswers.severity || null;
-            }
-            if (decodedAnswers.timing !== undefined) {
-              profileData.timing = decodedAnswers.timing || null;
-            }
-            if (decodedAnswers.tried_options !== undefined) {
+          }
+          
+          if (decodedAnswers.severity !== undefined && decodedAnswers.severity !== null) {
+            profileData.severity = String(decodedAnswers.severity);
+          }
+          
+          if (decodedAnswers.timing !== undefined && decodedAnswers.timing !== null) {
+            profileData.timing = String(decodedAnswers.timing);
+          }
+          
+          if (decodedAnswers.tried_options !== undefined) {
+            if (Array.isArray(decodedAnswers.tried_options) && decodedAnswers.tried_options.length > 0) {
               profileData.tried_options = decodedAnswers.tried_options;
             }
-            if (decodedAnswers.doctor_status !== undefined) {
-              profileData.doctor_status = decodedAnswers.doctor_status || null;
-            }
-            if (decodedAnswers.goal !== undefined) {
-              // Handle both array and string for backward compatibility
-              if (Array.isArray(decodedAnswers.goal)) {
-                // Store as JSON string for multiple goals
-                profileData.goal = JSON.stringify(decodedAnswers.goal);
-              } else {
-                profileData.goal = decodedAnswers.goal || null;
-              }
-            }
-            
-            // Insert profile
-            const { error: profileError } = await adminSupabase
-              .from("user_profiles")
-              .insert([profileData]);
-            
-            if (profileError) {
-              console.error("Error creating profile in auth callback:", profileError);
-              // If profile creation fails, redirect to register page to try again
-              redirectUrl = `${baseUrl}/register`;
-            } else {
-              console.log("Profile created successfully in auth callback");
-              // Profile created - redirect to dashboard
-              redirectUrl = `${baseUrl}/dashboard`;
-            }
-          } catch (parseError) {
-            console.error("Error parsing quiz answers:", parseError);
-            // If parsing fails, redirect to register page
-            redirectUrl = `${baseUrl}/register`;
           }
-        } else {
-          // No quiz answers - redirect to register page to complete quiz
-          redirectUrl = `${baseUrl}/register`;
+          
+          if (decodedAnswers.doctor_status !== undefined && decodedAnswers.doctor_status !== null) {
+            profileData.doctor_status = String(decodedAnswers.doctor_status);
+          }
+          
+          if (decodedAnswers.goal !== undefined) {
+            // Handle both array and string for backward compatibility
+            // Note: The database CHECK constraint only allows single values, so we store the first goal
+            if (Array.isArray(decodedAnswers.goal) && decodedAnswers.goal.length > 0) {
+              // Store the first goal (database constraint only allows single values)
+              profileData.goal = String(decodedAnswers.goal[0]);
+            } else if (decodedAnswers.goal !== null) {
+              profileData.goal = String(decodedAnswers.goal);
+            }
+          }
+          
+          console.log("Auth callback: Profile data to insert:", {
+            user_id: profileData.user_id,
+            name: profileData.name,
+            top_problems: profileData.top_problems,
+            severity: profileData.severity,
+            timing: profileData.timing,
+            tried_options: profileData.tried_options,
+            doctor_status: profileData.doctor_status,
+            goal: profileData.goal,
+          });
+          
+          // Insert profile
+          const { error: profileError, data: insertedProfile } = await adminSupabase
+            .from("user_profiles")
+            .insert([profileData])
+            .select();
+          
+          if (profileError) {
+            console.error("Error creating profile in auth callback:", profileError);
+            console.error("Profile error details:", {
+              code: profileError.code,
+              message: profileError.message,
+              details: profileError.details,
+              hint: profileError.hint,
+            });
+            console.error("Profile data that failed to insert:", JSON.stringify(profileData, null, 2));
+            
+            // Try to use the intake API as a fallback
+            try {
+              console.log("Attempting fallback: calling /api/intake to save quiz answers");
+              const { user_id: _userId, ...profileDataWithoutUserId } = profileData;
+              const intakeResponse = await fetch(`${baseUrl}/api/intake`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  user_id: data.user.id,
+                  ...profileDataWithoutUserId,
+                }),
+              });
+              
+              if (intakeResponse.ok) {
+                console.log("Successfully saved quiz answers via /api/intake fallback");
+              } else {
+                const intakeError = await intakeResponse.json();
+                console.error("Intake API also failed:", intakeError);
+              }
+            } catch (fallbackError) {
+              console.error("Fallback to intake API also failed:", fallbackError);
+            }
+            
+            // Still redirect to dashboard (user can complete quiz there)
+            redirectUrl = `${baseUrl}/dashboard`;
+          } else {
+            console.log("Profile created successfully in auth callback:", insertedProfile);
+            // Profile created - redirect to dashboard
+            redirectUrl = `${baseUrl}/dashboard`;
+          }
+        } catch (parseError) {
+          console.error("Error parsing quiz answers:", parseError);
+          // If parsing fails, redirect to dashboard (user can complete quiz there)
+          redirectUrl = `${baseUrl}/dashboard`;
         }
+      } else {
+        // No quiz answers - redirect to dashboard (user can complete quiz there if needed)
+        console.log("Auth callback: No quiz answers found, redirecting to dashboard");
+        redirectUrl = `${baseUrl}/dashboard`;
       }
     } else {
       // User is coming from LOGIN flow - always redirect to dashboard (or the specified next target)

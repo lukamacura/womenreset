@@ -53,13 +53,13 @@ export default function SymptomCard({ symptom, onClick, lastLoggedAt, onQuickLog
     <div className="relative">
       <button
         onClick={handleClick}
-        className={`bg-white rounded-2xl p-5 
+        className={`rounded-2xl p-5 
                    flex flex-col gap-2
                    border transition-all
-                   hover:bg-[#F5EDE8] hover:-translate-y-0.5 hover:shadow-md
+                   hover:-translate-y-0.5 hover:shadow-lg
                    active:scale-95
                    w-full text-left cursor-pointer
-                   ${!isLoggedToday ? 'border-[#D4A5A5] border-2 animate-pulse' : 'border-[#E8E0DB]'}`}
+                   ${!isLoggedToday ? 'border-[#ff74b1] border-2 animate-pulse bg-gradient-to-br from-[#ffb4d5]/20 to-white' : 'border-[#E8E0DB] bg-white hover:bg-gradient-to-br hover:from-[#a6eaff]/20 hover:to-white'}`}
       >
         <div className="flex flex-row items-center gap-3">
           <span className="text-2xl">{symptom.icon}</span>

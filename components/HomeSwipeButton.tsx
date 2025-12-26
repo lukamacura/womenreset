@@ -92,16 +92,16 @@ export default function HomeSwipeButton() {
     style.textContent = `
       @keyframes pulseGlow {
         0%, 100% {
-          box-shadow: 0 0 30px rgba(255, 123, 156, 0.7),
-                      0 0 60px rgba(255, 123, 156, 0.5),
-                      0 0 90px rgba(255, 123, 156, 0.4),
-                      0 0 120px rgba(255, 123, 156, 0.3);
+          box-shadow: 0 0 30px rgba(255, 116, 177, 0.7),
+                      0 0 60px rgba(255, 116, 177, 0.5),
+                      0 0 90px rgba(255, 116, 177, 0.4),
+                      0 0 120px rgba(255, 116, 177, 0.3);
         }
         50% {
-          box-shadow: 0 0 50px rgba(255, 123, 156, 0.9),
-                      0 0 100px rgba(255, 123, 156, 0.7),
-                      0 0 150px rgba(255, 123, 156, 0.5),
-                      0 0 200px rgba(255, 123, 156, 0.4);
+          box-shadow: 0 0 50px rgba(255, 116, 177, 0.9),
+                      0 0 100px rgba(255, 116, 177, 0.7),
+                      0 0 150px rgba(255, 116, 177, 0.5),
+                      0 0 200px rgba(255, 116, 177, 0.4);
         }
       }
     `;
@@ -189,7 +189,7 @@ export default function HomeSwipeButton() {
       const spread4 = 120 + (intensity * 200);
       
       return {
-        boxShadow: `0 0 ${spread1}px rgba(255, 123, 156, ${baseOpacity}), 0 0 ${spread2}px rgba(255, 123, 156, ${baseOpacity * 0.8}), 0 0 ${spread3}px rgba(255, 123, 156, ${baseOpacity * 0.6}), 0 0 ${spread4}px rgba(255, 123, 156, ${baseOpacity * 0.4})`,
+        boxShadow: `0 0 ${spread1}px rgba(255, 116, 177, ${baseOpacity}), 0 0 ${spread2}px rgba(255, 116, 177, ${baseOpacity * 0.8}), 0 0 ${spread3}px rgba(255, 116, 177, ${baseOpacity * 0.6}), 0 0 ${spread4}px rgba(255, 116, 177, ${baseOpacity * 0.4})`,
         animation: 'none' as const
       };
     }
