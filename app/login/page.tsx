@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { getRedirectBaseUrl, AUTH_CALLBACK_PATH } from "@/lib/constants";
-import { Mail, CheckCircle2 } from "lucide-react";
+import { Mail, CheckCircle2, AlertCircle } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +17,7 @@ function LoginForm() {
   const [info, setInfo] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  const [errorType, setErrorType] = useState<'user_not_found' | 'invalid_email' | 'rate_limit' | 'network' | 'email_service' | 'redirect' | 'unknown' | null>(null);
 
   // Get redirect target from URL params
   const redirectTarget = searchParams.get("redirectedFrom") || "/dashboard";
@@ -42,18 +43,49 @@ function LoginForm() {
 
     setErr(null);
     setInfo(null);
+    setErrorType(null);
     setLoading(true);
 
     try {
+      // First, check if user exists to prevent auto-creation during login
+      let userExists: boolean | null = null;
+      try {
+        const checkResponse = await fetch("/api/auth/check-user", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        });
+        
+        if (checkResponse.ok) {
+          const checkData = await checkResponse.json();
+          userExists = checkData.exists;
+        }
+      } catch (checkError) {
+        console.warn("Could not check user existence, proceeding with login attempt:", checkError);
+        // Continue with login attempt if check fails (fail open)
+      }
+
+      // If user doesn't exist, show error before attempting login
+      if (userExists === false) {
+        setErr("You don't have an account with this email. Please register to create an account.");
+        setErrorType('user_not_found');
+        setLoading(false);
+        return;
+      }
+
       // Use the current origin for redirects (localhost in dev, production URL in prod)
       const redirectTo = `${getRedirectBaseUrl()}${AUTH_CALLBACK_PATH}?next=${encodeURIComponent(redirectTarget)}`;
       
       // Debug logging
-      console.log("Login attempt:", { email, redirectTo });
+      console.log("Login attempt:", { email, redirectTo, userExists });
 
       const { error, data } = await supabase.auth.signInWithOtp({
         email,
-        options: { emailRedirectTo: redirectTo },
+        options: { 
+          emailRedirectTo: redirectTo,
+          // Note: Even if user exists check passes, Supabase might still auto-create
+          // if "Enable email sign ups" is enabled. We handle this in error checking below.
+        },
       });
 
       if (error) {
@@ -66,18 +98,39 @@ function LoginForm() {
         });
 
         let friendly = "An error occurred. Please try again.";
+        let errorCategory: typeof errorType = 'unknown';
         
         // Check for specific error types
         const errorMsg = error.message.toLowerCase();
+        const errorStatus = error.status;
         
-        // Email validation errors (be more specific)
+        // CRITICAL: Check if user doesn't exist (prevent auto-creation)
+        // Supabase may return different error messages depending on configuration
         if (
+          errorMsg.includes("user not found") ||
+          errorMsg.includes("email not found") ||
+          errorMsg.includes("user does not exist") ||
+          errorMsg.includes("no user found") ||
+          errorMsg.includes("user_not_found") ||
+          (errorStatus === 400 && (
+            errorMsg.includes("invalid login credentials") ||
+            errorMsg.includes("invalid credentials") ||
+            (errorMsg.includes("email") && errorMsg.includes("not") && errorMsg.includes("registered"))
+          ))
+        ) {
+          friendly = "You don't have an account with this email. Please register to create an account.";
+          errorCategory = 'user_not_found';
+        }
+        // Email validation errors
+        else if (
           errorMsg.includes("invalid email") ||
           errorMsg.includes("email format") ||
           errorMsg === "invalid email address" ||
-          errorMsg.includes("email is not valid")
+          errorMsg.includes("email is not valid") ||
+          (errorStatus === 400 && errorMsg.includes("email"))
         ) {
           friendly = "That email address is invalid. Please check and try again.";
+          errorCategory = 'invalid_email';
         }
         // Redirect URL errors
         else if (
@@ -86,7 +139,8 @@ function LoginForm() {
           errorMsg.includes("redirect url") ||
           errorMsg.includes("url configuration")
         ) {
-          friendly = "Redirect URL not configured. Please contact support or check Supabase settings.";
+          friendly = "Redirect URL not configured. Please contact support.";
+          errorCategory = 'redirect';
         }
         // Rate limiting errors
         else if (
@@ -95,40 +149,47 @@ function LoginForm() {
           error.message.includes("security purposes") ||
           error.message.includes("only request this after") ||
           /48 seconds/i.test(error.message) ||
-          /60 seconds/i.test(error.message)
+          /60 seconds/i.test(error.message) ||
+          errorStatus === 429
         ) {
           friendly = error.message.includes("48 seconds") || 
                      error.message.includes("60 seconds") || 
                      error.message.includes("security purposes")
             ? error.message
             : "Too many attempts — please wait a moment and try again.";
+          errorCategory = 'rate_limit';
         }
         // Email provider/SMTP errors
         else if (
           errorMsg.includes("email provider") ||
           errorMsg.includes("email not enabled") ||
           errorMsg.includes("smtp") ||
-          errorMsg.includes("mail") ||
+          (errorMsg.includes("mail") && errorMsg.includes("service")) ||
           errorMsg.includes("sending email") ||
           errorMsg.includes("email service") ||
           errorMsg.includes("email delivery")
         ) {
-          friendly = "Email service is not configured. Please check Supabase email settings or contact support.";
+          friendly = "Email service is temporarily unavailable. Please try again later or contact support.";
+          errorCategory = 'email_service';
         }
         // Network/connection errors
         else if (
           errorMsg.includes("network") ||
           errorMsg.includes("fetch") ||
-          errorMsg.includes("connection")
+          errorMsg.includes("connection") ||
+          errorMsg.includes("failed to fetch")
         ) {
           friendly = "Network error. Please check your connection and try again.";
+          errorCategory = 'network';
         }
         // Show the actual error message for other cases
         else if (error.message) {
           friendly = error.message;
+          errorCategory = 'unknown';
         }
         
         setErr(friendly);
+        setErrorType(errorCategory);
         setLoading(false);
         return;
       }
@@ -136,10 +197,13 @@ function LoginForm() {
       // Magic link sent successfully
       console.log("Magic link sent successfully:", data);
       setEmailSent(true);
+      setErrorType(null);
       setLoading(false);
     } catch (e) {
       console.error("Unexpected error during login:", e);
-      setErr(e instanceof Error ? e.message : "An unexpected error occurred. Please try again.");
+      const errorMessage = e instanceof Error ? e.message : "An unexpected error occurred. Please try again.";
+      setErr(errorMessage);
+      setErrorType('unknown');
       setLoading(false);
     }
   }
@@ -170,8 +234,34 @@ function LoginForm() {
             </p>
           </div>
           {err && (
-            <div className="rounded-xl border border-error/30 bg-error/10 p-3 text-sm text-error max-w-md">
-              {err}
+            <div 
+              role="alert" 
+              className={`rounded-xl border p-4 text-sm max-w-md ${
+                errorType === 'user_not_found' 
+                  ? "border-blue-400/30 bg-blue-50/80 text-blue-700"
+                  : "border-error/30 bg-error/10 text-error"
+              }`}
+            >
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="font-semibold mb-1">
+                    {errorType === 'user_not_found' ? 'Account Not Found' : 'Error'}
+                  </p>
+                  <p className="mb-2">{err}</p>
+                  {errorType === 'user_not_found' && (
+                    <div className="mt-3 pt-3 border-t border-blue-200/50">
+                      <p className="text-xs mb-2">Don't have an account yet?</p>
+                      <Link 
+                        href="/register" 
+                        className="inline-flex items-center gap-2 text-xs font-semibold text-blue-600 hover:underline"
+                      >
+                        Register here →
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -239,13 +329,90 @@ function LoginForm() {
         </form>
 
         {info && (
-          <div role="status" className="mt-4 rounded-xl border border-emerald-400/30 bg-emerald-100 p-3 text-sm text-emerald-500 font-bold">
-            {info}
+          <div role="status" className="mt-4 rounded-xl border border-emerald-400/30 bg-emerald-100/50 dark:bg-emerald-900/20 p-4 text-sm text-emerald-700 dark:text-emerald-400">
+            <div className="flex items-start gap-3">
+              <CheckCircle2 className="w-5 h-5 shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="font-semibold mb-1">Information</p>
+                <p>{info}</p>
+              </div>
+            </div>
           </div>
         )}
         {err && (
-          <div role="alert" className="mt-4 rounded-xl border border-error/30 bg-error/10 p-3 text-sm text-error font-bold">
-            {err}
+          <div 
+            role="alert" 
+            className={`mt-4 rounded-xl border p-4 text-sm ${
+              errorType === 'user_not_found' 
+                ? "border-blue-400/30 bg-blue-50/80 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400"
+                : errorType === 'rate_limit'
+                ? "border-orange-400/30 bg-orange-50/80 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400"
+                : errorType === 'invalid_email'
+                ? "border-yellow-400/30 bg-yellow-50/80 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400"
+                : "border-error/30 bg-error/10 text-error"
+            }`}
+          >
+            <div className="flex items-start gap-3">
+              <AlertCircle className={`w-5 h-5 shrink-0 mt-0.5 ${
+                errorType === 'user_not_found' ? 'text-blue-600 dark:text-blue-400' : ''
+              }`} />
+              <div className="flex-1">
+                <p className="font-semibold mb-1">
+                  {errorType === 'user_not_found' 
+                    ? 'Account Not Found'
+                    : errorType === 'rate_limit'
+                    ? 'Too Many Requests'
+                    : errorType === 'invalid_email'
+                    ? 'Invalid Email'
+                    : errorType === 'network'
+                    ? 'Network Error'
+                    : errorType === 'email_service'
+                    ? 'Email Service Error'
+                    : 'Error'
+                  }
+                </p>
+                <p className="mb-2">{err}</p>
+                {errorType === 'user_not_found' && (
+                  <div className="mt-3 pt-3 border-t border-blue-200/50 dark:border-blue-700/50">
+                    <p className="text-xs mb-2">Don't have an account yet?</p>
+                    <Link 
+                      href="/register" 
+                      className="inline-flex items-center gap-2 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline"
+                    >
+                      Register here →
+                    </Link>
+                  </div>
+                )}
+                {errorType === 'rate_limit' && (
+                  <div className="mt-3 pt-3 border-t border-orange-200/50 dark:border-orange-700/50">
+                    <p className="text-xs">
+                      Please wait a minute before requesting another magic link. This helps us prevent spam and protect your account.
+                    </p>
+                  </div>
+                )}
+                {errorType === 'invalid_email' && (
+                  <div className="mt-3 pt-3 border-t border-yellow-200/50 dark:border-yellow-700/50">
+                    <p className="text-xs">
+                      Make sure your email address includes an @ symbol and a valid domain (e.g., example.com).
+                    </p>
+                  </div>
+                )}
+                {errorType === 'network' && (
+                  <div className="mt-3 pt-3 border-t border-error/20">
+                    <p className="text-xs">
+                      Check your internet connection and try again. If the problem persists, please contact support.
+                    </p>
+                  </div>
+                )}
+                {errorType === 'email_service' && (
+                  <div className="mt-3 pt-3 border-t border-error/20">
+                    <p className="text-xs">
+                      Our email service is experiencing issues. Please try again in a few minutes or contact support if the problem continues.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         )}
 
