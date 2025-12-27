@@ -28,7 +28,7 @@ export default function WeekSummary() {
   // Always show skeleton when loading
   if (loading) {
     return (
-      <div className="rounded-xl border border-[#E8E0DB] bg-white p-6 shadow-sm">
+      <div className="rounded-xl border border-white/30 bg-white/30 backdrop-blur-lg p-6 shadow-xl">
         <Skeleton className="h-6 w-32 mb-4" />
         <Skeleton className="h-8 w-48" />
       </div>
@@ -44,7 +44,7 @@ export default function WeekSummary() {
   }
 
   return (
-    <div className="rounded-xl border border-[#E8E0DB] bg-white p-6 shadow-sm">
+    <div className="rounded-xl border border-white/30 bg-white/30 backdrop-blur-lg p-6 shadow-xl">
       <h3 className="text-lg font-semibold text-[#8B7E74] mb-4">This Week</h3>
       <div className="space-y-3">
         <div className="flex items-center gap-2 flex-wrap">

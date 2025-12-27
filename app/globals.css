@@ -23,7 +23,7 @@
   --color-info-dark: #4bc4e6;
 
   /* Background & Foreground */
-  --color-background: linear-gradient(to bottom, #fff5f9, #f0f9ff); /* Gradient from light pink to light blue */
+  --color-background: linear-gradient(to bottom, #DBEAFE 0%, #FEF3C7 50%, #FCE7F3 100%); /* Gradient: blue, yellow, pink */
   --color-foreground: #1D3557; /* Neutral dark gray for body text */
 
   /* Typography Colors */
@@ -46,7 +46,7 @@
   --font-script: "Dancing Script", "Segoe Script", cursive;
 
   /* Symptom Tracker Light Theme Colors */
-  --bg-primary: linear-gradient(to bottom, #fff5f9, #f0f9ff);        /* Gradient background (main background) */
+  --bg-primary: linear-gradient(to bottom, #DBEAFE 0%, #FEF3C7 50%, #FCE7F3 100%);        /* Gradient background: blue, yellow, pink */
   --bg-secondary: #FFFFFF;       /* Pure white (cards) */
   --bg-tertiary: linear-gradient(to right, #ffb4d5, #a6eaff);        /* Gradient hover states */
   
@@ -99,6 +99,52 @@ body {
   font-family: var(--font-satoshi), system-ui, sans-serif;
 }
 
+/* Floating animation for Add Symptom button */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+/* Fade in down animation for header */
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Fade in up animation for cards */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Scale in animation */
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 /* Tailwind v4 utility za pisani font (className="font-script") */
 @utility font-script {
   font-family: var(--font-script);
@@ -118,8 +164,8 @@ body {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #ff74b1 0%, #ffb4d5 100%);
-  color: white;
+  background: linear-gradient(135deg, #ff74b1 0%, #ffeb76 100%);
+  color: #0F1E33;
   box-shadow: 0 4px 15px rgba(255, 116, 177, 0.4);
 }
 

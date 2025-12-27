@@ -1,5 +1,8 @@
 // Symptom Tracker Constants and Types
 
+import { Smile, Meh, Frown } from "lucide-react";
+import { getSymptomIconName } from "./symptomIconMapping";
+
 // Hardcoded trigger options (NOT stored in database)
 export const TRIGGER_OPTIONS = [
   'Stress',
@@ -16,20 +19,20 @@ export const TRIGGER_OPTIONS = [
   'Unknown'
 ] as const;
 
-// Default symptom definitions
+// Default symptom definitions (icon field now stores Lucide icon name instead of emoji)
 export const DEFAULT_SYMPTOMS = [
-  { name: 'Hot flashes', icon: '🔥' },
-  { name: 'Night sweats', icon: '💧' },
-  { name: 'Fatigue', icon: '😫' },
-  { name: 'Brain fog', icon: '🌫️' },
-  { name: 'Mood swings', icon: '🎭' },
-  { name: 'Anxiety', icon: '😰' },
-  { name: 'Headaches', icon: '🤕' },
-  { name: 'Joint pain', icon: '🦴' },
-  { name: 'Bloating', icon: '🎈' },
-  { name: 'Insomnia', icon: '😵' },
-  { name: 'Weight gain', icon: '⚖️' },
-  { name: 'Low libido', icon: '💔' }
+  { name: 'Hot flashes', icon: 'Flame' },
+  { name: 'Night sweats', icon: 'Droplet' },
+  { name: 'Fatigue', icon: 'Zap' },
+  { name: 'Brain fog', icon: 'Brain' },
+  { name: 'Mood swings', icon: 'Heart' },
+  { name: 'Anxiety', icon: 'AlertCircle' },
+  { name: 'Headaches', icon: 'AlertTriangle' },
+  { name: 'Joint pain', icon: 'Activity' },
+  { name: 'Bloating', icon: 'CircleDot' },
+  { name: 'Insomnia', icon: 'Moon' },
+  { name: 'Weight gain', icon: 'TrendingUp' },
+  { name: 'Low libido', icon: 'HeartOff' }
 ] as const;
 
 // TypeScript Types
@@ -68,9 +71,9 @@ export const SEVERITY_LEVELS = {
 } as const;
 
 export const SEVERITY_LABELS = {
-  1: { emoji: '😊', label: 'Mild', description: 'Noticeable but manageable' },
-  2: { emoji: '😐', label: 'Moderate', description: 'Affecting my day' },
-  3: { emoji: '😫', label: 'Severe', description: 'Hard to function' },
+  1: { icon: Smile, label: 'Mild', description: 'Noticeable but manageable' },
+  2: { icon: Meh, label: 'Moderate', description: 'Affecting my day' },
+  3: { icon: Frown, label: 'Severe', description: 'Hard to function' },
 } as const;
 
 export interface UserPreferences {
@@ -87,5 +90,6 @@ export interface LogSymptomData {
   triggers: string[];
   notes: string;
   logId?: string; // Optional: ID of log being edited
+  loggedAt?: string; // Optional: ISO timestamp for when symptom occurred (defaults to now)
 }
 

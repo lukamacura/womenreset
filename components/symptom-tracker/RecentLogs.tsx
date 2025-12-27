@@ -2,6 +2,7 @@
 
 import type { SymptomLog } from "@/lib/symptom-tracker-constants";
 import { formatDateSimple } from "@/lib/dateUtils";
+import { getIconFromName } from "@/lib/symptomIconMapping";
 
 interface RecentLogsProps {
   logs: SymptomLog[];
@@ -17,10 +18,10 @@ export default function RecentLogs({ logs, loading, onLogClick }: RecentLogsProp
         {[1, 2, 3].map((i) => (
           <div
             key={i}
-            className="animate-pulse rounded-xl border border-[#E8E0DB] bg-white p-4"
+            className="animate-pulse rounded-xl border border-white/30 bg-white/20 backdrop-blur-md p-4"
           >
-            <div className="h-5 w-48 bg-[#E8E0DB] rounded mb-2" />
-            <div className="h-4 w-32 bg-[#E8E0DB] rounded" />
+            <div className="h-5 w-48 bg-white/30 rounded mb-2" />
+            <div className="h-4 w-32 bg-white/30 rounded" />
           </div>
         ))}
       </div>
@@ -29,7 +30,7 @@ export default function RecentLogs({ logs, loading, onLogClick }: RecentLogsProp
 
   if (logs.length === 0) {
     return (
-      <div className="rounded-xl border border-[#E8E0DB] bg-white p-12 text-center shadow-sm">
+      <div className="rounded-xl border border-white/30 bg-white/30 backdrop-blur-lg p-12 text-center shadow-xl">
         <p className="text-[#6B6B6B]">No symptoms logged yet</p>
         <p className="text-sm text-[#9A9A9A] mt-2">
           Start tracking your symptoms to see them here.
@@ -43,23 +44,51 @@ export default function RecentLogs({ logs, loading, onLogClick }: RecentLogsProp
       {logs.slice(0, 10).map((log) => {
         const { dateStr, timeStr } = formatDateSimple(log.logged_at);
         const symptomName = log.symptoms?.name || "Unknown";
-        const symptomIcon = log.symptoms?.icon || "🔴";
+        const symptomIconName = log.symptoms?.icon || "Activity";
+        
+        // Map symptom names to icon names (prioritize name mapping for unique icons)
+        const iconMap: Record<string, string> = {
+          'Hot flashes': 'Flame',
+          'Night sweats': 'Droplet',
+          'Fatigue': 'Zap',
+          'Brain fog': 'Brain',
+          'Mood swings': 'Heart',
+          'Anxiety': 'AlertCircle',
+          'Headaches': 'AlertTriangle',
+          'Joint pain': 'Activity',
+          'Bloating': 'CircleDot',
+          'Insomnia': 'Moon',
+          'Weight gain': 'TrendingUp',
+          'Low libido': 'HeartOff',
+          'Good Day': 'Sun',
+        };
+        
+        // Try to get icon by symptom name first (ensures unique icons)
+        const iconName = iconMap[symptomName];
+        let SymptomIcon;
+        if (iconName) {
+          SymptomIcon = getIconFromName(iconName);
+        } else if (symptomIconName && symptomIconName.length > 1 && !symptomIconName.includes('🔥') && !symptomIconName.includes('💧')) {
+          SymptomIcon = getIconFromName(symptomIconName);
+        } else {
+          SymptomIcon = getIconFromName('Activity');
+        }
 
         return (
           <div
             key={log.id}
             onClick={() => onLogClick?.(log)}
-            className="rounded-xl border border-[#E8E0DB] bg-white p-4 hover:bg-[#F5EDE8] transition-colors cursor-pointer shadow-sm"
+            className="rounded-xl border border-white/30 bg-white/30 backdrop-blur-lg p-4 hover:bg-white/40 transition-all cursor-pointer shadow-lg"
           >
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-1 flex-wrap">
-                  <span className="text-xl">{symptomIcon}</span>
+                  <SymptomIcon className="h-5 w-5 text-[#3D3D3D] flex-shrink-0" />
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-[#3D3D3D] font-semibold">{symptomName}</span>
                     <span className="text-[#9A9A9A]">—</span>
                     <span className="text-[#3D3D3D] font-medium">
-                      {log.severity}/10
+                      {log.severity}/3
                     </span>
                   </div>
                 </div>

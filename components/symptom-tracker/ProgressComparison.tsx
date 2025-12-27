@@ -56,7 +56,7 @@ export default function ProgressComparison({ symptomName }: ProgressComparisonPr
   const displayName = symptomName || "Symptoms";
 
   return (
-    <div className="rounded-xl border border-[#E8E0DB] bg-white p-6 shadow-sm mb-6">
+    <div className="rounded-xl border border-white/30 bg-white/30 backdrop-blur-lg p-6 shadow-xl mb-6">
       <h3 className="text-lg font-semibold text-[#8B7E74] mb-4">
         Your Progress: {displayName}
       </h3>

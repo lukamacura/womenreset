@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/rules-of-hooks */
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { useSymptoms } from "@/hooks/useSymptoms";
@@ -10,6 +10,7 @@ import { useTrialStatus } from "@/lib/useTrialStatus";
 import SymptomCard from "@/components/symptom-tracker/SymptomCard";
 import SymptomSelectorModal from "@/components/symptom-tracker/SymptomSelectorModal";
 import LogSymptomModal from "@/components/symptom-tracker/LogSymptomModal";
+import QuickLogModal from "@/components/symptom-tracker/QuickLogModal";
 import AnalyticsSection from "@/components/symptom-tracker/AnalyticsSection";
 import WeekSummary from "@/components/symptom-tracker/WeekSummary";
 import RecentLogs from "@/components/symptom-tracker/RecentLogs";
@@ -18,10 +19,68 @@ import BadDaySupport from "@/components/symptom-tracker/BadDaySupport";
 import EmptyState from "@/components/symptom-tracker/EmptyState";
 import MilestoneCelebration from "@/components/symptom-tracker/MilestoneCelebration";
 import ProgressComparison from "@/components/symptom-tracker/ProgressComparison";
+import WeekComparison from "@/components/symptom-tracker/WeekComparison";
 import DoctorReportButton from "@/components/symptom-tracker/DoctorReportButton";
+import GoodDayCard from "@/components/symptom-tracker/GoodDayCard";
 import type { Symptom, LogSymptomData, SymptomLog } from "@/lib/symptom-tracker-constants";
+import { orderSymptoms } from "@/lib/symptomOrdering";
 
 export const dynamic = "force-dynamic";
+
+// Animated Section Component with Intersection Observer
+function AnimatedSection({
+  children,
+  delay = 0,
+  className = "",
+}: {
+  children: React.ReactNode;
+  delay?: number;
+  className?: string;
+}) {
+  const [isVisible, setIsVisible] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setTimeout(() => setIsVisible(true), delay);
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.1, rootMargin: "0px 0px -50px 0px" }
+    );
+
+    const currentRef = ref.current;
+    if (currentRef) {
+      observer.observe(currentRef);
+    }
+
+    return () => {
+      if (currentRef) {
+        observer.unobserve(currentRef);
+      }
+    };
+  }, [delay]);
+
+  return (
+    <div
+      ref={ref}
+      className={`transition-all duration-700 ease-out ${
+        isVisible
+          ? "opacity-100 translate-y-0"
+          : "opacity-0 translate-y-8"
+      } ${className}`}
+      style={{
+        willChange: isVisible ? "auto" : "transform, opacity",
+      }}
+    >
+      {children}
+    </div>
+  );
+}
 
 export default function SymptomsPage() {
   const router = useRouter();
@@ -33,6 +92,7 @@ export default function SymptomsPage() {
   const [selectedSymptom, setSelectedSymptom] = useState<Symptom | null>(null);
   const [editingLog, setEditingLog] = useState<SymptomLog | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isQuickModalOpen, setIsQuickModalOpen] = useState(false);
   const [isSelectorOpen, setIsSelectorOpen] = useState(false);
 
   // Redirect to dashboard if trial is expired
@@ -41,28 +101,44 @@ export default function SymptomsPage() {
     return null;
   }
 
-  // Get top 6 symptoms (favorites first, then defaults, then others)
-  const getTopSymptoms = () => {
-    const defaultSymptoms = symptoms.filter((s) => s.is_default);
-    return defaultSymptoms.slice(0, 6);
-  };
+  // Get smart-ordered symptoms
+  const topSymptoms = useMemo(() => {
+    if (symptoms.length === 0 || logs.length === 0) {
+      // Fallback: return default symptoms if no logs yet
+      return symptoms.filter((s) => s.is_default).slice(0, 6);
+    }
+    
+    // Use smart ordering algorithm
+    // Mobile: 6 cards, Desktop: 8 cards (we'll use 6 for now, can make responsive later)
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+    const limit = isMobile ? 6 : 8;
+    
+    return orderSymptoms(symptoms, logs, limit);
+  }, [symptoms, logs]);
 
-  const topSymptoms = getTopSymptoms();
-
-  // Get last logged time for each symptom
-  const getLastLoggedTime = (symptomId: string): string | null => {
+  // Get last logged time and severity for each symptom
+  const getLastLoggedInfo = (symptomId: string): { time: string | null; severity: number | null } => {
     const symptomLogs = logs.filter((log) => log.symptom_id === symptomId);
-    if (symptomLogs.length === 0) return null;
+    if (symptomLogs.length === 0) return { time: null, severity: null };
     // Sort by logged_at descending and get the most recent
     const sorted = [...symptomLogs].sort((a, b) => 
       new Date(b.logged_at).getTime() - new Date(a.logged_at).getTime()
     );
-    return sorted[0].logged_at;
+    return { time: sorted[0].logged_at, severity: sorted[0].severity };
   };
 
-  // Quick log handler - auto-log as moderate (severity 2)
-  const handleQuickLog = useCallback(
-    async (symptom: Symptom) => {
+  // Quick log handler - opens quick modal
+  const handleQuickLogClick = useCallback(
+    (symptom: Symptom) => {
+      setSelectedSymptom(symptom);
+      setIsQuickModalOpen(true);
+    },
+    []
+  );
+
+  // Handle quick log save (from QuickLogModal)
+  const handleQuickLogSave = useCallback(
+    async (data: LogSymptomData) => {
       try {
         const response = await fetch("/api/symptom-logs", {
           method: "POST",
@@ -70,10 +146,10 @@ export default function SymptomsPage() {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            symptomId: symptom.id,
-            severity: 2, // Moderate
-            triggers: [],
-            notes: "",
+            symptomId: data.symptomId,
+            severity: data.severity,
+            triggers: data.triggers || [],
+            notes: data.notes || "",
           }),
         });
 
@@ -88,12 +164,91 @@ export default function SymptomsPage() {
         // Dispatch custom event to notify AnalyticsSection to refresh
         window.dispatchEvent(new CustomEvent('symptom-log-updated'));
       } catch (error) {
-        console.error("Quick log error:", error);
-        // On error, fall back to opening modal
-        handleSymptomClick(symptom);
+        throw error; // Let QuickLogModal handle error display
       }
     },
     [refetchLogs, refetchSymptoms]
+  );
+
+  // Handle quick modal close
+  const handleQuickModalClose = () => {
+    setIsQuickModalOpen(false);
+    setSelectedSymptom(null);
+  };
+
+  // Handle expand to full modal from quick modal
+  const handleExpandToFullModal = () => {
+    setIsQuickModalOpen(false);
+    setIsModalOpen(true);
+    // selectedSymptom is already set
+  };
+
+  // Get Good Day symptom (or null if doesn't exist yet - will be created on first log)
+  const goodDaySymptom = useMemo(() => {
+    return symptoms.find((s) => s.name === "Good Day") || null;
+  }, [symptoms]);
+
+  // Handle good day logging - uses standard symptom-logs API same as other symptoms
+  // But ensures the Good Day symptom exists first
+  const handleLogGoodDay = useCallback(
+    async (data: LogSymptomData) => {
+      try {
+        // If symptom doesn't exist yet, create it first
+        let symptomId = data.symptomId;
+        if (data.symptomId === 'temp-good-day' || !goodDaySymptom) {
+          // Create the Good Day symptom
+          const createResponse = await fetch("/api/symptoms", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              name: "Good Day",
+              icon: "Sun",
+            }),
+          });
+
+          if (!createResponse.ok) {
+            const errorData = await createResponse.json();
+            throw new Error(errorData.error || "Failed to create Good Day symptom");
+          }
+
+          const { data: newSymptom } = await createResponse.json();
+          symptomId = newSymptom.id;
+          
+          // Refetch symptoms to update the list
+          await refetchSymptoms();
+        }
+
+        // Now use standard symptom-logs API
+        const response = await fetch("/api/symptom-logs", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            symptomId: symptomId,
+            severity: data.severity,
+            triggers: data.triggers || [],
+            notes: data.notes || "",
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Failed to log good day");
+        }
+
+        // Refetch logs and symptoms
+        await Promise.all([refetchLogs(), refetchSymptoms()]);
+        
+        // Dispatch custom event to notify AnalyticsSection to refresh
+        window.dispatchEvent(new CustomEvent('symptom-log-updated'));
+      } catch (error) {
+        throw error;
+      }
+    },
+    [goodDaySymptom, refetchLogs, refetchSymptoms]
   );
 
   // Handle symptom card click
@@ -102,7 +257,7 @@ export default function SymptomsPage() {
     setIsModalOpen(true);
   };
 
-  // Handle modal close
+  // Handle full modal close
   const handleModalClose = () => {
     setIsModalOpen(false);
     setSelectedSymptom(null);
@@ -174,13 +329,34 @@ export default function SymptomsPage() {
   // Show loading state while checking trial status
   if (trialStatus.loading) {
     return (
-      <div className="mx-auto max-w-7xl p-6 sm:p-8 space-y-8">
-        <div className="animate-pulse">
-          <div className="h-10 w-64 bg-foreground/10 rounded mb-4" />
-          <div className="h-6 w-96 bg-foreground/10 rounded mb-8" />
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
+      <div className="mx-auto max-w-7xl p-6 sm:p-8 space-y-8 min-h-screen" style={{ background: 'linear-gradient(to bottom, #DBEAFE 0%, #FEF3C7 50%, #FCE7F3 100%)' }}>
+        <div className="space-y-8">
+          <div className="animate-pulse space-y-4">
+            <div className="h-10 w-64 bg-white/40 backdrop-blur-md rounded-xl" />
+            <div className="h-6 w-96 bg-white/30 backdrop-blur-md rounded-lg" />
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
             {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="h-32 bg-foreground/10 rounded-2xl" />
+              <div
+                key={i}
+                className="h-24 bg-white/40 backdrop-blur-md rounded-2xl border border-white/30 animate-pulse"
+                style={{
+                  animationDelay: `${i * 50}ms`,
+                  animationDuration: '1.5s',
+                }}
+              />
+            ))}
+          </div>
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="h-48 bg-white/40 backdrop-blur-md rounded-2xl border border-white/30 animate-pulse"
+                style={{
+                  animationDelay: `${(i + 6) * 50}ms`,
+                  animationDuration: '1.5s',
+                }}
+              />
             ))}
           </div>
         </div>
@@ -194,23 +370,25 @@ export default function SymptomsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl p-6 sm:p-8 space-y-8 min-h-screen" style={{ background: 'linear-gradient(to bottom, #fff5f9, #f0f9ff)' }}>
+    <div className="mx-auto max-w-7xl p-6 sm:p-8 space-y-8 min-h-screen" style={{ background: 'linear-gradient(to bottom, #DBEAFE 0%, #FEF3C7 50%, #FCE7F3 100%)' }}>
       {/* Header */}
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight bg-clip-text text-transparent" style={{ backgroundImage: 'linear-gradient(to right, #ff74b1 0%, #ffeb76 50%, #65dbff 100%)' }}>
-            Daily Check-in
-          </h1>
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between opacity-0 animate-[fadeInDown_0.6s_ease-out_forwards]">
+        <div className="flex-1">
+          {/* Personalized Greeting is now the header */}
+          <PersonalizedGreeting />
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-3 items-center">
           <DoctorReportButton />
           <button
             onClick={() => {
               setIsSelectorOpen(true);
             }}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white font-semibold rounded-xl transition-colors shadow-md cursor-pointer"
+            className="inline-flex items-center gap-2 px-6 py-3.5 btn-primary text-white font-bold rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 cursor-pointer text-base"
+            style={{
+              animation: 'float 3s ease-in-out infinite'
+            }}
           >
-            <Plus className="h-5 w-5" />
+            <Plus className="h-6 w-6" />
             Add Symptom
           </button>
         </div>
@@ -218,91 +396,121 @@ export default function SymptomsPage() {
 
       {/* Main Content */}
       <div className="space-y-8">
-        {/* Personalized Greeting */}
-        <PersonalizedGreeting />
 
         {/* Bad Day Support */}
-        <BadDaySupport />
+        <AnimatedSection delay={100}>
+          <BadDaySupport />
+        </AnimatedSection>
 
         {/* Empty State */}
-        <EmptyState />
+        <AnimatedSection delay={150}>
+          <EmptyState />
+        </AnimatedSection>
 
         {/* Title */}
-        <div>
-          <h2 className="text-2xl font-semibold text-[#8B7E74] mb-2">
-            How are you feeling?
-          </h2>
-        </div>
+        <AnimatedSection delay={200}>
+          <div>
+            <h2 className="text-2xl font-semibold text-[#8B7E74] mb-2">
+              How are you feeling?
+            </h2>
+          </div>
+        </AnimatedSection>
 
-        {/* Quick Log Grid */}
+        {/* Bento Grid for Symptom Cards */}
         {symptomsLoading ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 auto-rows-fr">
             {[1, 2, 3, 4, 5, 6].map((i) => (
               <div
                 key={i}
-                className="animate-pulse bg-white rounded-2xl h-20 border border-[#E8E0DB]"
+                className="animate-pulse bg-white/30 backdrop-blur-md rounded-2xl h-20 border border-white/30"
+                style={{
+                  animationDelay: `${i * 80}ms`,
+                }}
               />
             ))}
           </div>
         ) : topSymptoms.length > 0 ? (
           <>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-              {topSymptoms.map((symptom) => (
-                <SymptomCard
-                  key={symptom.id}
-                  symptom={symptom}
-                  onClick={() => handleSymptomClick(symptom)}
-                  lastLoggedAt={getLastLoggedTime(symptom.id)}
-                  onQuickLog={() => handleQuickLog(symptom)}
-                />
-              ))}
-            </div>
-            {symptoms.length > 6 && (
-              <div className="text-center">
-                <button
-                  onClick={() => {
-                    // Could navigate to full list page or show all in modal
-                    // For now, just show a message
-                    alert("View all symptoms feature coming soon!");
-                  }}
-                  className="text-[#ff74b1] hover:text-primary-dark text-sm font-medium transition-colors cursor-pointer"
-                >
-                  View All Symptoms
-                </button>
+            <AnimatedSection delay={250}>
+              <div
+                className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 auto-rows-fr"
+                data-symptoms-grid
+                style={{
+                  gridAutoRows: 'minmax(80px, auto)'
+                }}
+              >
+                {topSymptoms.map((symptom, index) => {
+                  const lastLogged = getLastLoggedInfo(symptom.id);
+                  const spanClass = index === 0 && topSymptoms.length > 3
+                    ? 'md:col-span-2 md:row-span-1'
+                    : index === 1 && topSymptoms.length > 5
+                    ? 'md:col-span-2 md:row-span-1'
+                    : '';
+                  return (
+                    <div
+                      key={symptom.id}
+                      className={`${spanClass} opacity-0 animate-[fadeInUp_0.5s_ease-out_forwards]`}
+                      style={{
+                        animationDelay: `${index * 60}ms`,
+                      }}
+                    >
+                      <SymptomCard
+                        symptom={symptom}
+                        onClick={() => handleSymptomClick(symptom)}
+                        lastLoggedAt={lastLogged.time}
+                        lastLoggedSeverity={lastLogged.severity}
+                        onQuickLog={() => handleQuickLogClick(symptom)}
+                      />
+                    </div>
+                  );
+                })}
               </div>
-            )}
+            </AnimatedSection>
+            {/* Good Day Card */}
+            <AnimatedSection delay={300}>
+              <GoodDayCard goodDaySymptom={goodDaySymptom} onSave={handleLogGoodDay} />
+            </AnimatedSection>
           </>
         ) : (
-          <div className="rounded-xl border border-[#E8E0DB] bg-white p-12 text-center">
-            <p className="text-[#6B6B6B]">No symptoms available</p>
-            <p className="text-sm text-[#9A9A9A] mt-2">
-              Default symptoms will be created when you first log in.
-            </p>
-          </div>
+          <AnimatedSection delay={250}>
+            <div className="rounded-xl border border-white/30 bg-white/30 backdrop-blur-lg p-12 text-center shadow-xl">
+              <p className="text-[#6B6B6B]">No symptoms available</p>
+              <p className="text-sm text-[#9A9A9A] mt-2">
+                Default symptoms will be created when you first log in.
+              </p>
+            </div>
+          </AnimatedSection>
         )}
 
+        {/* Week Comparison */}
+        <AnimatedSection delay={0}>
+          <WeekComparison />
+        </AnimatedSection>
+
         {/* Analytics Section */}
-        <section>
+        <AnimatedSection delay={0}>
           <AnalyticsSection />
-        </section>
+        </AnimatedSection>
 
         {/* Progress Comparison */}
-        <section>
+        <AnimatedSection delay={0}>
           <ProgressComparison />
-        </section>
+        </AnimatedSection>
 
         {/* Week Summary */}
-        <section>
+        <AnimatedSection delay={0}>
           <WeekSummary />
-        </section>
+        </AnimatedSection>
 
         {/* Recent Logs */}
-        <section>
-          <div className="mb-4">
-            <h2 className="text-xl font-semibold text-[#8B7E74]">Recent</h2>
-          </div>
-          <RecentLogs logs={logs} loading={logsLoading} onLogClick={handleLogClick} />
-        </section>
+        <AnimatedSection delay={0}>
+          <section className="bg-white/30 backdrop-blur-lg rounded-2xl p-6 border border-white/30 shadow-xl transition-all duration-300 hover:shadow-2xl">
+            <div className="mb-4">
+              <h2 className="text-xl font-semibold text-[#8B7E74]">Your Journal</h2>
+            </div>
+            <RecentLogs logs={logs} loading={logsLoading} onLogClick={handleLogClick} />
+          </section>
+        </AnimatedSection>
       </div>
 
       {/* Symptom Selector Modal */}
@@ -318,7 +526,18 @@ export default function SymptomsPage() {
         }}
       />
 
-      {/* Log Symptom Modal */}
+      {/* Quick Log Modal */}
+      {selectedSymptom && (
+        <QuickLogModal
+          symptom={selectedSymptom}
+          isOpen={isQuickModalOpen}
+          onClose={handleQuickModalClose}
+          onSave={handleQuickLogSave}
+          onExpand={handleExpandToFullModal}
+        />
+      )}
+
+      {/* Full Log Symptom Modal */}
       {selectedSymptom && (
         <LogSymptomModal
           symptom={selectedSymptom}
@@ -326,6 +545,7 @@ export default function SymptomsPage() {
           onClose={handleModalClose}
           onSave={handleSaveLog}
           editingLog={editingLog}
+          allLogs={logs}
         />
       )}
 

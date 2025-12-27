@@ -79,11 +79,11 @@ export default function SymptomTimeline({ logs }: SymptomTimelineProps) {
     return base + scale;
   };
 
-  // Color based on severity
+  // Color based on severity (1=mild/green, 2=moderate/yellow, 3=severe/red)
   const getColor = (severity: number) => {
-    if (severity <= 3) return "bg-[#A8D5BA]";
-    if (severity <= 6) return "bg-[#F5D697]";
-    return "bg-[#E8B4B4]";
+    if (severity <= 1 || severity < 1.5) return "bg-green-500";
+    if (severity <= 2 || severity < 2.5) return "bg-yellow-500";
+    return "bg-red-500";
   };
 
   return (

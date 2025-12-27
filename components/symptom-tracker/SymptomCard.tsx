@@ -1,31 +1,71 @@
 "use client";
 
-import { useMemo } from "react";
-import type { Symptom, SymptomLog } from "@/lib/symptom-tracker-constants";
+import { useMemo, useRef, useState } from "react";
+import { SEVERITY_LABELS } from "@/lib/symptom-tracker-constants";
+import type { Symptom } from "@/lib/symptom-tracker-constants";
+import { getIconFromName } from "@/lib/symptomIconMapping";
 
 interface SymptomCardProps {
   symptom: Symptom;
-  onClick: () => void;
+  onClick: () => void; // Opens full modal
   lastLoggedAt?: string | null; // ISO timestamp of most recent log
-  onQuickLog?: () => void; // Optional quick log handler
+  lastLoggedSeverity?: number | null; // Severity of most recent log
+  onQuickLog?: () => void; // Opens quick log modal (single tap)
 }
 
-export default function SymptomCard({ symptom, onClick, lastLoggedAt, onQuickLog }: SymptomCardProps) {
-  const timeAgo = useMemo(() => {
+export default function SymptomCard({ 
+  symptom, 
+  onClick, 
+  lastLoggedAt, 
+  lastLoggedSeverity,
+  onQuickLog 
+}: SymptomCardProps) {
+  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+  const [isLongPressing, setIsLongPressing] = useState(false);
+
+  // Get icon component - always map by symptom name for consistency
+  const SymptomIcon = useMemo(() => {
+    // Map symptom names to icon names (prioritize name mapping for unique icons)
+    const iconMap: Record<string, string> = {
+      'Hot flashes': 'Flame',
+      'Night sweats': 'Droplet',
+      'Fatigue': 'Zap',
+      'Brain fog': 'Brain',
+      'Mood swings': 'Heart',
+      'Anxiety': 'AlertCircle',
+      'Headaches': 'AlertTriangle',
+      'Joint pain': 'Activity',
+      'Bloating': 'CircleDot',
+      'Insomnia': 'Moon',
+      'Weight gain': 'TrendingUp',
+      'Low libido': 'HeartOff',
+      'Good Day': 'Sun',
+    };
+    
+    // Try to get icon by symptom name first (ensures unique icons)
+    const iconName = iconMap[symptom.name];
+    if (iconName) {
+      return getIconFromName(iconName);
+    }
+    
+    // Fallback: try to use icon from database if it's a valid icon name
+    if (symptom.icon && symptom.icon.length > 1 && !symptom.icon.includes('🔥') && !symptom.icon.includes('💧')) {
+      return getIconFromName(symptom.icon);
+    }
+    
+    // Default fallback
+    return getIconFromName('Activity');
+  }, [symptom.icon, symptom.name]);
+
+  const loggedTime = useMemo(() => {
     if (!lastLoggedAt) return null;
     
-    const now = new Date();
     const logged = new Date(lastLoggedAt);
-    const diffMs = now.getTime() - logged.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-    
-    if (diffMins < 1) return "just now";
-    if (diffMins < 60) return `${diffMins} ${diffMins === 1 ? 'minute' : 'minutes'} ago`;
-    if (diffHours < 24) return `${diffHours} ${diffHours === 1 ? 'hour' : 'hours'} ago`;
-    if (diffDays < 7) return `${diffDays} ${diffDays === 1 ? 'day' : 'days'} ago`;
-    return null;
+    return logged.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
   }, [lastLoggedAt]);
 
   const isLoggedToday = useMemo(() => {
@@ -39,37 +79,117 @@ export default function SymptomCard({ symptom, onClick, lastLoggedAt, onQuickLog
     );
   }, [lastLoggedAt]);
 
+  // Single tap - opens quick log modal
   const handleClick = (e: React.MouseEvent) => {
-    // If quick log is available and user double-clicks or long-presses, use quick log
-    if (onQuickLog && e.detail === 2) {
-      e.preventDefault();
-      onQuickLog();
-      return;
+    // Clear any pending long press
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
     }
-    onClick();
+    
+    if (onQuickLog) {
+      onQuickLog();
+    } else {
+      onClick(); // Fallback to full modal if no quick log handler
+    }
   };
+
+  // Long press - opens full modal
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (e.button !== 0) return; // Only handle left mouse button
+    
+    setIsLongPressing(false);
+    longPressTimer.current = setTimeout(() => {
+      setIsLongPressing(true);
+      if (onClick) {
+        onClick();
+      }
+      longPressTimer.current = null;
+    }, 500); // 500ms for long press
+  };
+
+  const handleMouseUp = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+    setIsLongPressing(false);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setIsLongPressing(false);
+    longPressTimer.current = setTimeout(() => {
+      setIsLongPressing(true);
+      if (onClick) {
+        onClick();
+      }
+      longPressTimer.current = null;
+    }, 500);
+  };
+
+  const handleTouchEnd = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+    setIsLongPressing(false);
+  };
+
+  // Get severity icon if logged today
+  const SeverityIcon = useMemo(() => {
+    if (!isLoggedToday || !lastLoggedSeverity) return null;
+    const severityInfo = SEVERITY_LABELS[lastLoggedSeverity as keyof typeof SEVERITY_LABELS];
+    return severityInfo?.icon || null;
+  }, [isLoggedToday, lastLoggedSeverity]);
 
   return (
     <div className="relative">
       <button
         onClick={handleClick}
-        className={`rounded-2xl p-5 
+        onMouseDown={handleMouseDown}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        className={`rounded-2xl p-5 min-h-[80px] h-full
                    flex flex-col gap-2
-                   border transition-all
-                   hover:-translate-y-0.5 hover:shadow-lg
+                   border-2 transition-all
+                   hover:-translate-y-0.5 hover:shadow-xl
                    active:scale-95
                    w-full text-left cursor-pointer
-                   ${!isLoggedToday ? 'border-[#ff74b1] border-2 animate-pulse bg-gradient-to-br from-[#ffb4d5]/20 to-white' : 'border-[#E8E0DB] bg-white hover:bg-gradient-to-br hover:from-[#a6eaff]/20 hover:to-white'}`}
+                   ${isLoggedToday 
+                     ? 'border-[#ff74b1] bg-white/40 backdrop-blur-lg hover:bg-white/60' 
+                     : 'border-white/30 bg-white/30 backdrop-blur-md hover:bg-white/50'}`}
       >
         <div className="flex flex-row items-center gap-3">
-          <span className="text-2xl">{symptom.icon}</span>
-          <span className="text-[#3D3D3D] font-medium flex-1">{symptom.name}</span>
+          <SymptomIcon className="h-6 w-6 text-[#3D3D3D]" />
+          <span className="text-[#3D3D3D] font-medium flex-1 text-base">{symptom.name}</span>
+          {isLoggedToday && SeverityIcon && lastLoggedSeverity && (
+            <SeverityIcon className={`h-5 w-5 ${
+              lastLoggedSeverity === 1 
+                ? 'text-green-500' 
+                : lastLoggedSeverity === 2 
+                ? 'text-yellow-500' 
+                : 'text-red-500'
+            }`} />
+          )}
         </div>
-        {timeAgo && (
-          <p className="text-xs text-[#9A9A9A] ml-11">{timeAgo}</p>
+        {isLoggedToday && loggedTime && (
+          <p className="text-sm text-[#9A9A9A] ml-11 flex items-center gap-2">
+            {SeverityIcon && lastLoggedSeverity && (
+              <SeverityIcon className={`h-4 w-4 ${
+                lastLoggedSeverity === 1 
+                  ? 'text-green-500' 
+                  : lastLoggedSeverity === 2 
+                  ? 'text-yellow-500' 
+                  : 'text-red-500'
+              }`} />
+            )}
+            {loggedTime}
+          </p>
         )}
-        {!lastLoggedAt && (
-          <p className="text-xs text-[#9A9A9A] ml-11">Not logged yet</p>
+        {!isLoggedToday && (
+          <p className="text-xs text-[#9A9A9A] ml-11">Tap to log</p>
         )}
       </button>
     </div>

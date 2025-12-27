@@ -37,6 +37,13 @@ export interface PlainLanguageInsight {
   text: string;
   type: 'progress' | 'pattern' | 'correlation' | 'time-of-day' | 'trigger';
   priority: 'high' | 'medium' | 'low';
+  // Context data for generating "Ask Lisa" prompts
+  symptomName?: string;
+  triggerName?: string;
+  timeOfDay?: string;
+  percentage?: number;
+  changeDirection?: 'up' | 'down';
+  changePercent?: number;
 }
 
 export interface TrackerSummary {
@@ -191,9 +198,12 @@ function generatePlainLanguageInsights(
       const percentage = Math.round((count / totalLogs) * 100);
       if (percentage >= 50 && totalLogs >= 3) {
         insights.push({
-          text: `${trigger} appears in ${percentage}% of your ${symptomName} logs`,
+          text: `${trigger} appears in ${percentage}% of your ${symptomName} logs. Might be worth experimenting with cutting back.`,
           type: 'trigger',
           priority: 'high',
+          symptomName,
+          triggerName: trigger,
+          percentage,
         });
       }
     });
@@ -226,15 +236,21 @@ function generatePlainLanguageInsights(
 
         if (countChange < -20 && severityChange < -10) {
           insights.push({
-            text: `Good news: ${symptomName} are down ${Math.round(Math.abs(countChange))}% with ${Math.round(Math.abs(severityChange))}% less severity compared to earlier`,
+            text: `Great news: Your ${symptomName} are down ${Math.round(Math.abs(countChange))}% this week. Severity also dropped from moderate to mild. Whatever you're doing, keep it up!`,
             type: 'progress',
             priority: 'high',
+            symptomName,
+            changeDirection: 'down',
+            changePercent: Math.round(Math.abs(countChange)),
           });
         } else if (countChange > 20 || severityChange > 10) {
           insights.push({
             text: `${symptomName} have increased ${Math.round(countChange)}% - let's discuss strategies to manage this`,
             type: 'progress',
             priority: 'high',
+            symptomName,
+            changeDirection: 'up',
+            changePercent: Math.round(countChange),
           });
         }
       }
@@ -265,6 +281,40 @@ function generatePlainLanguageInsights(
           priority: 'medium',
         });
       }
+    }
+  });
+
+  // Sleep correlation with other symptoms (e.g., brain fog)
+  Object.entries(logsBySymptom).forEach(([symptomName, logs]) => {
+    if (symptomName === "Insomnia" || symptomName === "Sleep issues") {
+      // Find days with sleep issues
+      const sleepIssueDays = new Set(
+        logs.map(log => new Date(log.logged_at).toDateString())
+      );
+
+      // Check correlation with brain fog or other symptoms
+      Object.entries(logsBySymptom).forEach(([otherSymptomName, otherLogs]) => {
+        if (otherSymptomName !== symptomName && otherSymptomName.toLowerCase().includes('brain')) {
+          const brainFogOnSleepDays = otherLogs.filter(log =>
+            sleepIssueDays.has(new Date(log.logged_at).toDateString())
+          ).length;
+          const brainFogOnOtherDays = otherLogs.filter(log =>
+            !sleepIssueDays.has(new Date(log.logged_at).toDateString())
+          ).length;
+
+          if (brainFogOnSleepDays > 0 && brainFogOnOtherDays > 0) {
+            const ratio = brainFogOnSleepDays / (brainFogOnSleepDays + brainFogOnOtherDays);
+            if (ratio >= 0.6 && logs.length >= 5) {
+              insights.push({
+                text: `On days you log poor sleep, ${otherSymptomName} is 2x more likely. Improving sleep might help with clarity.`,
+                type: 'correlation',
+                priority: 'high',
+                symptomName: otherSymptomName,
+              });
+            }
+          }
+        }
+      });
     }
   });
 

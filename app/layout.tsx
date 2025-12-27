@@ -60,10 +60,10 @@ export default async function RootLayout({
 
   return (
     <html lang="en" className={`${satoshi.variable}  ${dancingScript.variable}`}>
-      <body className="min-h-screen flex flex-col font-sans bg-background text-foreground">
+      <body className="min-h-screen flex flex-col font-sans text-foreground" style={{ background: 'linear-gradient(to bottom, #DBEAFE 0%, #FEF3C7 50%, #FCE7F3 100%)' }}>
         <ConditionalNavbar isAuthenticated={!!user} />
 
-        <main className="flex-1 w-full bg-background">{children}</main>
+        <main className="flex-1 w-full" style={{ background: 'linear-gradient(to bottom, #DBEAFE 0%, #FEF3C7 50%, #FCE7F3 100%)' }}>{children}</main>
       </body>
     </html>
   );

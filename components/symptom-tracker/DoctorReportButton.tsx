@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState } from "react";
@@ -68,17 +69,17 @@ ${report.questions.map((q: string, i: number) => `  ${i + 1}. ${q}`).join("\n")}
       <button
         onClick={handleGenerateReport}
         disabled={isGenerating}
-        className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#ff74b1] hover:bg-[#d85a9a] text-white font-semibold rounded-xl transition-colors shadow-md cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs bg-white/30 hover:bg-white/40 backdrop-blur-md text-[#3D3D3D] font-medium rounded-lg transition-colors border border-white/30 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {isGenerating ? (
           <>
-            <FileText className="h-5 w-5 animate-pulse" />
+            <FileText className="h-3.5 w-3.5 animate-pulse" />
             Generating...
           </>
         ) : (
           <>
-            <Download className="h-5 w-5" />
-            Generate Doctor Report
+            <Download className="h-3.5 w-3.5" />
+            Generate Report
           </>
         )}
       </button>

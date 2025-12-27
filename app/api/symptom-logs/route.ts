@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { checkTrialExpired } from "@/lib/checkTrialStatus";
+import { updateStreakOnNewLog } from "@/lib/streakCalculator";
 
 export const runtime = "nodejs";
 
@@ -98,7 +99,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { symptomId, severity, triggers, notes } = body;
+    const { symptomId, severity, triggers, notes, loggedAt } = body;
 
     // Validation
     if (!symptomId || typeof symptomId !== "string") {
@@ -130,17 +131,22 @@ export async function POST(req: NextRequest) {
 
     // Insert symptom log
     const supabaseAdmin = getSupabaseAdmin();
+    const insertData: any = {
+      user_id: user.id,
+      symptom_id: symptomId,
+      severity,
+      triggers: triggers || [],
+      notes: notes?.trim() || null,
+    };
+    
+    // If loggedAt is provided, use it; otherwise let database default to NOW()
+    if (loggedAt) {
+      insertData.logged_at = loggedAt;
+    }
+    
     const { data, error: insertError } = await supabaseAdmin
       .from("symptom_logs")
-      .insert([
-        {
-          user_id: user.id,
-          symptom_id: symptomId,
-          severity,
-          triggers: triggers || [],
-          notes: notes?.trim() || null,
-        },
-      ])
+      .insert([insertData])
       .select(`
         *,
         symptoms (name, icon)
@@ -153,6 +159,58 @@ export async function POST(req: NextRequest) {
         { error: "Failed to save symptom log" },
         { status: 500 }
       );
+    }
+
+    // Update streak in user_preferences
+    try {
+      // Get current user preferences
+      const { data: preferences, error: prefError } = await supabaseAdmin
+        .from("user_preferences")
+        .select("current_streak, longest_streak, last_log_date, total_logs")
+        .eq("user_id", user.id)
+        .single();
+
+      if (!prefError && preferences) {
+        const logDate = new Date(insertData.logged_at || new Date());
+        const lastLogDate = preferences.last_log_date ? new Date(preferences.last_log_date) : null;
+
+        const updatedStreak = updateStreakOnNewLog(
+          {
+            currentStreak: preferences.current_streak || 0,
+            longestStreak: preferences.longest_streak || 0,
+            lastLogDate: lastLogDate,
+            totalLogs: preferences.total_logs || 0,
+            totalGoodDays: 0, // Good days tracked separately
+          },
+          logDate
+        );
+
+        // Update user preferences with new streak data
+        await supabaseAdmin
+          .from("user_preferences")
+          .update({
+            current_streak: updatedStreak.currentStreak,
+            longest_streak: updatedStreak.longestStreak,
+            last_log_date: updatedStreak.lastLogDate?.toISOString().split('T')[0] || null,
+            total_logs: updatedStreak.totalLogs,
+          })
+          .eq("user_id", user.id);
+      } else {
+        // Create user preferences if they don't exist
+        const logDate = new Date(insertData.logged_at || new Date());
+        await supabaseAdmin
+          .from("user_preferences")
+          .upsert({
+            user_id: user.id,
+            current_streak: 1,
+            longest_streak: 1,
+            last_log_date: logDate.toISOString().split('T')[0],
+            total_logs: 1,
+          });
+      }
+    } catch (streakError) {
+      // Log error but don't fail the request
+      console.error("Error updating streak:", streakError);
     }
 
     return NextResponse.json({ data }, { status: 201 });

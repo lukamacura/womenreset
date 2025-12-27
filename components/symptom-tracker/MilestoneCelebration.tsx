@@ -1,60 +1,43 @@
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
-import { useSymptomLogs } from "@/hooks/useSymptomLogs";
-import { X } from "lucide-react";
+import { PartyPopper, Flame, Star, Trophy, X } from "lucide-react";
+import { useUserPreferences } from "@/hooks/useUserPreferences";
 
 export default function MilestoneCelebration() {
-  const { logs } = useSymptomLogs(365); // All logs for milestone tracking
+  const { preferences } = useUserPreferences();
   const [dismissedMilestones, setDismissedMilestones] = useState<Set<string>>(new Set());
   const [currentMilestone, setCurrentMilestone] = useState<string | null>(null);
+  const [lastSeenStreak, setLastSeenStreak] = useState<number>(0);
 
+  const currentStreak = preferences?.current_streak || 0;
+
+  // Detect milestone achievements based on streak
   const milestones = useMemo(() => {
-    const totalLogs = logs.length;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    // Calculate streak
-    let streak = 0;
-    for (let i = 0; i < 365; i++) {
-      const checkDate = new Date(today);
-      checkDate.setDate(checkDate.getDate() - i);
-      checkDate.setHours(0, 0, 0, 0);
-      
-      const hasLog = logs.some((log) => {
-        const logDate = new Date(log.logged_at);
-        logDate.setHours(0, 0, 0, 0);
-        return logDate.getTime() === checkDate.getTime();
-      });
-      
-      if (hasLog) {
-        streak++;
-      } else {
-        if (i === 0) continue;
-        break;
-      }
-    }
-
     const detected: string[] = [];
 
-    // 50 symptoms logged
-    if (totalLogs >= 50 && !dismissedMilestones.has('50-symptoms')) {
-      detected.push('50-symptoms');
-    }
-
-    // 30-day streak
-    if (streak >= 30 && !dismissedMilestones.has('30-streak')) {
-      detected.push('30-streak');
-    }
-
-    // First pattern (if we have insights, this would be detected elsewhere)
-    // For now, we'll use 20+ logs as a proxy for "enough data for patterns"
-    if (totalLogs >= 20 && !dismissedMilestones.has('first-pattern')) {
-      detected.push('first-pattern');
-    }
+    // Check if streak reached a new milestone threshold
+    const milestoneThresholds = [3, 7, 14, 30];
+    
+    milestoneThresholds.forEach(threshold => {
+      const milestoneKey = `${threshold}-streak`;
+      // Only show if current streak equals threshold AND we haven't seen this milestone before
+      if (currentStreak === threshold && 
+          !dismissedMilestones.has(milestoneKey) &&
+          lastSeenStreak < threshold) {
+        detected.push(milestoneKey);
+      }
+    });
 
     return detected;
-  }, [logs, dismissedMilestones]);
+  }, [currentStreak, dismissedMilestones, lastSeenStreak]);
+
+  // Update last seen streak when it changes
+  useEffect(() => {
+    if (currentStreak > lastSeenStreak) {
+      setLastSeenStreak(currentStreak);
+    }
+  }, [currentStreak, lastSeenStreak]);
 
   useEffect(() => {
     if (milestones.length > 0 && !currentMilestone) {
@@ -73,23 +56,29 @@ export default function MilestoneCelebration() {
 
   const getMilestoneContent = (milestone: string) => {
     switch (milestone) {
-      case '50-symptoms':
+      case '3-streak':
         return {
-          emoji: '🎉',
-          title: "You've logged 50 symptoms!",
-          message: "You're building a picture of your body that most women never have.",
+          icon: PartyPopper,
+          title: '3 days in a row!',
+          message: "You're building a habit.",
+        };
+      case '7-streak':
+        return {
+          icon: Flame,
+          title: 'One week streak!',
+          message: "Lisa is learning your patterns.",
+        };
+      case '14-streak':
+        return {
+          icon: Star,
+          title: 'Two weeks!',
+          message: "You're in the top 20% of consistent trackers.",
         };
       case '30-streak':
         return {
-          emoji: '🏆',
-          title: '30-day streak!',
-          message: "You're in the top 10% of consistent trackers.",
-        };
-      case 'first-pattern':
-        return {
-          emoji: '📈',
-          title: 'First pattern detected!',
-          message: 'Lisa found a connection between your symptoms and lifestyle factors.',
+          icon: Trophy,
+          title: '30 days!',
+          message: "You now have a full month of data.",
         };
       default:
         return null;
@@ -101,7 +90,7 @@ export default function MilestoneCelebration() {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl p-8 max-w-md w-full shadow-xl border border-[#E8E0DB] relative">
+      <div className="bg-white/30 backdrop-blur-lg rounded-2xl p-8 max-w-md w-full shadow-xl border border-white/30 relative">
         <button
           onClick={handleDismiss}
           className="absolute top-4 right-4 text-[#9A9A9A] hover:text-[#3D3D3D] transition-colors cursor-pointer"
@@ -110,7 +99,9 @@ export default function MilestoneCelebration() {
         </button>
         
         <div className="text-center">
-          <div className="text-6xl mb-4">{content.emoji}</div>
+          <div className="mb-4 flex justify-center">
+            <content.icon className="h-16 w-16 text-[#ff74b1]" />
+          </div>
           <h3 className="text-2xl font-bold text-[#3D3D3D] mb-2">
             {content.title}
           </h3>

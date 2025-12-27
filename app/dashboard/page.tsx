@@ -5,10 +5,15 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import type { User } from "@supabase/supabase-js";
-import { Activity, ArrowRight, Smile, Meh, Frown, UtensilsCrossed, Dumbbell, Trash2, Sunrise, Sun, Moon, Cookie, Heart, StretchHorizontal, Trophy } from "lucide-react";
+import { Activity, ArrowRight, Meh, UtensilsCrossed, Dumbbell, Trash2, Sunrise, Sun, Moon, Cookie, Heart, StretchHorizontal, Trophy } from "lucide-react";
 import type { Symptom } from "@/components/symptoms/SymptomList";
 import type { Nutrition } from "@/components/nutrition/NutritionList";
 import type { Fitness } from "@/components/fitness/FitnessList";
+import type { SymptomLog } from "@/lib/symptom-tracker-constants";
+import { useSymptomLogs } from "@/hooks/useSymptomLogs";
+import { formatDateSimple } from "@/lib/dateUtils";
+import { getIconFromName } from "@/lib/symptomIconMapping";
+import { SEVERITY_LABELS } from "@/lib/symptom-tracker-constants";
 import AddSymptomModal from "@/components/symptoms/AddSymptomModal";
 import AddNutritionModal from "@/components/nutrition/AddNutritionModal";
 import AddFitnessModal from "@/components/fitness/AddFitnessModal";
@@ -202,15 +207,14 @@ function TrialStatusCard({
 }) {
   return (
     <AnimatedCard index={0} delay={0}>
-      <div className="relative overflow-hidden rounded-2xl border-2 border-info/30 p-6 lg:p-8 shadow-lg transition-all duration-300 hover:shadow-xl" style={{ background: 'linear-gradient(135deg, #a6eaff 0%, #65dbff 20%, #ffb4d5 40%, #fff5f9 100%)' }}>
-      <div className="absolute top-0 right-0 w-64 h-64 bg-linear-to-br from-info/25 via-[#ff74b1]/20 to-[#ffeb76]/15 rounded-full blur-3xl" />
+      <div className="relative overflow-hidden rounded-2xl border border-white/25 bg-gray-900  backdrop-blur-lg p-6 lg:p-8 shadow-xl transition-all duration-300 hover:shadow-2xl">
       <div className="relative">
         <div className="flex items-start justify-between mb-4">
           <div className="flex-1 min-w-0">
-            <h2 className="text-2xl lg:text-3xl font-extrabold text-foreground mb-2">
+            <h2 className="text-2xl lg:text-3xl font-extrabold text-white! mb-2">
               {trial.expired ? "Trial Expired" : "Your Trial"}
             </h2>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-white/80">
               {trial.start && !trial.expired && (
                 <>
                   Started {trial.start.toLocaleDateString()} · Ends {trial.end?.toLocaleDateString()}
@@ -222,8 +226,8 @@ function TrialStatusCard({
           <div
             className={`rounded-full px-3 py-1.5 text-xs font-semibold shrink-0 ml-2 ${
               trial.expired
-                ? "bg-error/20 text-error"
-                : "bg-green-500/20 text-green-700"
+                ? "bg-red-500/30 text-red-300 border border-red-500/50"
+                : "bg-green-500/30 text-green-300 border border-green-500/50"
             }`}
           >
             {trial.expired ? "Expired" : "Active"}
@@ -232,12 +236,12 @@ function TrialStatusCard({
 
         <div className="mb-6">
           <div className="flex items-baseline gap-2 mb-3">
-            <span className="text-5xl lg:text-6xl font-extrabold text-foreground tracking-tight">
+            <span className="text-5xl lg:text-6xl font-extrabold text-white tracking-tight">
               {trial.daysLeft}
             </span>
-            <span className="text-lg text-muted-foreground">days left</span>
+            <span className="text-lg text-white/80">days left</span>
           </div>
-          <div className="h-3 w-full overflow-hidden rounded-full bg-foreground/10">
+          <div className="h-3 w-full overflow-hidden rounded-full bg-white/10">
             <div
               className={`h-full transition-[width] duration-500 ${
                 trial.expired
@@ -247,7 +251,7 @@ function TrialStatusCard({
               style={{ width: `${Math.max(0, Math.min(100, trial.progressPct))}%` }}
             />
           </div>
-          <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
+          <div className="mt-2 flex items-center justify-between text-xs text-white/70">
             <span>
               {Math.min(trial.trialDays || 3, trial.elapsedDays)} / {trial.trialDays || 3} days used
             </span>
@@ -256,7 +260,7 @@ function TrialStatusCard({
         </div>
 
         {!trial.expired && (
-          <div className="text-sm text-muted-foreground">
+          <div className="text-sm text-white/80">
             Ends in {trial.remaining.d}d {trial.remaining.h}h {trial.remaining.m}m
           </div>
         )}
@@ -279,10 +283,8 @@ function SymptomsOverviewCard({
     <AnimatedCard index={1} delay={100}>
       <Link
         href="/dashboard/symptoms"
-        className="group relative overflow-hidden block h-full rounded-2xl border-2 border-[#ff74b1]/30 p-6 shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-[1.02]"
-        style={{ background: 'linear-gradient(135deg, #fff5f9 0%, #ffb4d5 30%, #ffffff 100%)' }}
+        className="group relative overflow-hidden block h-full rounded-2xl border border-white/30 bg-white/30 backdrop-blur-lg p-6 shadow-xl transition-all duration-300 hover:shadow-2xl hover:scale-[1.02]"
         >
-      <div className="absolute top-0 right-0 w-40 h-40 bg-linear-to-br from-[#ff74b1]/30 to-transparent rounded-full blur-3xl" />
       <div className="relative">
         <div className="flex items-start justify-between mb-4">
           <div className="p-3 rounded-xl shadow-md" style={{ background: 'linear-gradient(135deg, #ff74b1 0%, #d85a9a 100%)' }}>
@@ -313,140 +315,145 @@ function SymptomsOverviewCard({
 
 // Recent Symptoms Card
 function RecentSymptomsCard({
-  symptoms,
+  logs,
   isLoading,
-  onEdit,
-  onDelete,
+  onLogClick,
 }: {
-  symptoms: Symptom[];
+  logs: SymptomLog[];
   isLoading: boolean;
-  onEdit?: (symptom: Symptom) => void;
-  onDelete?: (symptom: Symptom) => void;
+  onLogClick?: (log: SymptomLog) => void;
 }) {
-  const recentSymptoms = symptoms.slice(0, 5);
-
-  const getSeverityIcon = (severity: number) => {
-    if (severity <= 3) return <Smile className="h-3.5 w-3.5" />;
-    if (severity <= 6) return <Meh className="h-3.5 w-3.5" />;
-    return <Frown className="h-3.5 w-3.5" />;
-  };
-
-  const getSeverityLabel = (severity: number) => {
-    if (severity <= 3) return "Low";
-    if (severity <= 6) return "Medium";
-    return "High";
-  };
+  const recentLogs = logs.slice(0, 5);
 
   return (
     <AnimatedCard index={4} delay={300}>
-      <div className="relative overflow-hidden rounded-2xl border-2 border-primary-light/40 p-6 shadow-lg transition-all duration-300 hover:shadow-xl" style={{ background: 'linear-gradient(135deg, #fff5f9 0%, #ffb4d5 30%, #ffffff 100%)' }}>
-      <div className="absolute top-0 right-0 w-40 h-40 bg-linear-to-br from-[#ff74b1]/20 to-transparent rounded-full blur-3xl" />
-      <div className="relative">
-        <div className="flex items-center justify-between mb-5">
-          <h3 className="text-lg font-bold text-foreground">Recent Symptoms</h3>
-          <Link
-            href="/dashboard/symptoms"
-            className="text-sm text-primary hover:underline flex items-center gap-1 font-medium"
-          >
-            View all
-            <ArrowRight className="h-4 w-4" />
-          </Link>
-        </div>
-
-        {isLoading ? (
-          <div className="space-y-3">
-            {[1, 2, 3].map((i) => (
-              <Skeleton key={i} className="h-16 w-full" />
-            ))}
-          </div>
-        ) : recentSymptoms.length === 0 ? (
-          <div className="text-center py-8">
-            <Activity className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
-            <p className="text-sm text-muted-foreground">No symptoms logged yet</p>
+      <div className="relative overflow-hidden rounded-2xl border border-white/30 bg-white/30 backdrop-blur-lg p-6 shadow-xl transition-all duration-300 hover:shadow-2xl">
+        <div className="relative">
+          <div className="flex items-center justify-between mb-5">
+            <h3 className="text-lg font-bold text-[#3D3D3D]">Recent Symptoms</h3>
             <Link
               href="/dashboard/symptoms"
-              className="text-sm text-primary hover:underline mt-2 inline-block"
+              className="text-sm text-[#ff74b1] hover:text-primary-dark hover:underline flex items-center gap-1 font-medium transition-colors"
             >
-              Start tracking →
+              View all
+              <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
-        ) : (
-          <div className="space-y-3">
-            {recentSymptoms.map((symptom, index) => {
-              const formatDateTime = (dateString: string) => {
-                const date = new Date(dateString);
-                return {
-                  date: date.toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                    year: "numeric",
-                  }),
-                  time: date.toLocaleTimeString("en-US", {
-                    hour: "numeric",
-                    minute: "2-digit",
-                    hour12: true,
-                  }),
-                };
-              };
-              const { date, time } = formatDateTime(symptom.occurred_at);
-              const severityColor = symptom.severity <= 3 
-                ? "bg-[#a6eaff]/30 text-[#65dbff] border border-[#a6eaff]/40" 
-                : symptom.severity <= 6 
-                ? "bg-[#ffeb76]/30 text-[#e6d468] border border-[#ffeb76]/40" 
-                : "bg-[#ff74b1]/30 text-[#d85a9a] border border-[#ff74b1]/40";
 
-              return (
-                <AnimatedListItem key={symptom.id} index={index}>
-                  <div
-                    className="group rounded-xl border border-foreground/10 bg-background/60 p-4 transition-colors hover:border-foreground/20"
-                  >
-                  <div className="flex items-start justify-between gap-4">
-                    <div 
-                      className="flex-1 min-w-0 cursor-pointer"
-                      onClick={() => onEdit?.(symptom)}
+          {isLoading ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="animate-pulse rounded-xl border border-white/30 bg-white/20 backdrop-blur-md p-4"
+                >
+                  <div className="h-5 w-48 bg-white/30 rounded mb-2" />
+                  <div className="h-4 w-32 bg-white/30 rounded" />
+                </div>
+              ))}
+            </div>
+          ) : recentLogs.length === 0 ? (
+            <div className="text-center py-8">
+              <Activity className="h-12 w-12 text-[#9A9A9A]/30 mx-auto mb-3" />
+              <p className="text-sm text-[#6B6B6B]">No symptoms logged yet</p>
+              <Link
+                href="/dashboard/symptoms"
+                className="text-sm text-[#ff74b1] hover:text-primary-dark hover:underline mt-2 inline-block transition-colors"
+              >
+                Start tracking →
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {recentLogs.map((log, index) => {
+                const { dateStr, timeStr } = formatDateSimple(log.logged_at);
+                const symptomName = log.symptoms?.name || "Unknown";
+                const symptomIconName = log.symptoms?.icon || "Activity";
+                
+                // Map symptom names to icon names (prioritize name mapping for unique icons)
+                const iconMap: Record<string, string> = {
+                  'Hot flashes': 'Flame',
+                  'Night sweats': 'Droplet',
+                  'Fatigue': 'Zap',
+                  'Brain fog': 'Brain',
+                  'Mood swings': 'Heart',
+                  'Anxiety': 'AlertCircle',
+                  'Headaches': 'AlertTriangle',
+                  'Joint pain': 'Activity',
+                  'Bloating': 'CircleDot',
+                  'Insomnia': 'Moon',
+                  'Weight gain': 'TrendingUp',
+                  'Low libido': 'HeartOff',
+                  'Good Day': 'Sun',
+                };
+                
+                // Try to get icon by symptom name first (ensures unique icons)
+                const iconName = iconMap[symptomName];
+                let SymptomIcon;
+                if (iconName) {
+                  SymptomIcon = getIconFromName(iconName);
+                } else if (symptomIconName && symptomIconName.length > 1 && !symptomIconName.includes('🔥') && !symptomIconName.includes('💧')) {
+                  SymptomIcon = getIconFromName(symptomIconName);
+                } else {
+                  SymptomIcon = getIconFromName('Activity');
+                }
+
+                // Get severity info (1=Mild/Green, 2=Moderate/Yellow, 3=Severe/Red)
+                const severityInfo = SEVERITY_LABELS[log.severity as keyof typeof SEVERITY_LABELS];
+                const SeverityIcon = severityInfo?.icon || Meh;
+                const severityColor = log.severity === 1 
+                  ? "text-green-500" 
+                  : log.severity === 2 
+                  ? "text-yellow-500" 
+                  : "text-red-500";
+
+                return (
+                  <AnimatedListItem key={log.id} index={index}>
+                    <div
+                      onClick={() => onLogClick?.(log)}
+                      className="rounded-xl border border-white/30 bg-white/30 backdrop-blur-lg p-4 hover:bg-white/40 transition-all cursor-pointer shadow-lg"
                     >
-                      <div className="flex items-center gap-2 mb-2">
-                        <h3 className="text-base font-semibold text-foreground truncate">
-                          {symptom.name}
-                        </h3>
-                        <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium shrink-0 ${severityColor}`}>
-                          {getSeverityIcon(symptom.severity)}
-                          {getSeverityLabel(symptom.severity)}
-                        </span>
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-3 mb-1 flex-wrap">
+                            <SymptomIcon className="h-5 w-5 text-[#3D3D3D] shrink-0" />
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-[#3D3D3D] font-semibold">{symptomName}</span>
+                              <span className="text-[#9A9A9A]">-</span>
+                              <div className="flex items-center gap-1">
+                                <SeverityIcon className={`h-4 w-4 ${severityColor}`} />
+                                <span className={`text-[#3D3D3D] font-medium ${severityColor}`}>
+                                  {severityInfo?.label || 'Moderate'}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-[#9A9A9A] flex-wrap ml-8">
+                            <span>{dateStr}</span>
+                            {dateStr === "Today" && (
+                              <>
+                                <span>•</span>
+                                <span>{timeStr}</span>
+                              </>
+                            )}
+                          </div>
+                          {log.triggers && log.triggers.length > 0 && (
+                            <div className="mt-2 text-sm text-[#6B6B6B] ml-8">
+                              Triggers: {log.triggers.join(", ")}
+                            </div>
+                          )}
+                          {log.notes && (
+                            <div className="mt-2 text-sm text-[#3D3D3D] ml-8 line-clamp-2">{log.notes}</div>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <span>{date}</span>
-                        <span>•</span>
-                        <span>{time}</span>
-                      </div>
-                      {symptom.notes && (
-                        <p className="mt-2 text-sm text-foreground/80 line-clamp-2">
-                          {symptom.notes}
-                        </p>
-                      )}
                     </div>
-                    {onDelete && (
-                      <div className="flex items-center gap-2 shrink-0">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onDelete(symptom);
-                          }}
-                          className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-primary-light/50 hover:text-primary-dark"
-                          aria-label="Delete symptom"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                  </div>
-                </AnimatedListItem>
-              );
-            })}
-          </div>
-        )}
-      </div>
+                  </AnimatedListItem>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
     </AnimatedCard>
   );
@@ -464,10 +471,8 @@ function NutritionOverviewCard({
     <AnimatedCard index={2} delay={150}>
       <Link
         href="/dashboard/nutrition"
-        className="group relative overflow-hidden block h-full rounded-2xl border-2 border-[#ffeb76]/40 p-6 shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-[1.02]"
-        style={{ background: 'linear-gradient(135deg, #fffef5 0%, #fff4a3 30%, #ffffff 100%)' }}
+        className="group relative overflow-hidden block h-full rounded-2xl border border-white/30 bg-white/30 backdrop-blur-lg p-6 shadow-xl transition-all duration-300 hover:shadow-2xl hover:scale-[1.02]"
       >
-      <div className="absolute top-0 right-0 w-40 h-40 bg-linear-to-br from-[#ffeb76]/30 to-transparent rounded-full blur-3xl" />
       <div className="relative">
         <div className="flex items-start justify-between mb-4">
           <div className="p-3 rounded-xl shadow-md" style={{ background: 'linear-gradient(135deg, #ffeb76 0%, #e6d468 100%)' }}>
@@ -546,8 +551,7 @@ function RecentNutritionCard({
 
   return (
     <AnimatedCard index={5} delay={350}>
-      <div className="relative overflow-hidden rounded-2xl border-2 border-[#ffeb76]/30 p-6 shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-[1.01]" style={{ background: 'linear-gradient(135deg, #fffef5 0%, #fff4a3 20%, #ffffff 100%)' }}>
-      <div className="absolute top-0 right-0 w-40 h-40 bg-linear-to-br from-orange-300/10 to-transparent rounded-full blur-3xl" />
+      <div className="relative overflow-hidden rounded-2xl border border-white/30 bg-white/30 backdrop-blur-lg p-6 shadow-xl transition-all duration-300 hover:shadow-2xl hover:scale-[1.01]">
       <div className="relative">
         <div className="flex items-center justify-between mb-5">
           <h3 className="text-lg font-bold text-foreground">Recent Meals</h3>
@@ -677,10 +681,8 @@ function FitnessOverviewCard({
     <AnimatedCard index={3} delay={200}>
       <Link
         href="/dashboard/fitness"
-        className="group relative overflow-hidden block h-full rounded-2xl border-2 border-info/30 p-6 shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-[1.02]"
-        style={{ background: 'linear-gradient(135deg, #f0f9ff 0%, #a6eaff 30%, #ffffff 100%)' }}
+        className="group relative overflow-hidden block h-full rounded-2xl border border-white/30 bg-white/30 backdrop-blur-lg p-6 shadow-xl transition-all duration-300 hover:shadow-2xl hover:scale-[1.02]"
       >
-      <div className="absolute top-0 right-0 w-40 h-40 bg-linear-to-br from-info/30 to-transparent rounded-full blur-3xl" />
       <div className="relative">
         <div className="flex items-start justify-between mb-4">
           <div className="p-3 rounded-xl shadow-md" style={{ background: 'linear-gradient(135deg, #65dbff 0%, #4bc4e6 100%)' }}>
@@ -763,8 +765,7 @@ function RecentFitnessCard({
 
   return (
     <AnimatedCard index={6} delay={400}>
-      <div className="relative overflow-hidden rounded-2xl border-2 border-info/30 p-6 shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-[1.01]" style={{ background: 'linear-gradient(135deg, #f0f9ff 0%, #a6eaff 20%, #ffffff 100%)' }}>
-      <div className="absolute top-0 right-0 w-40 h-40 bg-linear-to-br from-info/20 via-[#ffeb76]/10 to-transparent rounded-full blur-3xl" />
+      <div className="relative overflow-hidden rounded-2xl border border-white/30 bg-white/30 backdrop-blur-lg p-6 shadow-xl transition-all duration-300 hover:shadow-2xl hover:scale-[1.01]">
       <div className="relative">
         <div className="flex items-center justify-between mb-5">
           <h3 className="text-lg font-bold text-foreground">Recent Workouts</h3>
@@ -920,8 +921,9 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [now, setNow] = useState<Date>(new Date());
-  const [symptoms, setSymptoms] = useState<Symptom[]>([]);
-  const [symptomsLoading, setSymptomsLoading] = useState(true);
+  const [, setSymptoms] = useState<Symptom[]>([]);
+  const [, setSymptomsLoading] = useState(true);
+  const { logs: symptomLogs, loading: symptomLogsLoading } = useSymptomLogs(30);
   const [nutrition, setNutrition] = useState<Nutrition[]>([]);
   const [nutritionLoading, setNutritionLoading] = useState(true);
   const [fitness, setFitness] = useState<Fitness[]>([]);
@@ -1267,21 +1269,6 @@ export default function DashboardPage() {
     setIsSymptomModalOpen(false);
   }, [editingSymptom]);
 
-  const handleSymptomEdit = useCallback((symptom: Symptom) => {
-    setEditingSymptom(symptom);
-    setIsSymptomModalOpen(true);
-  }, []);
-
-  const handleSymptomDeleteClick = useCallback((symptom: Symptom) => {
-    setDeleteDialog({
-      isOpen: true,
-      type: "symptom",
-      id: symptom.id,
-      name: symptom.name,
-      isLoading: false,
-    });
-  }, []);
-
   const handleSymptomDeleted = useCallback(async () => {
     if (!deleteDialog.id || deleteDialog.type !== "symptom") return;
 
@@ -1477,8 +1464,8 @@ export default function DashboardPage() {
         {/* Symptoms Overview Card - 1 column */}
         <div>
           <SymptomsOverviewCard
-            totalSymptoms={symptoms.length}
-            isLoading={symptomsLoading}
+            totalSymptoms={new Set(symptomLogs.map(log => log.symptom_id)).size}
+            isLoading={symptomLogsLoading}
           />
         </div>
 
@@ -1501,10 +1488,12 @@ export default function DashboardPage() {
         {/* Recent Symptoms Card - Full width on desktop (3 columns) */}
         <div className="lg:col-span-3">
           <RecentSymptomsCard 
-            symptoms={symptoms} 
-            isLoading={symptomsLoading}
-            onEdit={handleSymptomEdit}
-            onDelete={handleSymptomDeleteClick}
+            logs={symptomLogs} 
+            isLoading={symptomLogsLoading}
+            onLogClick={() => {
+              // Navigate to symptoms page where logs can be viewed and edited
+              router.push("/dashboard/symptoms");
+            }}
           />
         </div>
 
