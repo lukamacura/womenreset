@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/static-components */
 "use client";
 
 import { useMemo, useRef, useState } from "react";
@@ -21,7 +22,7 @@ export default function SymptomCard({
   onQuickLog 
 }: SymptomCardProps) {
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
-  const [isLongPressing, setIsLongPressing] = useState(false);
+  const [, setIsLongPressing] = useState(false);
 
   // Get icon component - always map by symptom name for consistency
   const SymptomIcon = useMemo(() => {
@@ -80,7 +81,7 @@ export default function SymptomCard({
   }, [lastLoggedAt]);
 
   // Single tap - opens quick log modal
-  const handleClick = (e: React.MouseEvent) => {
+  const handleClick = () => {
     // Clear any pending long press
     if (longPressTimer.current) {
       clearTimeout(longPressTimer.current);
@@ -116,7 +117,7 @@ export default function SymptomCard({
     setIsLongPressing(false);
   };
 
-  const handleTouchStart = (e: React.TouchEvent) => {
+  const handleTouchStart = () => {
     setIsLongPressing(false);
     longPressTimer.current = setTimeout(() => {
       setIsLongPressing(true);
@@ -151,7 +152,7 @@ export default function SymptomCard({
         onMouseLeave={handleMouseUp}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
-        className={`rounded-2xl p-5 min-h-[80px] h-full
+        className={`rounded-2xl p-5 min-h-20 h-full
                    flex flex-col gap-2
                    border-2 transition-all
                    hover:-translate-y-0.5 hover:shadow-xl

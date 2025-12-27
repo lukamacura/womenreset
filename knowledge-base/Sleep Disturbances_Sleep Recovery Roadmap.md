@@ -8,36 +8,56 @@ content_text: |
   
   Think of this as a *Sleep Recovery Roadmap*, a gentle, layered process that helps your body, hormones, and brain remember how to rest deeply again. Each step adds calm, stability, and confidence in your natural rhythm 💜.
   
-  **Step 1 – Understand the Science** → *Overview – Why Sleep Changes & Why It Matters*  
-  Learn what’s changing in your hormones, temperature, and brain chemistry.
+follow_up_questions: "Which step of the sleep roadmap do you want to explore first?"
+   
+   
+follow-up links:
+  -persona: "menopause"
+  topic: "Sleep Disturbances in Menopause"
+  subtopic: "Overview – Why Sleep Changes & Why It Matters"
+  label: "Overview – Why Sleep Changes & Why It Matters"
+
+  -persona: "menopause"
+  topic: "Sleep Disturbances in Menopause"
+  subtopic: "Solutions – Morning Sunlight"
+  label: "Solutions – Morning Sunlight"
+
+  -persona: "menopause"
+  topic: "Sleep Disturbances in Menopause"
+  subtopic: "Solutions – Evening Light Hygiene"
+  label: "Solutions – Evening Light Hygiene"
+
+  -persona: "menopause"
+  topic: "Sleep Disturbances in Menopause"
+  subtopic: "Solutions – Bedroom Environment"
+  label: "Solutions – Bedroom Environment"
+
+  -persona: "menopause"
+  topic: "Sleep Disturbances in Menopause"
+  subtopic: "Solutions – Lifestyle & Bedtime Routine"
+  label: "Solutions – Lifestyle & Bedtime Routine"
   
-  **Step 2 – Identify the Causes** → *Causes – Why Sleep Changes in Midlife*  
-  Discover what’s driving your sleepless nights — heat, stress, or cortisol spikes.
-  
-  **Step 3 – Morning Light Reset** → *Solutions – Morning Sunlight*  
-  Anchor your body clock early in the day.
-  
-  **Step 4 – Evening Light Hygiene** → *Solutions – Evening Light Hygiene*  
-  Dim, warm, and calm your space after sunset.
-  
-  **Step 5 – Bedroom Environment** → *Solutions – Bedroom Environment*  
-  Cool, dark, and quiet — your body’s recovery lab.
-  
-  **Step 6 – Lifestyle & Bedtime Routine** → *Solutions – Lifestyle & Bedtime Routine*  
-  Lower cortisol and signal safety before bed.
-  
-  **Step 7 – Deep Rest Practices (NSDR)** → *Solutions – Non-Sleep Deep Rest (NSDR)*  
-  Train your nervous system to relax even when sleep won’t come.
-  
-  **Step 8 – Nutrition & Supplements** → *Solutions – Nutrition & Supplements for Sleep*  
-  Nourish your body’s chemistry for calm.
-  
-  **Step 9 – Exercise & Relaxation for Sleep** → *Solutions – Exercise & Relaxation for Sleep*  
-  Move smart, recover deeply, and balance cortisol.
-  
-  **Step 10 – Treatment Options** → *Solutions – Treatment Options (HRT, CBT-I, Non-Hormonal)*  
-  Explore advanced support when biology needs extra help 👩‍⚕️.
-  
+  -persona: "menopause"
+  topic: "Sleep Disturbances in Menopause"
+  subtopic: "Solutions – Non-Sleep Deep Rest (NSDR)"
+  label: "Solutions – Non-Sleep Deep Rest (NSDR)"
+
+  -persona: "menopause"
+  topic: "Sleep Disturbances in Menopause"
+  subtopic: "Solutions – Nutrition & Supplements for Sleep"
+  label: "Solutions – Nutrition & Supplements for Sleep"
+
+  -persona: "menopause"
+  topic: "Sleep Disturbances in Menopause"
+  subtopic: "Solutions – Exercise & Relaxation for Sleep"
+  label: "Solutions – Exercise & Relaxation for Sleep"
+
+  -persona: "menopause"
+  topic: "Sleep Disturbances in Menopause"
+  subtopic: "Solutions – Treatment Options (HRT, CBT-I, Non-Hormonal)"
+  label: "Solutions – Treatment Options (HRT, CBT-I, Non-Hormonal)"
+
+
   Take it layer by layer — you don’t have to do it all at once. Progress, not perfection 🌸.
 
 action_tips:
@@ -47,7 +67,6 @@ action_tips:
 
 motivation_nudge: "🌷 Healing sleep isn’t about control — it’s about cooperation. Your body remembers how to rest."
 
-follow_up_question: "Which step of the sleep roadmap do you want to explore first?"
 
 intent_patterns:
   - "How can I sleep better during menopause?"
