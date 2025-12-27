@@ -639,13 +639,13 @@ export default function RegisterPage() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -20, scale: 0.95 }}
               transition={{ duration: 0.3, ease: "easeOut" }}
-              className="fixed top-16 sm:top-20 left-1/2 -translate-x-1/2 z-40 w-[calc(100vw-3rem)] max-w-2xl px-3 sm:px-6 pointer-events-none"
+              className="fixed top-20 sm:top-20 left-1/2 -translate-x-1/2 z-40 w-[calc(100vw-3rem)] max-w-2xl px-3 sm:px-6 pointer-events-none"
             >
               <div className="bg-gray-900/95 backdrop-blur-xl border border-white/40 rounded-2xl p-5 shadow-2xl flex items-center gap-4 pointer-events-auto">
                 <div className="p-2.5 rounded-xl bg-yellow-500/20 shrink-0">
                   <Info className="h-5 w-5 text-yellow-400" />
                 </div>
-                <p className="text-sm text-white font-semibold flex-1 leading-relaxed">
+                <p className="text-xs md:text-sm text-white font-semibold flex-1 leading-relaxed">
                   {notificationMessage}
                 </p>
                 <button
