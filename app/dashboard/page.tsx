@@ -1442,7 +1442,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <main className="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
+    <main className="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8 min-h-screen" style={{ background: 'linear-gradient(to bottom, #DBEAFE 0%, #FEF3C7 50%, #FCE7F3 100%)' }}>
       {/* Header */}
       <header className="mb-6 sm:mb-8">
         <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-foreground mb-1 sm:mb-2">

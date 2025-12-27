@@ -23,8 +23,9 @@ const Navbar: React.FC<NavbarProps> = ({ isAuthenticated }) => {
         />
       )}
 
-      <div className="fixed top-0 left-0 right-0 z-50 pt-3 sm:pt-4 px-3 sm:px-4 flex justify-center">
-        <nav className="flex w-full max-w-[calc(100vw-1.5rem)] sm:max-w-[85%] md:max-w-[90%] lg:max-w-[780px] items-center justify-between rounded-full bg-gray-900 px-3 sm:px-5 py-2.5 sm:py-2 shadow-lg backdrop-blur-lg border border-white/25 overflow-hidden">
+      <div className="fixed top-0 left-0 right-0 z-50 pt-3 sm:pt-4 flex justify-center">
+        <div className="w-full max-w-2xl px-6 sm:px-8">
+          <nav className="flex w-full items-center justify-between rounded-full bg-gray-900 px-3 sm:px-5 py-2.5 sm:py-2 shadow-lg backdrop-blur-lg border border-white/25 overflow-hidden">
           {/* Left: Logo + Brand */}
           <Link href="/" className="flex items-center gap-2">
             <div className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-primary-light shadow-md">
@@ -104,6 +105,7 @@ const Navbar: React.FC<NavbarProps> = ({ isAuthenticated }) => {
             )}
           </button>
         </nav>
+        </div>
       </div>
 
       {/* Mobile Menu */}

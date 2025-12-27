@@ -630,7 +630,7 @@ export default function RegisterPage() {
   }, [router, phase]);
 
   return (
-    <main className="relative mx-auto max-w-2xl p-6 sm:p-8 min-h-screen flex flex-col">
+    <main className="overflow-x-hidden relative mx-auto p-6 sm:p-8 h-full flex flex-col pt-16">
         {/* Random Notification Popup */}
         <AnimatePresence>
           {phase === "quiz" && showNotification && (
