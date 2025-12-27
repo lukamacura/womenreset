@@ -669,7 +669,7 @@ export default function RegisterPage() {
 
       {/* Results Phase */}
       {phase === "results" && (
-        <div className="flex-1 flex flex-col min-h-screen -mx-6 sm:-mx-8 px-6 sm:px-8" style={{ background: 'linear-gradient(to bottom, #fff5f9, #f0f9ff)' }}>
+        <div className="flex-1 flex flex-col min-h-screen -mx-6 sm:-mx-8 px-6 sm:px-8">
           <AnimatePresence mode="wait">
             {isResultsLoading ? (
               // Loading Screen
@@ -722,7 +722,7 @@ export default function RegisterPage() {
                   transition={{ delay: 0.2 }}
                   className="flex justify-center mb-6"
                 >
-                  <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #ff74b1 0%, #ffb4d5 100%)' }}>
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #ff74b1 0%, #ffb4d5 100%)' }}>
                     <HeartPulse className="w-8 h-8 text-white" />
                   </div>
                 </motion.div>
@@ -765,17 +765,17 @@ export default function RegisterPage() {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.8 }}
-                      className="bg-white rounded-2xl p-5 border border-[#E8DDD9] mb-6"
+                      className="rounded-2xl p-5 border border-[#E8DDD9] mb-6"
                     >
                       {/* Header */}
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-2">
-                          <AlertTriangle className="w-4 h-4 text-orange-500" />
-                          <span className="text-sm font-medium text-[#3D3D3D]">Your Menopause Score</span>
+                          <AlertTriangle className="w-6 h-6 text-orange-500" />
+                          <span className="text-lg font-bold font-large text-gray-900!">Your Menopause Score</span>
                         </div>
                         <div className="flex items-center gap-1 text-xs text-[#9A9A9A]">
-                          <Info className="w-3 h-3" />
-                          <span>Based on your answers</span>
+                          <Info className="w-3 h-3 text-yellow-500" />
+                          <span className="text-xs font-medium text-gray-500!">Based on your answers</span>
                         </div>
                       </div>
 
@@ -784,7 +784,7 @@ export default function RegisterPage() {
                         <span className={`text-5xl font-bold ${getScoreColor(score)}`}>
                           {displayScore}
                         </span>
-                        <span className="text-2xl text-[#CCCCCC] mb-1">/100</span>
+                        <span className="text-2xl text-gray-900! font-medium mb-1">/100</span>
                       </div>
 
                       {/* Score Label */}
@@ -810,8 +810,8 @@ export default function RegisterPage() {
 
                       {/* Target Text */}
                       <div className="flex items-center gap-2 text-sm">
-                        <Goal className="w-4 h-4 text-green-600" />
-                        <span className="text-[#5A5A5A]">
+                        <Goal className="w-6 h-6 text-green-600" />
+                        <span className="text-[#5A5A5A] font-medium text-md">
                           Your target: <span className="font-bold">80+</span> (reachable in 8 weeks)
                         </span>
                       </div>
@@ -900,7 +900,7 @@ export default function RegisterPage() {
                   <button
                     type="submit"
                     disabled={loading || !emailValid}
-                    className="w-full py-4 font-bold text-white rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] hover:shadow-lg"
+                    className="w-full py-4 font-bold text-gray-900! rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] hover:shadow-lg"
                     style={{ background: 'linear-gradient(135deg, #ff74b1 0%, #ffeb76 50%, #65dbff 100%)', boxShadow: '0 4px 15px rgba(255, 116, 177, 0.4)' }}
                   >
                     {loading ? (
