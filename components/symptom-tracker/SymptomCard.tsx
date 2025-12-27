@@ -152,8 +152,8 @@ export default function SymptomCard({
         onMouseLeave={handleMouseUp}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
-        className={`rounded-2xl p-5 min-h-20 h-full
-                   flex flex-col gap-2
+        className={`rounded-2xl p-3 sm:p-4 md:p-5 min-h-20 sm:min-h-20 h-full
+                   flex flex-col gap-1.5 sm:gap-2
                    border-2 transition-all
                    hover:-translate-y-0.5 hover:shadow-xl
                    active:scale-95
@@ -162,11 +162,11 @@ export default function SymptomCard({
                      ? 'border-[#ff74b1] bg-white/40 backdrop-blur-lg hover:bg-white/60' 
                      : 'border-white/30 bg-white/30 backdrop-blur-md hover:bg-white/50'}`}
       >
-        <div className="flex flex-row items-center gap-3">
-          <SymptomIcon className="h-6 w-6 text-[#3D3D3D]" />
-          <span className="text-[#3D3D3D] font-medium flex-1 text-base">{symptom.name}</span>
+        <div className="flex flex-row items-center gap-2 sm:gap-3">
+          <SymptomIcon className="h-5 w-5 sm:h-6 sm:w-6 text-[#3D3D3D] shrink-0" />
+          <span className="text-[#3D3D3D] font-medium flex-1 text-sm sm:text-base truncate">{symptom.name}</span>
           {isLoggedToday && SeverityIcon && lastLoggedSeverity && (
-            <SeverityIcon className={`h-5 w-5 ${
+            <SeverityIcon className={`h-4 w-4 sm:h-5 sm:w-5 shrink-0 ${
               lastLoggedSeverity === 1 
                 ? 'text-green-500' 
                 : lastLoggedSeverity === 2 
@@ -176,12 +176,12 @@ export default function SymptomCard({
           )}
         </div>
         {isLoggedToday && loggedTime && (
-          <p className="text-base font-medium text-foreground/30 ">
+          <p className="text-sm sm:text-base font-medium text-foreground/30">
             {loggedTime}
           </p>
         )}
         {!isLoggedToday && (
-          <p className="text-xs text-[#9A9A9A] ml-11">Tap to log</p>
+          <p className="text-xs sm:text-sm text-[#9A9A9A] ml-7 sm:ml-11">Tap to log</p>
         )}
       </button>
     </div>

@@ -8,10 +8,10 @@ content_text: |
   
   Think of this as a *Sleep Recovery Roadmap*, a gentle, layered process that helps your body, hormones, and brain remember how to rest deeply again. Each step adds calm, stability, and confidence in your natural rhythm 💜.
   
-follow_up_questions: "Which step of the sleep roadmap do you want to explore first?"
+follow_up_question: "Which step of the sleep roadmap do you want to explore first?"
    
    
-follow-up links:
+follow-up_links:
   -persona: "menopause"
   topic: "Sleep Disturbances in Menopause"
   subtopic: "Overview – Why Sleep Changes & Why It Matters"

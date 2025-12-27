@@ -128,15 +128,16 @@ export default function WeekComparison() {
   const isBetter = comparison.totalChange < 0 && comparison.severityChange < 0;
 
   return (
-    <div className="bg-white/30 backdrop-blur-lg rounded-2xl border border-white/30 p-6 mb-6 shadow-xl">
+    <div className="bg-white/30 backdrop-blur-lg rounded-2xl border border-white/30 p-4 sm:p-6 mb-6 shadow-xl transition-all duration-300 hover:shadow-2xl">
       <div className="flex items-center gap-2 mb-4">
         <BarChart className="h-5 w-5 text-[#8B7E74]" />
-        <h3 className="text-xl font-semibold text-[#8B7E74]">
+        <h3 className="text-lg sm:text-xl font-semibold text-[#8B7E74]">
           This Week vs Last Week
         </h3>
       </div>
 
-      <div className="overflow-x-auto">
+      {/* Desktop: Table layout */}
+      <div className="hidden md:block overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-[#E8E0DB]">
@@ -189,6 +190,90 @@ export default function WeekComparison() {
             </tr>
           </tbody>
         </table>
+      </div>
+
+      {/* Mobile: Card layout */}
+      <div className="md:hidden space-y-3">
+        <div className="border-b border-[#E8E0DB]/50 pb-3">
+          <div className="text-sm text-[#6B6B6B] mb-2">Total symptoms logged</div>
+          <div className="flex justify-between items-center">
+            <div className="flex gap-4">
+              <div>
+                <div className="text-xs text-[#9A9A9A]">This Week</div>
+                <div className="text-base font-medium text-[#3D3D3D]">{comparison.thisWeekTotal}</div>
+              </div>
+              <div>
+                <div className="text-xs text-[#9A9A9A]">Last Week</div>
+                <div className="text-base font-medium text-[#3D3D3D]">{comparison.lastWeekTotal}</div>
+              </div>
+            </div>
+            <div className="text-right">
+              {comparison.totalChange > 0 && <span className="text-[#9A9A9A] text-sm">↑ {Math.abs(comparison.totalChange)}%</span>}
+              {comparison.totalChange < 0 && <span className="text-green-600 text-sm">↓ {Math.abs(comparison.totalChange)}%</span>}
+              {comparison.totalChange === 0 && <span className="text-[#9A9A9A] text-sm">—</span>}
+            </div>
+          </div>
+        </div>
+        <div className="border-b border-[#E8E0DB]/50 pb-3">
+          <div className="text-sm text-[#6B6B6B] mb-2">Average severity</div>
+          <div className="flex justify-between items-center">
+            <div className="flex gap-4">
+              <div>
+                <div className="text-xs text-[#9A9A9A]">This Week</div>
+                <div className="text-base font-medium text-[#3D3D3D]">{comparison.thisWeekAvgSeverity}</div>
+              </div>
+              <div>
+                <div className="text-xs text-[#9A9A9A]">Last Week</div>
+                <div className="text-base font-medium text-[#3D3D3D]">{comparison.lastWeekAvgSeverity}</div>
+              </div>
+            </div>
+            <div className="text-right">
+              {comparison.severityChange > 0 && <span className="text-red-600 text-sm">↑ Worse</span>}
+              {comparison.severityChange < 0 && <span className="text-green-600 text-sm">↓ Better</span>}
+              {comparison.severityChange === 0 && <span className="text-[#9A9A9A] text-sm">Same</span>}
+            </div>
+          </div>
+        </div>
+        <div className="border-b border-[#E8E0DB]/50 pb-3">
+          <div className="text-sm text-[#6B6B6B] mb-2">Good days</div>
+          <div className="flex justify-between items-center">
+            <div className="flex gap-4">
+              <div>
+                <div className="text-xs text-[#9A9A9A]">This Week</div>
+                <div className="text-base font-medium text-[#3D3D3D]">{comparison.thisWeekGoodDays}</div>
+              </div>
+              <div>
+                <div className="text-xs text-[#9A9A9A]">Last Week</div>
+                <div className="text-base font-medium text-[#3D3D3D]">{comparison.lastWeekGoodDays}</div>
+              </div>
+            </div>
+            <div className="text-right">
+              {comparison.goodDaysChange > 0 && <span className="text-green-600 text-sm">↑ Nice!</span>}
+              {comparison.goodDaysChange < 0 && <span className="text-[#9A9A9A] text-sm">↓ {Math.abs(comparison.goodDaysChange)}%</span>}
+              {comparison.goodDaysChange === 0 && <span className="text-[#9A9A9A] text-sm">—</span>}
+            </div>
+          </div>
+        </div>
+        <div className="pb-3">
+          <div className="text-sm text-[#6B6B6B] mb-2">Most frequent</div>
+          <div className="flex justify-between items-center">
+            <div className="flex gap-4">
+              <div>
+                <div className="text-xs text-[#9A9A9A]">This Week</div>
+                <div className="text-base font-medium text-[#3D3D3D] truncate max-w-[100px]">{comparison.thisWeekMostFrequent}</div>
+              </div>
+              <div>
+                <div className="text-xs text-[#9A9A9A]">Last Week</div>
+                <div className="text-base font-medium text-[#3D3D3D] truncate max-w-[100px]">{comparison.lastWeekMostFrequent}</div>
+              </div>
+            </div>
+            <div className="text-right">
+              {comparison.thisWeekMostFrequent === comparison.lastWeekMostFrequent 
+                ? <span className="text-[#9A9A9A] text-sm">Same</span>
+                : <span className="text-[#9A9A9A] text-sm">—</span>}
+            </div>
+          </div>
+        </div>
       </div>
 
       {isBetter && (

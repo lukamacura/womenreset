@@ -145,6 +145,23 @@ body {
   }
 }
 
+/* Performance optimizations for smooth animations */
+.will-change-transform {
+  will-change: transform;
+}
+
+.will-change-auto {
+  will-change: auto;
+}
+
+/* Smooth rendering - prevents jank */
+.smooth-render {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
 /* Tailwind v4 utility za pisani font (className="font-script") */
 @utility font-script {
   font-family: var(--font-script);

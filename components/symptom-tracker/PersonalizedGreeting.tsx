@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { Flame } from "lucide-react";
 import { useSymptomLogs } from "@/hooks/useSymptomLogs";
 import { useUserProfile } from "@/hooks/useUserProfile";
@@ -82,6 +82,44 @@ export default function PersonalizedGreeting() {
     return `Good evening, ${displayName}. How was today?`;
   }, [displayName, isNightTime]);
 
+  // Letter animation state (must be before early returns)
+  const [displayedText, setDisplayedText] = useState("");
+  const [isAnimating, setIsAnimating] = useState(true);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    if (!greetingText) return;
+
+    // Clear any existing interval
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
+
+    setDisplayedText("");
+    setIsAnimating(true);
+
+    let currentIndex = 0;
+    intervalRef.current = setInterval(() => {
+      if (currentIndex < greetingText.length) {
+        setDisplayedText(greetingText.slice(0, currentIndex + 1));
+        currentIndex++;
+      } else {
+        setIsAnimating(false);
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+          intervalRef.current = null;
+        }
+      }
+    }, 25); // Slightly faster for smoother feel
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+  }, [greetingText]);
+
   if (profileLoading || preferencesLoading) {
     return (
       <div className="mb-6">
@@ -93,8 +131,23 @@ export default function PersonalizedGreeting() {
 
   return (
     <div className="mb-6">
-      <h2 className="text-2xl sm:text-3xl font-semibold text-[#8B7E74] mb-2">
-        {greetingText}
+      <h2 className="text-xl sm:text-2xl md:text-3xl font-semibold text-[#8B7E74] mb-2">
+        {displayedText.split("").map((char, index) => (
+          <span
+            key={index}
+            className={`inline-block ${
+              isAnimating && index === displayedText.length - 1
+                ? "animate-pulse"
+                : ""
+            }`}
+            style={{
+              animationDelay: `${index * 0.03}s`,
+            }}
+          >
+            {char === " " ? "\u00A0" : char}
+          </span>
+        ))}
+        {isAnimating && <span className="inline-block w-0.5 h-5 sm:h-6 md:h-7 bg-[#8B7E74] animate-pulse ml-1" />}
       </h2>
       {streak > 0 && (
         <p className="text-[#3D3D3D] text-base mb-1 flex items-center gap-2">

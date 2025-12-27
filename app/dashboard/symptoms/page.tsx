@@ -39,13 +39,28 @@ function AnimatedSection({
 }) {
   const [isVisible, setIsVisible] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
+    const currentRef = ref.current;
+    if (!currentRef) return;
+
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            setTimeout(() => setIsVisible(true), delay);
+            // Clear any pending timeout
+            if (timeoutRef.current) {
+              clearTimeout(timeoutRef.current);
+            }
+
+            // Set visible with delay
+            timeoutRef.current = setTimeout(() => {
+              setIsVisible(true);
+              timeoutRef.current = null;
+            }, delay);
+
+            // Unobserve after triggering
             observer.unobserve(entry.target);
           }
         });
@@ -53,12 +68,13 @@ function AnimatedSection({
       { threshold: 0.1, rootMargin: "0px 0px -50px 0px" }
     );
 
-    const currentRef = ref.current;
-    if (currentRef) {
-      observer.observe(currentRef);
-    }
+    observer.observe(currentRef);
 
     return () => {
+      // Cleanup timeout and observer
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
       if (currentRef) {
         observer.unobserve(currentRef);
       }
@@ -94,6 +110,12 @@ export default function SymptomsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isQuickModalOpen, setIsQuickModalOpen] = useState(false);
   const [isSelectorOpen, setIsSelectorOpen] = useState(false);
+  const [pageLoaded, setPageLoaded] = useState(false);
+
+  // Trigger page load animation
+  useEffect(() => {
+    setPageLoaded(true);
+  }, []);
 
   // Redirect to dashboard if trial is expired
   if (!trialStatus.loading && trialStatus.expired) {
@@ -370,20 +392,20 @@ export default function SymptomsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl p-6 sm:p-8 space-y-8 min-h-screen" style={{ background: 'linear-gradient(to bottom, #DBEAFE 0%, #FEF3C7 50%, #FCE7F3 100%)' }}>
+    <div className="mx-auto max-w-7xl p-4 sm:p-6 md:p-8 space-y-6 sm:space-y-8 min-h-screen" style={{ background: 'linear-gradient(to bottom, #DBEAFE 0%, #FEF3C7 50%, #FCE7F3 100%)' }}>
       {/* Header */}
       <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between opacity-0 animate-[fadeInDown_0.6s_ease-out_forwards]">
         <div className="flex-1">
           {/* Personalized Greeting is now the header */}
           <PersonalizedGreeting />
         </div>
-        <div className="flex gap-3 items-center">
+        <div className="flex flex-col sm:flex-row gap-3 items-center">
           <DoctorReportButton />
           <button
             onClick={() => {
               setIsSelectorOpen(true);
             }}
-            className="inline-flex items-center gap-2 px-6 py-3.5 btn-primary text-white font-bold rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 cursor-pointer text-base"
+            className="inline-flex items-center gap-2 px-6 py-3.5 btn-primary font-bold rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 cursor-pointer text-base"
             style={{
               animation: 'float 3s ease-in-out infinite'
             }}
@@ -410,7 +432,7 @@ export default function SymptomsPage() {
         {/* Title */}
         <AnimatedSection delay={200}>
           <div>
-            <h2 className="text-2xl font-semibold text-[#8B7E74] mb-2">
+            <h2 className="text-xl sm:text-2xl font-semibold text-[#8B7E74] mb-2">
               How are you feeling?
             </h2>
           </div>
@@ -418,7 +440,7 @@ export default function SymptomsPage() {
 
         {/* Bento Grid for Symptom Cards */}
         {symptomsLoading ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 auto-rows-fr">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4 auto-rows-fr">
             {[1, 2, 3, 4, 5, 6].map((i) => (
               <div
                 key={i}
@@ -433,7 +455,7 @@ export default function SymptomsPage() {
           <>
             <AnimatedSection delay={250}>
               <div
-                className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 auto-rows-fr"
+                className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4 auto-rows-fr"
                 data-symptoms-grid
                 style={{
                   gridAutoRows: 'minmax(80px, auto)'
@@ -449,9 +471,11 @@ export default function SymptomsPage() {
                   return (
                     <div
                       key={symptom.id}
-                      className={`${spanClass} opacity-0 animate-[fadeInUp_0.5s_ease-out_forwards]`}
+                      className={`${spanClass}`}
                       style={{
-                        animationDelay: `${index * 60}ms`,
+                        animation: `fadeInUp 0.5s ease-out forwards`,
+                        animationDelay: `${index * 70}ms`,
+                        opacity: 0,
                       }}
                     >
                       <SymptomCard
@@ -504,9 +528,9 @@ export default function SymptomsPage() {
 
         {/* Recent Logs */}
         <AnimatedSection delay={0}>
-          <section className="bg-white/30 backdrop-blur-lg rounded-2xl p-6 border border-white/30 shadow-xl transition-all duration-300 hover:shadow-2xl">
-            <div className="mb-4">
-              <h2 className="text-xl font-semibold text-[#8B7E74]">Your Journal</h2>
+          <section className="bg-white/30 backdrop-blur-lg rounded-2xl p-4 sm:p-6 border border-white/30 shadow-xl transition-all duration-300 hover:shadow-2xl">
+            <div className="mb-3 sm:mb-4">
+              <h2 className="text-lg sm:text-xl font-semibold text-[#8B7E74]">Your Journal</h2>
             </div>
             <RecentLogs logs={logs} loading={logsLoading} onLogClick={handleLogClick} />
           </section>
