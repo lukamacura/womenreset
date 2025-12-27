@@ -153,7 +153,7 @@ export default function DashboardLayout({
 
               {/* Dropdown Menu */}
               {isDropdownOpen && (
-                <div className="absolute top-full left-0 mt-2 w-full min-w-[200px] rounded-lg border border-foreground/10 bg-background shadow-lg backdrop-blur-sm overflow-hidden z-50">
+                <div className="bg-white absolute top-full left-0 mt-2 w-full min-w-[200px] rounded-lg border border-foreground/10 shadow-lg backdrop-blur-sm overflow-hidden z-50">
                   {navItems.map((item) => {
                     const Icon = item.icon;
                     const isActive =
@@ -172,7 +172,7 @@ export default function DashboardLayout({
                         className={`
                           flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors duration-200
                           ${isActive
-                            ? "text-white"
+                            ? "text-white! font-bold!"
                             : isDisabled
                             ? "text-muted-foreground/50 cursor-not-allowed opacity-50"
                             : "text-foreground! hover:bg-foreground/5"
