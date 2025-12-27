@@ -185,7 +185,7 @@ export default function QuickLogModal({
           <button
             onClick={handleSave}
             disabled={isSubmitting}
-            className="w-full bg-[#ff74b1] hover:bg-[#d85a9a] text-white 
+            className="w-full bg-[#ff74b1] hover:bg-primary-dark text-white 
                      font-semibold py-4 rounded-xl transition-colors cursor-pointer
                      disabled:opacity-50 disabled:cursor-not-allowed text-lg shadow-lg"
           >
@@ -195,7 +195,7 @@ export default function QuickLogModal({
           {onExpand && (
             <button
               onClick={onExpand}
-              className="w-full text-[#ff74b1] hover:text-[#d85a9a] 
+              className="w-full text-[#ff74b1] hover:text-primary-dark 
                        font-medium py-3 rounded-xl transition-colors cursor-pointer text-base
                        bg-white/40 backdrop-blur-md border border-white/30"
               type="button"

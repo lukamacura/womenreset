@@ -12,13 +12,6 @@ export default function PersonalizedGreeting() {
   const { preferences, loading: preferencesLoading } = useUserPreferences();
 
   // Time-based greeting with specific time ranges
-  const greeting = useMemo(() => {
-    const hour = new Date().getHours();
-    if (hour >= 6 && hour < 12) return "Good morning";
-    if (hour >= 12 && hour < 18) return "Good afternoon";
-    if (hour >= 18 && hour < 22) return "Good evening";
-    return "Hi"; // Night (10pm-6am): "Hi {Name}. Can't sleep?"
-  }, []);
 
   const isNightTime = useMemo(() => {
     const hour = new Date().getHours();

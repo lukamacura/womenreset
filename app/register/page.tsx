@@ -639,7 +639,7 @@ export default function RegisterPage() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -20, scale: 0.95 }}
               transition={{ duration: 0.3, ease: "easeOut" }}
-              className="fixed top-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-2xl px-6 sm:px-8 pointer-events-none"
+              className="fixed top-16 sm:top-20 left-1/2 -translate-x-1/2 z-40 w-[calc(100vw-3rem)] max-w-2xl px-3 sm:px-6 pointer-events-none"
             >
               <div className="bg-gray-900/95 backdrop-blur-xl border border-white/40 rounded-2xl p-5 shadow-2xl flex items-center gap-4 pointer-events-auto">
                 <div className="p-2.5 rounded-xl bg-yellow-500/20 shrink-0">
@@ -934,9 +934,9 @@ export default function RegisterPage() {
 
       {/* Quiz Phase */}
       {phase === "quiz" && (
-        <div className="flex-1 flex flex-col pt-8 ">
+        <div className="flex-1 flex flex-col pt-4 sm:pt-8">
           {/* Progress Bar */}
-          <div className="mb-8 pt-8">
+          <div className="mb-6 sm:mb-8 pt-4 sm:pt-8">
             <div className="flex items-center justify-between mb-3">
               <span className="text-sm font-semibold text-foreground">
                 Question {stepIndex + 1} of {STEPS.length}

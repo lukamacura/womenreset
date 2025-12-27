@@ -103,7 +103,7 @@ export default function SymptomSelectorModal({
                              hover:bg-white/60 hover:-translate-y-0.5 hover:shadow-lg
                              active:scale-95 cursor-pointer text-left"
                 >
-                  <SymptomIcon className="h-6 w-6 text-[#3D3D3D] flex-shrink-0" />
+                  <SymptomIcon className="h-6 w-6 text-[#3D3D3D] shrink-0" />
                   <span className="text-[#3D3D3D] font-medium flex-1">
                     {symptom.name}
                   </span>

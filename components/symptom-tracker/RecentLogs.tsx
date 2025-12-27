@@ -83,7 +83,7 @@ export default function RecentLogs({ logs, loading, onLogClick }: RecentLogsProp
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-1 flex-wrap">
-                  <SymptomIcon className="h-5 w-5 text-[#3D3D3D] flex-shrink-0" />
+                  <SymptomIcon className="h-5 w-5 text-[#3D3D3D] shrink-0" />
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-[#3D3D3D] font-semibold">{symptomName}</span>
                     <span className="text-[#9A9A9A]">—</span>
