@@ -176,16 +176,7 @@ export default function SymptomCard({
           )}
         </div>
         {isLoggedToday && loggedTime && (
-          <p className="text-sm text-[#9A9A9A] ml-11 flex items-center gap-2">
-            {SeverityIcon && lastLoggedSeverity && (
-              <SeverityIcon className={`h-4 w-4 ${
-                lastLoggedSeverity === 1 
-                  ? 'text-green-500' 
-                  : lastLoggedSeverity === 2 
-                  ? 'text-yellow-500' 
-                  : 'text-red-500'
-              }`} />
-            )}
+          <p className="text-base font-medium text-foreground/30 ">
             {loggedTime}
           </p>
         )}

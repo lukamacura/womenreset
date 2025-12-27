@@ -105,7 +105,7 @@ export default function ProgressComparison({ symptomName }: ProgressComparisonPr
         {!isImproving && comparison.countChange > 0 && (
           <div className="pt-4 border-t border-[#E8E0DB]">
             <p className="text-sm text-[#3D3D3D]">
-              {displayName} have increased {comparison.countChange}% - let's discuss strategies
+              {displayName} have increased {comparison.countChange}% - let&apos;s discuss strategies
             </p>
           </div>
         )}

@@ -4,13 +4,44 @@ import { useMemo, useState, useEffect } from "react";
 import { PartyPopper, Flame, Star, Trophy, X } from "lucide-react";
 import { useUserPreferences } from "@/hooks/useUserPreferences";
 
+const STORAGE_KEY = "milestone-celebrations-dismissed";
+
 export default function MilestoneCelebration() {
   const { preferences } = useUserPreferences();
   const [dismissedMilestones, setDismissedMilestones] = useState<Set<string>>(new Set());
   const [currentMilestone, setCurrentMilestone] = useState<string | null>(null);
   const [lastSeenStreak, setLastSeenStreak] = useState<number>(0);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   const currentStreak = preferences?.current_streak || 0;
+
+  // Load dismissed milestones from localStorage on mount
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored) as string[];
+        setDismissedMilestones(new Set(parsed));
+      }
+    } catch (error) {
+      console.error("Failed to load dismissed milestones:", error);
+    } finally {
+      setIsInitialized(true);
+    }
+  }, []);
+
+  // Save dismissed milestones to localStorage
+  const saveDismissedMilestones = (milestones: Set<string>) => {
+    if (typeof window === "undefined") return;
+    
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(milestones)));
+    } catch (error) {
+      console.error("Failed to save dismissed milestones:", error);
+    }
+  };
 
   // Detect milestone achievements based on streak
   const milestones = useMemo(() => {
@@ -40,19 +71,19 @@ export default function MilestoneCelebration() {
   }, [currentStreak, lastSeenStreak]);
 
   useEffect(() => {
-    if (milestones.length > 0 && !currentMilestone) {
+    if (milestones.length > 0 && !currentMilestone && isInitialized) {
       setCurrentMilestone(milestones[0]);
     }
-  }, [milestones, currentMilestone]);
+  }, [milestones, currentMilestone, isInitialized]);
 
   const handleDismiss = () => {
     if (currentMilestone) {
-      setDismissedMilestones((prev) => new Set([...prev, currentMilestone]));
+      const newDismissed = new Set([...dismissedMilestones, currentMilestone]);
+      setDismissedMilestones(newDismissed);
+      saveDismissedMilestones(newDismissed);
       setCurrentMilestone(null);
     }
   };
-
-  if (!currentMilestone) return null;
 
   const getMilestoneContent = (milestone: string) => {
     switch (milestone) {
@@ -85,6 +116,9 @@ export default function MilestoneCelebration() {
     }
   };
 
+  // Don't render until initialized to prevent flash
+  if (!isInitialized || !currentMilestone) return null;
+
   const content = getMilestoneContent(currentMilestone);
   if (!content) return null;
 
@@ -100,17 +134,17 @@ export default function MilestoneCelebration() {
         
         <div className="text-center">
           <div className="mb-4 flex justify-center">
-            <content.icon className="h-16 w-16 text-[#ff74b1]" />
+            <content.icon className="h-16 w-16 text-primary" />
           </div>
-          <h3 className="text-2xl font-bold text-[#3D3D3D] mb-2">
+          <h3 className="text-3xl font-bold text-gray-900! mb-3">
             {content.title}
           </h3>
-          <p className="text-[#6B6B6B] text-sm mb-6">
+          <p className="text-gray-600! font-medium text-base mb-6">
             {content.message}
           </p>
           <button
             onClick={handleDismiss}
-            className="px-6 py-2 bg-[#ff74b1] hover:bg-[#d85a9a] text-white font-medium rounded-xl transition-colors cursor-pointer"
+            className="px-6 py-2 bg-[#ff74b1] hover:bg-primary-dark text-white font-bold rounded-xl transition-colors cursor-pointer"
           >
             Continue
           </button>
