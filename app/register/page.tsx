@@ -42,6 +42,7 @@ import {
   Sparkles,
   Info,
   Users,
+  X,
 } from "lucide-react";
 import {
   SYMPTOM_LABELS,
@@ -184,6 +185,15 @@ const getSeverityPainText = (
   }
 };
 
+const NOTIFICATION_MESSAGES = [
+  "142 women are taking this quiz with you right now.",
+  "92% of women feel more in control of their symptoms after receiving their personalized plan.",
+  "'Brain Fog' is the most reported symptom by our community this week.",
+  "Over 20,000 women have used their MenoLisa results to have more productive conversations with their doctors.",
+  "Elena just completed the quiz and unlocked her strategy for better sleep.",
+  "9 out of 10 women recommend this quiz to friends navigating perimenopause.",
+];
+
 export default function RegisterPage() {
   const router = useRouter();
 
@@ -191,6 +201,42 @@ export default function RegisterPage() {
   const [phase, setPhase] = useState<Phase>("quiz");
   const [stepIndex, setStepIndex] = useState(0);
   const currentStep = STEPS[stepIndex];
+
+  // Random notification message
+  const [notificationMessage] = useState(() => {
+    return NOTIFICATION_MESSAGES[Math.floor(Math.random() * NOTIFICATION_MESSAGES.length)];
+  });
+  const [showNotification, setShowNotification] = useState(false);
+
+  // Show notification after 3 seconds, auto-dismiss after 4 seconds of being visible
+  useEffect(() => {
+    if (phase !== "quiz") {
+      setShowNotification(false);
+      return;
+    }
+
+    let dismissTimer: NodeJS.Timeout | null = null;
+
+    const showTimer = setTimeout(() => {
+      setShowNotification(true);
+      
+      // Auto-dismiss after 4 seconds of being visible
+      dismissTimer = setTimeout(() => {
+        setShowNotification(false);
+      }, 10000);
+    }, 3000);
+    
+    return () => {
+      clearTimeout(showTimer);
+      if (dismissTimer) {
+        clearTimeout(dismissTimer);
+      }
+    };
+  }, [phase]);
+
+  const handleCloseNotification = () => {
+    setShowNotification(false);
+  };
 
   // Quiz answers - stored in state
   const [topProblems, setTopProblems] = useState<string[]>([]);
@@ -585,6 +631,36 @@ export default function RegisterPage() {
 
   return (
     <main className="relative mx-auto max-w-2xl p-6 sm:p-8 min-h-screen flex flex-col">
+        {/* Random Notification Popup */}
+        <AnimatePresence>
+          {phase === "quiz" && showNotification && (
+            <motion.div
+              initial={{ opacity: 0, y: -20, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -20, scale: 0.95 }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+              className="fixed top-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-2xl px-6 sm:px-8 pointer-events-none"
+            >
+              <div className="bg-gray-900/95 backdrop-blur-xl border border-white/40 rounded-2xl p-5 shadow-2xl flex items-center gap-4 pointer-events-auto">
+                <div className="p-2.5 rounded-xl bg-yellow-500/20 shrink-0">
+                  <Info className="h-5 w-5 text-yellow-400" />
+                </div>
+                <p className="text-sm text-white font-semibold flex-1 leading-relaxed">
+                  {notificationMessage}
+                </p>
+                <button
+                  onClick={handleCloseNotification}
+                  className="text-white/60 hover:text-white hover:bg-white/10 rounded-lg p-1.5 transition-all duration-200 cursor-pointer shrink-0"
+                  aria-label="Close notification"
+                  type="button"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
       {/* Background accents */}
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 opacity-40">
         <div className="absolute -top-24 -left-24 h-56 w-56 rounded-full bg-primary/20 blur-3xl" />
