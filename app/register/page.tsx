@@ -392,7 +392,7 @@ export default function RegisterPage() {
     }
   }, [topProblems, severity, timing, triedOptions, doctorStatus, goal, firstName]);
 
-  // Save quiz answers to localStorage as backup
+  // Save quiz answers to sessionStorage (cleared when tab closes)
   const saveQuizAnswers = useCallback(() => {
     const quizAnswers = {
       top_problems: topProblems,
@@ -403,7 +403,7 @@ export default function RegisterPage() {
       goal: goal,
       name: firstName.trim() || null,
     };
-    localStorage.setItem("pending_quiz_answers", JSON.stringify(quizAnswers));
+    sessionStorage.setItem("pending_quiz_answers", JSON.stringify(quizAnswers));
   }, [topProblems, severity, timing, triedOptions, doctorStatus, goal, firstName]);
 
   const goNext = useCallback(() => {
@@ -413,7 +413,7 @@ export default function RegisterPage() {
     } else {
       // Quiz complete - move to results phase
       setPhase("results");
-      // Save quiz answers to localStorage as backup
+      // Save quiz answers to sessionStorage
       saveQuizAnswers();
     }
   }, [currentStep, stepIndex, stepIsAnswered, saveQuizAnswers]);
@@ -463,7 +463,7 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      // Prepare quiz answers to pass through auth flow
+      // Prepare quiz answers
       const quizAnswers = {
         top_problems: topProblems,
         severity: severity,
@@ -475,47 +475,79 @@ export default function RegisterPage() {
       };
       
       // Debug logging - verify all quiz answers are present
-      console.log("Quiz answers to encode:", {
-        top_problems: quizAnswers.top_problems,
-        severity: quizAnswers.severity,
-        timing: quizAnswers.timing,
-        tried_options: quizAnswers.tried_options,
-        doctor_status: quizAnswers.doctor_status,
-        goal: quizAnswers.goal,
-        name: quizAnswers.name,
-      });
-      
-      // Encode quiz answers as base64 to pass through URL
-      const encodedAnswers = btoa(JSON.stringify(quizAnswers));
-      
-      // Use the current origin for redirects (localhost in dev, production URL in prod)
-      const redirectTo = `${getRedirectBaseUrl()}${AUTH_CALLBACK_PATH}?next=/register&quiz=${encodeURIComponent(encodedAnswers)}`;
-      
-      // Debug logging
-      console.log("Registration attempt:", { email, redirectTo });
+      console.log("=== REGISTRATION START ===");
+      console.log("Email:", email);
+      console.log("Quiz answers:", quizAnswers);
 
+      // Step 1: Create account and save quiz data immediately via API
+      console.log("Creating account and saving quiz data...");
+      const createAccountResponse = await fetch("/api/register/create-account", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          quizAnswers,
+        }),
+      });
+
+      let createAccountResult;
+      try {
+        createAccountResult = await createAccountResponse.json();
+      } catch (jsonError) {
+        console.error("Failed to parse response JSON:", jsonError);
+        const textResponse = await createAccountResponse.text();
+        console.error("Response text:", textResponse);
+        setError(`Failed to create account. Server error: ${textResponse || "Unknown error"}`);
+        setLoading(false);
+        return;
+      }
+
+      if (!createAccountResponse.ok) {
+        console.error("Account creation failed:", {
+          status: createAccountResponse.status,
+          statusText: createAccountResponse.statusText,
+          result: createAccountResult,
+        });
+        const errorMessage = createAccountResult?.error 
+          ? `${createAccountResult.error}${createAccountResult.details ? `: ${createAccountResult.details}` : ""}`
+          : `Failed to create account (${createAccountResponse.status}). Please try again.`;
+        setError(errorMessage);
+        setLoading(false);
+        return;
+      }
+
+      console.log("Account created and quiz data saved:", createAccountResult);
+
+      // Step 2: Send magic link for email verification
+      // Use simple redirect - account already exists, just need to verify email
+      const redirectTo = `${getRedirectBaseUrl()}${AUTH_CALLBACK_PATH}`;
+      
+      console.log("Sending magic link for email verification...");
       const { error: signInError, data } = await supabase.auth.signInWithOtp({
         email,
         options: {
           emailRedirectTo: redirectTo,
+          shouldCreateUser: false, // Account already created, don't create again
         },
       });
 
       if (signInError) {
         // Log the full error for debugging
-        console.error("Supabase auth error:", {
+        console.error("Magic link error:", {
           message: signInError.message,
           status: signInError.status,
           name: signInError.name,
           fullError: signInError,
         });
 
-        let friendly = "An error occurred. Please try again.";
+        let friendly = "Account created and quiz data saved, but failed to send magic link. Please try logging in.";
         
         // Check for specific error types
         const errorMsg = signInError.message.toLowerCase();
         
-        // Email validation errors (be more specific)
+        // Email validation errors
         if (
           errorMsg.includes("invalid email") ||
           errorMsg.includes("email format") ||
@@ -531,7 +563,7 @@ export default function RegisterPage() {
           errorMsg.includes("redirect url") ||
           errorMsg.includes("url configuration")
         ) {
-          friendly = "Redirect URL not configured. Please contact support or check Supabase settings.";
+          friendly = "Account created! Redirect URL not configured. Please contact support.";
         }
         // Rate limiting errors
         else if (
@@ -545,8 +577,8 @@ export default function RegisterPage() {
           friendly = signInError.message.includes("48 seconds") || 
                      signInError.message.includes("60 seconds") || 
                      signInError.message.includes("security purposes")
-            ? signInError.message
-            : "Too many attempts - please wait a moment and try again.";
+            ? `Account created! ${signInError.message}`
+            : "Account created! Too many attempts - please wait a moment and try logging in.";
         }
         // Email provider/SMTP errors
         else if (
@@ -558,7 +590,7 @@ export default function RegisterPage() {
           errorMsg.includes("email service") ||
           errorMsg.includes("email delivery")
         ) {
-          friendly = "Email service is not configured. Please check Supabase email settings or contact support.";
+          friendly = "Account created! Email service issue - please try logging in from the login page.";
         }
         // Network/connection errors
         else if (
@@ -566,19 +598,24 @@ export default function RegisterPage() {
           errorMsg.includes("fetch") ||
           errorMsg.includes("connection")
         ) {
-          friendly = "Network error. Please check your connection and try again.";
+          friendly = "Account created! Network error - please try logging in from the login page.";
         }
         // Show the actual error message for other cases
         else if (signInError.message) {
-          friendly = signInError.message;
+          friendly = `Account created! ${signInError.message}`;
         }
         
+        // Account is created, so show a warning but still allow them to proceed
+        console.warn("Magic link failed but account exists:", friendly);
         setError(friendly);
+        // Still show success since account is created - they can request a new link
+        setPhase("email-sent");
         setLoading(false);
         return;
       }
 
-      // Success - show email sent message
+      // Success - account created, quiz saved, magic link sent
+      console.log("=== REGISTRATION COMPLETE ===");
       console.log("Magic link sent successfully:", data);
       setPhase("email-sent");
       setLoading(false);
@@ -633,7 +670,7 @@ export default function RegisterPage() {
         if (existingProfile) {
           // Profile already exists - redirect to dashboard
           if (mounted) {
-            localStorage.removeItem("pending_quiz_answers");
+            sessionStorage.removeItem("pending_quiz_answers");
             router.replace("/dashboard");
             router.refresh();
           }
@@ -1339,7 +1376,7 @@ export default function RegisterPage() {
           )}
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <CheckCircle2 className="w-4 h-4 text-primary" />
-            <span>Your quiz answers are saved</span>
+            <span>Your quiz answers are saved and will be stored when you click the magic link</span>
           </div>
           {error && (
             <div className="rounded-xl border border-error/30 bg-error/10 p-3 text-sm text-error max-w-md">

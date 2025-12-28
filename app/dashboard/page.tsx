@@ -966,6 +966,12 @@ export default function DashboardPage() {
 
   // Fetch symptoms data
   const fetchSymptoms = useCallback(async () => {
+    // Don't fetch if user is not authenticated
+    if (!user) {
+      setSymptomsLoading(false);
+      return;
+    }
+
     try {
       setSymptomsLoading(true);
       const response = await fetch("/api/symptoms", {
@@ -974,6 +980,13 @@ export default function DashboardPage() {
       });
 
       if (!response.ok) {
+        // If 401, user is not authenticated - stop trying
+        if (response.status === 401) {
+          console.warn("Symptoms fetch: Unauthorized - user not authenticated");
+          setSymptoms([]);
+          setSymptomsLoading(false);
+          return;
+        }
         throw new Error("Failed to fetch symptoms");
       }
 
@@ -986,10 +999,16 @@ export default function DashboardPage() {
     } finally {
       setSymptomsLoading(false);
     }
-  }, []);
+  }, [user]);
 
   // Fetch nutrition data
   const fetchNutrition = useCallback(async () => {
+    // Don't fetch if user is not authenticated
+    if (!user) {
+      setNutritionLoading(false);
+      return;
+    }
+
     try {
       setNutritionLoading(true);
       const response = await fetch("/api/nutrition", {
@@ -998,6 +1017,13 @@ export default function DashboardPage() {
       });
 
       if (!response.ok) {
+        // If 401, user is not authenticated - stop trying
+        if (response.status === 401) {
+          console.warn("Nutrition fetch: Unauthorized - user not authenticated");
+          setNutrition([]);
+          setNutritionLoading(false);
+          return;
+        }
         throw new Error("Failed to fetch nutrition");
       }
 
@@ -1010,10 +1036,16 @@ export default function DashboardPage() {
     } finally {
       setNutritionLoading(false);
     }
-  }, []);
+  }, [user]);
 
   // Fetch fitness data
   const fetchFitness = useCallback(async () => {
+    // Don't fetch if user is not authenticated
+    if (!user) {
+      setFitnessLoading(false);
+      return;
+    }
+
     try {
       setFitnessLoading(true);
       const response = await fetch("/api/fitness", {
@@ -1022,6 +1054,13 @@ export default function DashboardPage() {
       });
 
       if (!response.ok) {
+        // If 401, user is not authenticated - stop trying
+        if (response.status === 401) {
+          console.warn("Fitness fetch: Unauthorized - user not authenticated");
+          setFitness([]);
+          setFitnessLoading(false);
+          return;
+        }
         throw new Error("Failed to fetch fitness");
       }
 
@@ -1034,7 +1073,7 @@ export default function DashboardPage() {
     } finally {
       setFitnessLoading(false);
     }
-  }, []);
+  }, [user]);
 
   // Keep session fresh and react to auth changes
   useEffect(() => {
@@ -1053,6 +1092,100 @@ export default function DashboardPage() {
       }
     });
     return () => sub.subscription.unsubscribe();
+  }, [router]);
+
+  // Verify session on mount and save quiz data if present
+  useEffect(() => {
+    let mounted = true;
+
+    async function verifySessionAndSaveQuiz() {
+      try {
+        // Verify session exists
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error("Dashboard: Session error:", sessionError);
+          if (mounted) {
+            router.replace("/login?redirectedFrom=/dashboard");
+          }
+          return;
+        }
+
+        if (!sessionData?.session?.user) {
+          console.warn("Dashboard: No session found");
+          if (mounted) {
+            router.replace("/login?redirectedFrom=/dashboard");
+          }
+          return;
+        }
+        
+        console.log("Dashboard: Session verified - user:", sessionData.session.user.email);
+
+        // Set user
+        if (mounted) {
+          setUser(sessionData.session.user);
+        }
+
+        // Check for quiz data in sessionStorage and save immediately
+        const pendingQuizData = sessionStorage.getItem("pending_quiz_answers");
+        
+        if (pendingQuizData) {
+          try {
+            const quizAnswers = JSON.parse(pendingQuizData);
+            
+            // Verify quiz data has required fields
+            if (quizAnswers && (quizAnswers.top_problems || quizAnswers.name)) {
+              console.log("Dashboard: Found quiz data in sessionStorage, saving to database...");
+              
+              const response = await fetch("/api/intake", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  user_id: sessionData.session.user.id,
+                  name: quizAnswers.name || null,
+                  top_problems: quizAnswers.top_problems || [],
+                  severity: quizAnswers.severity || null,
+                  timing: quizAnswers.timing || null,
+                  tried_options: quizAnswers.tried_options || [],
+                  doctor_status: quizAnswers.doctor_status || null,
+                  goal: quizAnswers.goal || null,
+                }),
+              });
+
+              if (response.ok) {
+                const result = await response.json();
+                console.log("Dashboard: Quiz data saved successfully:", result);
+                // Clear sessionStorage after successful save
+                sessionStorage.removeItem("pending_quiz_answers");
+              } else {
+                const errorData = await response.json();
+                console.error("Dashboard: Failed to save quiz data:", errorData);
+                // Don't clear on error - allow retry (though sessionStorage will clear on tab close)
+              }
+            } else {
+              // Invalid quiz data - clear it
+              sessionStorage.removeItem("pending_quiz_answers");
+            }
+          } catch (parseError) {
+            console.error("Dashboard: Error parsing quiz data:", parseError);
+            sessionStorage.removeItem("pending_quiz_answers");
+          }
+        }
+      } catch (error) {
+        console.error("Dashboard: Error in session verification:", error);
+        if (mounted) {
+          router.replace("/login?redirectedFrom=/dashboard");
+        }
+      }
+    }
+
+    verifySessionAndSaveQuiz();
+
+    return () => {
+      mounted = false;
+    };
   }, [router]);
 
   // Fetch user trial info from user_trials table
@@ -1193,6 +1326,10 @@ export default function DashboardPage() {
       fetchSymptoms();
       fetchNutrition();
       fetchFitness();
+    } else {
+      // User not authenticated - stop loading states
+      setNutritionLoading(false);
+      setFitnessLoading(false);
     }
   }, [user, fetchSymptoms, fetchNutrition, fetchFitness]);
 

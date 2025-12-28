@@ -141,6 +141,12 @@ export async function POST(req: Request) {
       console.error("Error checking existing profile:", checkError);
     }
 
+    console.log("Intake API: Profile check result:", {
+      hasProfile: !!existingProfile,
+      userId: user_id,
+      hasQuizData: !!(top_problems || name || severity || timing)
+    });
+
     // Prepare profile data with new question structure (only include provided fields)
     const profileData: {
       name?: string | null;
@@ -175,8 +181,11 @@ export async function POST(req: Request) {
       if (Array.isArray(goal)) {
         // Store as JSON string for multiple goals
         profileData.goal = JSON.stringify(goal);
+      } else if (goal !== null && goal !== "") {
+        // Single goal value - store as string
+        profileData.goal = String(goal);
       } else {
-        profileData.goal = goal || null;
+        profileData.goal = null;
       }
     }
 

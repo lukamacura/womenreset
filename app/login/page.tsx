@@ -42,7 +42,13 @@ function LoginForm() {
     const errorMessage = searchParams.get("message");
     const browserCheck = searchParams.get("browser_check");
     
-    if (errorParam === "auth_callback_error") {
+    if (errorParam === "otp_expired") {
+      // OTP expired - show helpful message with clear recovery
+      const message = errorMessage ? decodeURIComponent(errorMessage) : "The email link has expired. Please request a new magic link.";
+      setErrorType('unknown');
+      setErr(message);
+      setInfo("Your account already exists. Enter your email below and click 'Continue with email' to receive a new magic link.");
+    } else if (errorParam === "auth_callback_error") {
       // Check if error message suggests browser mismatch
       const message = errorMessage ? decodeURIComponent(errorMessage) : "";
       if (message.toLowerCase().includes("session") || message.toLowerCase().includes("cookie") || browserCheck === "samsung") {
