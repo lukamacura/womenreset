@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { getRedirectBaseUrl, AUTH_CALLBACK_PATH } from "@/lib/constants";
+import { detectBrowser, hasBrowserMismatchIssue, getBrowserMismatchMessage } from "@/lib/browserUtils";
 import { Mail, CheckCircle2, AlertCircle } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -18,22 +19,44 @@ function LoginForm() {
   const [info, setInfo] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
-  const [errorType, setErrorType] = useState<'user_not_found' | 'invalid_email' | 'rate_limit' | 'network' | 'email_service' | 'redirect' | 'unknown' | null>(null);
+  const [errorType, setErrorType] = useState<'user_not_found' | 'invalid_email' | 'rate_limit' | 'network' | 'email_service' | 'redirect' | 'browser_mismatch' | 'unknown' | null>(null);
+  const [browserInfo, setBrowserInfo] = useState<ReturnType<typeof detectBrowser> | null>(null);
 
   // Get redirect target from URL params
   const redirectTarget = searchParams.get("redirectedFrom") || "/dashboard";
   
+  // Detect browser on mount
+  useEffect(() => {
+    const browser = detectBrowser();
+    setBrowserInfo(browser);
+    
+    // Check if there's a browser mismatch issue
+    if (hasBrowserMismatchIssue(browser)) {
+      console.warn("Browser mismatch detected:", browser);
+    }
+  }, []);
+
   // Handle error query parameter from auth callback
   useEffect(() => {
     const errorParam = searchParams.get("error");
     const errorMessage = searchParams.get("message");
+    const browserCheck = searchParams.get("browser_check");
     
     if (errorParam === "auth_callback_error") {
-      setErr(errorMessage 
-        ? decodeURIComponent(errorMessage) 
-        : "Email confirmation failed. Please try again or contact support.");
+      // Check if error message suggests browser mismatch
+      const message = errorMessage ? decodeURIComponent(errorMessage) : "";
+      if (message.toLowerCase().includes("session") || message.toLowerCase().includes("cookie") || browserCheck === "samsung") {
+        setErrorType('browser_mismatch');
+        setErr(getBrowserMismatchMessage(browserInfo || detectBrowser()));
+      } else {
+        setErr(message || "Email confirmation failed. Please try again or contact support.");
+      }
+    } else if (browserCheck === "samsung" && browserInfo && hasBrowserMismatchIssue(browserInfo)) {
+      // Show browser mismatch warning even if auth succeeded
+      // This helps users understand potential issues
+      setInfo("You're using Samsung Internet. If you registered in Chrome, make sure to open email links in Chrome for the best experience.");
     }
-  }, [searchParams]);
+  }, [searchParams, browserInfo]);
 
   const emailValid = useMemo(() => /.+@.+\..+/.test(email), [email]);
   const canSubmit = emailValid && !loading;
@@ -233,6 +256,19 @@ function LoginForm() {
             <p className="text-muted-foreground mt-2">
               Click the link in your email to log in to your account.
             </p>
+            {browserInfo && hasBrowserMismatchIssue(browserInfo) && (
+              <div className="mt-4 rounded-xl border border-orange-400/30 bg-orange-50/80 dark:bg-orange-900/20 p-4 text-sm text-orange-700 dark:text-orange-400 max-w-md">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="font-semibold mb-1">Important: Browser Compatibility</p>
+                    <p className="text-xs">
+                      You're using Samsung Internet. For the best experience, please open the email link in the same browser where you registered (likely Chrome). If the link opens in Samsung Internet, copy it and paste it into Chrome instead.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
           {err && (
             <div 
@@ -350,6 +386,8 @@ function LoginForm() {
                 ? "border-orange-400/30 bg-orange-50/80 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400"
                 : errorType === 'invalid_email'
                 ? "border-yellow-400/30 bg-yellow-50/80 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400"
+                : errorType === 'browser_mismatch'
+                ? "border-orange-400/30 bg-orange-50/80 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400"
                 : "border-error/30 bg-error/10 text-error"
             }`}
           >
@@ -369,6 +407,8 @@ function LoginForm() {
                     ? 'Network Error'
                     : errorType === 'email_service'
                     ? 'Email Service Error'
+                    : errorType === 'browser_mismatch'
+                    ? 'Browser Compatibility Issue'
                     : 'Error'
                   }
                 </p>
@@ -409,6 +449,20 @@ function LoginForm() {
                   <div className="mt-3 pt-3 border-t border-error/20">
                     <p className="text-xs">
                       Our email service is experiencing issues. Please try again in a few minutes or contact support if the problem continues.
+                    </p>
+                  </div>
+                )}
+                {errorType === 'browser_mismatch' && (
+                  <div className="mt-3 pt-3 border-t border-orange-200/50 dark:border-orange-700/50">
+                    <p className="text-xs font-semibold mb-2">How to fix this:</p>
+                    <ol className="list-decimal list-inside space-y-1 text-xs">
+                      <li>Open Chrome on your device</li>
+                      <li>Copy the link from your email</li>
+                      <li>Paste it into Chrome's address bar</li>
+                      <li>Or try requesting a new magic link while using Chrome</li>
+                    </ol>
+                    <p className="text-xs mt-2">
+                      This happens because email links on Samsung devices often open in Samsung Internet instead of Chrome, and browsers don't share cookies with each other.
                     </p>
                   </div>
                 )}

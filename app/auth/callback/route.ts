@@ -33,11 +33,19 @@ export async function GET(request: NextRequest) {
           return request.cookies.get(name)?.value;
         },
         set(name: string, value: string, options: CookieOptions) {
-          // Set cookies on the temp response - these will be copied to final response
+          // Set cookies on the temp response with proper SameSite and Secure flags
+          // This helps with cross-browser scenarios (though cookies are still browser-specific)
+          const isProduction = process.env.NODE_ENV === "production";
           tempResponse.cookies.set({
             name,
             value,
             ...options,
+            // Use 'none' in production for cross-site requests, 'lax' in development
+            sameSite: options.sameSite || (isProduction ? "none" : "lax"),
+            // Always use secure in production (HTTPS required)
+            secure: options.secure ?? isProduction,
+            // Preserve httpOnly if set, default to true for auth cookies
+            httpOnly: options.httpOnly ?? true,
           });
         },
         remove(name: string, options: CookieOptions) {
@@ -316,17 +324,32 @@ export async function GET(request: NextRequest) {
     
     // Copy all cookies from the temp response to the final response
     // This ensures the session cookies set by exchangeCodeForSession are preserved
+    const isProduction = process.env.NODE_ENV === "production";
     tempResponse.cookies.getAll().forEach((cookie) => {
       finalResponse.cookies.set(cookie.name, cookie.value, {
         path: cookie.path || "/",
         domain: cookie.domain,
         maxAge: cookie.maxAge,
         expires: cookie.expires,
-        httpOnly: cookie.httpOnly,
-        secure: cookie.secure ?? (process.env.NODE_ENV === "production"),
-        sameSite: (cookie.sameSite as "lax" | "strict" | "none" | undefined) ?? "lax",
+        httpOnly: cookie.httpOnly ?? true,
+        secure: cookie.secure ?? isProduction,
+        sameSite: (cookie.sameSite as "lax" | "strict" | "none" | undefined) ?? (isProduction ? "none" : "lax"),
       });
     });
+
+    // Detect browser mismatch for Samsung devices
+    // Log this for monitoring, but don't block authentication
+    const userAgent = request.headers.get("user-agent") || "";
+    const isAndroid = /android/i.test(userAgent);
+    const isSamsungBrowser = /SamsungBrowser/i.test(userAgent);
+    
+    if (isAndroid && isSamsungBrowser) {
+      console.warn("Auth callback: User on Samsung Internet browser - potential browser mismatch if registered in Chrome");
+      // Add a query parameter to help identify this scenario on the client side
+      const url = new URL(redirectUrl);
+      url.searchParams.set("browser_check", "samsung");
+      redirectUrl = url.toString();
+    }
 
     console.log("Auth callback: Cookies copied, returning response");
     return finalResponse;

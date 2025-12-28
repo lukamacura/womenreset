@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabaseClient";
 import { getRedirectBaseUrl, AUTH_CALLBACK_PATH } from "@/lib/constants";
+import { detectBrowser, hasBrowserMismatchIssue } from "@/lib/browserUtils";
 import {
   Flame,
   Moon,
@@ -201,12 +202,24 @@ export default function RegisterPage() {
   const [phase, setPhase] = useState<Phase>("quiz");
   const [stepIndex, setStepIndex] = useState(0);
   const currentStep = STEPS[stepIndex];
+  const [browserInfo, setBrowserInfo] = useState<ReturnType<typeof detectBrowser> | null>(null);
 
   // Random notification message
   const [notificationMessage] = useState(() => {
     return NOTIFICATION_MESSAGES[Math.floor(Math.random() * NOTIFICATION_MESSAGES.length)];
   });
   const [showNotification, setShowNotification] = useState(false);
+
+  // Detect browser on mount
+  useEffect(() => {
+    const browser = detectBrowser();
+    setBrowserInfo(browser);
+    
+    // Check if there's a browser mismatch issue
+    if (hasBrowserMismatchIssue(browser)) {
+      console.warn("Browser mismatch detected:", browser);
+    }
+  }, []);
 
   // Show notification after 3 seconds, auto-dismiss after 4 seconds of being visible
   useEffect(() => {
@@ -1292,6 +1305,19 @@ export default function RegisterPage() {
               Click the link in your email to continue with registration.
             </p>
           </div>
+          {browserInfo && hasBrowserMismatchIssue(browserInfo) && (
+            <div className="rounded-xl border border-orange-400/30 bg-orange-50/80 dark:bg-orange-900/20 p-4 text-sm text-orange-700 dark:text-orange-400 max-w-md">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="font-semibold mb-1">Important: Browser Compatibility</p>
+                  <p className="text-xs">
+                    You&apos;re using Samsung Internet. For the best experience, please open the email link in the same browser where you registered (likely Chrome). If the link opens in Samsung Internet, copy it and paste it into Chrome instead.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <CheckCircle2 className="w-4 h-4 text-primary" />
             <span>Your quiz answers are saved</span>

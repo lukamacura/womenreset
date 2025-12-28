@@ -110,7 +110,7 @@ export default function SymptomsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isQuickModalOpen, setIsQuickModalOpen] = useState(false);
   const [isSelectorOpen, setIsSelectorOpen] = useState(false);
-  const [pageLoaded, setPageLoaded] = useState(false);
+  const [, setPageLoaded] = useState(false);
 
   // Trigger page load animation
   useEffect(() => {

@@ -207,7 +207,7 @@ function TrialStatusCard({
 }) {
   return (
     <AnimatedCard index={0} delay={0}>
-      <div className="relative overflow-hidden rounded-2xl border border-white/25 bg-gray-900  backdrop-blur-lg p-6 lg:p-8 shadow-xl transition-all duration-300 hover:shadow-2xl">
+      <div className="relative overflow-hidden rounded-2xl border border-white/25 bg-linear-to-l from-gray-900 via-blue-900 to-pink-900  backdrop-blur-lg p-6 lg:p-8 shadow-xl transition-all duration-300 hover:shadow-2xl">
       <div className="relative">
         <div className="flex items-start justify-between mb-4">
           <div className="flex-1 min-w-0">
