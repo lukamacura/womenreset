@@ -1046,9 +1046,39 @@ export default function DashboardPage() {
         const { data } = await supabase.auth.getUser();
         setUser(data.user ?? null);
       }
+      if (event === "SIGNED_IN") {
+        // Session was established - refresh user data
+        const { data } = await supabase.auth.getUser();
+        setUser(data.user ?? null);
+      }
     });
     return () => sub.subscription.unsubscribe();
   }, [router]);
+
+  // Initial session check with retry for Samsung Internet compatibility
+  useEffect(() => {
+    const checkInitialSession = async () => {
+      // Small delay to ensure cookies are available after redirect
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      if (error) {
+        console.error("Initial session check error:", error);
+      }
+      
+      if (session?.user) {
+        setUser(session.user);
+        setLoading(false);
+      } else {
+        // No session - might be a browser mismatch issue
+        // Let middleware handle redirect to login
+        setLoading(false);
+      }
+    };
+
+    checkInitialSession();
+  }, []);
 
   // Fetch user trial info from user_trials table
   const fetchUserTrial = useCallback(async (userId: string) => {

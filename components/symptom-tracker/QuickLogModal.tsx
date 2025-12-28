@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { SEVERITY_LABELS } from "@/lib/symptom-tracker-constants";
 import type { Symptom, LogSymptomData } from "@/lib/symptom-tracker-constants";
@@ -25,6 +26,13 @@ export default function QuickLogModal({
   const [severity, setSeverity] = useState(2); // Default to Moderate (not used for Good Day)
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  // Ensure we're mounted before rendering portal
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
 
   // Get icon component - always map by symptom name for consistency
   const SymptomIcon = useMemo(() => {
@@ -60,7 +68,7 @@ export default function QuickLogModal({
     return getIconFromName('Activity');
   }, [symptom.icon, symptom.name]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
   // Handle backdrop click to close
   const handleBackdropClick = (e: React.MouseEvent) => {
@@ -92,26 +100,25 @@ export default function QuickLogModal({
     }
   };
 
-  return (
-    // Backdrop
+  const modalContent = (
+    // Backdrop - same structure as LogSymptomModal with full blur
     <div
-      className="fixed inset-0 z-50 overflow-auto"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 cursor-pointer"
       onClick={handleBackdropClick}
     >
-      {/* Backdrop overlay with blur */}
+      {/* Backdrop blur overlay - covers entire screen */}
       <div 
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/50 backdrop-blur-md"
         style={{ background: 'linear-gradient(to bottom, #DBEAFE, #FEF3C7, #FCE7F3)' }}
       />
-      {/* Modal container */}
-      <div className="relative min-h-full flex items-center justify-center p-4 cursor-pointer">
-        {/* Modal */}
-        <div
-          className="bg-white/30 backdrop-blur-lg rounded-2xl w-full max-w-md mx-4 my-4 p-6 shadow-xl border border-white/30 cursor-default"
-          onClick={(e) => e.stopPropagation()}
-        >
+      
+      {/* Modal - stop propagation here too - bigger size */}
+      <div
+        className="relative bg-white/30 backdrop-blur-lg rounded-2xl w-full max-w-xl mx-4 shadow-xl border border-white/30 cursor-default overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex justify-between items-center p-6 pb-4 border-b border-white/30">
           <div className="flex items-center gap-3">
             <SymptomIcon className="h-6 w-6 text-[#3D3D3D]" />
             <h2 className="text-xl font-semibold text-[#3D3D3D]">
@@ -127,6 +134,8 @@ export default function QuickLogModal({
           </button>
         </div>
 
+        {/* Content */}
+        <div className="p-6">
         {/* Severity Selection - Hidden for Good Day */}
         {!isGoodDay && (
           <div className="mb-6">
@@ -181,7 +190,7 @@ export default function QuickLogModal({
         )}
 
         {/* Actions */}
-        <div className="space-y-3">
+        <div className="space-y-3 mt-6">
           <button
             onClick={handleSave}
             disabled={isSubmitting}
@@ -204,9 +213,12 @@ export default function QuickLogModal({
             </button>
           )}
         </div>
-      </div>
+        </div>
       </div>
     </div>
   );
+
+  // Render to document body using portal to escape any parent constraints
+  return createPortal(modalContent, document.body);
 }
 

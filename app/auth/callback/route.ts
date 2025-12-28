@@ -36,16 +36,25 @@ export async function GET(request: NextRequest) {
           // Set cookies on the temp response with proper SameSite and Secure flags
           // This helps with cross-browser scenarios (though cookies are still browser-specific)
           const isProduction = process.env.NODE_ENV === "production";
+          const isHttps = requestUrl.protocol === "https:";
+          
+          // For Samsung Internet and other browsers, use appropriate SameSite settings
+          // SameSite=None requires Secure=true and HTTPS
+          const sameSiteValue = isHttps && isProduction 
+            ? (options.sameSite as "none" | "lax" | "strict" | undefined) ?? "none"
+            : (options.sameSite as "lax" | "strict" | "none" | undefined) ?? "lax";
+          
+          const secureValue = sameSiteValue === "none" ? true : (options.secure ?? isProduction);
+          
           tempResponse.cookies.set({
             name,
             value,
             ...options,
-            // Use 'none' in production for cross-site requests, 'lax' in development
-            sameSite: options.sameSite || (isProduction ? "none" : "lax"),
-            // Always use secure in production (HTTPS required)
-            secure: options.secure ?? isProduction,
-            // Preserve httpOnly if set, default to true for auth cookies
+            sameSite: sameSiteValue,
+            secure: secureValue,
             httpOnly: options.httpOnly ?? true,
+            // Ensure path is set correctly
+            path: options.path || "/",
           });
         },
         remove(name: string, options: CookieOptions) {
@@ -54,6 +63,7 @@ export async function GET(request: NextRequest) {
             name,
             value: "",
             ...options,
+            path: options.path || "/",
           });
         },
       },
@@ -364,6 +374,7 @@ export async function GET(request: NextRequest) {
       console.warn("Auth callback: User on Samsung Internet browser - potential browser mismatch if registered in Chrome");
       console.warn("Auth callback: Session should still work as cookies are set in current browser");
       // Add a query parameter to help identify this scenario on the client side
+      // This allows the client to verify the session was established correctly
       const url = new URL(redirectUrl);
       url.searchParams.set("browser_check", "samsung");
       redirectUrl = url.toString();
@@ -371,6 +382,8 @@ export async function GET(request: NextRequest) {
     
     // Log successful authentication for debugging
     console.log("Auth callback: Authentication successful, redirecting with cookies set");
+    console.log("Auth callback: User ID:", data.user.id);
+    console.log("Auth callback: Session expires at:", data.session.expires_at);
 
     console.log("Auth callback: Cookies copied, returning response");
     return finalResponse;
