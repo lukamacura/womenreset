@@ -18,6 +18,7 @@ import AddSymptomModal from "@/components/symptoms/AddSymptomModal";
 import AddNutritionModal from "@/components/nutrition/AddNutritionModal";
 import AddFitnessModal from "@/components/fitness/AddFitnessModal";
 import DeleteConfirmationDialog from "@/components/DeleteConfirmationDialog";
+import { TrialCard } from "@/components/TrialCard";
 
 // Prevent static prerendering (safe)
 export const dynamic = "force-dynamic";
@@ -190,85 +191,6 @@ function AnimatedListItem({
 // Card Components
 // ---------------------------
 
-// Trial Status Card
-function TrialStatusCard({
-  trial,
-}: {
-  trial: {
-    expired: boolean | null;
-    start: Date | null;
-    end: Date | null;
-    daysLeft: number;
-    elapsedDays: number;
-    progressPct: number;
-    remaining: { d: number; h: number; m: number; s: number };
-    trialDays?: number;
-  };
-}) {
-  return (
-    <AnimatedCard index={0} delay={0}>
-      <div className="relative overflow-hidden rounded-2xl border border-white/25 bg-linear-to-l from-gray-900 via-blue-900 to-pink-900  backdrop-blur-lg p-6 lg:p-8 shadow-xl transition-all duration-300 hover:shadow-2xl">
-      <div className="relative">
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex-1 min-w-0">
-            <h2 className="text-2xl lg:text-3xl font-extrabold text-white! mb-2">
-              {trial.expired ? "Trial Expired" : "Your Trial"}
-            </h2>
-            <p className="text-sm text-white/80">
-              {trial.start && !trial.expired && (
-                <>
-                  Started {trial.start.toLocaleDateString()} · Ends {trial.end?.toLocaleDateString()}
-                </>
-              )}
-              {trial.expired && "Upgrade to continue using the platform."}
-            </p>
-          </div>
-          <div
-            className={`rounded-full px-3 py-1.5 text-xs font-semibold shrink-0 ml-2 ${
-              trial.expired
-                ? "bg-red-500/30 text-red-300 border border-red-500/50"
-                : "bg-green-500/30 text-green-300 border border-green-500/50"
-            }`}
-          >
-            {trial.expired ? "Expired" : "Active"}
-          </div>
-        </div>
-
-        <div className="mb-6">
-          <div className="flex items-baseline gap-2 mb-3">
-            <span className="text-5xl lg:text-6xl font-extrabold text-white tracking-tight">
-              {trial.daysLeft}
-            </span>
-            <span className="text-lg text-white/80">days left</span>
-          </div>
-          <div className="h-3 w-full overflow-hidden rounded-full bg-white/10">
-            <div
-              className={`h-full transition-[width] duration-500 ${
-                trial.expired
-                  ? "bg-linear-to-r from-error to-error"
-                  : "bg-linear-to-r from-[#ff74b1] via-[#ffeb76] to-info"
-              }`}
-              style={{ width: `${Math.max(0, Math.min(100, trial.progressPct))}%` }}
-            />
-          </div>
-          <div className="mt-2 flex items-center justify-between text-xs text-white/70">
-            <span>
-              {Math.min(trial.trialDays || 3, trial.elapsedDays)} / {trial.trialDays || 3} days used
-            </span>
-            <span>{trial.progressPct.toFixed(0)}%</span>
-          </div>
-        </div>
-
-        {!trial.expired && (
-          <div className="text-sm text-white/80">
-            Ends in {trial.remaining.d}d {trial.remaining.h}h {trial.remaining.m}m
-          </div>
-        )}
-      </div>
-      </div>
-    </AnimatedCard>
-  );
-}
 
 
 // Symptoms Overview Card
@@ -934,6 +856,8 @@ export default function DashboardPage() {
     trial_days: number;
     account_status: string;
   } | null>(null);
+  const [patternCount, setPatternCount] = useState<number>(0);
+  const [, setPatternCountLoading] = useState(true);
   
   // Modal states
   const [isSymptomModalOpen, setIsSymptomModalOpen] = useState(false);
@@ -1319,19 +1243,58 @@ export default function DashboardPage() {
     };
   }, [router, fetchUserTrial]);
 
-  // Fetch symptoms, nutrition, and fitness when user is loaded - run in parallel
+  // Fetch pattern count for expired state
+  const fetchPatternCount = useCallback(async () => {
+    if (!user) {
+      setPatternCountLoading(false);
+      return;
+    }
+
+    try {
+      setPatternCountLoading(true);
+      const response = await fetch("/api/tracker-insights?days=30", {
+        method: "GET",
+        cache: "no-store",
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          setPatternCount(0);
+          setPatternCountLoading(false);
+          return;
+        }
+        throw new Error("Failed to fetch pattern count");
+      }
+
+      const { data } = await response.json();
+      // Count patterns from plainLanguageInsights
+      const patterns = data?.plainLanguageInsights?.filter(
+        (insight: { type: string }) => insight.type === "pattern"
+      ) || [];
+      setPatternCount(patterns.length);
+    } catch (err) {
+      console.error("Error fetching pattern count:", err);
+      setPatternCount(0);
+    } finally {
+      setPatternCountLoading(false);
+    }
+  }, [user]);
+
+  // Fetch symptoms, nutrition, fitness, and pattern count when user is loaded - run in parallel
   useEffect(() => {
     if (user) {
       // Start all fetches immediately in parallel - don't wait for each other
       fetchSymptoms();
       fetchNutrition();
       fetchFitness();
+      fetchPatternCount();
     } else {
       // User not authenticated - stop loading states
       setNutritionLoading(false);
       setFitnessLoading(false);
+      setPatternCountLoading(false);
     }
-  }, [user, fetchSymptoms, fetchNutrition, fetchFitness]);
+  }, [user, fetchSymptoms, fetchNutrition, fetchFitness, fetchPatternCount]);
 
   // Trial computations (UTC-safe) - now from user_trials
   const trial = useMemo(() => {
@@ -1598,7 +1561,16 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
         {/* Trial Status Card - Full width on desktop (3 columns) */}
         <div className="lg:col-span-3">
-          <TrialStatusCard trial={trial} />
+          <AnimatedCard index={0} delay={0}>
+            <TrialCard
+              trial={{
+                ...trial,
+                expired: !!trial.expired, // Ensure 'expired' is always boolean
+              }}
+              symptomCount={symptomLogs.length}
+              patternCount={patternCount}
+            />
+          </AnimatedCard>
         </div>
 
 
