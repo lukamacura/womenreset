@@ -825,7 +825,7 @@ export default function RegisterPage() {
                       </p>
 
                       {/* Progress Bar */}
-                      <div className="relative h-3 bg-[#F0EDED] rounded-full mb-4 overflow-hidden">
+                      <div className="relative h-3 bg-gray-900 rounded-full mb-4 overflow-hidden">
                         {/* Current score */}
                         <motion.div
                           initial={{ width: 0 }}

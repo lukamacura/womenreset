@@ -34,17 +34,15 @@ export async function GET(request: NextRequest) {
         },
         set(name: string, value: string, options: CookieOptions) {
           // Set cookies on the temp response with proper SameSite and Secure flags
-          // This helps with cross-browser scenarios (though cookies are still browser-specific)
-          const isProduction = process.env.NODE_ENV === "production";
           const isHttps = requestUrl.protocol === "https:";
           
-          // For Samsung Internet and other browsers, use appropriate SameSite settings
-          // SameSite=None requires Secure=true and HTTPS
-          const sameSiteValue = isHttps && isProduction 
+          // For production HTTPS, use SameSite=None with Secure=true
+          // For development or HTTP, use SameSite=Lax
+          const sameSiteValue = isHttps
             ? (options.sameSite as "none" | "lax" | "strict" | undefined) ?? "none"
             : (options.sameSite as "lax" | "strict" | "none" | undefined) ?? "lax";
           
-          const secureValue = sameSiteValue === "none" ? true : (options.secure ?? isProduction);
+          const secureValue = sameSiteValue === "none" ? true : (options.secure ?? isHttps);
           
           tempResponse.cookies.set({
             name,
@@ -53,8 +51,9 @@ export async function GET(request: NextRequest) {
             sameSite: sameSiteValue,
             secure: secureValue,
             httpOnly: options.httpOnly ?? true,
-            // Ensure path is set correctly
             path: options.path || "/",
+            // Don't set domain - let browser use default (current domain)
+            // domain: options.domain, // Explicitly don't set domain
           });
         },
         remove(name: string, options: CookieOptions) {
@@ -389,32 +388,37 @@ export async function GET(request: NextRequest) {
       redirectUrl = `${baseUrl}${sanitizedNext}`;
     }
 
+    // Ensure redirectUrl is absolute (should already be, but double-check)
+    if (!redirectUrl.startsWith("http")) {
+      redirectUrl = `${baseUrl}${redirectUrl.startsWith("/") ? redirectUrl : `/${redirectUrl}`}`;
+    }
+    
+    // Copy all cookies from the temp response to the final response
+    // This ensures the session cookies set by exchangeCodeForSession are preserved
+    const isHttps = requestUrl.protocol === "https:";
+    const cookiesToSet = tempResponse.cookies.getAll();
+    
     console.log("Auth callback: Redirecting to:", redirectUrl);
+    console.log("Auth callback: Session exists:", !!data.session);
+    console.log("Auth callback: User ID:", data.user.id);
+    console.log("Auth callback: Cookies to set:", cookiesToSet.length);
 
     // Create the final redirect response
     const finalResponse = NextResponse.redirect(redirectUrl);
     
-    // Copy all cookies from the temp response to the final response
-    // This ensures the session cookies set by exchangeCodeForSession are preserved
-    const isProduction = process.env.NODE_ENV === "production";
-    const isHttps = requestUrl.protocol === "https:";
-    
-    // Ensure cookies are set with proper flags
-    // SameSite=None requires Secure=true (HTTPS)
-    const cookiesToSet = tempResponse.cookies.getAll();
-    
     cookiesToSet.forEach((cookie) => {
-      // Determine SameSite value: use 'none' only if HTTPS, otherwise use 'lax'
-      const sameSiteValue = isHttps && isProduction 
-        ? ("none" as const)
+      // Determine SameSite value: use 'none' for HTTPS, 'lax' for HTTP
+      const sameSiteValue = isHttps
+        ? (cookie.sameSite as "lax" | "strict" | "none" | undefined) ?? ("none" as const)
         : (cookie.sameSite as "lax" | "strict" | "none" | undefined) ?? ("lax" as const);
       
-      // Secure flag: must be true if SameSite is 'none', otherwise use production setting
-      const secureValue = sameSiteValue === "none" ? true : (cookie.secure ?? isProduction);
+      // Secure flag: must be true if SameSite is 'none', otherwise match HTTPS
+      const secureValue = sameSiteValue === "none" ? true : (cookie.secure ?? isHttps);
       
       finalResponse.cookies.set(cookie.name, cookie.value, {
         path: cookie.path || "/",
-        domain: cookie.domain,
+        // Don't explicitly set domain - let browser use default (current domain)
+        // This ensures cookies work for the exact domain (womenreset.com)
         maxAge: cookie.maxAge,
         expires: cookie.expires,
         httpOnly: cookie.httpOnly ?? true,
