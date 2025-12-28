@@ -60,7 +60,7 @@ export default function EmptyState() {
 
   // No logs today (but user has logged before)
   return (
-    <div className="rounded-xl border border-white/25 bg-gray-900 backdrop-blur-lg p-8 text-center mb-6 shadow-lg">
+    <div className="rounded-xl border border-white/25 bg-linear-to-l from-gray-900 via-blue-900 to-pink-900 backdrop-blur-lg p-8 text-center mb-6 shadow-lg">
       <p className="text-white font-medium text-base mb-2">
         No symptoms logged yet today.
       </p>

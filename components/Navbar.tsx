@@ -110,60 +110,78 @@ const Navbar: React.FC<NavbarProps> = ({ isAuthenticated }) => {
 
       {/* Mobile Menu */}
       <div
-        className={`fixed top-22 sm:top-20 left-3 right-3 z-40 rounded-2xl bg-linear-to-br from-navy/95 to-navy-dark/95 backdrop-blur-lg border border-white/25 shadow-2xl transition-transform duration-300 ease-in-out lg:hidden max-w-[calc(100vw-1.5rem)] ${mobileMenuOpen ? "translate-y-0 opacity-100" : "-translate-y-4 opacity-0 pointer-events-none"
-          }`}
+        className={`fixed top-20 sm:top-24 left-3 right-3 z-40 rounded-2xl bg-linear-to-b from-gray-900/95 to-gray-800/95 backdrop-blur-lg border border-white/25 shadow-2xl transition-all duration-300 ease-in-out lg:hidden max-w-[calc(100vw-1.5rem)] ${
+          mobileMenuOpen 
+            ? "translate-y-0 opacity-100 visible" 
+            : "-translate-y-4 opacity-0 invisible pointer-events-none"
+        }`}
       >
-        <nav className="flex w-full items-center rounded-full bg-gray-900 px-3 sm:px-5 py-2.5 sm:py-2 shadow-lg backdrop-blur-lg border border-white/25 overflow-hidden">
-
-          {/* Left: Logo */}
-          <div className="flex flex-1 items-center">
-            <Link href="/" className="flex items-center gap-2">
-              <div className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-primary-light shadow-md">
-                <div className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded-full border-2 border-primary-dark" />
-              </div>
-              <span className="text-xs sm:text-sm font-semibold tracking-wide text-white">
-                MenoLisa
-              </span>
+        <div className="flex flex-col p-4 space-y-3">
+          {/* Navigation Links */}
+          <div className="flex flex-col gap-2">
+            <Link 
+              href="/" 
+              className="px-4 py-3 rounded-lg text-white! text-center hover:bg-white/10 transition-colors text-md font-medium"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Home
+            </Link>
+            <Link 
+              href="/about" 
+              className="px-4 py-3 rounded-lg text-white! text-center hover:bg-white/10 transition-colors text-md font-medium"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              About
+            </Link>
+            <Link 
+              href="/pricing" 
+              className="px-4 py-3 rounded-lg text-white! text-center hover:bg-white/10 transition-colors text-md font-medium"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Pricing
+            </Link>
+            <Link 
+              href="/community" 
+              className="px-4 py-3 rounded-lg text-white! text-center hover:bg-white/10 transition-colors text-md font-medium"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Community
             </Link>
           </div>
 
-          {/* Center: Nav links */}
-          <div className="hidden lg:flex flex-1 justify-center items-center gap-6 lg:gap-8 text-sm lg:text-base font-medium">
-            <Link href="/" className="text-white! hover:text-primary! transition-colors">Home</Link>
-            <Link href="/about" className="text-white! hover:text-primary! transition-colors">About</Link>
-            <Link href="/pricing" className="text-white! hover:text-primary! transition-colors">Pricing</Link>
-            <Link href="/community" className="text-white! hover:text-primary! transition-colors">Community</Link>
-          </div>
+          {/* Divider */}
+          <div className="border-t border-white/10 my-2" />
 
-          {/* Right: Auth buttons */}
-          <div className="hidden lg:flex flex-1 justify-end items-center gap-4">
+          {/* Auth buttons */}
+          <div className="flex flex-col gap-2">
             {isAuthenticated ? (
-              <Link href="/dashboard" className="btn-primary px-5 py-1.5 text-sm shadow-md">
+              <Link 
+                href="/dashboard" 
+                className="btn-primary px-4 py-3 text-md shadow-md text-center"
+                onClick={() => setMobileMenuOpen(false)}
+              >
                 Dashboard
               </Link>
             ) : (
               <>
-                <Link href="/login" className="font-medium text-white! text-sm">
+                <Link 
+                  href="/login" 
+                  className="px-4 py-3 rounded-lg font-medium text-white hover:bg-white/10 transition-colors text-md text-center"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
                   Log in
                 </Link>
-                <Link href="/register" className="btn-primary px-5 py-1.5 text-sm shadow-md">
+                <Link 
+                  href="/register" 
+                  className="btn-primary px-4 py-3 text-md shadow-md text-center"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
                   Sign up
                 </Link>
               </>
             )}
           </div>
-
-          {/* Mobile toggle */}
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="lg:hidden p-2 rounded-lg text-white hover:bg-white/10"
-            aria-label="Toggle menu"
-          >
-            {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-          </button>
-
-        </nav>
-
+        </div>
       </div>
     </>
   );

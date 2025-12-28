@@ -325,16 +325,33 @@ export async function GET(request: NextRequest) {
     // Copy all cookies from the temp response to the final response
     // This ensures the session cookies set by exchangeCodeForSession are preserved
     const isProduction = process.env.NODE_ENV === "production";
-    tempResponse.cookies.getAll().forEach((cookie) => {
+    const isHttps = requestUrl.protocol === "https:";
+    
+    // Ensure cookies are set with proper flags
+    // SameSite=None requires Secure=true (HTTPS)
+    const cookiesToSet = tempResponse.cookies.getAll();
+    console.log(`Auth callback: Setting ${cookiesToSet.length} cookies, isProduction: ${isProduction}, isHttps: ${isHttps}`);
+    
+    cookiesToSet.forEach((cookie) => {
+      // Determine SameSite value: use 'none' only if HTTPS, otherwise use 'lax'
+      const sameSiteValue = isHttps && isProduction 
+        ? ("none" as const)
+        : (cookie.sameSite as "lax" | "strict" | "none" | undefined) ?? ("lax" as const);
+      
+      // Secure flag: must be true if SameSite is 'none', otherwise use production setting
+      const secureValue = sameSiteValue === "none" ? true : (cookie.secure ?? isProduction);
+      
       finalResponse.cookies.set(cookie.name, cookie.value, {
         path: cookie.path || "/",
         domain: cookie.domain,
         maxAge: cookie.maxAge,
         expires: cookie.expires,
         httpOnly: cookie.httpOnly ?? true,
-        secure: cookie.secure ?? isProduction,
-        sameSite: (cookie.sameSite as "lax" | "strict" | "none" | undefined) ?? (isProduction ? "none" : "lax"),
+        secure: secureValue,
+        sameSite: sameSiteValue,
       });
+      
+      console.log(`Auth callback: Set cookie ${cookie.name} with sameSite=${sameSiteValue}, secure=${secureValue}`);
     });
 
     // Detect browser mismatch for Samsung devices
@@ -345,11 +362,15 @@ export async function GET(request: NextRequest) {
     
     if (isAndroid && isSamsungBrowser) {
       console.warn("Auth callback: User on Samsung Internet browser - potential browser mismatch if registered in Chrome");
+      console.warn("Auth callback: Session should still work as cookies are set in current browser");
       // Add a query parameter to help identify this scenario on the client side
       const url = new URL(redirectUrl);
       url.searchParams.set("browser_check", "samsung");
       redirectUrl = url.toString();
     }
+    
+    // Log successful authentication for debugging
+    console.log("Auth callback: Authentication successful, redirecting with cookies set");
 
     console.log("Auth callback: Cookies copied, returning response");
     return finalResponse;
