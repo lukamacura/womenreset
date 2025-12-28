@@ -34,10 +34,11 @@ export async function POST(req: Request) {
 
     // Validate required fields for new question structure (only if provided)
     // Allow partial updates for webhook/trigger created profiles
+    // Note: Quiz allows up to 3 problems, but we accept 1-3 for flexibility
     if (top_problems !== undefined) {
-      if (!Array.isArray(top_problems) || top_problems.length !== 3) {
+      if (!Array.isArray(top_problems) || top_problems.length === 0 || top_problems.length > 3) {
         return NextResponse.json(
-          { error: "Please select exactly 3 top problems." },
+          { error: "Please select 1 to 3 top problems." },
           { status: 400 }
         );
       }

@@ -252,21 +252,50 @@ export async function GET(request: NextRequest) {
             }
           }
           
-          console.log("Auth callback: Profile data to insert:", {
+          // Insert profile - ensure we're not including age (user said it's not needed)
+          // Remove any undefined values to avoid issues
+          const cleanProfileData: {
+            user_id: string;
+            name?: string | null;
+            top_problems?: string[];
+            severity?: string | null;
+            timing?: string | null;
+            tried_options?: string[];
+            doctor_status?: string | null;
+            goal?: string | null;
+          } = {
             user_id: profileData.user_id,
-            name: profileData.name,
-            top_problems: profileData.top_problems,
-            severity: profileData.severity,
-            timing: profileData.timing,
-            tried_options: profileData.tried_options,
-            doctor_status: profileData.doctor_status,
-            goal: profileData.goal,
+          };
+          
+          // Only include fields that have values
+          if (profileData.name !== undefined) cleanProfileData.name = profileData.name;
+          if (profileData.top_problems !== undefined && profileData.top_problems.length > 0) {
+            cleanProfileData.top_problems = profileData.top_problems;
+          }
+          if (profileData.severity !== undefined) cleanProfileData.severity = profileData.severity;
+          if (profileData.timing !== undefined) cleanProfileData.timing = profileData.timing;
+          if (profileData.tried_options !== undefined && profileData.tried_options.length > 0) {
+            cleanProfileData.tried_options = profileData.tried_options;
+          }
+          if (profileData.doctor_status !== undefined) cleanProfileData.doctor_status = profileData.doctor_status;
+          if (profileData.goal !== undefined) cleanProfileData.goal = profileData.goal;
+          
+          console.log("Auth callback: Profile data to insert:", {
+            user_id: cleanProfileData.user_id,
+            name: cleanProfileData.name,
+            top_problems: cleanProfileData.top_problems,
+            severity: cleanProfileData.severity,
+            timing: cleanProfileData.timing,
+            tried_options: cleanProfileData.tried_options,
+            doctor_status: cleanProfileData.doctor_status,
+            goal: cleanProfileData.goal,
           });
           
-          // Insert profile
+          console.log("Auth callback: Attempting to insert profile with clean data (no undefined values)");
+          
           const { error: profileError, data: insertedProfile } = await adminSupabase
             .from("user_profiles")
-            .insert([profileData])
+            .insert([cleanProfileData])
             .select();
           
           if (profileError) {
@@ -277,12 +306,12 @@ export async function GET(request: NextRequest) {
               details: profileError.details,
               hint: profileError.hint,
             });
-            console.error("Profile data that failed to insert:", JSON.stringify(profileData, null, 2));
+            console.error("Profile data that failed to insert:", JSON.stringify(cleanProfileData, null, 2));
             
             // Try to use the intake API as a fallback
             try {
               console.log("Attempting fallback: calling /api/intake to save quiz answers");
-              const { user_id: _userId, ...profileDataWithoutUserId } = profileData;
+              const { user_id: _userId, ...profileDataWithoutUserId } = cleanProfileData;
               const intakeResponse = await fetch(`${baseUrl}/api/intake`, {
                 method: "POST",
                 headers: {
@@ -295,7 +324,8 @@ export async function GET(request: NextRequest) {
               });
               
               if (intakeResponse.ok) {
-                console.log("Successfully saved quiz answers via /api/intake fallback");
+                const intakeResult = await intakeResponse.json();
+                console.log("Successfully saved quiz answers via /api/intake fallback:", intakeResult);
               } else {
                 const intakeError = await intakeResponse.json();
                 console.error("Intake API also failed:", intakeError);
