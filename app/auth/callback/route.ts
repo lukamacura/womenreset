@@ -327,7 +327,41 @@ export async function GET(request: NextRequest) {
       redirectUrl = `${baseUrl}${sanitizedNext}`;
     }
 
-    console.log("Auth callback: Redirecting to:", redirectUrl);
+    // For Samsung Internet and cross-browser compatibility, pass session tokens in URL hash
+    // Hash fragments are client-side only (not sent to server), making them more secure
+    // This allows session restoration even when cookies aren't shared between browsers
+    const userAgent = request.headers.get("user-agent") || "";
+    const isAndroid = /android/i.test(userAgent);
+    const isSamsungBrowser = /SamsungBrowser/i.test(userAgent);
+    
+    // Always add session tokens in hash for cross-browser compatibility (especially Samsung Internet)
+    // This is a fallback mechanism that works even if cookies fail
+    if (data.session) {
+      const url = new URL(redirectUrl);
+      
+      // Add session tokens as hash fragment (secure, client-side only)
+      // Format: #access_token=...&refresh_token=...&expires_at=...
+      const hashParams = new URLSearchParams({
+        access_token: data.session.access_token,
+        refresh_token: data.session.refresh_token,
+        expires_at: data.session.expires_at?.toString() || "",
+        expires_in: data.session.expires_in?.toString() || "",
+      });
+      
+      url.hash = hashParams.toString();
+      redirectUrl = url.toString();
+      
+      if (isAndroid && isSamsungBrowser) {
+        console.log("Auth callback: Added session tokens to URL hash for Samsung Internet compatibility");
+        // Also add browser_check param for monitoring
+        url.searchParams.set("browser_check", "samsung");
+        redirectUrl = url.toString();
+      } else {
+        console.log("Auth callback: Added session tokens to URL hash for cross-browser compatibility");
+      }
+    }
+
+    console.log("Auth callback: Redirecting to:", redirectUrl.replace(/#.*/, "#***")); // Hide tokens in logs
 
     // Create the final redirect response
     const finalResponse = NextResponse.redirect(redirectUrl);
@@ -363,25 +397,9 @@ export async function GET(request: NextRequest) {
       
       console.log(`Auth callback: Set cookie ${cookie.name} with sameSite=${sameSiteValue}, secure=${secureValue}`);
     });
-
-    // Detect browser mismatch for Samsung devices
-    // Log this for monitoring, but don't block authentication
-    const userAgent = request.headers.get("user-agent") || "";
-    const isAndroid = /android/i.test(userAgent);
-    const isSamsungBrowser = /SamsungBrowser/i.test(userAgent);
-    
-    if (isAndroid && isSamsungBrowser) {
-      console.warn("Auth callback: User on Samsung Internet browser - potential browser mismatch if registered in Chrome");
-      console.warn("Auth callback: Session should still work as cookies are set in current browser");
-      // Add a query parameter to help identify this scenario on the client side
-      // This allows the client to verify the session was established correctly
-      const url = new URL(redirectUrl);
-      url.searchParams.set("browser_check", "samsung");
-      redirectUrl = url.toString();
-    }
     
     // Log successful authentication for debugging
-    console.log("Auth callback: Authentication successful, redirecting with cookies set");
+    console.log("Auth callback: Authentication successful, redirecting with cookies set and session tokens in URL hash");
     console.log("Auth callback: User ID:", data.user.id);
     console.log("Auth callback: Session expires at:", data.session.expires_at);
 
