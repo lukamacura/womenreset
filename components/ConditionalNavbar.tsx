@@ -12,21 +12,28 @@ type ConditionalNavbarProps = {
 export default function ConditionalNavbar({ isAuthenticated: initialIsAuthenticated }: ConditionalNavbarProps) {
   const pathname = usePathname();
   const isChatPage = pathname?.includes("/chat/lisa");
-  // Start with false by default - only set to true after verifying valid session
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  // Start with server-side value - it's usually correct after redirect
+  const [isAuthenticated, setIsAuthenticated] = useState(initialIsAuthenticated);
 
   // Check authentication state on client side - verify session is actually valid
   useEffect(() => {
     let mounted = true;
 
-    // Check initial session immediately - verify it's actually valid
+    // Check initial session - use getSession first (faster, uses cookies)
     const checkSession = async () => {
       try {
-        // Use getUser() to verify the session is actually valid and not expired
-        const { data: { user }, error } = await supabase.auth.getUser();
+        // First check if session exists (faster, uses cookies directly)
+        const { data: { session } } = await supabase.auth.getSession();
+        
         if (mounted) {
-          // Only set to true if we have a valid user with no errors
-          setIsAuthenticated(!error && !!user);
+          if (session) {
+            // Session exists - verify user is valid
+            const { data: { user }, error } = await supabase.auth.getUser();
+            setIsAuthenticated(!error && !!user);
+          } else {
+            // No session - not authenticated
+            setIsAuthenticated(false);
+          }
         }
       } catch (error) {
         if (mounted) {
@@ -35,18 +42,31 @@ export default function ConditionalNavbar({ isAuthenticated: initialIsAuthentica
       }
     };
 
-    // Check immediately - don't wait
+    // Check immediately
     checkSession();
 
-    // Listen for auth state changes
+    // Listen for auth state changes - this will fire when session is established
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       if (mounted) {
-        // Verify session is valid by checking user
-        if (session) {
-          const { data: { user }, error } = await supabase.auth.getUser();
-          setIsAuthenticated(!error && !!user);
+        // Update based on session and event
+        if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+          // Session was established or refreshed - verify user
+          supabase.auth.getUser().then(({ data: { user }, error }) => {
+            if (mounted) {
+              setIsAuthenticated(!error && !!user);
+            }
+          });
+        } else if (event === "SIGNED_OUT") {
+          setIsAuthenticated(false);
+        } else if (session) {
+          // Other events with session - verify user
+          supabase.auth.getUser().then(({ data: { user }, error }) => {
+            if (mounted) {
+              setIsAuthenticated(!error && !!user);
+            }
+          });
         } else {
           setIsAuthenticated(false);
         }
@@ -57,7 +77,7 @@ export default function ConditionalNavbar({ isAuthenticated: initialIsAuthentica
       mounted = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [initialIsAuthenticated]);
 
   useEffect(() => {
     const main = document.querySelector("main");
