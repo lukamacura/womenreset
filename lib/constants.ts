@@ -7,6 +7,7 @@
 // Defaults to http://localhost:3000 in development, https://womenreset.com for production
 // IMPORTANT: This URL must be added to Supabase Authentication → URL Configuration → Redirect URLs
 // The redirect URL format should be: ${SITE_URL}${AUTH_CALLBACK_PATH}
+// Note: Both www and non-www should be added to Supabase redirect URLs
 export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 
   (process.env.NODE_ENV === "development" ? "http://localhost:3000" : "https://womenreset.com");
 

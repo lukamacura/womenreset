@@ -5,6 +5,9 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr";
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
+  const error = requestUrl.searchParams.get("error");
+  const errorCode = requestUrl.searchParams.get("error_code");
+  const errorDescription = requestUrl.searchParams.get("error_description");
   const next = requestUrl.searchParams.get("next") ?? "/dashboard";
 
   // Use request origin to ensure we redirect to the same host the user is accessing
@@ -12,6 +15,27 @@ export async function GET(request: NextRequest) {
   const baseUrl = `${requestUrl.protocol}//${requestUrl.host}`;
   
   console.log("Auth callback: baseUrl =", baseUrl);
+
+  // Handle Supabase error parameters (e.g., otp_expired, access_denied)
+  if (error || errorCode) {
+    console.error("Auth callback: Supabase error detected", { error, errorCode, errorDescription });
+    
+    let errorMessage = "Authentication failed. Please try again.";
+    
+    if (errorCode === "otp_expired") {
+      errorMessage = "The email link has expired. Please request a new magic link.";
+    } else if (errorCode === "access_denied") {
+      errorMessage = errorDescription 
+        ? decodeURIComponent(errorDescription)
+        : "Access denied. Please try again.";
+    } else if (errorDescription) {
+      errorMessage = decodeURIComponent(errorDescription);
+    }
+    
+    return NextResponse.redirect(
+      `${baseUrl}/login?error=auth_callback_error&message=${encodeURIComponent(errorMessage)}`
+    );
+  }
 
   if (!code) {
     console.error("Auth callback: No code parameter found");
