@@ -137,7 +137,7 @@ export async function POST(req: NextRequest) {
     if (quizAnswers.goal) {
       if (Array.isArray(quizAnswers.goal)) {
         // Take the first valid goal from the array
-        const firstValidGoal = quizAnswers.goal.find(g => validGoals.includes(g));
+        const firstValidGoal = (quizAnswers.goal as string[]).find((g: string) => validGoals.includes(g));
         profileData.goal = firstValidGoal || null;
       } else if (typeof quizAnswers.goal === "string" && validGoals.includes(quizAnswers.goal)) {
         // Single valid goal string
