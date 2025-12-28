@@ -51,6 +51,25 @@ export default function AnalyticsSection() {
     fetchInsights();
   }, []);
 
+  // Mark insights as seen when they're displayed
+  useEffect(() => {
+    const markInsightsAsSeen = async () => {
+      if (insights.length > 0 && !insightsLoading) {
+        try {
+          await fetch('/api/user-preferences/mark-insights-seen', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ insights }),
+          });
+        } catch (error) {
+          // Silently fail - don't interrupt user experience
+          console.error('Error marking insights as seen:', error);
+        }
+      }
+    };
+    markInsightsAsSeen();
+  }, [insights, insightsLoading]);
+
   // Always show skeleton when loading
   if (loading || insightsLoading) {
     return (
@@ -71,23 +90,37 @@ export default function AnalyticsSection() {
   const generateLisaPrompt = (insight: PlainLanguageInsight): string => {
     switch (insight.type) {
       case 'time-of-day':
-        return `Lisa, I noticed my ${insight.symptomName || 'symptoms'} happen mostly ${insight.timeOfDay ? `in the ${insight.timeOfDay}` : 'at certain times'}. What could be causing this and what can I do?`;
+        return `Lisa, my ${insight.symptomName || 'symptoms'} happens most in the ${insight.timeOfDay || 'certain time'}. Why might that be, and what can I do about it?`;
       case 'trigger':
-        return `Lisa, ${insight.triggerName || 'something'} seems to trigger my ${insight.symptomName || 'symptoms'}. Can you explain why and suggest alternatives?`;
+        return `Lisa, I noticed ${insight.triggerName || 'something'} seems to trigger my ${insight.symptomName || 'symptoms'}. Can you explain why this happens and suggest alternatives?`;
       case 'progress':
         if (insight.changeDirection === 'down') {
-          return `Lisa, my ${insight.symptomName || 'symptoms'} are ${insight.changePercent || ''}% better. What should I do next?`;
+          return `Lisa, my ${insight.symptomName || 'symptoms'} is down ${insight.changePercent || ''}%. What should I do to keep improving?`;
         } else {
-          return `Lisa, my ${insight.symptomName || 'symptoms'} seem to be getting worse. What can I do?`;
+          return `Lisa, my ${insight.symptomName || 'symptoms'} is up ${insight.changePercent || ''}% this week. What might be causing this and what should I try?`;
         }
       case 'correlation':
-        return `Lisa, I noticed ${insight.symptomName || 'some symptoms'} seem connected. Can you explain?`;
+        return `Lisa, it looks like ${insight.symptomName || 'some symptoms'} are connected. Can you explain how they're related?`;
+      case 'pattern':
+        return `Lisa, can you tell me more about this pattern I'm seeing?`;
       default:
         return `Lisa, can you tell me more about this pattern I'm seeing?`;
     }
   };
 
-  const handleAskLisa = (insight: PlainLanguageInsight) => {
+  const handleAskLisa = async (insight: PlainLanguageInsight) => {
+    // Mark this specific insight as seen before navigating
+    try {
+      await fetch('/api/user-preferences/mark-insights-seen', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ insights: [insight] }),
+      });
+    } catch (error) {
+      // Silently fail - still navigate to chat
+      console.error('Error marking insight as seen:', error);
+    }
+    
     const prompt = generateLisaPrompt(insight);
     router.push(`/chat/lisa?prompt=${encodeURIComponent(prompt)}`);
   };

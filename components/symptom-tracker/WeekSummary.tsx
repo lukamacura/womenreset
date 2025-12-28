@@ -1,7 +1,9 @@
+/* eslint-disable react-hooks/static-components */
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useWeekSummary } from "@/hooks/useWeekSummary";
+import { getIconFromName } from "@/lib/symptomIconMapping";
 
 function Skeleton({ className }: { className?: string }) {
   return <div className={`animate-pulse rounded-xl bg-[#E8E0DB]/30 ${className}`} />;
@@ -10,6 +12,42 @@ function Skeleton({ className }: { className?: string }) {
 export default function WeekSummary() {
   const { totalLogged, mostFrequentSymptom, averageSeverity, loading, error, refetch } =
     useWeekSummary();
+
+  // Convert icon name string to Lucide icon component
+  const SymptomIcon = useMemo(() => {
+    if (!mostFrequentSymptom) return null;
+    
+    // Map symptom names to icon names (prioritize name mapping for unique icons)
+    const iconMap: Record<string, string> = {
+      'Hot flashes': 'Flame',
+      'Night sweats': 'Droplet',
+      'Fatigue': 'Zap',
+      'Brain fog': 'Brain',
+      'Mood swings': 'Heart',
+      'Anxiety': 'AlertCircle',
+      'Headaches': 'AlertTriangle',
+      'Joint pain': 'Activity',
+      'Bloating': 'CircleDot',
+      'Insomnia': 'Moon',
+      'Weight gain': 'TrendingUp',
+      'Low libido': 'HeartOff',
+      'Good Day': 'Sun',
+    };
+    
+    // Try to get icon by symptom name first (ensures unique icons)
+    const iconName = iconMap[mostFrequentSymptom.name];
+    if (iconName) {
+      return getIconFromName(iconName);
+    }
+    
+    // Fallback: try to use icon from database if it's a valid icon name
+    if (mostFrequentSymptom.icon && mostFrequentSymptom.icon.length > 1 && !mostFrequentSymptom.icon.includes('🔥') && !mostFrequentSymptom.icon.includes('💧')) {
+      return getIconFromName(mostFrequentSymptom.icon);
+    }
+    
+    // Default fallback
+    return getIconFromName('Activity');
+  }, [mostFrequentSymptom]);
 
   // Listen for custom event when symptom logs are updated
   useEffect(() => {
@@ -56,7 +94,7 @@ export default function WeekSummary() {
               <span className="text-[#3D3D3D]">
                 {mostFrequentSymptom.name} ({mostFrequentSymptom.count}x)
               </span>
-              <span className="text-2xl">{mostFrequentSymptom.icon}</span>
+              {SymptomIcon && <SymptomIcon className="h-6 w-6 text-[#3D3D3D]" />}
             </>
           )}
         </div>

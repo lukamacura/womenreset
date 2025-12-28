@@ -3,7 +3,8 @@ import { ChatOpenAI } from "@langchain/openai";
 import { HumanMessage, AIMessage, SystemMessage, ToolMessage, BaseMessage } from "@langchain/core/messages";
 import { DynamicStructuredTool } from "@langchain/core/tools";
 import { z } from "zod";
-import { fetchTrackerData, analyzeTrackerData, formatTrackerSummary } from "@/lib/trackerAnalysis";
+import { fetchTrackerData, analyzeTrackerData, formatTrackerSummary, type PlainLanguageInsight, type TrackerSummary } from "@/lib/trackerAnalysis";
+import type { SymptomLog } from "@/lib/symptom-tracker-constants";
 import { checkTrialExpired } from "@/lib/checkTrialStatus";
 
 export const runtime = "nodejs";
@@ -136,63 +137,282 @@ const llmKnowledgeBase = new ChatOpenAI({
   openAIApiKey: process.env.OPENAI_API_KEY,
 });
 
+// Helper functions for condition detection
+function detectBadDay(symptomLogs: SymptomLog[], today: Date): boolean {
+  const todayStart = new Date(today);
+  todayStart.setHours(0, 0, 0, 0);
+  const todayEnd = new Date(today);
+  todayEnd.setHours(23, 59, 59, 999);
+
+  const todayLogs = symptomLogs.filter(log => {
+    const logDate = new Date(log.logged_at);
+    return logDate >= todayStart && logDate <= todayEnd;
+  });
+
+  // Check for 3+ symptoms today OR any severe symptom (severity=3)
+  const symptomCount = new Set(todayLogs.map(log => log.symptom_id)).size;
+  const hasSevereSymptom = todayLogs.some(log => log.severity === 3);
+
+  return symptomCount >= 3 || hasSevereSymptom;
+}
+
+function checkStreakMilestone(streak: number): number | null {
+  // Check if streak is 7, 14, or 30 days
+  if (streak === 7 || streak === 14 || streak === 30) {
+    return streak;
+  }
+  return null;
+}
+
+function detectNewPatterns(
+  currentInsights: PlainLanguageInsight[],
+  lastPatternDate: Date | null
+): PlainLanguageInsight | null {
+  if (!lastPatternDate || currentInsights.length === 0) {
+    // If no last pattern date, consider first insight as new
+    return currentInsights[0] || null;
+  }
+
+  const now = new Date();
+  const hoursSinceLastPattern = (now.getTime() - lastPatternDate.getTime()) / (1000 * 60 * 60);
+
+  // If pattern was detected in last 48 hours, return the most important one
+  if (hoursSinceLastPattern <= 48 && currentInsights.length > 0) {
+    // Prioritize: progress > trigger > timing > correlation > pattern
+    const priorityOrder = { progress: 0, trigger: 1, 'time-of-day': 2, correlation: 3, pattern: 4 };
+    const sorted = [...currentInsights].sort((a, b) => {
+      const aPriority = priorityOrder[a.type] ?? 5;
+      const bPriority = priorityOrder[b.type] ?? 5;
+      return aPriority - bPriority;
+    });
+    return sorted[0];
+  }
+
+  return null;
+}
+
+function detectImprovement(trackerSummary: TrackerSummary): { symptom: string; percent: number } | null {
+  // Look for progress insights with positive change
+  const progressInsights = trackerSummary.plainLanguageInsights.filter(
+    insight => insight.type === 'progress' && insight.changeDirection === 'down'
+  );
+
+  if (progressInsights.length > 0) {
+    const topInsight = progressInsights[0];
+    if (topInsight.symptomName && topInsight.changePercent) {
+      return {
+        symptom: topInsight.symptomName,
+        percent: topInsight.changePercent,
+      };
+    }
+  }
+
+  return null;
+}
+
+function hasLogToday(symptomLogs: SymptomLog[], today: Date): boolean {
+  const todayStart = new Date(today);
+  todayStart.setHours(0, 0, 0, 0);
+  const todayEnd = new Date(today);
+  todayEnd.setHours(23, 59, 59, 999);
+
+  return symptomLogs.some(log => {
+    const logDate = new Date(log.logged_at);
+    return logDate >= todayStart && logDate <= todayEnd;
+  });
+}
+
+function formatTimeAgo(date: Date): string {
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffHours < 1) {
+    const diffMins = Math.floor(diffMs / (1000 * 60));
+    return diffMins <= 1 ? 'just now' : `${diffMins} minutes ago`;
+  } else if (diffHours < 24) {
+    return diffHours === 1 ? '1 hour ago' : `${diffHours} hours ago`;
+  } else if (diffDays === 1) {
+    return 'yesterday';
+  } else if (diffDays < 7) {
+    return `${diffDays} days ago`;
+  } else {
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+}
+
 // Helper: Generate personalized greeting
 async function generatePersonalizedGreeting(user_id: string): Promise<string> {
   try {
-    // Fetch user profile and tracker data in parallel
+    const today = new Date();
+    const hour = today.getHours();
+    
+    // Fetch user profile, preferences, and tracker data in parallel
     const supabaseClient = getSupabaseAdmin();
-    const [profileResult, trackerData] = await Promise.all([
+    const [profileResult, preferencesResult, trackerData] = await Promise.all([
       supabaseClient
         .from("user_profiles")
         .select("*")
         .eq("user_id", user_id)
         .single(),
-      fetchTrackerData(user_id, 7), // Last 7 days for greeting context
+      supabaseClient
+        .from("user_preferences")
+        .select("current_streak, last_pattern_detected_at, last_seen_insights")
+        .eq("user_id", user_id)
+        .single(),
+      fetchTrackerData(user_id, 14), // Last 14 days for better context (7 for recent, 14 for comparison)
     ]);
 
     const userProfile = profileResult.data;
+    const preferences = preferencesResult.data;
     const trackerSummary = analyzeTrackerData(
       trackerData.symptomLogs,
       trackerData.nutrition,
       trackerData.fitness
     );
 
-    // Get time of day
-    const hour = new Date().getHours();
-    const timeGreeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
-
     // Get user's name
-    const userName = userProfile?.name ? `, ${userProfile.name}` : "";
+    const userName = userProfile?.name || "";
 
-    // Build context for greeting
-    const contextParts: string[] = [];
+    // Check conditions in priority order
+    const todayLogs = trackerData.symptomLogs;
 
-    if (trackerSummary.symptoms.total > 0) {
-      const recentSymptoms = trackerSummary.symptoms.recent.slice(0, 3);
-      if (recentSymptoms.length > 0) {
-        contextParts.push(`You've logged ${trackerSummary.symptoms.total} symptoms in the past week`);
+    // 0. Check for unseen insights (highest priority - before other conditions)
+    const lastSeenInsights = preferences?.last_seen_insights || [];
+    const currentInsights = trackerSummary.plainLanguageInsights;
+    
+    // Helper to check if insight matches seen insight
+    const isInsightSeen = (insight: PlainLanguageInsight): boolean => {
+      return lastSeenInsights.some((seen: any) => {
+        if (seen.type !== insight.type) return false;
+        switch (insight.type) {
+          case 'trigger':
+            return seen.symptom === insight.symptomName && seen.trigger === insight.triggerName;
+          case 'time-of-day':
+            return seen.symptom === insight.symptomName && seen.timeOfDay === insight.timeOfDay;
+          case 'progress':
+            return seen.symptom === insight.symptomName && seen.changeDirection === insight.changeDirection;
+          case 'correlation':
+            return seen.symptom === insight.symptomName;
+          case 'pattern':
+            return seen.symptom === insight.symptomName;
+          default:
+            return false;
+        }
+      });
+    };
+
+    const unseenInsights = currentInsights.filter(insight => !isInsightSeen(insight));
+    
+    if (unseenInsights.length > 0) {
+      // Prioritize: progress > trigger > timing > correlation > pattern
+      const priorityOrder: Record<string, number> = { 
+        progress: 0, 
+        trigger: 1, 
+        'time-of-day': 2, 
+        correlation: 3, 
+        pattern: 4 
+      };
+      const sorted = [...unseenInsights].sort((a, b) => {
+        const aPriority = priorityOrder[a.type] ?? 5;
+        const bPriority = priorityOrder[b.type] ?? 5;
+        return aPriority - bPriority;
+      });
+      const topUnseen = sorted[0];
+
+      // Generate proactive mention based on insight type
+      if (topUnseen.type === 'trigger' && topUnseen.symptomName && topUnseen.triggerName) {
+        return `Hey ${userName}! Before we chat — I found something interesting in your logs. Looks like ${topUnseen.triggerName} appears frequently with your ${topUnseen.symptomName}.\n\nWant me to explain what this means?`;
+      } else if (topUnseen.type === 'time-of-day' && topUnseen.symptomName && topUnseen.timeOfDay) {
+        const timeLabel = {
+          morning: '6am-12pm',
+          afternoon: '12pm-6pm',
+          evening: '6pm-10pm',
+          night: '10pm-6am',
+        }[topUnseen.timeOfDay] || topUnseen.timeOfDay;
+        return `Hey ${userName}! Before we chat — I found something interesting in your logs. Looks like your ${topUnseen.symptomName} happens most in the ${timeLabel}.\n\nWant me to explain what this means?`;
+      } else if (topUnseen.type === 'progress' && topUnseen.symptomName) {
+        if (topUnseen.changeDirection === 'down') {
+          return `Hey ${userName}! Before we chat — I found something interesting in your logs. Looks like your ${topUnseen.symptomName} is down ${topUnseen.changePercent || ''}% compared to last week.\n\nWant me to explain what this means?`;
+        } else {
+          return `Hey ${userName}! Before we chat — I found something interesting in your logs. Looks like your ${topUnseen.symptomName} is up ${topUnseen.changePercent || ''}% this week.\n\nWant me to explain what this means?`;
+        }
+      } else if (topUnseen.type === 'correlation' && topUnseen.symptomName) {
+        return `Hey ${userName}! Before we chat — I found something interesting in your logs. Looks like ${topUnseen.symptomName} might be connected to other symptoms.\n\nWant me to explain what this means?`;
+      } else {
+        return `Hey ${userName}! Before we chat — I found something interesting in your logs.\n\nWant me to explain what this means?`;
       }
     }
 
-    if (trackerSummary.fitness.total > 0) {
-      contextParts.push(`You've completed ${trackerSummary.fitness.total} workouts this week`);
+    // 1. Bad Day Detection
+    if (detectBadDay(todayLogs, today)) {
+      const todayStart = new Date(today);
+      todayStart.setHours(0, 0, 0, 0);
+      const todayEnd = new Date(today);
+      todayEnd.setHours(23, 59, 59, 999);
+      const todaySymptomLogs = todayLogs.filter(log => {
+        const logDate = new Date(log.logged_at);
+        return logDate >= todayStart && logDate <= todayEnd;
+      });
+      const symptomCount = new Set(todaySymptomLogs.map(log => log.symptom_id)).size;
+      const severeCount = todaySymptomLogs.filter(log => log.severity === 3).length;
+
+      return `Hey ${userName}. I see today's been rough — you've logged ${symptomCount} symptom${symptomCount > 1 ? 's' : ''}, ${severeCount > 0 ? 'including some tough ones' : ''}. I'm here if you want to talk through what's going on, or if you just need company. 💜\n\nWhat's hitting hardest right now?`;
     }
 
-    if (trackerSummary.symptoms.trend === "decreasing") {
-      contextParts.push("I noticed your symptoms are trending downward - that's wonderful progress!");
+    // 2. Streak Milestone
+    const streak = preferences?.current_streak || 0;
+    const milestone = checkStreakMilestone(streak);
+    if (milestone) {
+      return `Hey ${userName}! Quick thing — you've logged for ${milestone} days straight. 🔥 That's amazing. The patterns I'm seeing are getting clearer because of your consistency.\n\nHow are you feeling today?`;
     }
 
-    // Generate greeting
-    let greeting = `${timeGreeting}${userName}! I'm **Lisa** 🌸\n\n`;
-
-    if (contextParts.length > 0) {
-      greeting += contextParts.join(". ") + ".\n\n";
+    // 3. New Pattern Detection
+    const lastPatternDate = preferences?.last_pattern_detected_at 
+      ? new Date(preferences.last_pattern_detected_at) 
+      : null;
+    const newPattern = detectNewPatterns(trackerSummary.plainLanguageInsights, lastPatternDate);
+    if (newPattern) {
+      if (newPattern.type === 'time-of-day' && newPattern.symptomName && newPattern.timeOfDay) {
+        const timeLabel = {
+          morning: '6am-12pm',
+          afternoon: '12pm-6pm',
+          evening: '6pm-10pm',
+          night: '10pm-6am',
+        }[newPattern.timeOfDay] || newPattern.timeOfDay;
+        return `Hey ${userName}. I noticed something in your logs — your ${newPattern.symptomName} seems to happen most in the ${timeLabel}. That's actually a useful clue.\n\nWant me to explain what might be going on and what you could try?`;
+      } else if (newPattern.type === 'trigger' && newPattern.symptomName && newPattern.triggerName) {
+        return `Hey ${userName}. I noticed something in your logs — ${newPattern.triggerName} appears frequently with your ${newPattern.symptomName}. That's actually a useful clue.\n\nWant me to explain what might be going on and what you could try?`;
+      }
     }
 
-    greeting += "How can I support you today?";
+    // 4. Improvement Detection
+    const improvement = detectImprovement(trackerSummary);
+    if (improvement) {
+      return `Hey ${userName}! Good news — your ${improvement.symptom} is down ${improvement.percent}% compared to last week. That's real progress.\n\nWhat do you think made the difference?`;
+    }
 
-    return greeting;
-  } catch {
+    // 5. No Log Today Check (after 2pm)
+    if (hour >= 14 && !hasLogToday(todayLogs, today)) {
+      return `Hey ${userName}. I haven't seen you in your check-in today. Everything okay, or just a quiet symptom day?`;
+    }
+
+    // 6. Default: Reference most recent log
+    if (trackerSummary.symptoms.recent.length > 0) {
+      const mostRecent = trackerSummary.symptoms.recent[0];
+      const logDate = new Date(mostRecent.logged_at);
+      const timeAgo = formatTimeAgo(logDate);
+      const symptomName = mostRecent.symptom_name || 'a symptom';
+      
+      return `Hey ${userName}. I saw you logged ${symptomName} ${timeAgo}. How are you feeling now?\n\nAnything on your mind?`;
+    }
+
+    // Fallback if no logs at all
+    const timeGreeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+    return `${timeGreeting}${userName ? `, ${userName}` : ''}! I'm **Lisa** 🌸\n\nHow can I support you today?`;
+  } catch (error) {
+    console.error("Error generating personalized greeting:", error);
     // Fallback greeting
     const hour = new Date().getHours();
     const timeGreeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";

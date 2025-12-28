@@ -28,7 +28,7 @@ import {
   History,
   Sparkles,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { useTrialStatus } from "@/lib/useTrialStatus";
 
@@ -1316,7 +1316,10 @@ function ChatPageInner() {
     };
   }, []);
 
-
+  // Handle URL prompt parameter (for "Ask Lisa" button from tracker)
+  // NOTE: This useEffect is moved below sendToAPI definition to avoid TDZ error
+  const searchParams = useSearchParams();
+  const promptHandledRef = useRef<string | null>(null);
 
   // Chat list refs (auto-scroll)
   const listRef = useRef<HTMLDivElement>(null);
@@ -1839,6 +1842,33 @@ function ChatPageInner() {
     },
     [activeId, sessions, upsertAndAppendMessage, userId, addNotification, trialStatus.expired, router],
   );
+
+  // Handle URL prompt parameter (for "Ask Lisa" button from tracker)
+  // Moved here after sendToAPI definition to avoid temporal dead zone error
+  useEffect(() => {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/117acbca-7710-4e6c-a5b5-905727104271',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/chat/lisa/page.tsx:1847',message:'URL prompt handler useEffect entry',data:{hasPrompt:!!searchParams.get('prompt'),activeId,loading,sendToAPIDefined:typeof sendToAPI==='function'},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
+    const prompt = searchParams.get('prompt');
+    if (prompt && activeId && !loading) {
+      // Only handle if we haven't already handled this exact prompt for this session
+      const promptKey = `${activeId}-${prompt}`;
+      if (promptHandledRef.current !== promptKey) {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/117acbca-7710-4e6c-a5b5-905727104271',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/chat/lisa/page.tsx:1855',message:'About to call sendToAPI',data:{promptKey,decodedPrompt:decodeURIComponent(prompt)},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
+        const decodedPrompt = decodeURIComponent(prompt);
+        // Auto-send the message
+        promptHandledRef.current = promptKey;
+        sendToAPI(decodedPrompt, activeId);
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/117acbca-7710-4e6c-a5b5-905727104271',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/chat/lisa/page.tsx:1861',message:'sendToAPI called successfully',data:{promptKey},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
+        // Clear URL param
+        router.replace('/chat/lisa');
+      }
+    }
+  }, [searchParams, activeId, loading, sendToAPI, router]);
 
   // Show loading or expired message
   if (trialStatus.loading) {

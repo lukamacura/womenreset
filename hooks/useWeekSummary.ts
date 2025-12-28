@@ -28,6 +28,9 @@ export function useWeekSummary(): WeekSummary & { loading: boolean; error: strin
     // Calculate most frequent symptom
     const symptomCounts = new Map<string, { name: string; icon: string; count: number }>();
     weekLogs.forEach((log) => {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/117acbca-7710-4e6c-a5b5-905727104271',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'hooks/useWeekSummary.ts:30',message:'Processing log for symptom counting',data:{hasSymptoms:!!log.symptoms,symptomId:log.symptom_id,symptomsData:log.symptoms,iconValue:log.symptoms?.icon,iconType:typeof log.symptoms?.icon},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
       if (log.symptoms) {
         const key = log.symptom_id;
         const existing = symptomCounts.get(key) || {
@@ -37,6 +40,13 @@ export function useWeekSummary(): WeekSummary & { loading: boolean; error: strin
         };
         existing.count += 1;
         symptomCounts.set(key, existing);
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/117acbca-7710-4e6c-a5b5-905727104271',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'hooks/useWeekSummary.ts:40',message:'Symptom count updated',data:{key,name:existing.name,icon:existing.icon,count:existing.count},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
+      } else {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/117acbca-7710-4e6c-a5b5-905727104271',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'hooks/useWeekSummary.ts:42',message:'Log missing symptoms data',data:{symptomId:log.symptom_id,logKeys:Object.keys(log)},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'B'})}).catch(()=>{});
+        // #endregion
       }
     });
 
@@ -46,6 +56,9 @@ export function useWeekSummary(): WeekSummary & { loading: boolean; error: strin
         mostFrequent = value;
       }
     });
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/117acbca-7710-4e6c-a5b5-905727104271',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'hooks/useWeekSummary.ts:48',message:'Most frequent symptom determined',data:{mostFrequent,iconValue:mostFrequent?.icon,iconType:typeof mostFrequent?.icon,iconLength:mostFrequent?.icon?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
 
     // Calculate average severity
     const averageSeverity =
