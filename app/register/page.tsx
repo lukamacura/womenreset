@@ -1309,7 +1309,7 @@ export default function RegisterPage() {
 
       {/* Email Sent Phase */}
       {phase === "email-sent" && (
-        <div className="flex-1 flex flex-col justify-center items-center max-w-md mx-auto w-full text-center space-y-6">
+        <div className="flex-1 flex flex-col justify-center items-center max-w-md mx-auto w-full text-center space-y-6 pt-22">
           <div className="rounded-full bg-primary/10 p-6">
             <Mail className="w-12 h-12 text-primary" />
           </div>

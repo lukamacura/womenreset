@@ -15,8 +15,13 @@ export async function middleware(req: NextRequest) {
     pathname.startsWith("/api/langchain-rag") ||
     pathname.startsWith("/api/symptoms");
 
-  // allow everything else
+  // allow everything else (including auth callback)
   if (!isProtected) return res;
+  
+  // Allow auth callback path - session will be restored client-side
+  if (pathname.startsWith("/auth/callback")) {
+    return res;
+  }
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -38,9 +43,12 @@ export async function middleware(req: NextRequest) {
 
   const {
     data: { user },
+    error: authError,
   } = await supabase.auth.getUser();
 
-  if (!user) {
+  // Only allow if we have a valid user (no error and user exists)
+  if (authError || !user) {
+    // No valid session - redirect to login
     const url = req.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("redirectedFrom", pathname);

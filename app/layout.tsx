@@ -54,14 +54,19 @@ export default async function RootLayout({
     }
   );
 
+  // Check for valid user - verify session is actually valid
   const {
     data: { user },
+    error: authError,
   } = await supabase.auth.getUser();
+
+  // Only pass true if we have a valid user (no error and user exists)
+  const isAuthenticated = !authError && !!user;
 
   return (
     <html lang="en" className={`${satoshi.variable}  ${dancingScript.variable}`}>
       <body className="min-h-screen flex flex-col font-sans text-foreground bg-white">
-        <ConditionalNavbar isAuthenticated={!!user} />
+        <ConditionalNavbar isAuthenticated={isAuthenticated} />
 
         <main className="flex-1 w-full">{children}</main>
       </body>

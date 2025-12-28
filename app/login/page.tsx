@@ -242,7 +242,7 @@ function LoginForm() {
           <div className="absolute -bottom-24 -right-24 h-56 w-56 rounded-full bg-primary/10 blur-3xl" />
         </div>
 
-        <div className="flex-1 flex flex-col justify-center items-center max-w-md mx-auto w-full text-center space-y-6">
+        <div className="flex-1 flex flex-col justify-center items-center max-w-md mx-auto w-full text-center space-y-6 pt-22">
           <div className="rounded-full bg-primary/10 p-6">
             <Mail className="w-12 h-12 text-primary" />
           </div>
@@ -263,7 +263,7 @@ function LoginForm() {
                   <div className="flex-1">
                     <p className="font-semibold mb-1">Important: Browser Compatibility</p>
                     <p className="text-xs">
-                      You're using Samsung Internet. For the best experience, please open the email link in the same browser where you registered (likely Chrome). If the link opens in Samsung Internet, copy it and paste it into Chrome instead.
+                      You&apos;re using Samsung Internet. For the best experience, please open the email link in the same browser where you registered (likely Chrome). If the link opens in Samsung Internet, copy it and paste it into Chrome instead.
                     </p>
                   </div>
                 </div>
@@ -458,11 +458,11 @@ function LoginForm() {
                     <ol className="list-decimal list-inside space-y-1 text-xs">
                       <li>Open Chrome on your device</li>
                       <li>Copy the link from your email</li>
-                      <li>Paste it into Chrome's address bar</li>
+                      <li>Paste it into Chrome&apos;s address bar</li>
                       <li>Or try requesting a new magic link while using Chrome</li>
                     </ol>
                     <p className="text-xs mt-2">
-                      This happens because email links on Samsung devices often open in Samsung Internet instead of Chrome, and browsers don't share cookies with each other.
+                      This happens because email links on Samsung devices often open in Samsung Internet instead of Chrome, and browsers don&apos;t share cookies with each other.
                     </p>
                   </div>
                 )}

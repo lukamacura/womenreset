@@ -8,7 +8,6 @@ import { supabase } from "@/lib/supabaseClient";
 import LisaSwipeButton from "@/components/LisaSwipeButton";
 import { useTrialStatus } from "@/lib/useTrialStatus";
 import SessionVerification from "@/components/SessionVerification";
-import SessionRestorer from "@/components/SessionRestorer";
 
 // Animated Navigation Item Component
 function AnimatedNavItem({
@@ -134,8 +133,6 @@ export default function DashboardLayout({
 
   return (
     <div className="min-h-screen flex flex-col pt-18">
-      {/* Session Restorer - restores session from URL hash tokens (cross-browser compatibility) */}
-      <SessionRestorer />
       {/* Session Verification - checks for browser mismatch issues */}
       <SessionVerification />
       

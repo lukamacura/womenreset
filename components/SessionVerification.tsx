@@ -19,58 +19,18 @@ export default function SessionVerification() {
 
   useEffect(() => {
     const checkSession = async () => {
-      // Small delay to ensure cookies are available after redirect
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Check session - cookies should be available immediately after auth callback
+      const { data, error } = await supabase.auth.getSession();
       
-      // Check if we just came from auth callback
-      const browserCheck = searchParams.get("browser_check");
-      const browser = detectBrowser();
-      setBrowserInfo(browser);
+      const session = data.session;
 
-      // Check session - try multiple times if needed
-      let session = null;
-      let attempts = 0;
-      const maxAttempts = 3;
-      
-      while (attempts < maxAttempts && !session) {
-        const { data, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error(`Session check error (attempt ${attempts + 1}):`, error);
-        }
-        
-        session = data.session;
-        
-        if (!session && attempts < maxAttempts - 1) {
-          // Wait a bit before retrying
-          await new Promise(resolve => setTimeout(resolve, 300));
-        }
-        
-        attempts++;
-      }
-
-      // If no session but we have browser_check param, show warning
-      if (!session && browserCheck === "samsung" && hasBrowserMismatchIssue(browser)) {
-        console.warn("Session verification: No session found after auth callback on Samsung Internet");
-        setShowWarning(true);
-      } else if (!session && browserCheck === "samsung") {
-        // Even if not Samsung browser now, if we came from Samsung, there might be an issue
-        console.warn("Session verification: No session found after auth callback");
-        // Don't show warning if user switched browsers - session should work
-      }
-
-      // If session exists, remove browser_check param from URL
-      if (session && browserCheck) {
-        const url = new URL(window.location.href);
-        url.searchParams.delete("browser_check");
-        router.replace(url.pathname + url.search, { scroll: false });
-      }
-
+      // Session verification is handled by middleware and auth state changes
+      // This component is kept for potential future use but currently just verifies session exists
       setSessionChecked(true);
     };
 
     checkSession();
-  }, [searchParams, router]);
+  }, [router]);
 
   // Don't show anything if session is verified or no warning needed
   if (!showWarning || !browserInfo) return null;

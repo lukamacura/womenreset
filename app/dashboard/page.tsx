@@ -918,7 +918,7 @@ export default function DashboardPage() {
   const router = useRouter();
 
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading] = useState(false); // Start as false - don't block rendering
   const [err, setErr] = useState<string | null>(null);
   const [now, setNow] = useState<Date>(new Date());
   const [, setSymptoms] = useState<Symptom[]>([]);
@@ -1055,31 +1055,6 @@ export default function DashboardPage() {
     return () => sub.subscription.unsubscribe();
   }, [router]);
 
-  // Initial session check with retry for Samsung Internet compatibility
-  useEffect(() => {
-    const checkInitialSession = async () => {
-      // Small delay to ensure cookies are available after redirect
-      await new Promise(resolve => setTimeout(resolve, 200));
-      
-      const { data: { session }, error } = await supabase.auth.getSession();
-      
-      if (error) {
-        console.error("Initial session check error:", error);
-      }
-      
-      if (session?.user) {
-        setUser(session.user);
-        setLoading(false);
-      } else {
-        // No session - might be a browser mismatch issue
-        // Let middleware handle redirect to login
-        setLoading(false);
-      }
-    };
-
-    checkInitialSession();
-  }, []);
-
   // Fetch user trial info from user_trials table
   const fetchUserTrial = useCallback(async (userId: string) => {
     try {
@@ -1180,14 +1155,12 @@ export default function DashboardPage() {
     }
   }, []);
 
-  // Initial load
+  // Initial load - don't block rendering, fetch in background
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
-        setLoading(true);
-        setErr(null);
-
+        // Don't set loading to true - show UI immediately
         const { data, error } = await supabase.auth.getUser();
         if (error) throw error;
 
@@ -1197,15 +1170,15 @@ export default function DashboardPage() {
           return;
         }
 
-        if (mounted) setUser(u);
-
-        // Fetch user trial info
-        const trial = await fetchUserTrial(u.id);
-        if (mounted) setUserTrial(trial);
+        if (mounted) {
+          setUser(u);
+          // Fetch user trial info in background - don't block
+          fetchUserTrial(u.id).then((trial) => {
+            if (mounted) setUserTrial(trial);
+          });
+        }
       } catch (e) {
         if (mounted) setErr(e instanceof Error ? e.message : "Unknown error");
-      } finally {
-        if (mounted) setLoading(false);
       }
     })();
     return () => {
@@ -1213,9 +1186,10 @@ export default function DashboardPage() {
     };
   }, [router, fetchUserTrial]);
 
-  // Fetch symptoms, nutrition, and fitness when user is loaded
+  // Fetch symptoms, nutrition, and fitness when user is loaded - run in parallel
   useEffect(() => {
     if (user) {
+      // Start all fetches immediately in parallel - don't wait for each other
       fetchSymptoms();
       fetchNutrition();
       fetchFitness();

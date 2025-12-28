@@ -100,15 +100,30 @@ export async function GET(request: NextRequest) {
     // Determine redirect URL based on the flow (login vs registration)
     let redirectUrl: string;
     
-    // Check if user already has a profile
-    const { data: existingProfile } = await supabase
+    // Check for quiz answers in URL parameters (for registration flow)
+    const quizParam = requestUrl.searchParams.get("quiz");
+    
+    // Get admin client early (needed for both checking and inserting/updating)
+    const { getSupabaseAdmin } = await import("@/lib/supabaseAdmin");
+    const adminSupabase = getSupabaseAdmin();
+    
+    // Check if user already has a profile (using admin client to bypass RLS)
+    const { data: existingProfile, error: profileCheckError } = await adminSupabase
       .from("user_profiles")
       .select("user_id, name, top_problems, severity, timing, tried_options, doctor_status, goal")
       .eq("user_id", data.user.id)
       .maybeSingle();
-
-    // Check for quiz answers in URL parameters (for registration flow)
-    const quizParam = requestUrl.searchParams.get("quiz");
+    
+    if (profileCheckError) {
+      console.error("Auth callback: Error checking for existing profile:", profileCheckError);
+    }
+    
+    console.log("Auth callback: Existing profile check:", {
+      hasProfile: !!existingProfile,
+      hasQuizParam: !!quizParam,
+      next: next,
+      isRegisterFlow: next === "/register"
+    });
     
     if (existingProfile && quizParam && next === "/register") {
       // Profile exists but we have quiz answers - update it with quiz data
@@ -116,8 +131,6 @@ export async function GET(request: NextRequest) {
       
       try {
         const decodedAnswers = JSON.parse(atob(decodeURIComponent(quizParam)));
-        const { getSupabaseAdmin } = await import("@/lib/supabaseAdmin");
-        const adminSupabase = getSupabaseAdmin();
         
         // Prepare update data
         const updateData: {
@@ -194,9 +207,7 @@ export async function GET(request: NextRequest) {
             hasGoal: decodedAnswers.goal !== undefined,
           });
           
-          // Create profile immediately using admin client
-          const { getSupabaseAdmin } = await import("@/lib/supabaseAdmin");
-          const adminSupabase = getSupabaseAdmin();
+          // Use admin client (already imported above)
           
           // Prepare profile data - ensure ALL fields are included
           const profileData: {
@@ -292,21 +303,27 @@ export async function GET(request: NextRequest) {
           });
           
           console.log("Auth callback: Attempting to insert profile with clean data (no undefined values)");
+          console.log("Auth callback: Full cleanProfileData object:", JSON.stringify(cleanProfileData, null, 2));
           
-          const { error: profileError, data: insertedProfile } = await adminSupabase
-            .from("user_profiles")
-            .insert([cleanProfileData])
-            .select();
-          
-          if (profileError) {
-            console.error("Error creating profile in auth callback:", profileError);
-            console.error("Profile error details:", {
-              code: profileError.code,
-              message: profileError.message,
-              details: profileError.details,
-              hint: profileError.hint,
-            });
-            console.error("Profile data that failed to insert:", JSON.stringify(cleanProfileData, null, 2));
+          // Ensure we have at least user_id (required)
+          if (!cleanProfileData.user_id) {
+            console.error("Auth callback: Missing user_id in cleanProfileData!");
+            redirectUrl = `${baseUrl}/dashboard`;
+          } else {
+            const { error: profileError, data: insertedProfile } = await adminSupabase
+              .from("user_profiles")
+              .insert([cleanProfileData])
+              .select();
+            
+            if (profileError) {
+              console.error("Error creating profile in auth callback:", profileError);
+              console.error("Profile error details:", {
+                code: profileError.code,
+                message: profileError.message,
+                details: profileError.details,
+                hint: profileError.hint,
+              });
+              console.error("Profile data that failed to insert:", JSON.stringify(cleanProfileData, null, 2));
             
             // Try to use the intake API as a fallback
             try {
@@ -334,12 +351,27 @@ export async function GET(request: NextRequest) {
               console.error("Fallback to intake API also failed:", fallbackError);
             }
             
-            // Still redirect to dashboard (user can complete quiz there)
-            redirectUrl = `${baseUrl}/dashboard`;
-          } else {
-            console.log("Profile created successfully in auth callback:", insertedProfile);
-            // Profile created - redirect to dashboard
-            redirectUrl = `${baseUrl}/dashboard`;
+              // Still redirect to dashboard (user can complete quiz there)
+              redirectUrl = `${baseUrl}/dashboard`;
+            } else {
+              if (insertedProfile && insertedProfile.length > 0) {
+                console.log("Profile created successfully in auth callback:", insertedProfile[0]);
+                console.log("Profile created with quiz data:", {
+                  user_id: insertedProfile[0].user_id,
+                  name: insertedProfile[0].name,
+                  top_problems: insertedProfile[0].top_problems,
+                  severity: insertedProfile[0].severity,
+                  timing: insertedProfile[0].timing,
+                  tried_options: insertedProfile[0].tried_options,
+                  doctor_status: insertedProfile[0].doctor_status,
+                  goal: insertedProfile[0].goal,
+                });
+              } else {
+                console.warn("Profile insert returned no data, but no error occurred");
+              }
+              // Profile created - redirect to dashboard
+              redirectUrl = `${baseUrl}/dashboard`;
+            }
           }
         } catch (parseError) {
           console.error("Error parsing quiz answers:", parseError);
@@ -357,41 +389,7 @@ export async function GET(request: NextRequest) {
       redirectUrl = `${baseUrl}${sanitizedNext}`;
     }
 
-    // For Samsung Internet and cross-browser compatibility, pass session tokens in URL hash
-    // Hash fragments are client-side only (not sent to server), making them more secure
-    // This allows session restoration even when cookies aren't shared between browsers
-    const userAgent = request.headers.get("user-agent") || "";
-    const isAndroid = /android/i.test(userAgent);
-    const isSamsungBrowser = /SamsungBrowser/i.test(userAgent);
-    
-    // Always add session tokens in hash for cross-browser compatibility (especially Samsung Internet)
-    // This is a fallback mechanism that works even if cookies fail
-    if (data.session) {
-      const url = new URL(redirectUrl);
-      
-      // Add session tokens as hash fragment (secure, client-side only)
-      // Format: #access_token=...&refresh_token=...&expires_at=...
-      const hashParams = new URLSearchParams({
-        access_token: data.session.access_token,
-        refresh_token: data.session.refresh_token,
-        expires_at: data.session.expires_at?.toString() || "",
-        expires_in: data.session.expires_in?.toString() || "",
-      });
-      
-      url.hash = hashParams.toString();
-      redirectUrl = url.toString();
-      
-      if (isAndroid && isSamsungBrowser) {
-        console.log("Auth callback: Added session tokens to URL hash for Samsung Internet compatibility");
-        // Also add browser_check param for monitoring
-        url.searchParams.set("browser_check", "samsung");
-        redirectUrl = url.toString();
-      } else {
-        console.log("Auth callback: Added session tokens to URL hash for cross-browser compatibility");
-      }
-    }
-
-    console.log("Auth callback: Redirecting to:", redirectUrl.replace(/#.*/, "#***")); // Hide tokens in logs
+    console.log("Auth callback: Redirecting to:", redirectUrl);
 
     // Create the final redirect response
     const finalResponse = NextResponse.redirect(redirectUrl);
@@ -404,7 +402,6 @@ export async function GET(request: NextRequest) {
     // Ensure cookies are set with proper flags
     // SameSite=None requires Secure=true (HTTPS)
     const cookiesToSet = tempResponse.cookies.getAll();
-    console.log(`Auth callback: Setting ${cookiesToSet.length} cookies, isProduction: ${isProduction}, isHttps: ${isHttps}`);
     
     cookiesToSet.forEach((cookie) => {
       // Determine SameSite value: use 'none' only if HTTPS, otherwise use 'lax'
@@ -424,16 +421,9 @@ export async function GET(request: NextRequest) {
         secure: secureValue,
         sameSite: sameSiteValue,
       });
-      
-      console.log(`Auth callback: Set cookie ${cookie.name} with sameSite=${sameSiteValue}, secure=${secureValue}`);
     });
     
-    // Log successful authentication for debugging
-    console.log("Auth callback: Authentication successful, redirecting with cookies set and session tokens in URL hash");
-    console.log("Auth callback: User ID:", data.user.id);
-    console.log("Auth callback: Session expires at:", data.session.expires_at);
-
-    console.log("Auth callback: Cookies copied, returning response");
+    // Return response with cookies
     return finalResponse;
   } catch (error) {
     console.error("Auth callback exception:", error);
