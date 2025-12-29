@@ -2,7 +2,12 @@
 
 import { useMemo } from "react";
 import type { Nutrition } from "./NutritionList";
-import { Calendar, UtensilsCrossed, Flame, TrendingUp, Sunrise, Sun, Moon, Cookie, Activity } from "lucide-react";
+import { Calendar, Sunrise, Sun, Moon, Cookie, Activity, UtensilsCrossed } from "lucide-react";
+
+const getTodayLabel = () => {
+  const today = new Date();
+  return today.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+};
 
 type DateRange = 7 | 30 | 90;
 
@@ -28,23 +33,6 @@ export default function NutritionStats({
       return consumedAt >= startDate;
     });
 
-    const totalCount = filteredNutrition.length;
-
-    // Calculate average calories per day
-    const entriesWithCalories = filteredNutrition.filter((n) => n.calories !== null);
-    const totalCalories = entriesWithCalories.reduce((sum, n) => sum + (n.calories || 0), 0);
-    const daysWithEntries = new Set(
-      filteredNutrition.map((n) => {
-        const date = new Date(n.consumed_at);
-        return date.toISOString().split("T")[0];
-      })
-    ).size;
-    
-    const averageCaloriesPerDay =
-      daysWithEntries > 0 && entriesWithCalories.length > 0
-        ? Math.round(totalCalories / daysWithEntries)
-        : 0;
-
     // Count frequency of each meal type
     const mealTypeMap = new Map<string, number>();
     filteredNutrition.forEach((n) => {
@@ -58,15 +46,11 @@ export default function NutritionStats({
       .slice(0, 3)
       .map(([mealType, count]) => ({ mealType, count }));
 
-    // Calculate entries per week for progress indication
-    const entriesPerWeek = dateRange > 0 ? (totalCount / dateRange) * 7 : 0;
+    const totalCount = filteredNutrition.length;
 
     return {
-      totalCount,
-      averageCaloriesPerDay,
       topMealTypes,
-      hasCalorieData: entriesWithCalories.length > 0,
-      entriesPerWeek,
+      totalCount, // Only needed for percentage calculation
     };
   }, [nutrition, dateRange]);
 
@@ -89,29 +73,19 @@ export default function NutritionStats({
     }
   };
 
-  const getMealTypeColor = (mealType: string) => {
-    switch (mealType.toLowerCase()) {
-      case "breakfast":
-        return "from-orange-500/20 to-orange-600/10";
-      case "lunch":
-        return "from-blue-500/20 to-blue-600/10";
-      case "dinner":
-        return "from-purple-500/20 to-purple-600/10";
-      case "snack":
-        return "from-green-500/20 to-green-600/10";
-      default:
-        return "from-gray-500/20 to-gray-600/10";
-    }
-  };
-
-  // Calculate progress percentage for visual bars
-  const maxEntries = Math.max(stats.totalCount, 20);
-  const entriesProgress = Math.min(100, (stats.totalCount / maxEntries) * 100);
-  const maxCalories = Math.max(stats.averageCaloriesPerDay, 2000);
-  const caloriesProgress = stats.hasCalorieData ? Math.min(100, (stats.averageCaloriesPerDay / maxCalories) * 100) : 0;
-
   return (
     <div className="space-y-6">
+      {/* Today's Date Display */}
+      <div className="rounded-xl border border-white/30 bg-white/30 backdrop-blur-lg p-4 shadow-xl">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm text-[#9A9A9A] mb-1">Today</p>
+            <p className="text-lg font-semibold text-[#3D3D3D]">{getTodayLabel()}</p>
+          </div>
+          <Calendar className="h-5 w-5 text-[#8B7E74]" />
+        </div>
+      </div>
+
       {/* Modern Date Range Selector */}
       <div className="flex items-center gap-2 flex-wrap">
         {([7, 30, 90] as DateRange[]).map((range) => (
@@ -133,92 +107,8 @@ export default function NutritionStats({
         ))}
       </div>
 
-      {/* Modern Stats Cards with Visual Progress */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {/* Total Entries Card */}
-        <div className="group relative overflow-hidden rounded-2xl bg-linear-to-br from-green-50 via-green-100/50 to-white border-2 border-green-200/50 p-6 shadow-lg hover:shadow-xl transition-all duration-300">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-linear-to-br from-primary/20 to-transparent rounded-full blur-2xl" />
-          
-          <div className="relative">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 rounded-xl bg-linear-to-br from-green-500 to-green-600 shadow-md">
-                <UtensilsCrossed className="h-6 w-6 text-white" />
-              </div>
-              <TrendingUp className="h-5 w-5 text-green-500" />
-            </div>
-            
-            <div className="mb-3">
-              <div className="text-sm font-medium text-muted-foreground mb-1">
-                Total Entries
-              </div>
-              <div className="text-4xl font-extrabold text-foreground tracking-tight">
-                {stats.totalCount}
-              </div>
-              <div className="text-xs text-muted-foreground mt-1">
-                Last {dateRange} days
-              </div>
-            </div>
-
-            {/* Progress Bar */}
-            <div className="mt-4">
-                <div className="h-2 w-full bg-green-100 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-linear-to-r from-green-500 to-green-600 rounded-full transition-all duration-500 ease-out"
-                  style={{ width: `${entriesProgress}%` }}
-                />
-              </div>
-              <div className="text-xs text-muted-foreground mt-1.5">
-                {stats.entriesPerWeek.toFixed(1)} entries/week avg
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Average Calories per Day Card */}
-        <div className="group relative overflow-hidden rounded-2xl bg-linear-to-br from-orange-50 via-orange-100/50 to-white border-2 border-orange-200/50 p-6 shadow-lg hover:shadow-xl transition-all duration-300 sm:col-span-2 lg:col-span-2">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-linear-to-br from-orange-400/20 to-transparent rounded-full blur-2xl" />
-          
-          <div className="relative">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 rounded-xl bg-linear-to-br from-orange-500 to-orange-600 shadow-md">
-                <Flame className="h-6 w-6 text-white" />
-              </div>
-              <TrendingUp className="h-5 w-5 text-orange-500" />
-            </div>
-            
-            <div className="mb-3">
-              <div className="text-sm font-medium text-muted-foreground mb-1">
-                Avg Calories/Day
-              </div>
-              <div className="text-4xl font-extrabold text-foreground tracking-tight">
-                {stats.hasCalorieData ? stats.averageCaloriesPerDay : "—"}
-                {stats.hasCalorieData && <span className="text-lg text-muted-foreground ml-1">kcal</span>}
-              </div>
-              <div className="text-xs text-muted-foreground mt-1">
-                {stats.hasCalorieData ? "across tracked days" : "no calorie data"}
-              </div>
-            </div>
-
-            {/* Progress Bar */}
-            {stats.hasCalorieData && (
-              <div className="mt-4">
-                <div className="h-2 w-full bg-orange-100 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-linear-to-r from-orange-500 to-orange-600 rounded-full transition-all duration-500 ease-out"
-                    style={{ width: `${caloriesProgress}%` }}
-                  />
-                </div>
-                <div className="text-xs text-muted-foreground mt-1.5">
-                  Daily average
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
       {/* Modern Most Frequent Meal Types Card */}
-      <div className="relative overflow-hidden rounded-2xl bg-linear-to-br from-white via-primary-light/20 to-white border-2 border-primary-light/50 p-6 shadow-lg">
+      <div className="relative overflow-hidden rounded-2xl border border-white/30 bg-white/30 backdrop-blur-lg p-6 shadow-xl">
         <div className="absolute top-0 right-0 w-40 h-40 bg-linear-to-br from-purple-300/10 to-transparent rounded-full blur-3xl" />
         
         <div className="relative">
@@ -251,10 +141,19 @@ export default function NutritionStats({
                         {item.count}x
                       </span>
                     </div>
-                    <div className="h-1.5 w-full bg-foreground/5 rounded-full overflow-hidden">
+                    <div className="h-2 w-full bg-white/40 rounded-full overflow-hidden">
                       <div
-                        className={`h-full bg-linear-to-r ${getMealTypeColor(item.mealType)} rounded-full transition-all duration-700 ease-out`}
-                        style={{ width: `${percentage}%` }}
+                        className={`h-full rounded-full transition-all duration-700 ease-out`}
+                        style={{ 
+                          width: `${percentage}%`,
+                          background: item.mealType.toLowerCase() === 'breakfast' 
+                            ? 'linear-gradient(to right, #fb923c, #f97316)' 
+                            : item.mealType.toLowerCase() === 'lunch'
+                            ? 'linear-gradient(to right, #60a5fa, #3b82f6)'
+                            : item.mealType.toLowerCase() === 'dinner'
+                            ? 'linear-gradient(to right, #a78bfa, #8b5cf6)'
+                            : 'linear-gradient(to right, #4ade80, #22c55e)'
+                        }}
                       />
                     </div>
                   </div>

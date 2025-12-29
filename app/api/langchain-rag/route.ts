@@ -269,7 +269,8 @@ async function generatePersonalizedGreeting(user_id: string): Promise<string> {
     const trackerSummary = analyzeTrackerData(
       trackerData.symptomLogs,
       trackerData.nutrition,
-      trackerData.fitness
+      trackerData.fitness,
+      trackerData.hydration
     );
 
     // Get user's name
@@ -295,10 +296,18 @@ async function generatePersonalizedGreeting(user_id: string): Promise<string> {
             return seen.symptom === insight.symptomName && seen.changeDirection === insight.changeDirection;
           case 'correlation':
             return seen.symptom === insight.symptomName;
-          case 'pattern':
-            return seen.symptom === insight.symptomName;
-          default:
-            return false;
+      case 'pattern':
+        return seen.symptom === insight.symptomName;
+      case 'food-correlation':
+        return seen.symptom === insight.symptomName && seen.foodTag === insight.foodTag;
+      case 'hydration':
+        return seen.hydrationLevel === insight.hydrationLevel;
+      case 'food-progress':
+        return seen.foodTag === insight.foodTag;
+      case 'meal-timing':
+        return true; // Meal timing insights are unique enough
+      default:
+        return false;
         }
       });
     };
@@ -306,13 +315,17 @@ async function generatePersonalizedGreeting(user_id: string): Promise<string> {
     const unseenInsights = currentInsights.filter(insight => !isInsightSeen(insight));
     
     if (unseenInsights.length > 0) {
-      // Prioritize: progress > trigger > timing > correlation > pattern
+      // Prioritize: progress > food-progress > trigger > food-correlation > timing > meal-timing > correlation > hydration > pattern
       const priorityOrder: Record<string, number> = { 
-        progress: 0, 
-        trigger: 1, 
-        'time-of-day': 2, 
-        correlation: 3, 
-        pattern: 4 
+        progress: 0,
+        'food-progress': 1,
+        trigger: 2,
+        'food-correlation': 3,
+        'time-of-day': 4,
+        'meal-timing': 5,
+        correlation: 6,
+        hydration: 7,
+        pattern: 8
       };
       const sorted = [...unseenInsights].sort((a, b) => {
         const aPriority = priorityOrder[a.type] ?? 5;
@@ -340,9 +353,64 @@ async function generatePersonalizedGreeting(user_id: string): Promise<string> {
         }
       } else if (topUnseen.type === 'correlation' && topUnseen.symptomName) {
         return `Hey ${userName}! Before we chat — I found something interesting in your logs. Looks like ${topUnseen.symptomName} might be connected to other symptoms.\n\nWant me to explain what this means?`;
+      } else if (topUnseen.type === 'food-correlation' && topUnseen.foodTag && topUnseen.symptomName) {
+        const foodLabel = topUnseen.foodTag.replace(/_/g, ' ');
+        return `Hey ${userName}! Before we chat — I noticed you have more ${topUnseen.symptomName} after ${foodLabel}. Want me to explain what this might mean?`;
+      } else if (topUnseen.type === 'hydration' && topUnseen.hydrationLevel !== undefined) {
+        return `Hey ${userName}! Before we chat — ${topUnseen.text}\n\nWant me to explain why hydration matters for your symptoms?`;
+      } else if (topUnseen.type === 'food-progress' && topUnseen.foodTag) {
+        const foodLabel = topUnseen.foodTag.replace(/_/g, ' ');
+        return `Hey ${userName}! Before we chat — ${topUnseen.text}\n\nWant to talk about how to keep this momentum going?`;
+      } else if (topUnseen.type === 'meal-timing') {
+        return `Hey ${userName}! Before we chat — ${topUnseen.text}\n\nWant me to explain why this matters?`;
       } else {
         return `Hey ${userName}! Before we chat — I found something interesting in your logs.\n\nWant me to explain what this means?`;
       }
+    }
+
+    // Check Fuel Check data (before other checks but after unseen insights)
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    const weekNutrition = trackerData.nutrition.filter((n) => new Date(n.consumed_at) >= weekAgo);
+    const weekHydration = trackerData.hydration.filter((h) => new Date(h.logged_at) >= weekAgo);
+
+    // Check for low phytoestrogen intake
+    const phytoestrogenCount = weekNutrition.filter((n) => n.food_tags?.includes('phytoestrogens')).length;
+    if (phytoestrogenCount === 0 && weekNutrition.length >= 5) {
+      return `Hey ${userName}! I noticed you haven't logged any phytoestrogens this week — want some easy ideas? Foods like soy, flaxseed, and chickpeas can help with menopause symptoms.\n\nWant me to suggest some simple swaps?`;
+    }
+
+    // Check water goal achievements
+    if (weekHydration.length > 0) {
+      const hydrationByDay: Record<string, number> = {};
+      weekHydration.forEach((h) => {
+        const day = new Date(h.logged_at).toDateString();
+        hydrationByDay[day] = (hydrationByDay[day] || 0) + h.glasses;
+      });
+      const daysWithGoal = Object.values(hydrationByDay).filter((glasses) => glasses >= 6).length;
+      if (daysWithGoal >= 5 && Object.keys(hydrationByDay).length >= 5) {
+        return `Hey ${userName}! Great job hitting your water goal ${daysWithGoal} days in a row! 💧 Staying hydrated is so important for managing menopause symptoms.\n\nHow are you feeling today?`;
+      }
+    }
+
+    // Check for frequent trigger foods
+    const triggerFoods = ['caffeine', 'alcohol', 'spicy_food', 'sugar_refined_carbs', 'processed_food'];
+    const triggerCounts: Record<string, number> = {};
+    weekNutrition.forEach((n) => {
+      n.food_tags?.forEach((tag) => {
+        if (triggerFoods.includes(tag)) {
+          triggerCounts[tag] = (triggerCounts[tag] || 0) + 1;
+        }
+      });
+    });
+    const frequentTriggers = Object.entries(triggerCounts)
+      .filter(([_, count]) => count >= 5)
+      .sort(([_, a], [__, b]) => b - a);
+    
+    if (frequentTriggers.length > 0) {
+      const topTrigger = frequentTriggers[0];
+      const triggerLabel = topTrigger[0].replace(/_/g, ' ');
+      return `Hey ${userName}. Your food logs show a lot of ${triggerLabel} lately (${topTrigger[1]} times this week) — want to talk about alternatives that might help with your symptoms?`;
     }
 
     // 1. Bad Day Detection
@@ -494,9 +562,43 @@ export async function POST(req: NextRequest) {
     const trackerSummary = analyzeTrackerData(
       trackerData.symptomLogs,
       trackerData.nutrition,
-      trackerData.fitness
+      trackerData.fitness,
+      trackerData.hydration
     );
-    const trackerContext = formatTrackerSummary(trackerSummary);
+    let trackerContext = formatTrackerSummary(trackerSummary);
+    
+    // Enhance context with recent food logs when user asks about symptoms
+    const userMessageLower = userMessage.toLowerCase();
+    const isAskingAboutSymptoms = userMessageLower.includes('symptom') || 
+      userMessageLower.includes('hot flash') || 
+      userMessageLower.includes('brain fog') || 
+      userMessageLower.includes('sleep') ||
+      userMessageLower.includes('headache') ||
+      userMessageLower.includes('mood') ||
+      userMessageLower.includes('energy') ||
+      userMessageLower.includes('bloat') ||
+      userMessageLower.includes('feel');
+    
+    if (isAskingAboutSymptoms && trackerData.nutrition.length > 0) {
+      const last48Hours = new Date();
+      last48Hours.setHours(last48Hours.getHours() - 48);
+      const recentFoodLogs = trackerData.nutrition
+        .filter((n) => new Date(n.consumed_at) >= last48Hours)
+        .slice(0, 5);
+      
+      if (recentFoodLogs.length > 0) {
+        const foodContext = "\n\nRECENT FOOD LOGS (Last 48 hours - may relate to symptoms):\n" +
+          recentFoodLogs.map((n) => {
+            const tags = n.food_tags && n.food_tags.length > 0 
+              ? ` [${n.food_tags.map(t => t.replace(/_/g, ' ')).join(', ')}]`
+              : '';
+            const feeling = n.feeling_after ? ` (felt: ${n.feeling_after.replace(/_/g, ' ')})` : '';
+            return `- ${n.food_item} (${n.meal_type}) at ${new Date(n.consumed_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}${tags}${feeling}`;
+          }).join('\n');
+        
+        trackerContext = trackerContext + foodContext;
+      }
+    }
 
     // 3. Use RAG orchestrator for persona-based retrieval and response generation
     // Get conversation history from memory

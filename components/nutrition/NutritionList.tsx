@@ -9,6 +9,8 @@ export type Nutrition = {
   food_item: string;
   meal_type: string;
   calories: number | null;
+  food_tags: string[];
+  feeling_after: 'energized' | 'no_change' | 'sluggish' | 'bloated' | null;
   notes: string | null;
   consumed_at: string;
   created_at: string;
@@ -225,7 +227,7 @@ export default function NutritionList({
         {[1, 2, 3, 4, 5].map((i) => (
           <div
             key={i}
-            className="animate-pulse rounded-xl border border-foreground/10 bg-background/60 p-4"
+            className="animate-pulse rounded-xl border border-foreground/10 bg-white p-4"
           >
             <div className="h-5 w-48 bg-foreground/10 rounded mb-3" />
             <div className="h-4 w-32 bg-foreground/10 rounded" />
@@ -237,7 +239,7 @@ export default function NutritionList({
 
   if (nutrition.length === 0) {
     return (
-      <div className="rounded-xl border border-foreground/10 bg-background/60 p-12 text-center">
+      <div className="rounded-xl border border-foreground/10 bg-white p-12 text-center">
         <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-foreground/5">
           <svg
             className="h-8 w-8 text-muted-foreground"
@@ -274,7 +276,7 @@ export default function NutritionList({
           return (
             <AnimatedListItem key={entry.id} index={index} itemId={entry.id}>
               <div
-                className="group rounded-xl border border-foreground/10 bg-background/60 p-4 transition-colors hover:border-foreground/20"
+                className="group rounded-xl border border-white/30 bg-white/30 backdrop-blur-md p-4 transition-colors hover:border-white/50 hover:bg-white/40"
               >
             <div className="flex items-start justify-between gap-4">
               <div 
@@ -308,6 +310,48 @@ export default function NutritionList({
                   <p className="mt-2 text-sm text-foreground/80 line-clamp-2">
                     {entry.notes}
                   </p>
+                )}
+                
+                {/* Food Tags */}
+                {entry.food_tags && entry.food_tags.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {entry.food_tags.map((tag) => {
+                      const triggerFoods = ['caffeine', 'alcohol', 'spicy_food', 'sugar_refined_carbs', 'processed_food'];
+                      const isTrigger = triggerFoods.includes(tag);
+                      const tagLabel = tag.replace(/_/g, ' ');
+                      return (
+                        <span
+                          key={tag}
+                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                            isTrigger
+                              ? 'bg-red-100 text-red-700 border border-red-200'
+                              : 'bg-green-100 text-green-700 border border-green-200'
+                          }`}
+                        >
+                          {tagLabel}
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Feeling After */}
+                {entry.feeling_after && (
+                  <div className="mt-2">
+                    <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${
+                      entry.feeling_after === 'energized'
+                        ? 'bg-green-100 text-green-700'
+                        : entry.feeling_after === 'sluggish'
+                        ? 'bg-orange-100 text-orange-700'
+                        : entry.feeling_after === 'bloated'
+                        ? 'bg-red-100 text-red-700'
+                        : entry.feeling_after === 'no_change'
+                        ? 'bg-yellow-100 text-yellow-700'
+                        : 'bg-gray-100 text-gray-700'
+                    }`}>
+                      Felt: {entry.feeling_after.replace(/_/g, ' ')}
+                    </span>
+                  </div>
                 )}
               </div>
 

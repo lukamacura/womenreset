@@ -12,6 +12,9 @@ type NavbarProps = {
 const Navbar: React.FC<NavbarProps> = ({ isAuthenticated }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  // Use constant className to prevent hydration mismatches from Tailwind class reordering
+  const navbarContainerClass = "fixed left-0 right-0 top-0 z-50 flex justify-center pt-3 sm:pt-4";
+
   return (
     <>
       {/* Mobile menu backdrop */}
@@ -23,7 +26,7 @@ const Navbar: React.FC<NavbarProps> = ({ isAuthenticated }) => {
         />
       )}
 
-      <div className="fixed top-0 left-0 right-0 z-50 pt-3 sm:pt-4 flex justify-center">
+      <div className={navbarContainerClass}>
         <div className="w-full max-w-3xl px-6 sm:px-8">
           <nav className="flex w-full items-center justify-between rounded-full bg-gray-900 px-3 sm:px-5 py-2.5 sm:py-2 shadow-lg backdrop-blur-lg border border-white/25 overflow-hidden">
             {/* Left: Logo + Brand */}

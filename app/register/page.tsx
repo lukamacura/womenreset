@@ -1073,7 +1073,7 @@ export default function RegisterPage() {
                           style={{ width: `${(topProblems.length / 3) * 100}%` }}
                         />
                       </div>
-                      <span className="text-muted-foreground font-medium min-w-[80px] sm:min-w-[100px] text-right">
+                      <span className="text-muted-foreground font-medium min-w-20 sm:min-w-[100px] text-right">
                         {topProblems.length} of 3
                       </span>
                     </div>

@@ -6,6 +6,8 @@ import {
   Line,
   BarChart,
   Bar,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -27,13 +29,20 @@ export default function NutritionCharts({
 }: NutritionChartsProps) {
   const chartData = useMemo(() => {
     const now = new Date();
+    
+    // Calculate start date (dateRange days ago, at start of day)
     const startDate = new Date(now);
     startDate.setDate(startDate.getDate() - dateRange);
     startDate.setHours(0, 0, 0, 0);
 
+    // Calculate end date (today, at end of day)
+    const endDate = new Date(now);
+    endDate.setHours(23, 59, 59, 999);
+
+    // Filter nutrition entries within the date range
     const filteredNutrition = nutrition.filter((n) => {
       const consumedAt = new Date(n.consumed_at);
-      return consumedAt >= startDate;
+      return consumedAt >= startDate && consumedAt <= endDate;
     });
 
     // Group by date
@@ -56,11 +65,21 @@ export default function NutritionCharts({
       });
     });
 
-    // Generate all dates in range
+    // Generate all dates in range (including today)
+    // Compare dates at the day level, not datetime level
     const allDates: string[] = [];
     const currentDate = new Date(startDate);
-    while (currentDate <= now) {
-      allDates.push(currentDate.toISOString().split("T")[0]);
+    const todayDateString = now.toISOString().split("T")[0]; // Today's date as YYYY-MM-DD
+    
+    while (true) {
+      const currentDateString = currentDate.toISOString().split("T")[0];
+      allDates.push(currentDateString);
+      
+      // Stop if we've reached today
+      if (currentDateString >= todayDateString) {
+        break;
+      }
+      
       currentDate.setDate(currentDate.getDate() + 1);
     }
 
@@ -104,7 +123,7 @@ export default function NutritionCharts({
 
   if (nutrition.length === 0) {
     return (
-      <div className="rounded-xl border border-foreground/10 bg-background/60 p-12 text-center">
+      <div className="rounded-xl border border-white/30 bg-white/30 backdrop-blur-lg p-12 text-center shadow-xl">
         <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-foreground/5">
           <svg
             className="h-8 w-8 text-muted-foreground"
@@ -133,12 +152,18 @@ export default function NutritionCharts({
   return (
     <div className="space-y-6">
       {/* Entries per Day Chart */}
-      <div className="rounded-xl border border-foreground/10 bg-background/60 p-5">
+      <div className="rounded-xl border border-white/30 bg-white/30 backdrop-blur-lg p-5 shadow-xl">
         <h3 className="mb-4 text-lg font-semibold text-foreground">
           Entries per Day
         </h3>
         <ResponsiveContainer width="100%" height={250}>
-          <BarChart data={chartData}>
+          <AreaChart data={chartData}>
+            <defs>
+              <linearGradient id="entriesGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#ff74b1" stopOpacity={0.8} />
+                <stop offset="100%" stopColor="#60a5fa" stopOpacity={0.3} />
+              </linearGradient>
+            </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity={0.1} />
             <XAxis
               dataKey="date"
@@ -154,25 +179,38 @@ export default function NutritionCharts({
             />
             <Tooltip
               contentStyle={{
-                backgroundColor: "var(--color-background)",
-                border: "1px solid rgba(0,0,0,0.1)",
+                backgroundColor: "rgba(255, 255, 255, 0.9)",
+                backdropFilter: "blur(10px)",
+                border: "1px solid rgba(255, 116, 177, 0.3)",
                 borderRadius: "8px",
-                color: "var(--color-foreground)",
+                color: "#3D3D3D",
               }}
             />
-            <Bar dataKey="count" fill="var(--color-primary)" radius={[4, 4, 0, 0]} />
-          </BarChart>
+            <Area
+              type="monotone"
+              dataKey="count"
+              stroke="#ff74b1"
+              strokeWidth={2}
+              fill="url(#entriesGradient)"
+            />
+          </AreaChart>
         </ResponsiveContainer>
       </div>
 
       {/* Calories per Day Chart (only if calorie data exists) */}
       {hasCalorieData && (
-        <div className="rounded-xl border border-foreground/10 bg-background/60 p-5">
+        <div className="rounded-xl border border-white/30 bg-white/30 backdrop-blur-lg p-5 shadow-xl">
           <h3 className="mb-4 text-lg font-semibold text-foreground">
             Total Calories per Day
           </h3>
           <ResponsiveContainer width="100%" height={250}>
-            <LineChart data={chartData}>
+            <AreaChart data={chartData}>
+              <defs>
+                <linearGradient id="caloriesGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#fbbf24" stopOpacity={0.8} />
+                  <stop offset="100%" stopColor="#f472b6" stopOpacity={0.3} />
+                </linearGradient>
+              </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity={0.1} />
               <XAxis
                 dataKey="date"
@@ -188,21 +226,21 @@ export default function NutritionCharts({
               />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: "var(--color-background)",
-                  border: "1px solid rgba(0,0,0,0.1)",
+                  backgroundColor: "rgba(255, 255, 255, 0.9)",
+                  backdropFilter: "blur(10px)",
+                  border: "1px solid rgba(251, 191, 36, 0.3)",
                   borderRadius: "8px",
-                  color: "var(--color-foreground)",
+                  color: "#3D3D3D",
                 }}
               />
-              <Line
+              <Area
                 type="monotone"
                 dataKey="totalCalories"
-                stroke="var(--color-primary)"
+                stroke="#fbbf24"
                 strokeWidth={2}
-                dot={{ fill: "var(--color-primary)", r: 4 }}
-                activeDot={{ r: 6 }}
+                fill="url(#caloriesGradient)"
               />
-            </LineChart>
+            </AreaChart>
           </ResponsiveContainer>
         </div>
       )}

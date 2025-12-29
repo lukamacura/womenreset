@@ -2,11 +2,15 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { ForkKnifeCrossed } from "lucide-react";
+import { ForkKnifeCrossed, Zap } from "lucide-react";
 import AddNutritionModal from "@/components/nutrition/AddNutritionModal";
+import QuickAddModal from "@/components/nutrition/QuickAddModal";
 import NutritionList, { type Nutrition } from "@/components/nutrition/NutritionList";
 import NutritionStats from "@/components/nutrition/NutritionStats";
 import NutritionCharts from "@/components/nutrition/NutritionCharts";
+import WeekSummary from "@/components/nutrition/WeekSummary";
+import AnalyticsSection from "@/components/nutrition/AnalyticsSection";
+import HydrationCounter from "@/components/nutrition/HydrationCounter";
 import { useTrialStatus } from "@/lib/useTrialStatus";
 
 export const dynamic = "force-dynamic";
@@ -20,6 +24,7 @@ export default function NutritionPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isQuickModalOpen, setIsQuickModalOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<Nutrition | null>(null);
   const [dateRange, setDateRange] = useState<DateRange>(30);
 
@@ -110,6 +115,15 @@ export default function NutritionPage() {
       handleNutritionAdded(entry);
     }
     handleModalClose();
+    // Dispatch custom event for components that listen
+    window.dispatchEvent(new CustomEvent('nutrition-log-updated'));
+  };
+
+  // Handle quick modal success
+  const handleQuickModalSuccess = () => {
+    fetchNutrition();
+    // Dispatch custom event for components that listen
+    window.dispatchEvent(new CustomEvent('nutrition-log-updated'));
   };
 
   // Filter nutrition entries by date range for display
@@ -177,19 +191,28 @@ export default function NutritionPage() {
       <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">
-            Nutrition Tracker
+            Fuel Check
           </h1>
           <p className="text-base text-muted-foreground mt-1">
-            Track your meals and nutrition over time.
+            See how food fuels (or drains) your body
           </p>
         </div>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="btn-primary inline-flex font-bold text-lg justify-center items-center gap-2 cursor-pointer px-5 py-2.5 shadow-md hover:translate-y-px"
-        >
-          <ForkKnifeCrossed className="h-5 w-5" />
-          Add meal
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setIsQuickModalOpen(true)}
+            className="btn-primary inline-flex font-bold text-lg justify-center items-center gap-2 cursor-pointer px-5 py-2.5 shadow-md hover:translate-y-px"
+          >
+            <Zap className="h-5 w-5" />
+            Quick Add
+          </button>
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="btn-primary inline-flex font-bold text-lg justify-center items-center gap-2 cursor-pointer px-5 py-2.5 shadow-md hover:translate-y-px"
+          >
+            <ForkKnifeCrossed className="h-5 w-5" />
+            Log food
+          </button>
+        </div>
       </header>
 
       {/* Error State */}
@@ -208,6 +231,17 @@ export default function NutritionPage() {
           </button>
         </div>
       )}
+
+      {/* Week Summary & Hydration Counter */}
+      <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <WeekSummary />
+        <HydrationCounter />
+      </section>
+
+      {/* Analytics Section */}
+      <section>
+        <AnalyticsSection />
+      </section>
 
       {/* Stats Section */}
       <section>
@@ -248,6 +282,13 @@ export default function NutritionPage() {
         onClose={handleModalClose}
         onSuccess={handleModalSuccess}
         editingEntry={editingEntry}
+      />
+
+      {/* Quick Add Modal */}
+      <QuickAddModal
+        isOpen={isQuickModalOpen}
+        onClose={() => setIsQuickModalOpen(false)}
+        onSuccess={handleQuickModalSuccess}
       />
     </div>
   );

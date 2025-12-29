@@ -5,6 +5,55 @@ import { checkTrialExpired } from "@/lib/checkTrialStatus";
 
 export const runtime = "nodejs";
 
+// Allowed food tags
+const ALLOWED_FOOD_TAGS = [
+  // Trigger foods
+  "caffeine",
+  "alcohol",
+  "spicy_food",
+  "sugar_refined_carbs",
+  "processed_food",
+  // Supportive foods
+  "phytoestrogens",
+  "calcium_rich",
+  "omega_3s",
+  "fiber",
+  "protein",
+] as const;
+
+const VALID_FEELING_AFTER = ["energized", "no_change", "sluggish", "bloated"] as const;
+
+// Helper: Validate food tags
+function validateFoodTags(tags: unknown): string[] {
+  if (!tags) return [];
+  if (!Array.isArray(tags)) {
+    throw new Error("food_tags must be an array");
+  }
+  const validTags: string[] = [];
+  for (const tag of tags) {
+    if (typeof tag !== "string") {
+      throw new Error("Each food tag must be a string");
+    }
+    if (!ALLOWED_FOOD_TAGS.includes(tag as any)) {
+      throw new Error(`Invalid food tag: ${tag}. Allowed tags: ${ALLOWED_FOOD_TAGS.join(", ")}`);
+    }
+    validTags.push(tag);
+  }
+  return validTags;
+}
+
+// Helper: Validate feeling_after
+function validateFeelingAfter(feeling: unknown): string | null {
+  if (feeling === null || feeling === undefined) return null;
+  if (typeof feeling !== "string") {
+    throw new Error("feeling_after must be a string or null");
+  }
+  if (!VALID_FEELING_AFTER.includes(feeling as any)) {
+    throw new Error(`Invalid feeling_after: ${feeling}. Valid values: ${VALID_FEELING_AFTER.join(", ")}`);
+  }
+  return feeling;
+}
+
 // Helper: Get authenticated user from request
 async function getAuthenticatedUser(req: NextRequest) {
   const supabase = createServerClient(
@@ -51,7 +100,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { food_item, meal_type, calories, notes, consumed_at } = body;
+    const { food_item, meal_type, calories, notes, consumed_at, food_tags, feeling_after } = body;
 
     // Validation
     if (!food_item || typeof food_item !== "string" || food_item.trim().length === 0) {
@@ -85,6 +134,20 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Validate food_tags and feeling_after
+    let validatedFoodTags: string[] = [];
+    let validatedFeelingAfter: string | null = null;
+    
+    try {
+      validatedFoodTags = validateFoodTags(food_tags);
+      validatedFeelingAfter = validateFeelingAfter(feeling_after);
+    } catch (validationError) {
+      return NextResponse.json(
+        { error: validationError instanceof Error ? validationError.message : "Invalid food_tags or feeling_after" },
+        { status: 400 }
+      );
+    }
+
     // Insert nutrition entry (RLS will ensure user_id matches)
     const supabaseAdmin = getSupabaseAdmin();
     const { data, error: insertError } = await supabaseAdmin
@@ -97,6 +160,8 @@ export async function POST(req: NextRequest) {
           calories: calories !== undefined && calories !== null ? calories : null,
           notes: notes?.trim() || null,
           consumed_at,
+          food_tags: validatedFoodTags,
+          feeling_after: validatedFeelingAfter,
         },
       ])
       .select()
@@ -177,7 +242,7 @@ export async function PUT(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { id, food_item, meal_type, calories, notes, consumed_at } = body;
+    const { id, food_item, meal_type, calories, notes, consumed_at, food_tags, feeling_after } = body;
 
     if (!id) {
       return NextResponse.json({ error: "Nutrition entry ID is required" }, { status: 400 });
@@ -208,6 +273,32 @@ export async function PUT(req: NextRequest) {
       }
     }
 
+    // Validate food_tags and feeling_after if provided
+    let validatedFoodTags: string[] | undefined = undefined;
+    let validatedFeelingAfter: string | null | undefined = undefined;
+    
+    if (food_tags !== undefined) {
+      try {
+        validatedFoodTags = validateFoodTags(food_tags);
+      } catch (validationError) {
+        return NextResponse.json(
+          { error: validationError instanceof Error ? validationError.message : "Invalid food_tags" },
+          { status: 400 }
+        );
+      }
+    }
+
+    if (feeling_after !== undefined) {
+      try {
+        validatedFeelingAfter = validateFeelingAfter(feeling_after);
+      } catch (validationError) {
+        return NextResponse.json(
+          { error: validationError instanceof Error ? validationError.message : "Invalid feeling_after" },
+          { status: 400 }
+        );
+      }
+    }
+
     // Build update object
     const updateData: any = {};
     if (food_item !== undefined) updateData.food_item = food_item.trim();
@@ -215,6 +306,8 @@ export async function PUT(req: NextRequest) {
     if (calories !== undefined) updateData.calories = calories !== null ? calories : null;
     if (notes !== undefined) updateData.notes = notes?.trim() || null;
     if (consumed_at !== undefined) updateData.consumed_at = consumed_at;
+    if (validatedFoodTags !== undefined) updateData.food_tags = validatedFoodTags;
+    if (validatedFeelingAfter !== undefined) updateData.feeling_after = validatedFeelingAfter;
 
     // Update nutrition entry (RLS will ensure user owns it)
     const supabaseAdmin = getSupabaseAdmin();

@@ -1,9 +1,9 @@
 
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { X, Check, Lock } from "lucide-react";
+import { X, Check, Lock, Zap, Crown, Sparkles } from "lucide-react";
 import type { TrialState } from "./TrialCard";
 
 interface PricingModalProps {
@@ -23,17 +23,103 @@ export function PricingModal({
   symptomCount = 0,
   patternCount = 0,
 }: PricingModalProps) {
-  // Prevent body scroll when modal is open
+  const [selectedPlan, setSelectedPlan] = useState<"monthly" | "annual" | null>(null);
+  const [hoveredPlan, setHoveredPlan] = useState<"monthly" | "annual" | null>(null);
+  const [showContent, setShowContent] = useState(false);
+
+  // Inject animation styles on mount (client-side only to prevent hydration issues)
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+
+    // Check if styles already exist
+    if (document.getElementById("pricing-modal-animations")) return;
+
+    const style = document.createElement("style");
+    style.id = "pricing-modal-animations";
+    style.textContent = `
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+
+      @keyframes pulse {
+        0%, 100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+        50% {
+          opacity: 0.9;
+          transform: scale(1.05);
+        }
+      }
+
+      @keyframes shimmer {
+        0% {
+          transform: translateX(-100%);
+        }
+        100% {
+          transform: translateX(100%);
+        }
+      }
+
+      @keyframes float {
+        0%, 100% {
+          transform: translateY(0px);
+          opacity: 0.3;
+        }
+        50% {
+          transform: translateY(-15px);
+          opacity: 0.6;
+        }
+      }
+
+      @keyframes glow {
+        0%, 100% {
+          box-shadow: 0 0 5px rgba(255, 116, 177, 0.5);
+        }
+        50% {
+          box-shadow: 0 0 20px rgba(255, 116, 177, 0.8), 0 0 30px rgba(192, 132, 252, 0.6);
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  }, []);
+
+  // Prevent body scroll when modal is open + staggered content reveal
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
+      // Delay content reveal for smooth entrance
+      const contentTimer = setTimeout(() => setShowContent(true), 100);
+      return () => {
+        clearTimeout(contentTimer);
+      };
     } else {
       document.body.style.overflow = "";
+      // Move state update out of the effect
+      setTimeout(() => setShowContent(false), 0);
     }
+  }, [isOpen]);
+  useEffect(() => {
     return () => {
       document.body.style.overflow = "";
     };
-  }, [isOpen]);
+  }, []);
 
   if (!isOpen) return null;
 
@@ -66,123 +152,381 @@ export function PricingModal({
   const header = getModalHeader();
 
   const modalContent = (
-    <div className="fixed inset-0 z-9999 flex items-center justify-center p-4">
+    <div
+      className="fixed inset-0 z-9999 flex items-center justify-center p-4"
+      style={{
+        animation: "fadeIn 0.3s ease-out",
+      }}
+    >
       {/* Backdrop with blur */}
       <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-md"
+        className="absolute inset-0 bg-black/60 backdrop-blur-md transition-opacity duration-300"
         onClick={onClose}
         style={{
           backdropFilter: "blur(12px)",
           WebkitBackdropFilter: "blur(12px)",
+          opacity: showContent ? 1 : 0,
         }}
       />
-      
+
       {/* Modal Content */}
       <div
-        className="relative z-10 bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[95vh] overflow-y-auto"
+        className="relative z-10 bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[92vh] overflow-y-auto transition-all duration-500 ease-out"
         onClick={(e) => e.stopPropagation()}
+        style={{
+          transform: showContent ? "scale(1) translateY(0)" : "scale(0.95) translateY(20px)",
+          opacity: showContent ? 1 : 0,
+        }}
       >
         {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 transition-colors"
+          className="absolute top-2 right-2 p-1.5 rounded-full hover:bg-gray-100 transition-colors z-20"
           aria-label="Close modal"
         >
-          <X className="h-5 w-5 text-gray-500" />
+          <X className="h-4 w-4 text-gray-500" />
         </button>
 
         {/* Header */}
-        <div className="p-6 lg:p-8 border-b border-gray-200">
-          <h2 className="text-3xl lg:text-4xl font-extrabold text-gray-900 mb-2">
-            Unlock Lisa&apos;s Full Power
-          </h2>
+        <div
+          className="p-3 sm:p-4 border-b border-gray-100 transition-all duration-500"
+          style={{
+            opacity: showContent ? 1 : 0,
+            transform: showContent ? "translateY(0)" : "translateY(-20px)",
+          }}
+        >
+          <div className="text-center">
+            <h2
+              className="text-xl sm:text-3xl font-extrabold mb-0.5 transition-all duration-700"
+              style={{
+                background: "linear-gradient(135deg, #1f2937 0%, #4b5563 50%, #1f2937 100%)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                backgroundClip: "text",
+              }}
+            >
+              Unlock Lisa&apos;s Full Power
+            </h2>
+            <p className="text-gray-600 text-md">
+              Join thousands of women taking control of their health
+            </p>
+          </div>
           {header.urgency && (
-            <div className="mt-3">
-              <p className="text-lg font-semibold text-orange-600 mb-1">{header.urgency}</p>
+            <div className="mt-2 p-2 rounded-lg bg-linear-to-r from-orange-50 to-red-50 border border-orange-200">
+              <p className="text-xs sm:text-sm font-bold text-orange-700 text-center">{header.urgency}</p>
               {header.subtitle && (
-                <p className="text-sm text-gray-600">{header.subtitle}</p>
+                <p className="text-xs text-gray-700 text-center mt-0.5">{header.subtitle}</p>
               )}
             </div>
           )}
         </div>
 
         {/* Pricing Cards */}
-        <div className="p-6 lg:p-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            {/* Monthly Plan */}
-            <div className="relative rounded-xl border-2 border-gray-200 bg-white p-6 hover:border-gray-300 transition-colors">
-              <div className="mb-4">
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Monthly</h3>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-5xl font-extrabold text-gray-900">$9</span>
-                  <span className="text-lg text-gray-600">per month</span>
+        <div className="p-3 sm:p-4 pb-16">{/* Extra bottom padding for fixed notification */}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4 items-end">
+            {/* Monthly Plan - Yellow Theme */}
+            <div
+              className="relative rounded-xl p-3 cursor-pointer transition-all duration-500 ease-out group overflow-hidden flex flex-col"
+              style={{
+                background: hoveredPlan === "monthly" || selectedPlan === "monthly"
+                  ? "linear-gradient(135deg, #fef3c7 0%, #fde68a 50%, #fbbf24 100%)"
+                  : "linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)",
+                border: selectedPlan === "monthly" ? "2px solid #f59e0b" : "2px solid #fbbf24",
+                transform: hoveredPlan === "monthly" ? "scale(1.02) translateY(-2px)" : "scale(1)",
+                boxShadow: hoveredPlan === "monthly" || selectedPlan === "monthly"
+                  ? "0 12px 24px rgba(251, 191, 36, 0.3)"
+                  : "0 6px 12px rgba(251, 191, 36, 0.15)",
+                opacity: showContent ? 1 : 0,
+                transitionDelay: "200ms",
+              }}
+              onMouseEnter={() => setHoveredPlan("monthly")}
+              onMouseLeave={() => setHoveredPlan(null)}
+              onClick={() => setSelectedPlan("monthly")}
+            >
+              {/* Shimmer effect on hover */}
+              {hoveredPlan === "monthly" && (
+                <div
+                  className="absolute inset-0 pointer-events-none"
+                  style={{
+                    background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)",
+                    animation: "shimmer 1.5s infinite",
+                  }}
+                />
+              )}
+              {/* Icon */}
+              <div className="flex items-center justify-between mb-2">
+                <div
+                  className="p-2 rounded-lg transition-all duration-300"
+                  style={{
+                    background: hoveredPlan === "monthly" || selectedPlan === "monthly"
+                      ? "linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)"
+                      : "#fbbf24",
+                    transform: hoveredPlan === "monthly" ? "rotate(10deg) scale(1.1)" : "rotate(0deg) scale(1)",
+                  }}
+                >
+                  <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </div>
-                <p className="text-sm text-gray-500 mt-2">Billed monthly</p>
+                {selectedPlan === "monthly" && (
+                  <div className="animate-in zoom-in duration-300">
+                    <div className="p-1.5 rounded-full bg-green-500">
+                      <Check className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
+                    </div>
+                  </div>
+                )}
               </div>
+
+              <div className="mb-3 flex-1">
+                <h3 className="text-lg sm:text-3xl font-bold text-gray-900 mb-1.5 flex items-center gap-1.5">
+                  Monthly
+                  <span className="text-sm font-bold px-2 py-0.5 rounded-full bg-amber-500 text-white">Flexible</span>
+                </h3>
+                <div className="flex items-baseline gap-1 mb-1">
+                  <span
+                    className="text-3xl sm:text-4xl font-extrabold transition-all duration-300"
+                    style={{
+                      background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
+                      WebkitBackgroundClip: "text",
+                      WebkitTextFillColor: "transparent",
+                      backgroundClip: "text",
+                    }}
+                  >
+                    $12
+                  </span>
+                  <span className="text-base sm:text-lg text-gray-700 font-medium">/month</span>
+                </div>
+                <p className="text-xs text-gray-600 font-medium">Billed monthly • Cancel anytime</p>
+              </div>
+
               <button
-                onClick={() => handlePlanSelect("monthly")}
-                className="w-full px-6 py-3 rounded-lg font-semibold text-sm border-2 border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handlePlanSelect("monthly");
+                }}
+                className="w-full px-4 py-2.5 sm:py-3 rounded-xl font-bold text-sm sm:text-lg transition-all duration-300 transform hover:scale-105 relative overflow-hidden group"
+                style={{
+                  background: hoveredPlan === "monthly"
+                    ? "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)"
+                    : "#fbbf24",
+                  color: "#ffffff",
+                  boxShadow: hoveredPlan === "monthly"
+                    ? "0 10px 25px rgba(251, 191, 36, 0.4)"
+                    : "0 4px 12px rgba(251, 191, 36, 0.2)",
+                }}
               >
-                Choose Monthly
+                <span className="relative z-10">Choose Monthly</span>
+                {hoveredPlan === "monthly" && (
+                  <div
+                    className="absolute inset-0"
+                    style={{
+                      background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)",
+                      animation: "shimmer 1s infinite",
+                    }}
+                  />
+                )}
               </button>
             </div>
 
-            {/* Annual Plan - Highlighted */}
-            <div className="relative rounded-xl border-2 border-[#ff74b1] bg-linear-to-br from-[#ff74b1]/5 to-[#ff74b1]/10 p-6 hover:border-primary-dark transition-colors scale-105 shadow-lg" style={{ borderWidth: '3px' }}>
-              {/* Best Value Badge */}
-              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                <span className="bg-[#ff74b1] text-white px-4 py-1 rounded-full text-xs font-bold flex items-center gap-1">
-                  ⭐ BEST VALUE
-                </span>
+            {/* Annual Plan - Blue/Pink Gradient */}
+            <div
+              className="relative rounded-xl p-3 cursor-pointer transition-all duration-500 ease-out group overflow-hidden flex flex-col"
+              style={{
+                background: hoveredPlan === "annual" || selectedPlan === "annual"
+                  ? "linear-gradient(135deg, #dbeafe 0%, #e0e7ff 25%, #fce7f3 75%, #fce7f3 100%)"
+                  : "linear-gradient(135deg, #eff6ff 0%, #f5f3ff 50%, #fdf2f8 100%)",
+                border: selectedPlan === "annual" ? "2px solid #ff74b1" : "2px solid #c084fc",
+                transform: hoveredPlan === "annual" ? "scale(1.03) translateY(-3px)" : "scale(1.01)",
+                boxShadow: hoveredPlan === "annual" || selectedPlan === "annual"
+                  ? "0 15px 30px rgba(192, 132, 252, 0.4)"
+                  : "0 8px 16px rgba(192, 132, 252, 0.2)",
+                opacity: showContent ? 1 : 0,
+                transitionDelay: "300ms",
+              }}
+              onMouseEnter={() => setHoveredPlan("annual")}
+              onMouseLeave={() => setHoveredPlan(null)}
+              onClick={() => setSelectedPlan("annual")}
+            >
+              {/* Shimmer effect on hover */}
+              {hoveredPlan === "annual" && (
+                <div
+                  className="absolute inset-0 pointer-events-none"
+                  style={{
+                    background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)",
+                    animation: "shimmer 1.5s infinite",
+                  }}
+                />
+              )}
+
+              {/* Floating particles effect */}
+              {hoveredPlan === "annual" && (
+                <>
+                  <div
+                    className="absolute w-2 h-2 rounded-full bg-white/40"
+                    style={{
+                      top: "20%",
+                      left: "10%",
+                      animation: "float 3s ease-in-out infinite",
+                    }}
+                  />
+                  <div
+                    className="absolute w-1.5 h-1.5 rounded-full bg-white/30"
+                    style={{
+                      top: "60%",
+                      right: "15%",
+                      animation: "float 2.5s ease-in-out infinite 0.5s",
+                    }}
+                  />
+                </>
+              )}
+              {/* Best Value Badge - Now inside card */}
+              <div
+                className="absolute top-2 right-2 px-2.5 py-1 rounded-full text-xs font-bold text-white flex items-center gap-1 shadow-lg transition-all duration-300"
+                style={{
+                  background: "linear-gradient(135deg, #ff74b1 0%, #c084fc 100%)",
+                  animation: hoveredPlan === "annual" ? "pulse 2s infinite" : "none",
+                }}
+              >
+                <Crown className="w-3 h-3" />
+                SAVE 45%
               </div>
 
-              <div className="mb-4">
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Annual</h3>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-5xl font-extrabold text-gray-900">$70</span>
-                  <span className="text-lg text-gray-600">per year</span>
+              {/* Icon */}
+              <div className="flex items-center justify-between mb-2">
+                <div
+                  className="p-2 rounded-lg transition-all duration-300"
+                  style={{
+                    background: hoveredPlan === "annual" || selectedPlan === "annual"
+                      ? "linear-gradient(135deg, #ff74b1 0%, #c084fc 100%)"
+                      : "linear-gradient(135deg, #ec4899 0%, #a855f7 100%)",
+                    transform: hoveredPlan === "annual" ? "rotate(-10deg) scale(1.1)" : "rotate(0deg) scale(1)",
+                  }}
+                >
+                  <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </div>
-                <div className="mt-2">
-                  <p className="text-lg font-semibold text-gray-900">$5.83/mo</p>
-                  <p className="text-sm font-semibold text-green-600 mt-1">Save 35%</p>
-                </div>
+                {selectedPlan === "annual" && (
+                  <div className="animate-in zoom-in duration-300">
+                    <div className="p-1.5 rounded-full bg-green-500">
+                      <Check className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
+                    </div>
+                  </div>
+                )}
               </div>
+
+              <div className="mb-3 flex-1">
+                <h3 className="text-lg sm:text-3xl font-bold text-gray-900 mb-1.5 flex items-center gap-1.5">
+                  Annual
+                  <span className="text-sm font-bold px-2 py-0.5 rounded-full text-white" style={{ background: "linear-gradient(135deg, #ff74b1 0%, #c084fc 100%)" }}>
+                    Popular
+                  </span>
+                </h3>
+                <div className="flex items-baseline gap-1 mb-0.5">
+                  <span
+                    className="text-3xl sm:text-4xl font-extrabold transition-all duration-300"
+                    style={{
+                      background: "linear-gradient(135deg, #ff74b1 0%, #c084fc 100%)",
+                      WebkitBackgroundClip: "text",
+                      WebkitTextFillColor: "transparent",
+                      backgroundClip: "text",
+                    }}
+                  >
+                    $79
+                  </span>
+                  <span className="text-base sm:text-lg text-gray-700 font-medium">/year</span>
+                </div>
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span
+                    className="text-lg sm:text-xl font-bold"
+                    style={{
+                      background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                      WebkitBackgroundClip: "text",
+                      WebkitTextFillColor: "transparent",
+                      backgroundClip: "text",
+                    }}
+                  >
+                    $6.58/mo
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-bold">
+                    Save $65/yr
+                  </span>
+                </div>
+                <p className="text-xs text-gray-600 font-medium">Billed annually • Best value</p>
+              </div>
+
               <button
-                onClick={() => handlePlanSelect("annual")}
-                className="w-full px-6 py-3 rounded-lg font-semibold text-sm bg-[#ff74b1] text-white hover:bg-primary-dark transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handlePlanSelect("annual");
+                }}
+                className="w-full px-4 py-2.5 sm:py-3 rounded-xl font-bold text-sm sm:text-lg text-white transition-all duration-300 transform hover:scale-105 relative overflow-hidden group"
+                style={{
+                  background: hoveredPlan === "annual"
+                    ? "linear-gradient(135deg, #d946ef 0%, #a855f7 100%)"
+                    : "linear-gradient(135deg, #ff74b1 0%, #c084fc 100%)",
+                  boxShadow: hoveredPlan === "annual"
+                    ? "0 12px 30px rgba(255, 116, 177, 0.6), 0 0 20px rgba(168, 85, 247, 0.3)"
+                    : "0 6px 15px rgba(255, 116, 177, 0.3)",
+                }}
               >
-                Choose Annual
+                <span className="relative z-10 flex items-center justify-center gap-2">
+                  <Crown className="w-4 h-4" />
+                  Choose Annual - Save 45%
+                </span>
+                {hoveredPlan === "annual" && (
+                  <div
+                    className="absolute inset-0"
+                    style={{
+                      background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)",
+                      animation: "shimmer 1s infinite",
+                    }}
+                  />
+                )}
               </button>
             </div>
           </div>
 
           {/* Features List */}
-          <div className="border-t border-gray-200 pt-6">
-            <h4 className="text-lg font-semibold text-gray-900 mb-4">
-              Both plans include:
+          <div className="border-t border-gray-200 pt-3 sm:pt-4">
+            <h4 className="text-base sm:text-lg font-bold text-gray-900 mb-3 text-center">
+              ✨ Everything Included
             </h4>
-            <ul className="space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
               {[
-                "Unlimited symptom tracking",
-                "Unlimited Lisa conversations",
-                "AI pattern detection & insights",
-                "Doctor-ready PDF reports",
-                "Weekly progress summaries",
-              ].map((feature) => (
-                <li key={feature} className="flex items-start gap-3">
-                  <Check className="h-5 w-5 text-green-500 shrink-0 mt-0.5" />
-                  <span className="text-gray-700">{feature}</span>
+                { text: "Unlimited symptom tracking", gradient: "from-blue-500 to-cyan-500" },
+                { text: "Unlimited Lisa conversations", gradient: "from-purple-500 to-pink-500" },
+                { text: "AI pattern detection & insights", gradient: "from-amber-500 to-orange-500" },
+                { text: "Doctor-ready PDF reports", gradient: "from-green-500 to-emerald-500" },
+                { text: "Weekly progress summaries", gradient: "from-rose-500 to-pink-500" },
+                { text: "Priority customer support", gradient: "from-indigo-500 to-purple-500" },
+              ].map((feature, index) => (
+                <li
+                  key={feature.text}
+                  className="flex items-start gap-2 p-2 rounded-lg bg-linear-to-br from-gray-50 to-white hover:shadow-sm transition-all duration-300"
+                  style={{
+                    animation: `fadeInUp 0.5s ease-out ${index * 0.1}s both`,
+                  }}
+                >
+                  <div className={`p-1 rounded-md bg-linear-to-br ${feature.gradient} shrink-0`}>
+                    <Check className="h-3 w-3 text-white" />
+                  </div>
+                  <span className="text-gray-800 font-medium text-xs sm:text-sm">{feature.text}</span>
                 </li>
               ))}
-            </ul>
+            </div>
           </div>
 
           {/* Footer */}
-          <div className="mt-6 pt-6 border-t border-gray-200 text-center">
-            <p className="text-sm text-gray-600 flex items-center justify-center gap-2">
-              <Lock className="h-4 w-4" />
-              7-day money-back guarantee
-            </p>
+          <div className="mt-4 pt-3 border-t border-gray-200">
+            <div className="flex flex-col items-center gap-2">
+              <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-linear-to-r from-green-50 to-emerald-50 border border-green-200">
+                <Lock className="h-4 w-4 text-green-600" />
+                <span className="text-xs sm:text-sm font-bold text-green-700">
+                  7-Day Money-Back Guarantee
+                </span>
+              </div>
+              <p className="text-xs text-gray-600 text-center max-w-md">
+                Try risk-free. Full refund within 7 days.
+              </p>
+            </div>
           </div>
         </div>
       </div>

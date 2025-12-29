@@ -137,13 +137,13 @@ export function TrialCard({ trial, symptomCount = 0, patternCount = 0 }: TrialCa
   const getCTAText = () => {
     switch (state) {
       case "calm":
-        return "Upgrade - $5.83/mo";
+        return "Upgrade - $6.58/mo";
       case "warning":
         return "Keep my data - Upgrade now";
       case "urgent":
-        return "Don't lose everything - $5.83/mo";
+        return "Don't lose everything - $6.58/mo";
       case "expired":
-        return "See plans - Starting at $5.83/mo";
+        return "See plans - Starting at $6.58/mo";
     }
   };
 

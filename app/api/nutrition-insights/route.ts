@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { fetchTrackerData, analyzeTrackerData } from "@/lib/trackerAnalysis";
+import type { PlainLanguageInsight } from "@/lib/trackerAnalysis";
 
 export const runtime = "nodejs";
 
@@ -33,7 +34,7 @@ async function getAuthenticatedUser(req: NextRequest) {
   return user;
 }
 
-// GET: Get tracker insights and patterns
+// GET: Get nutrition-specific insights
 export async function GET(req: NextRequest) {
   try {
     const user = await getAuthenticatedUser(req);
@@ -53,12 +54,27 @@ export async function GET(req: NextRequest) {
       trackerData.hydration
     );
 
-    return NextResponse.json({ 
-      data: summary,
+    // Filter insights to only nutrition-related ones
+    const nutritionInsightTypes: PlainLanguageInsight['type'][] = [
+      'food-correlation',
+      'hydration',
+      'food-progress',
+      'meal-timing',
+    ];
+
+    const nutritionInsights = summary.plainLanguageInsights.filter((insight) =>
+      nutritionInsightTypes.includes(insight.type)
+    );
+
+    return NextResponse.json({
+      data: {
+        ...summary,
+        plainLanguageInsights: nutritionInsights,
+      },
       period: `${days} days`,
     });
   } catch (e: any) {
-    console.error("GET /api/tracker-insights error:", e);
+    console.error("GET /api/nutrition-insights error:", e);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
