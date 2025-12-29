@@ -12,6 +12,7 @@ import WeekSummary from "@/components/nutrition/WeekSummary";
 import AnalyticsSection from "@/components/nutrition/AnalyticsSection";
 import HydrationCounter from "@/components/nutrition/HydrationCounter";
 import { useTrialStatus } from "@/lib/useTrialStatus";
+import { AnimatedSection, Skeleton } from "@/components/ui/AnimatedComponents";
 
 export const dynamic = "force-dynamic";
 
@@ -161,18 +162,30 @@ export default function NutritionPage() {
   // Show loading state while checking trial status
   if (trialStatus.loading) {
     return (
-      <div className="mx-auto max-w-7xl p-6 sm:p-8 space-y-8">
-        <div className="animate-pulse">
-          <div className="h-10 w-64 bg-foreground/10 rounded mb-4" />
-          <div className="h-6 w-96 bg-foreground/10 rounded mb-8" />
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+      <div className="mx-auto max-w-7xl p-6 sm:p-8 space-y-8 min-h-screen" style={{ background: 'linear-gradient(to bottom, #DBEAFE 0%, #FEF3C7 50%, #FCE7F3 100%)' }}>
+        <div className="space-y-8">
+          <div className="space-y-4">
+            <Skeleton className="h-10 w-64" />
+            <Skeleton className="h-6 w-96" />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Skeleton className="h-48" />
+            <Skeleton className="h-48" />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-32 bg-foreground/10 rounded-xl" />
+              <Skeleton key={i} className="h-32" />
             ))}
           </div>
           <div className="space-y-3">
             {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="h-20 bg-foreground/10 rounded-xl" />
+              <Skeleton
+                key={i}
+                className="h-20"
+                style={{
+                  animationDelay: `${i * 100}ms`
+                }}
+              />
             ))}
           </div>
         </div>
@@ -186,92 +199,106 @@ export default function NutritionPage() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl p-6 sm:p-8 space-y-8 text-[17px] sm:text-[18px]">
+    <div className="mx-auto max-w-7xl p-6 sm:p-8 space-y-8 text-[17px] sm:text-[18px] min-h-screen" style={{ background: 'linear-gradient(to bottom, #DBEAFE 0%, #FEF3C7 50%, #FCE7F3 100%)' }}>
       {/* Header */}
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">
-            Fuel Check
-          </h1>
-          <p className="text-base text-muted-foreground mt-1">
-            See how food fuels (or drains) your body
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setIsQuickModalOpen(true)}
-            className="btn-primary inline-flex font-bold text-lg justify-center items-center gap-2 cursor-pointer px-5 py-2.5 shadow-md hover:translate-y-px"
-          >
-            <Zap className="h-5 w-5" />
-            Quick Add
-          </button>
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="btn-primary inline-flex font-bold text-lg justify-center items-center gap-2 cursor-pointer px-5 py-2.5 shadow-md hover:translate-y-px"
-          >
-            <ForkKnifeCrossed className="h-5 w-5" />
-            Log food
-          </button>
-        </div>
-      </header>
+      <AnimatedSection delay={0} duration={500}>
+        <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">
+              Fuel Check
+            </h1>
+            <p className="text-base text-muted-foreground mt-1">
+              See how food fuels (or drains) your body
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setIsQuickModalOpen(true)}
+              className="btn-primary inline-flex font-bold text-lg justify-center items-center gap-2 cursor-pointer px-5 py-2.5 shadow-md hover:translate-y-px transition-all duration-200"
+            >
+              <Zap className="h-5 w-5" />
+              Quick Add
+            </button>
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="btn-primary inline-flex font-bold text-lg justify-center items-center gap-2 cursor-pointer px-5 py-2.5 shadow-md hover:translate-y-px transition-all duration-200"
+            >
+              <ForkKnifeCrossed className="h-5 w-5" />
+              Log food
+            </button>
+          </div>
+        </header>
+      </AnimatedSection>
 
       {/* Error State */}
       {error && (
-        <div
-          role="alert"
-          className="rounded-xl border border-error/30 bg-error/10 p-4"
-        >
-          <div className="font-semibold text-error text-lg">Error</div>
-          <p className="mt-1 text-base text-error/90">{error}</p>
-          <button
-            onClick={fetchNutrition}
-            className="mt-4 inline-flex items-center rounded-lg bg-foreground/10 px-3 py-2 text-base hover:bg-foreground/15"
+        <AnimatedSection delay={100} duration={400}>
+          <div
+            role="alert"
+            className="rounded-xl border border-error/30 bg-error/10 p-4"
           >
-            Try again
-          </button>
-        </div>
+            <div className="font-semibold text-error text-lg">Error</div>
+            <p className="mt-1 text-base text-error/90">{error}</p>
+            <button
+              onClick={fetchNutrition}
+              className="mt-4 inline-flex items-center rounded-lg bg-foreground/10 px-3 py-2 text-base hover:bg-foreground/15 transition-colors duration-200"
+            >
+              Try again
+            </button>
+          </div>
+        </AnimatedSection>
       )}
 
       {/* Week Summary & Hydration Counter */}
-      <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <WeekSummary />
-        <HydrationCounter />
-      </section>
+      <AnimatedSection delay={100} duration={500}>
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <WeekSummary />
+          <HydrationCounter />
+        </section>
+      </AnimatedSection>
 
       {/* Analytics Section */}
-      <section>
-        <AnalyticsSection />
-      </section>
+      <AnimatedSection delay={150} duration={500}>
+        <section>
+          <AnalyticsSection />
+        </section>
+      </AnimatedSection>
 
       {/* Stats Section */}
-      <section>
-        <NutritionStats
-          nutrition={nutrition}
-          dateRange={dateRange}
-          onDateRangeChange={setDateRange}
-        />
-      </section>
+      <AnimatedSection delay={0} duration={500}>
+        <section>
+          <NutritionStats
+            nutrition={nutrition}
+            dateRange={dateRange}
+            onDateRangeChange={setDateRange}
+          />
+        </section>
+      </AnimatedSection>
 
       {/* Charts Section */}
-      <section>
-        <NutritionCharts nutrition={filteredNutrition} dateRange={dateRange} />
-      </section>
+      <AnimatedSection delay={0} duration={500}>
+        <section>
+          <NutritionCharts nutrition={filteredNutrition} dateRange={dateRange} />
+        </section>
+      </AnimatedSection>
 
       {/* Log/List Section */}
-      <section>
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-xl font-semibold">Recent Entries</h2>
-          <span className="text-sm text-muted-foreground">
-            Showing last 30 days
-          </span>
-        </div>
-        <NutritionList
-          nutrition={recentNutrition}
-          onDelete={handleNutritionDeleted}
-          onEdit={handleEditNutrition}
-          isLoading={isLoading}
-        />
-      </section>
+      <AnimatedSection delay={0} duration={500}>
+        <section>
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-xl font-semibold">Recent Entries</h2>
+            <span className="text-sm text-muted-foreground">
+              Showing last 30 days
+            </span>
+          </div>
+          <NutritionList
+            nutrition={recentNutrition}
+            onDelete={handleNutritionDeleted}
+            onEdit={handleEditNutrition}
+            isLoading={isLoading}
+          />
+        </section>
+      </AnimatedSection>
 
       {/* Bottom padding for scroll animations */}
       <div className="h-32" />

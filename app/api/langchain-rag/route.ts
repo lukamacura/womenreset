@@ -179,7 +179,14 @@ function detectNewPatterns(
   // If pattern was detected in last 48 hours, return the most important one
   if (hoursSinceLastPattern <= 48 && currentInsights.length > 0) {
     // Prioritize: progress > trigger > timing > correlation > pattern
-    const priorityOrder = { progress: 0, trigger: 1, 'time-of-day': 2, correlation: 3, pattern: 4 };
+    const priorityOrder: Record<string, number> = {
+      progress: 0,
+      trigger: 1,
+      'time-of-day': 2,
+      'food-correlation': 2.5,
+      correlation: 3,
+      pattern: 4
+    };
     const sorted = [...currentInsights].sort((a, b) => {
       const aPriority = priorityOrder[a.type] ?? 5;
       const bPriority = priorityOrder[b.type] ?? 5;

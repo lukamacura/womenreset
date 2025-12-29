@@ -19,6 +19,7 @@ import AddNutritionModal from "@/components/nutrition/AddNutritionModal";
 import AddFitnessModal from "@/components/fitness/AddFitnessModal";
 import DeleteConfirmationDialog from "@/components/DeleteConfirmationDialog";
 import { TrialCard } from "@/components/TrialCard";
+import { Skeleton } from "@/components/ui/AnimatedComponents";
 
 // Prevent static prerendering (safe)
 export const dynamic = "force-dynamic";
@@ -35,10 +36,6 @@ const MS = {
 
 function classNames(...xs: (string | false | null | undefined)[]) {
   return xs.filter(Boolean).join(" ");
-}
-
-function Skeleton({ className }: { className?: string }) {
-  return <div className={classNames("animate-pulse rounded-xl bg-foreground/10", className)} />;
 }
 
 // Optimized Animated Card Component (for overview cards and sections)

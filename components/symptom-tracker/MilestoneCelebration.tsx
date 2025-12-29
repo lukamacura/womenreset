@@ -3,6 +3,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { PartyPopper, Flame, Star, Trophy, X } from "lucide-react";
 import { useUserPreferences } from "@/hooks/useUserPreferences";
+import { AnimatedText } from "@/components/ui/AnimatedComponents";
 
 const STORAGE_KEY = "milestone-celebrations-dismissed";
 
@@ -123,28 +124,46 @@ export default function MilestoneCelebration() {
   if (!content) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white/30 backdrop-blur-lg rounded-2xl p-8 max-w-md w-full shadow-xl border border-white/30 relative">
+    <div
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 transition-opacity duration-300"
+      style={{ animation: "fadeIn 0.3s ease-out" }}
+    >
+      <div
+        className="bg-white/30 backdrop-blur-lg rounded-2xl p-8 max-w-md w-full shadow-xl border border-white/30 relative"
+        style={{ animation: "fadeInScale 0.4s ease-out" }}
+      >
         <button
           onClick={handleDismiss}
-          className="absolute top-4 right-4 text-[#9A9A9A] hover:text-[#3D3D3D] transition-colors cursor-pointer"
+          className="absolute top-4 right-4 text-[#9A9A9A] hover:text-[#3D3D3D] transition-all duration-200 cursor-pointer hover:scale-110"
         >
           <X className="h-5 w-5" />
         </button>
-        
+
         <div className="text-center">
-          <div className="mb-4 flex justify-center">
+          <div
+            className="mb-4 flex justify-center"
+            style={{ animation: "scaleIn 0.5s ease-out 0.2s backwards" }}
+          >
             <content.icon className="h-16 w-16 text-primary" />
           </div>
           <h3 className="text-3xl font-bold text-gray-900! mb-3">
-            {content.title}
+            <AnimatedText
+              text={content.title}
+              delay={400}
+              letterDelay={40}
+            />
           </h3>
           <p className="text-gray-600! font-medium text-base mb-6">
-            {content.message}
+            <AnimatedText
+              text={content.message}
+              delay={800}
+              letterDelay={25}
+            />
           </p>
           <button
             onClick={handleDismiss}
-            className="px-6 py-2 bg-[#ff74b1] hover:bg-primary-dark text-white font-bold rounded-xl transition-colors cursor-pointer"
+            className="px-6 py-3 bg-[#ff74b1] hover:bg-primary-dark text-white font-bold rounded-xl transition-all duration-200 cursor-pointer hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl"
+            style={{ animation: "fadeInUp 0.5s ease-out 1.2s backwards" }}
           >
             Continue
           </button>
