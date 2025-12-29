@@ -5,19 +5,15 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import type { User } from "@supabase/supabase-js";
-import { Activity, ArrowRight, Meh, UtensilsCrossed, Dumbbell, Trash2, Sunrise, Sun, Moon, Cookie, Heart, StretchHorizontal, Trophy } from "lucide-react";
-import type { Symptom } from "@/components/symptoms/SymptomList";
+import { Activity, ArrowRight, UtensilsCrossed, Dumbbell, Trash2, Sunrise, Sun, Moon, Cookie, Heart, StretchHorizontal, Trophy } from "lucide-react";
 import type { Nutrition } from "@/components/nutrition/NutritionList";
 import type { Fitness } from "@/components/fitness/FitnessList";
 import type { SymptomLog } from "@/lib/symptom-tracker-constants";
 import { useSymptomLogs } from "@/hooks/useSymptomLogs";
-import { formatDateSimple } from "@/lib/dateUtils";
-import { getIconFromName } from "@/lib/symptomIconMapping";
-import { SEVERITY_LABELS } from "@/lib/symptom-tracker-constants";
-import AddSymptomModal from "@/components/symptoms/AddSymptomModal";
 import AddNutritionModal from "@/components/nutrition/AddNutritionModal";
 import AddFitnessModal from "@/components/fitness/AddFitnessModal";
 import DeleteConfirmationDialog from "@/components/DeleteConfirmationDialog";
+import RecentLogs from "@/components/symptom-tracker/RecentLogs";
 import { TrialCard } from "@/components/TrialCard";
 import { Skeleton } from "@/components/ui/AnimatedComponents";
 
@@ -232,15 +228,17 @@ function SymptomsOverviewCard({
   );
 }
 
-// Recent Symptoms Card
+// Recent Symptoms Card - Uses shared RecentLogs component
 function RecentSymptomsCard({
   logs,
   isLoading,
   onLogClick,
+  onDelete,
 }: {
   logs: SymptomLog[];
   isLoading: boolean;
   onLogClick?: (log: SymptomLog) => void;
+  onDelete?: (log: SymptomLog) => void;
 }) {
   const recentLogs = logs.slice(0, 5);
 
@@ -258,120 +256,12 @@ function RecentSymptomsCard({
               <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
-
-          {isLoading ? (
-            <div className="space-y-3">
-              {[1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className="animate-pulse rounded-xl border border-white/30 bg-white/20 backdrop-blur-md p-4"
-                >
-                  <div className="h-5 w-48 bg-white/30 rounded mb-2" />
-                  <div className="h-4 w-32 bg-white/30 rounded" />
-                </div>
-              ))}
-            </div>
-          ) : recentLogs.length === 0 ? (
-            <div className="text-center py-8">
-              <Activity className="h-12 w-12 text-[#9A9A9A]/30 mx-auto mb-3" />
-              <p className="text-sm text-[#6B6B6B]">No symptoms logged yet</p>
-              <Link
-                href="/dashboard/symptoms"
-                className="text-sm text-[#ff74b1] hover:text-primary-dark hover:underline mt-2 inline-block transition-colors"
-              >
-                Start tracking →
-              </Link>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {recentLogs.map((log, index) => {
-                const { dateStr, timeStr } = formatDateSimple(log.logged_at);
-                const symptomName = log.symptoms?.name || "Unknown";
-                const symptomIconName = log.symptoms?.icon || "Activity";
-                
-                // Map symptom names to icon names (prioritize name mapping for unique icons)
-                const iconMap: Record<string, string> = {
-                  'Hot flashes': 'Flame',
-                  'Night sweats': 'Droplet',
-                  'Fatigue': 'Zap',
-                  'Brain fog': 'Brain',
-                  'Mood swings': 'Heart',
-                  'Anxiety': 'AlertCircle',
-                  'Headaches': 'AlertTriangle',
-                  'Joint pain': 'Activity',
-                  'Bloating': 'CircleDot',
-                  'Insomnia': 'Moon',
-                  'Weight gain': 'TrendingUp',
-                  'Low libido': 'HeartOff',
-                  'Good Day': 'Sun',
-                };
-                
-                // Try to get icon by symptom name first (ensures unique icons)
-                const iconName = iconMap[symptomName];
-                let SymptomIcon;
-                if (iconName) {
-                  SymptomIcon = getIconFromName(iconName);
-                } else if (symptomIconName && symptomIconName.length > 1 && !symptomIconName.includes('🔥') && !symptomIconName.includes('💧')) {
-                  SymptomIcon = getIconFromName(symptomIconName);
-                } else {
-                  SymptomIcon = getIconFromName('Activity');
-                }
-
-                // Get severity info (1=Mild/Green, 2=Moderate/Yellow, 3=Severe/Red)
-                const severityInfo = SEVERITY_LABELS[log.severity as keyof typeof SEVERITY_LABELS];
-                const SeverityIcon = severityInfo?.icon || Meh;
-                const severityColor = log.severity === 1 
-                  ? "text-green-500" 
-                  : log.severity === 2 
-                  ? "text-yellow-500" 
-                  : "text-red-500";
-
-                return (
-                  <AnimatedListItem key={log.id} index={index}>
-                    <div
-                      onClick={() => onLogClick?.(log)}
-                      className="rounded-xl border border-white/30 bg-white/30 backdrop-blur-lg p-4 hover:bg-white/40 transition-all cursor-pointer shadow-lg"
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-3 mb-1 flex-wrap">
-                            <SymptomIcon className="h-5 w-5 text-[#3D3D3D] shrink-0" />
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="text-[#3D3D3D] font-semibold">{symptomName}</span>
-                              <span className="text-[#9A9A9A]">-</span>
-                              <div className="flex items-center gap-1">
-                                <SeverityIcon className={`h-4 w-4 ${severityColor}`} />
-                                <span className={`text-[#3D3D3D] font-medium ${severityColor}`}>
-                                  {severityInfo?.label || 'Moderate'}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2 text-sm text-[#9A9A9A] flex-wrap ml-8">
-                            <span>{dateStr}</span>
-                            {dateStr === "Today" && (
-                              <>
-                                <span>•</span>
-                                <span>{timeStr}</span>
-                              </>
-                            )}
-                          </div>
-                          {log.triggers && log.triggers.length > 0 && (
-                            <div className="mt-2 text-sm text-[#6B6B6B] ml-8">
-                              Triggers: {log.triggers.join(", ")}
-                            </div>
-                          )}
-                          {log.notes && (
-                            <div className="mt-2 text-sm text-[#3D3D3D] ml-8 line-clamp-2">{log.notes}</div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </AnimatedListItem>
-                );
-              })}
-            </div>
-          )}
+          <RecentLogs 
+            logs={recentLogs} 
+            loading={isLoading} 
+            onLogClick={onLogClick}
+            onDelete={onDelete}
+          />
         </div>
       </div>
     </AnimatedCard>
@@ -840,8 +730,6 @@ export default function DashboardPage() {
   const [loading] = useState(false); // Start as false - don't block rendering
   const [err, setErr] = useState<string | null>(null);
   const [now, setNow] = useState<Date>(new Date());
-  const [, setSymptoms] = useState<Symptom[]>([]);
-  const [, setSymptomsLoading] = useState(true);
   const { logs: symptomLogs, loading: symptomLogsLoading } = useSymptomLogs(30);
   const [nutrition, setNutrition] = useState<Nutrition[]>([]);
   const [nutritionLoading, setNutritionLoading] = useState(true);
@@ -857,17 +745,15 @@ export default function DashboardPage() {
   const [, setPatternCountLoading] = useState(true);
   
   // Modal states
-  const [isSymptomModalOpen, setIsSymptomModalOpen] = useState(false);
   const [isNutritionModalOpen, setIsNutritionModalOpen] = useState(false);
   const [isFitnessModalOpen, setIsFitnessModalOpen] = useState(false);
-  const [editingSymptom, setEditingSymptom] = useState<Symptom | null>(null);
   const [editingNutrition, setEditingNutrition] = useState<Nutrition | null>(null);
   const [editingFitness, setEditingFitness] = useState<Fitness | null>(null);
   
   // Delete confirmation states
   const [deleteDialog, setDeleteDialog] = useState<{
     isOpen: boolean;
-    type: "symptom" | "nutrition" | "fitness" | null;
+    type: "nutrition" | "fitness" | null;
     id: string | null;
     name: string;
     isLoading: boolean;
@@ -878,6 +764,15 @@ export default function DashboardPage() {
     name: "",
     isLoading: false,
   });
+  const [deleteLogDialog, setDeleteLogDialog] = useState<{
+    isOpen: boolean;
+    log: SymptomLog | null;
+    isLoading: boolean;
+  }>({
+    isOpen: false,
+    log: null,
+    isLoading: false,
+  });
 
   // Ticker for live countdown
   useEffect(() => {
@@ -885,42 +780,6 @@ export default function DashboardPage() {
     return () => clearInterval(id);
   }, []);
 
-  // Fetch symptoms data
-  const fetchSymptoms = useCallback(async () => {
-    // Don't fetch if user is not authenticated
-    if (!user) {
-      setSymptomsLoading(false);
-      return;
-    }
-
-    try {
-      setSymptomsLoading(true);
-      const response = await fetch("/api/symptoms", {
-        method: "GET",
-        cache: "no-store",
-      });
-
-      if (!response.ok) {
-        // If 401, user is not authenticated - stop trying
-        if (response.status === 401) {
-          console.warn("Symptoms fetch: Unauthorized - user not authenticated");
-          setSymptoms([]);
-          setSymptomsLoading(false);
-          return;
-        }
-        throw new Error("Failed to fetch symptoms");
-      }
-
-      const { data } = await response.json();
-      setSymptoms(data || []);
-    } catch (err) {
-      console.error("Error fetching symptoms:", err);
-      // Don't show error to user, just use empty array
-      setSymptoms([]);
-    } finally {
-      setSymptomsLoading(false);
-    }
-  }, [user]);
 
   // Fetch nutrition data
   const fetchNutrition = useCallback(async () => {
@@ -1277,11 +1136,10 @@ export default function DashboardPage() {
     }
   }, [user]);
 
-  // Fetch symptoms, nutrition, fitness, and pattern count when user is loaded - run in parallel
+  // Fetch nutrition, fitness, and pattern count when user is loaded - run in parallel
   useEffect(() => {
     if (user) {
       // Start all fetches immediately in parallel - don't wait for each other
-      fetchSymptoms();
       fetchNutrition();
       fetchFitness();
       fetchPatternCount();
@@ -1291,7 +1149,7 @@ export default function DashboardPage() {
       setFitnessLoading(false);
       setPatternCountLoading(false);
     }
-  }, [user, fetchSymptoms, fetchNutrition, fetchFitness, fetchPatternCount]);
+  }, [user, fetchNutrition, fetchFitness, fetchPatternCount]);
 
   // Trial computations (UTC-safe) - now from user_trials
   const trial = useMemo(() => {
@@ -1359,38 +1217,6 @@ export default function DashboardPage() {
   // Event handlers
   // ---------------------------
   
-  // Handle symptom added/updated
-  const handleSymptomAdded = useCallback((symptom: Symptom) => {
-    if (editingSymptom) {
-      setSymptoms((prev) => prev.map((s) => (s.id === symptom.id ? symptom : s)));
-      setEditingSymptom(null);
-    } else {
-      setSymptoms((prev) => [symptom, ...prev]);
-    }
-    setIsSymptomModalOpen(false);
-  }, [editingSymptom]);
-
-  const handleSymptomDeleted = useCallback(async () => {
-    if (!deleteDialog.id || deleteDialog.type !== "symptom") return;
-
-    setDeleteDialog((prev) => ({ ...prev, isLoading: true }));
-    try {
-      const response = await fetch(`/api/symptoms?id=${deleteDialog.id}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Failed to delete symptom");
-      }
-
-      setSymptoms((prev) => prev.filter((s) => s.id !== deleteDialog.id));
-      setDeleteDialog({ isOpen: false, type: null, id: null, name: "", isLoading: false });
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to delete symptom");
-      setDeleteDialog((prev) => ({ ...prev, isLoading: false }));
-    }
-  }, [deleteDialog.id, deleteDialog.type]);
 
   // Handle nutrition added/updated
   const handleNutritionAdded = useCallback((entry: Nutrition) => {
@@ -1434,11 +1260,15 @@ export default function DashboardPage() {
 
       setNutrition((prev) => prev.filter((n) => n.id !== deleteDialog.id));
       setDeleteDialog({ isOpen: false, type: null, id: null, name: "", isLoading: false });
+      // Refresh the page to ensure all data is up to date
+      router.refresh();
+      // Also refetch nutrition data
+      fetchNutrition();
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to delete nutrition entry");
       setDeleteDialog((prev) => ({ ...prev, isLoading: false }));
     }
-  }, [deleteDialog.id, deleteDialog.type]);
+  }, [deleteDialog.id, deleteDialog.type, router, fetchNutrition]);
 
   // Handle fitness added/updated
   const handleFitnessAdded = useCallback((entry: Fitness) => {
@@ -1482,11 +1312,52 @@ export default function DashboardPage() {
 
       setFitness((prev) => prev.filter((f) => f.id !== deleteDialog.id));
       setDeleteDialog({ isOpen: false, type: null, id: null, name: "", isLoading: false });
+      // Refresh the page to ensure all data is up to date
+      router.refresh();
+      // Also refetch fitness data
+      fetchFitness();
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to delete fitness entry");
       setDeleteDialog((prev) => ({ ...prev, isLoading: false }));
     }
-  }, [deleteDialog.id, deleteDialog.type]);
+  }, [deleteDialog.id, deleteDialog.type, router, fetchFitness]);
+
+  // Handle symptom log delete click
+  const handleSymptomLogDeleteClick = useCallback((log: SymptomLog) => {
+    setDeleteLogDialog({
+      isOpen: true,
+      log,
+      isLoading: false,
+    });
+  }, []);
+
+  // Handle symptom log delete confirm
+  const handleSymptomLogDeleteConfirm = useCallback(async () => {
+    if (!deleteLogDialog.log) return;
+
+    setDeleteLogDialog((prev) => ({ ...prev, isLoading: true }));
+    try {
+      const response = await fetch(`/api/symptom-logs?id=${deleteLogDialog.log.id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to delete symptom log");
+      }
+
+      // Refetch symptom logs to update the list
+      // Note: useSymptomLogs hook will automatically refetch when we refresh
+      setDeleteLogDialog({ isOpen: false, log: null, isLoading: false });
+      // Refresh the page to ensure all data is up to date
+      router.refresh();
+      // Dispatch event to notify other components
+      window.dispatchEvent(new CustomEvent('symptom-log-updated'));
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to delete symptom log");
+      setDeleteLogDialog((prev) => ({ ...prev, isLoading: false }));
+    }
+  }, [deleteLogDialog.log, router]);
 
   function handleLogout() {
     // Navigate immediately - no waiting
@@ -1604,6 +1475,7 @@ export default function DashboardPage() {
               // Navigate to symptoms page where logs can be viewed and edited
               router.push("/dashboard/symptoms");
             }}
+            onDelete={handleSymptomLogDeleteClick}
           />
         </div>
 
@@ -1629,16 +1501,6 @@ export default function DashboardPage() {
       </div>
 
       {/* Modals */}
-      <AddSymptomModal
-        isOpen={isSymptomModalOpen}
-        onClose={() => {
-          setIsSymptomModalOpen(false);
-          setEditingSymptom(null);
-        }}
-        onSuccess={handleSymptomAdded}
-        editingEntry={editingSymptom}
-      />
-
       <AddNutritionModal
         isOpen={isNutritionModalOpen}
         onClose={() => {
@@ -1664,18 +1526,27 @@ export default function DashboardPage() {
         isOpen={deleteDialog.isOpen}
         onClose={() => setDeleteDialog({ isOpen: false, type: null, id: null, name: "", isLoading: false })}
         onConfirm={() => {
-          if (deleteDialog.type === "symptom") {
-            handleSymptomDeleted();
-          } else if (deleteDialog.type === "nutrition") {
+          if (deleteDialog.type === "nutrition") {
             handleNutritionDeleted();
           } else if (deleteDialog.type === "fitness") {
             handleFitnessDeleted();
           }
         }}
-        title={`Delete ${deleteDialog.type === "symptom" ? "Symptom" : deleteDialog.type === "nutrition" ? "Nutrition Entry" : "Workout"}?`}
-        message={`Are you sure you want to delete this ${deleteDialog.type === "symptom" ? "symptom" : deleteDialog.type === "nutrition" ? "nutrition entry" : "workout"}? This action cannot be undone.`}
+        title={`Delete ${deleteDialog.type === "nutrition" ? "Nutrition Entry" : "Workout"}?`}
+        message={`Are you sure you want to delete this ${deleteDialog.type === "nutrition" ? "nutrition entry" : "workout"}? This action cannot be undone.`}
         itemName={deleteDialog.name}
         isLoading={deleteDialog.isLoading}
+      />
+
+      {/* Delete Symptom Log Confirmation Dialog */}
+      <DeleteConfirmationDialog
+        isOpen={deleteLogDialog.isOpen}
+        onClose={() => setDeleteLogDialog({ isOpen: false, log: null, isLoading: false })}
+        onConfirm={handleSymptomLogDeleteConfirm}
+        title="Delete Symptom Log?"
+        message="Are you sure you want to delete this symptom log? This action cannot be undone."
+        itemName={deleteLogDialog.log?.symptoms?.name}
+        isLoading={deleteLogDialog.isLoading}
       />
     </main>
   );

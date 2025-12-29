@@ -2,6 +2,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
+import { Trash2 } from "lucide-react";
 import { SEVERITY_LABELS } from "@/lib/symptom-tracker-constants";
 import type { Symptom } from "@/lib/symptom-tracker-constants";
 import { getIconFromName } from "@/lib/symptomIconMapping";
@@ -12,6 +13,7 @@ interface SymptomCardProps {
   lastLoggedAt?: string | null; // ISO timestamp of most recent log
   lastLoggedSeverity?: number | null; // Severity of most recent log
   onQuickLog?: () => void; // Opens quick log modal (single tap)
+  onDelete?: (symptom: Symptom) => void; // Delete symptom handler
 }
 
 export default function SymptomCard({ 
@@ -19,7 +21,8 @@ export default function SymptomCard({
   onClick, 
   lastLoggedAt, 
   lastLoggedSeverity,
-  onQuickLog 
+  onQuickLog,
+  onDelete
 }: SymptomCardProps) {
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const [, setIsLongPressing] = useState(false);
@@ -143,6 +146,16 @@ export default function SymptomCard({
     return severityInfo?.icon || null;
   }, [isLoggedToday, lastLoggedSeverity]);
 
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onDelete) {
+      onDelete(symptom);
+    }
+  };
+
+  // Only show delete button for custom symptoms (not default ones)
+  const canDelete = !symptom.is_default && onDelete;
+
   return (
     <div className="relative">
       <button
@@ -165,15 +178,26 @@ export default function SymptomCard({
         <div className="flex flex-row items-center gap-2 sm:gap-3">
           <SymptomIcon className="h-5 w-5 sm:h-6 sm:w-6 text-[#3D3D3D] shrink-0" />
           <span className="text-[#3D3D3D] font-medium flex-1 text-sm sm:text-base truncate">{symptom.name}</span>
-          {isLoggedToday && SeverityIcon && lastLoggedSeverity && (
-            <SeverityIcon className={`h-4 w-4 sm:h-5 sm:w-5 shrink-0 ${
-              lastLoggedSeverity === 1 
-                ? 'text-green-500' 
-                : lastLoggedSeverity === 2 
-                ? 'text-yellow-500' 
-                : 'text-red-500'
-            }`} />
-          )}
+          <div className="flex items-center gap-1 shrink-0">
+            {isLoggedToday && SeverityIcon && lastLoggedSeverity && (
+              <SeverityIcon className={`h-4 w-4 sm:h-5 sm:w-5 ${
+                lastLoggedSeverity === 1 
+                  ? 'text-green-500' 
+                  : lastLoggedSeverity === 2 
+                  ? 'text-yellow-500' 
+                  : 'text-red-500'
+              }`} />
+            )}
+            {canDelete && (
+              <button
+                onClick={handleDeleteClick}
+                className="rounded-lg p-1 text-muted-foreground transition-colors hover:bg-primary-light/50 hover:text-primary-dark"
+                aria-label="Delete symptom"
+              >
+                <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              </button>
+            )}
+          </div>
         </div>
         {isLoggedToday && loggedTime && (
           <p className="text-sm sm:text-base font-medium text-foreground/30">

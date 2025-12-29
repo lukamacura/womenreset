@@ -349,6 +349,47 @@ input[type="button"],
   }
 }
 
+/* Pulsing glow animation for Add Symptom button */
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(255, 116, 177, 0.6), 0 0 40px rgba(255, 116, 177, 0.4), 0 4px 15px rgba(255, 116, 177, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(255, 116, 177, 0.8), 0 0 60px rgba(255, 116, 177, 0.6), 0 6px 25px rgba(255, 116, 177, 0.7);
+  }
+}
+
+/* Notification animations */
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slide-down {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out forwards;
+}
+
+.animate-slide-down {
+  animation: slide-down 0.2s ease-in forwards;
+}
+
 /* Accessibility - Respect user motion preferences */
 @media (prefers-reduced-motion: reduce) {
   *,

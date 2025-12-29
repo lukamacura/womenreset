@@ -7,6 +7,8 @@ import { Plus } from "lucide-react";
 import { useSymptoms } from "@/hooks/useSymptoms";
 import { useSymptomLogs } from "@/hooks/useSymptomLogs";
 import { useTrialStatus } from "@/lib/useTrialStatus";
+import { useNotification } from "@/hooks/useNotification";
+import { useUserProfile } from "@/hooks/useUserProfile";
 import SymptomCard from "@/components/symptom-tracker/SymptomCard";
 import SymptomSelectorModal from "@/components/symptom-tracker/SymptomSelectorModal";
 import LogSymptomModal from "@/components/symptom-tracker/LogSymptomModal";
@@ -15,13 +17,13 @@ import AnalyticsSection from "@/components/symptom-tracker/AnalyticsSection";
 import WeekSummary from "@/components/symptom-tracker/WeekSummary";
 import RecentLogs from "@/components/symptom-tracker/RecentLogs";
 import PersonalizedGreeting from "@/components/symptom-tracker/PersonalizedGreeting";
-import BadDaySupport from "@/components/symptom-tracker/BadDaySupport";
 import EmptyState from "@/components/symptom-tracker/EmptyState";
 import MilestoneCelebration from "@/components/symptom-tracker/MilestoneCelebration";
 import ProgressComparison from "@/components/symptom-tracker/ProgressComparison";
 import WeekComparison from "@/components/symptom-tracker/WeekComparison";
 import DoctorReportButton from "@/components/symptom-tracker/DoctorReportButton";
 import GoodDayCard from "@/components/symptom-tracker/GoodDayCard";
+import DeleteConfirmationDialog from "@/components/DeleteConfirmationDialog";
 import type { Symptom, LogSymptomData, SymptomLog } from "@/lib/symptom-tracker-constants";
 import { orderSymptoms } from "@/lib/symptomOrdering";
 
@@ -101,21 +103,111 @@ function AnimatedSection({
 export default function SymptomsPage() {
   const router = useRouter();
   const trialStatus = useTrialStatus();
+  const { showSuccess, showError, show } = useNotification();
   const { symptoms, loading: symptomsLoading, refetch: refetchSymptoms } =
     useSymptoms();
   const { logs, loading: logsLoading, refetch: refetchLogs } =
     useSymptomLogs(30);
+  const { profile } = useUserProfile();
   const [selectedSymptom, setSelectedSymptom] = useState<Symptom | null>(null);
   const [editingLog, setEditingLog] = useState<SymptomLog | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isQuickModalOpen, setIsQuickModalOpen] = useState(false);
   const [isSelectorOpen, setIsSelectorOpen] = useState(false);
   const [, setPageLoaded] = useState(false);
+  const [deleteDialog, setDeleteDialog] = useState<{
+    isOpen: boolean;
+    symptom: Symptom | null;
+    isLoading: boolean;
+  }>({
+    isOpen: false,
+    symptom: null,
+    isLoading: false,
+  });
+  const [deleteLogDialog, setDeleteLogDialog] = useState<{
+    isOpen: boolean;
+    log: SymptomLog | null;
+    isLoading: boolean;
+  }>({
+    isOpen: false,
+    log: null,
+    isLoading: false,
+  });
 
   // Trigger page load animation
   useEffect(() => {
     setPageLoaded(true);
   }, []);
+
+  // Check for bad day support notification
+  useEffect(() => {
+    const checkBadDaySupport = () => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const todayLogs = logs.filter((log: SymptomLog) => {
+        const logDate = new Date(log.logged_at);
+        logDate.setHours(0, 0, 0, 0);
+        return logDate.getTime() === today.getTime();
+      });
+
+      // Check if already shown today
+      const todayKey = `badDaySupport_${today.toDateString()}`;
+      const hasShownToday = sessionStorage.getItem(todayKey) === 'true';
+
+      // Trigger conditions: 3+ symptoms in one day, OR any symptom logged as Severe
+      const severeCount = todayLogs.filter((log: SymptomLog) => log.severity === 3).length;
+      const hasSevere = severeCount > 0;
+      const hasManySymptoms = todayLogs.length >= 3;
+
+      if ((hasSevere || hasManySymptoms) && !hasShownToday && todayLogs.length > 0) {
+        const displayName = profile?.name || '';
+        const symptomCount = todayLogs.length;
+        const symptomText = symptomCount === 1 ? 'symptom' : 'symptoms';
+        
+        show(
+          "lisa_message",
+          "Tough Day Support",
+          {
+            message: `${displayName ? `${displayName}, ` : ''}You've logged ${symptomCount} ${symptomText} today. That's hard, and we see you. Remember: Tracking the hard days helps Lisa find patterns that lead to better days. You're doing something important by being here.`,
+            priority: "medium",
+            autoDismiss: false,
+            primaryAction: {
+              label: "Talk to Lisa",
+              action: () => {
+                router.push("/chat/lisa");
+              },
+            },
+            secondaryAction: {
+              label: "I'm okay, just logging",
+              action: () => {
+                // Just dismiss
+              },
+            },
+          }
+        );
+
+        // Mark as shown today
+        sessionStorage.setItem(todayKey, 'true');
+      }
+    };
+
+    // Listen for the custom event
+    const handler = () => checkBadDaySupport();
+    window.addEventListener('check-bad-day-support', handler);
+    
+    // Also check on logs change (with a small delay to avoid showing immediately on page load)
+    const timeoutId = setTimeout(() => {
+      if (logs.length > 0) {
+        checkBadDaySupport();
+      }
+    }, 1000);
+
+    return () => {
+      window.removeEventListener('check-bad-day-support', handler);
+      clearTimeout(timeoutId);
+    };
+  }, [logs, profile?.name, router, show]);
 
   // Redirect to dashboard if trial is expired
   if (!trialStatus.loading && trialStatus.expired) {
@@ -177,7 +269,9 @@ export default function SymptomsPage() {
 
         if (!response.ok) {
           const errorData = await response.json();
-          throw new Error(errorData.error || "Failed to quick log symptom");
+          const errorMessage = errorData.error || "Failed to quick log symptom";
+          showError("Couldn't save", errorMessage);
+          throw new Error(errorMessage);
         }
 
         // Refetch logs and symptoms
@@ -185,11 +279,14 @@ export default function SymptomsPage() {
         
         // Dispatch custom event to notify AnalyticsSection to refresh
         window.dispatchEvent(new CustomEvent('symptom-log-updated'));
+        
+        // Show success notification
+        showSuccess("Symptom logged");
       } catch (error) {
         throw error; // Let QuickLogModal handle error display
       }
     },
-    [refetchLogs, refetchSymptoms]
+    [refetchLogs, refetchSymptoms, showSuccess, showError]
   );
 
   // Handle quick modal close
@@ -279,6 +376,42 @@ export default function SymptomsPage() {
     setIsModalOpen(true);
   };
 
+  // Handle symptom delete click
+  const handleSymptomDeleteClick = useCallback((symptom: Symptom) => {
+    setDeleteDialog({
+      isOpen: true,
+      symptom,
+      isLoading: false,
+    });
+  }, []);
+
+  // Handle symptom delete confirm
+  const handleSymptomDeleteConfirm = useCallback(async () => {
+    if (!deleteDialog.symptom) return;
+
+    setDeleteDialog((prev) => ({ ...prev, isLoading: true }));
+    try {
+      const response = await fetch(`/api/symptoms?id=${deleteDialog.symptom.id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to delete symptom");
+      }
+
+      // Refetch symptoms to update the list
+      await refetchSymptoms();
+      setDeleteDialog({ isOpen: false, symptom: null, isLoading: false });
+      showSuccess("Symptom deleted");
+      // Refresh the page to ensure all data is up to date
+      router.refresh();
+    } catch (err) {
+      showError("Couldn't delete", err instanceof Error ? err.message : "Failed to delete symptom");
+      setDeleteDialog((prev) => ({ ...prev, isLoading: false }));
+    }
+  }, [deleteDialog.symptom, refetchSymptoms, router, showSuccess, showError]);
+
   // Handle full modal close
   const handleModalClose = () => {
     setIsModalOpen(false);
@@ -296,6 +429,44 @@ export default function SymptomsPage() {
       setIsModalOpen(true);
     }
   };
+
+  // Handle log delete click
+  const handleLogDeleteClick = useCallback((log: SymptomLog) => {
+    setDeleteLogDialog({
+      isOpen: true,
+      log,
+      isLoading: false,
+    });
+  }, []);
+
+  // Handle log delete confirm
+  const handleLogDeleteConfirm = useCallback(async () => {
+    if (!deleteLogDialog.log) return;
+
+    setDeleteLogDialog((prev) => ({ ...prev, isLoading: true }));
+    try {
+      const response = await fetch(`/api/symptom-logs?id=${deleteLogDialog.log.id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to delete symptom log");
+      }
+
+      // Refetch logs to update the list
+      await refetchLogs();
+      setDeleteLogDialog({ isOpen: false, log: null, isLoading: false });
+      showSuccess("Log deleted");
+      // Refresh the page to ensure all data is up to date
+      router.refresh();
+      // Dispatch event to notify other components
+      window.dispatchEvent(new CustomEvent('symptom-log-updated'));
+    } catch (err) {
+      showError("Couldn't delete", err instanceof Error ? err.message : "Failed to delete symptom log");
+      setDeleteLogDialog((prev) => ({ ...prev, isLoading: false }));
+    }
+  }, [deleteLogDialog.log, refetchLogs, router, showSuccess, showError]);
 
   // Handle save symptom log (create or update)
   const handleSaveLog = useCallback(
@@ -333,7 +504,9 @@ export default function SymptomsPage() {
 
         if (!response.ok) {
           const errorData = await response.json();
-          throw new Error(errorData.error || `Failed to ${isEditing ? "update" : "save"} symptom log`);
+          const errorMessage = errorData.error || `Failed to ${isEditing ? "update" : "save"} symptom log`;
+          showError("Couldn't save", errorMessage, () => handleSaveLog(data));
+          throw new Error(errorMessage);
         }
 
         // Refetch logs and symptoms
@@ -341,11 +514,24 @@ export default function SymptomsPage() {
         
         // Dispatch custom event to notify AnalyticsSection to refresh
         window.dispatchEvent(new CustomEvent('symptom-log-updated'));
+        
+        // Show success notification
+        showSuccess(isEditing ? "Symptom updated" : "Symptom logged");
+
+        // Trigger bad day support check (only on new logs, not edits)
+        if (!isEditing) {
+          // Refetch logs first, then trigger check after a short delay
+          await refetchLogs();
+          setTimeout(() => {
+            window.dispatchEvent(new CustomEvent('check-bad-day-support'));
+          }, 500);
+        }
       } catch (error) {
+        // Error already handled above, just rethrow
         throw error;
       }
     },
-    [refetchLogs, refetchSymptoms]
+    [refetchLogs, refetchSymptoms, showSuccess, showError]
   );
 
   // Show loading state while checking trial status
@@ -392,7 +578,7 @@ export default function SymptomsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl p-4 sm:p-6 md:p-8 space-y-6 sm:space-y-8 min-h-screen" style={{ background: 'linear-gradient(to bottom, #DBEAFE 0%, #FEF3C7 50%, #FCE7F3 100%)' }}>
+    <div className="mx-auto max-w-7xl p-4 sm:p-6 md:p-8 space-y-6 sm:space-y-8 min-h-screen">
       {/* Header */}
       <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between opacity-0 animate-[fadeInDown_0.6s_ease-out_forwards]">
         <div className="flex-1">
@@ -405,12 +591,9 @@ export default function SymptomsPage() {
             onClick={() => {
               setIsSelectorOpen(true);
             }}
-            className="inline-flex items-center gap-2 px-6 py-3.5 btn-primary font-bold rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 cursor-pointer text-base"
-            style={{
-              animation: 'float 3s ease-in-out infinite'
-            }}
+            className="btn-primary inline-flex font-bold text-lg justify-center items-center gap-2 cursor-pointer px-5 py-2.5 shadow-md hover:translate-y-px transition-all duration-200"
           >
-            <Plus className="h-6 w-6" />
+            <Plus className="h-5 w-5" />
             Add Symptom
           </button>
         </div>
@@ -418,11 +601,6 @@ export default function SymptomsPage() {
 
       {/* Main Content */}
       <div className="space-y-8">
-
-        {/* Bad Day Support */}
-        <AnimatedSection delay={100}>
-          <BadDaySupport />
-        </AnimatedSection>
 
         {/* Empty State */}
         <AnimatedSection delay={150}>
@@ -484,6 +662,7 @@ export default function SymptomsPage() {
                         lastLoggedAt={lastLogged.time}
                         lastLoggedSeverity={lastLogged.severity}
                         onQuickLog={() => handleQuickLogClick(symptom)}
+                        onDelete={handleSymptomDeleteClick}
                       />
                     </div>
                   );
@@ -532,7 +711,7 @@ export default function SymptomsPage() {
             <div className="mb-3 sm:mb-4">
               <h2 className="text-lg sm:text-xl font-semibold text-[#8B7E74]">Your Journal</h2>
             </div>
-            <RecentLogs logs={logs} loading={logsLoading} onLogClick={handleLogClick} />
+            <RecentLogs logs={logs} loading={logsLoading} onLogClick={handleLogClick} onDelete={handleLogDeleteClick} />
           </section>
         </AnimatedSection>
       </div>
@@ -575,6 +754,28 @@ export default function SymptomsPage() {
 
       {/* Milestone Celebrations */}
       <MilestoneCelebration />
+
+      {/* Delete Symptom Confirmation Dialog */}
+      <DeleteConfirmationDialog
+        isOpen={deleteDialog.isOpen}
+        onClose={() => setDeleteDialog({ isOpen: false, symptom: null, isLoading: false })}
+        onConfirm={handleSymptomDeleteConfirm}
+        title="Delete Symptom?"
+        message="Are you sure you want to delete this symptom? This action cannot be undone."
+        itemName={deleteDialog.symptom?.name}
+        isLoading={deleteDialog.isLoading}
+      />
+
+      {/* Delete Log Confirmation Dialog */}
+      <DeleteConfirmationDialog
+        isOpen={deleteLogDialog.isOpen}
+        onClose={() => setDeleteLogDialog({ isOpen: false, log: null, isLoading: false })}
+        onConfirm={handleLogDeleteConfirm}
+        title="Delete Symptom Log?"
+        message="Are you sure you want to delete this symptom log? This action cannot be undone."
+        itemName={deleteLogDialog.log?.symptoms?.name}
+        isLoading={deleteLogDialog.isLoading}
+      />
     </div>
   );
 }

@@ -2,17 +2,14 @@
 
 import { useMemo, useState, useEffect, useRef } from "react";
 import { Flame } from "lucide-react";
-import { useSymptomLogs } from "@/hooks/useSymptomLogs";
+import { useNutrition } from "@/hooks/useNutrition";
 import { useUserProfile } from "@/hooks/useUserProfile";
-import { useUserPreferences } from "@/hooks/useUserPreferences";
 
-export default function PersonalizedGreeting() {
-  const { logs } = useSymptomLogs(30);
+export default function NutritionGreeting() {
+  const { nutrition, loading: nutritionLoading } = useNutrition(30);
   const { profile, loading: profileLoading } = useUserProfile();
-  const { preferences, loading: preferencesLoading } = useUserPreferences();
 
   // Time-based greeting with specific time ranges
-
   const isNightTime = useMemo(() => {
     const hour = new Date().getHours();
     return hour >= 22 || hour < 6;
@@ -28,13 +25,8 @@ export default function PersonalizedGreeting() {
     return null;
   }, [profile]);
 
-  // Get streak from user_preferences (preferred) or calculate from logs (fallback)
+  // Calculate streak from nutrition logs
   const streak = useMemo(() => {
-    if (preferences?.current_streak !== null && preferences?.current_streak !== undefined) {
-      return preferences.current_streak;
-    }
-    
-    // Fallback: calculate from logs
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     let streak = 0;
@@ -43,11 +35,12 @@ export default function PersonalizedGreeting() {
       const checkDate = new Date(today);
       checkDate.setDate(checkDate.getDate() - i);
       checkDate.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(checkDate);
+      tomorrow.setDate(tomorrow.getDate() + 1);
       
-      const hasLog = logs.some((log) => {
-        const logDate = new Date(log.logged_at);
-        logDate.setHours(0, 0, 0, 0);
-        return logDate.getTime() === checkDate.getTime();
+      const hasLog = nutrition.some((entry) => {
+        const logDate = new Date(entry.consumed_at);
+        return logDate >= checkDate && logDate < tomorrow;
       });
       
       if (hasLog) {
@@ -59,7 +52,7 @@ export default function PersonalizedGreeting() {
     }
     
     return streak;
-  }, [preferences, logs]);
+  }, [nutrition]);
 
   // Build greeting text based on time of day
   const greetingText = useMemo(() => {
@@ -120,11 +113,10 @@ export default function PersonalizedGreeting() {
     };
   }, [greetingText]);
 
-  if (profileLoading || preferencesLoading) {
+  if (profileLoading || nutritionLoading) {
     return (
       <div className="mb-6">
         <div className="h-8 w-64 bg-[#E8E0DB]/30 rounded animate-pulse mb-2" />
-        <div className="h-4 w-48 bg-[#E8E0DB]/30 rounded animate-pulse" />
       </div>
     );
   }
@@ -152,7 +144,7 @@ export default function PersonalizedGreeting() {
       {streak > 0 && (
         <p className="text-[#3D3D3D] text-base mb-1 flex items-center gap-2">
           <Flame className="h-4 w-4 text-[#ff74b1]" />
-          <span>{streak}-day streak — you&apos;re building real insight into your body</span>
+          <span>{streak}-day streak — you&apos;re building real insight into your nutrition</span>
         </p>
       )}
     </div>

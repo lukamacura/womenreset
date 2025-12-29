@@ -8,10 +8,12 @@ import QuickAddModal from "@/components/nutrition/QuickAddModal";
 import NutritionList, { type Nutrition } from "@/components/nutrition/NutritionList";
 import NutritionStats from "@/components/nutrition/NutritionStats";
 import NutritionCharts from "@/components/nutrition/NutritionCharts";
-import WeekSummary from "@/components/nutrition/WeekSummary";
+import MealTracker from "@/components/nutrition/MealTracker";
 import AnalyticsSection from "@/components/nutrition/AnalyticsSection";
 import HydrationCounter from "@/components/nutrition/HydrationCounter";
+import NutritionGreeting from "@/components/nutrition/NutritionGreeting";
 import { useTrialStatus } from "@/lib/useTrialStatus";
+import { useNotification } from "@/hooks/useNotification";
 import { AnimatedSection, Skeleton } from "@/components/ui/AnimatedComponents";
 
 export const dynamic = "force-dynamic";
@@ -21,12 +23,14 @@ type DateRange = 7 | 30 | 90;
 export default function NutritionPage() {
   const router = useRouter();
   const trialStatus = useTrialStatus();
+  const { show: showNotification, showSuccess, showError: showErrorNotification } = useNotification();
   const [nutrition, setNutrition] = useState<Nutrition[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isQuickModalOpen, setIsQuickModalOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<Nutrition | null>(null);
+  const [preselectedMealType, setPreselectedMealType] = useState<"breakfast" | "lunch" | "dinner" | "snack" | null>(null);
   const [dateRange, setDateRange] = useState<DateRange>(30);
 
   // Redirect to dashboard if trial is expired
@@ -66,6 +70,30 @@ export default function NutritionPage() {
     fetchNutrition();
   }, [fetchNutrition]);
 
+  // Show welcome notification for first-time users
+  useEffect(() => {
+    if (isLoading || nutrition.length > 0) return;
+    
+    // Check if user has any nutrition logs (even from previous days)
+    const hasAnyLogs = nutrition.length > 0;
+    
+    if (!hasAnyLogs) {
+      // Delay notification slightly to let page settle
+      const timer = setTimeout(() => {
+        showNotification("welcome", "Welcome to Fuel Check!", {
+          message: "Track how food fuels (or drains) your body. Log meals and see patterns Lisa finds.",
+          showOnce: true,
+          primaryAction: {
+            label: "Got it",
+            action: () => {},
+          },
+        });
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading, nutrition.length, showNotification]);
+
   // Handle new nutrition entry added
   const handleNutritionAdded = (newEntry: Nutrition) => {
     setNutrition((prev) => [newEntry, ...prev]);
@@ -91,8 +119,15 @@ export default function NutritionPage() {
       }
 
       setNutrition((prev) => prev.filter((n) => n.id !== id));
+      showSuccess("Entry deleted");
+      // Refresh the page to ensure all data is up to date
+      router.refresh();
+      // Also refetch nutrition data
+      fetchNutrition();
+      // Dispatch event for components that listen
+      window.dispatchEvent(new CustomEvent('nutrition-log-updated'));
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to delete nutrition entry");
+      showErrorNotification("Couldn't delete", err instanceof Error ? err.message : "Failed to delete nutrition entry");
     }
   };
 
@@ -106,14 +141,17 @@ export default function NutritionPage() {
   const handleModalClose = () => {
     setIsModalOpen(false);
     setEditingEntry(null);
+    setPreselectedMealType(null);
   };
 
   // Handle modal success
   const handleModalSuccess = (entry: Nutrition) => {
     if (editingEntry) {
       handleNutritionUpdated(entry);
+      showSuccess("Entry updated");
     } else {
       handleNutritionAdded(entry);
+      showSuccess("Food logged");
     }
     handleModalClose();
     // Dispatch custom event for components that listen
@@ -199,36 +237,30 @@ export default function NutritionPage() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl p-6 sm:p-8 space-y-8 text-[17px] sm:text-[18px] min-h-screen" style={{ background: 'linear-gradient(to bottom, #DBEAFE 0%, #FEF3C7 50%, #FCE7F3 100%)' }}>
+    <div className="mx-auto max-w-7xl p-4 sm:p-6 md:p-8 space-y-6 sm:space-y-8 text-[17px] sm:text-[18px] min-h-screen" >
       {/* Header */}
-      <AnimatedSection delay={0} duration={500}>
-        <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">
-              Fuel Check
-            </h1>
-            <p className="text-base text-muted-foreground mt-1">
-              See how food fuels (or drains) your body
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setIsQuickModalOpen(true)}
-              className="btn-primary inline-flex font-bold text-lg justify-center items-center gap-2 cursor-pointer px-5 py-2.5 shadow-md hover:translate-y-px transition-all duration-200"
-            >
-              <Zap className="h-5 w-5" />
-              Quick Add
-            </button>
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="btn-primary inline-flex font-bold text-lg justify-center items-center gap-2 cursor-pointer px-5 py-2.5 shadow-md hover:translate-y-px transition-all duration-200"
-            >
-              <ForkKnifeCrossed className="h-5 w-5" />
-              Log food
-            </button>
-          </div>
-        </header>
-      </AnimatedSection>
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between opacity-0 animate-[fadeInDown_0.6s_ease-out_forwards]">
+        <div className="flex-1">
+          {/* Personalized Greeting is now the header */}
+          <NutritionGreeting />
+        </div>
+        <div className="flex flex-col sm:flex-row gap-3 items-center">
+          <button
+            onClick={() => setIsQuickModalOpen(true)}
+            className="btn-primary inline-flex font-bold text-lg justify-center items-center gap-2 cursor-pointer px-5 py-2.5 shadow-md hover:translate-y-px transition-all duration-200"
+          >
+            <Zap className="h-5 w-5" />
+            Quick Add
+          </button>
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="btn-primary inline-flex font-bold text-lg justify-center items-center gap-2 cursor-pointer px-5 py-2.5 shadow-md hover:translate-y-px transition-all duration-200"
+          >
+            <ForkKnifeCrossed className="h-5 w-5" />
+            Log food
+          </button>
+        </div>
+      </header>
 
       {/* Error State */}
       {error && (
@@ -249,10 +281,22 @@ export default function NutritionPage() {
         </AnimatedSection>
       )}
 
-      {/* Week Summary & Hydration Counter */}
+      {/* Meal Tracker & Hydration Counter */}
       <AnimatedSection delay={100} duration={500}>
         <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <WeekSummary />
+          <MealTracker
+            onMealClick={(mealType, existingEntry) => {
+              if (existingEntry) {
+                // If meal already logged, open for editing
+                handleEditNutrition(existingEntry);
+              } else {
+                // Open modal with meal type pre-selected
+                setEditingEntry(null);
+                setPreselectedMealType(mealType);
+                setIsModalOpen(true);
+              }
+            }}
+          />
           <HydrationCounter />
         </section>
       </AnimatedSection>
@@ -309,6 +353,7 @@ export default function NutritionPage() {
         onClose={handleModalClose}
         onSuccess={handleModalSuccess}
         editingEntry={editingEntry}
+        initialMealType={preselectedMealType}
       />
 
       {/* Quick Add Modal */}

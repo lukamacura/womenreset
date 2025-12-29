@@ -1,5 +1,6 @@
 "use client";
 
+import { Trash2 } from "lucide-react";
 import type { SymptomLog } from "@/lib/symptom-tracker-constants";
 import { formatDateSimple } from "@/lib/dateUtils";
 import { getIconFromName } from "@/lib/symptomIconMapping";
@@ -8,9 +9,10 @@ interface RecentLogsProps {
   logs: SymptomLog[];
   loading?: boolean;
   onLogClick?: (log: SymptomLog) => void;
+  onDelete?: (log: SymptomLog) => void;
 }
 
-export default function RecentLogs({ logs, loading, onLogClick }: RecentLogsProps) {
+export default function RecentLogs({ logs, loading, onLogClick, onDelete }: RecentLogsProps) {
 
   if (loading) {
     return (
@@ -18,7 +20,7 @@ export default function RecentLogs({ logs, loading, onLogClick }: RecentLogsProp
         {[1, 2, 3].map((i) => (
           <div
             key={i}
-            className="animate-pulse rounded-xl border border-white/30 bg-white/20 backdrop-blur-md p-4"
+            className="animate-pulse rounded-xl border border-white/30 bg-white/15 backdrop-blur-md p-4"
           >
             <div className="h-5 w-48 bg-white/30 rounded mb-2" />
             <div className="h-4 w-32 bg-white/30 rounded" />
@@ -30,7 +32,7 @@ export default function RecentLogs({ logs, loading, onLogClick }: RecentLogsProp
 
   if (logs.length === 0) {
     return (
-      <div className="rounded-xl border border-white/30 bg-white/30 backdrop-blur-lg p-6 sm:p-12 text-center shadow-xl">
+      <div className="rounded-xl border border-white/30 bg-white/20 backdrop-blur-lg p-6 sm:p-12 text-center shadow-xl">
         <p className="text-sm sm:text-base text-[#6B6B6B]">No symptoms logged yet</p>
         <p className="text-xs sm:text-sm text-[#9A9A9A] mt-2">
           Start tracking your symptoms to see them here.
@@ -77,8 +79,7 @@ export default function RecentLogs({ logs, loading, onLogClick }: RecentLogsProp
         return (
           <div
             key={log.id}
-            onClick={() => onLogClick?.(log)}
-            className="rounded-xl border border-white/30 bg-white/30 backdrop-blur-lg p-3 sm:p-4 hover:bg-white/40 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 cursor-pointer shadow-lg"
+            className="rounded-xl border border-white/30 bg-pink-100/50 backdrop-blur-lg p-3 sm:p-4 hover:bg-white/30 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 shadow-lg"
             style={{
               animation: `fadeInUp 0.4s ease-out forwards`,
               animationDelay: `${index * 40}ms`,
@@ -86,7 +87,10 @@ export default function RecentLogs({ logs, loading, onLogClick }: RecentLogsProp
             }}
           >
             <div className="flex items-start justify-between gap-2 sm:gap-4">
-              <div className="flex-1 min-w-0">
+              <div 
+                className="flex-1 min-w-0 cursor-pointer"
+                onClick={() => onLogClick?.(log)}
+              >
                 <div className="flex items-center gap-2 sm:gap-3 mb-1 flex-wrap">
                   <SymptomIcon className="h-4 w-4 sm:h-5 sm:w-5 text-[#3D3D3D] shrink-0" />
                   <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap min-w-0">
@@ -111,6 +115,20 @@ export default function RecentLogs({ logs, loading, onLogClick }: RecentLogsProp
                   <div className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-[#3D3D3D] ml-6 sm:ml-8 wrap-break-word">{log.notes}</div>
                 )}
               </div>
+              {onDelete && (
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDelete(log);
+                    }}
+                    className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-primary-light/50 hover:text-primary-dark"
+                    aria-label="Delete symptom log"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         );

@@ -151,3 +151,87 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+
+// DELETE: Delete a custom symptom (cannot delete default symptoms)
+export async function DELETE(req: NextRequest) {
+  try {
+    const user = await getAuthenticatedUser(req);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Check if trial is expired
+    const isExpired = await checkTrialExpired(user.id);
+    if (isExpired) {
+      return NextResponse.json(
+        { error: "Trial expired. Please upgrade to continue using the tracker." },
+        { status: 403 }
+      );
+    }
+
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "Symptom ID is required" },
+        { status: 400 }
+      );
+    }
+
+    const supabaseAdmin = getSupabaseAdmin();
+    
+    // First, check if the symptom exists and is not a default symptom
+    const { data: symptom, error: fetchError } = await supabaseAdmin
+      .from("symptoms")
+      .select("id, is_default, user_id")
+      .eq("id", id)
+      .single();
+
+    if (fetchError || !symptom) {
+      return NextResponse.json(
+        { error: "Symptom not found" },
+        { status: 404 }
+      );
+    }
+
+    // Verify the symptom belongs to the user
+    if (symptom.user_id !== user.id) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 403 }
+      );
+    }
+
+    // Prevent deletion of default symptoms
+    if (symptom.is_default) {
+      return NextResponse.json(
+        { error: "Cannot delete default symptoms" },
+        { status: 400 }
+      );
+    }
+
+    // Delete the symptom
+    const { error: deleteError } = await supabaseAdmin
+      .from("symptoms")
+      .delete()
+      .eq("id", id)
+      .eq("user_id", user.id);
+
+    if (deleteError) {
+      console.error("Supabase delete error:", deleteError);
+      return NextResponse.json(
+        { error: "Failed to delete symptom" },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ success: true }, { status: 200 });
+  } catch (e) {
+    console.error("DELETE /api/symptoms error:", e);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}

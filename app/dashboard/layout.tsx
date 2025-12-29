@@ -8,6 +8,8 @@ import { supabase } from "@/lib/supabaseClient";
 import LisaSwipeButton from "@/components/LisaSwipeButton";
 import { useTrialStatus } from "@/lib/useTrialStatus";
 import SessionVerification from "@/components/SessionVerification";
+import { NotificationProvider } from "@/components/notifications/NotificationProvider";
+import NotificationContainer from "@/components/notifications/NotificationContainer";
 
 // Animated Navigation Item Component
 function AnimatedNavItem({
@@ -132,11 +134,12 @@ export default function DashboardLayout({
   }, [pathname]);
 
   return (
-    <div className="min-h-screen flex flex-col pt-18">
-      {/* Session Verification - checks for browser mismatch issues */}
-      <SessionVerification />
-      
-      {/* Top Navigation */}
+    <NotificationProvider>
+      <div className="min-h-screen flex flex-col pt-18">
+        {/* Session Verification - checks for browser mismatch issues */}
+        <SessionVerification />
+        
+        {/* Top Navigation */}
       <nav className="top-0 z-10 border-b border-foreground/10 bg-background/80 backdrop-blur-sm">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
@@ -251,6 +254,10 @@ export default function DashboardLayout({
 
       {/* Fixed Lisa Swipe Button */}
       <LisaSwipeButton />
-    </div>
+
+        {/* Notification Container */}
+        <NotificationContainer />
+      </div>
+    </NotificationProvider>
   );
 }

@@ -10,6 +10,7 @@ type AddNutritionModalProps = {
   onClose: () => void;
   onSuccess: (nutrition: Nutrition) => void;
   editingEntry?: Nutrition | null;
+  initialMealType?: "breakfast" | "lunch" | "dinner" | "snack" | null;
 };
 
 type Step = 1 | 2 | 3 | 4 | 5;
@@ -19,10 +20,11 @@ export default function AddNutritionModal({
   onClose,
   onSuccess,
   editingEntry = null,
+  initialMealType = null,
 }: AddNutritionModalProps) {
   const [currentStep, setCurrentStep] = useState<Step>(1);
   const [foodItem, setFoodItem] = useState("");
-  const [mealType, setMealType] = useState<"breakfast" | "lunch" | "dinner" | "snack" | null>(null);
+  const [mealType, setMealType] = useState<"breakfast" | "lunch" | "dinner" | "snack" | null>(initialMealType || null);
   const [foodTags, setFoodTags] = useState<string[]>([]);
   const [feelingAfter, setFeelingAfter] = useState<'energized' | 'no_change' | 'sluggish' | 'bloated' | null>(null);
   const [calories, setCalories] = useState<string>("");
@@ -96,7 +98,7 @@ export default function AddNutritionModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Populate form when editing
+  // Populate form when editing or when initialMealType is provided
   useEffect(() => {
     if (editingEntry) {
       setFoodItem(editingEntry.food_item);
@@ -111,7 +113,7 @@ export default function AddNutritionModal({
     } else {
       // Reset form for new entry
       setFoodItem("");
-      setMealType(null);
+      setMealType(initialMealType || null);
       setFoodTags([]);
       setFeelingAfter(null);
       setCalories("");
@@ -119,8 +121,12 @@ export default function AddNutritionModal({
       setTimeSelection('now');
       setCustomTime("");
       setCurrentStep(1);
+      // If initialMealType is provided, advance to step 2 (food item)
+      if (initialMealType) {
+        setCurrentStep(2);
+      }
     }
-  }, [editingEntry, isOpen]);
+  }, [editingEntry, isOpen, initialMealType]);
 
   const handleSubmit = async (e?: FormEvent) => {
     if (e) {
@@ -258,7 +264,13 @@ export default function AddNutritionModal({
               </button>
             )}
             <h2 className="text-xl sm:text-2xl font-semibold">
-              {editingEntry ? "Edit Entry" : currentStep === 1 ? "Select a Meal" : "Add Details"}
+              {editingEntry
+                ? "Edit Entry"
+                : initialMealType && currentStep === 1
+                ? `Log ${initialMealType.charAt(0).toUpperCase() + initialMealType.slice(1)}`
+                : currentStep === 1
+                ? "Select a Meal"
+                : "Add Details"}
             </h2>
           </div>
           <button

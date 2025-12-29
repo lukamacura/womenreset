@@ -702,7 +702,7 @@ export default function RegisterPage() {
   }, [router, phase]);
 
   return (
-    <main className="overflow-x-hidden relative mx-auto p-6 sm:p-8 h-full flex flex-col pt-16">
+    <main className="overflow-x-hidden overflow-y-hidden relative mx-auto p-4 sm:p-6 h-screen flex flex-col pt-24 max-w-3xl">
         {/* Random Notification Popup */}
         <AnimatePresence>
           {phase === "quiz" && showNotification && (
@@ -713,16 +713,16 @@ export default function RegisterPage() {
               transition={{ duration: 0.3, ease: "easeOut" }}
               className="fixed top-20 sm:top-20 left-1/2 -translate-x-1/2 z-40 w-[calc(100vw-3rem)] max-w-2xl px-3 sm:px-6 pointer-events-none"
             >
-              <div className="bg-gray-900/95 backdrop-blur-xl border border-white/40 rounded-2xl p-5 shadow-2xl flex items-center gap-4 pointer-events-auto">
-                <div className="p-2.5 rounded-xl bg-yellow-500/20 shrink-0">
+              <div className="bg-white/70 backdrop-blur-xl border border-white/40 rounded-2xl p-5 shadow-2xl flex items-center gap-4 pointer-events-auto">
+                <div className="p-2.5 rounded-xl bg-yellow-200 shrink-0">
                   <Info className="h-5 w-5 text-yellow-400" />
                 </div>
-                <p className="text-xs md:text-sm text-white font-semibold flex-1 leading-relaxed">
+                <p className="text-xs md:text-sm text-foreground font-semibold flex-1 leading-relaxed">
                   {notificationMessage}
                 </p>
                 <button
                   onClick={handleCloseNotification}
-                  className="text-white/60 hover:text-white hover:bg-white/10 rounded-lg p-1.5 transition-all duration-200 cursor-pointer shrink-0"
+                  className="text-foreground/60 hover:text-primary hover:bg-white/10 rounded-lg p-1.5 transition-all duration-200 cursor-pointer shrink-0"
                   aria-label="Close notification"
                   type="button"
                 >
@@ -862,7 +862,7 @@ export default function RegisterPage() {
                       </p>
 
                       {/* Progress Bar */}
-                      <div className="relative h-3 bg-gray-900 rounded-full mb-4 overflow-hidden">
+                      <div className="relative h-3 bg-white/20 backdrop-blur-2xl rounded-full mb-4 overflow-hidden">
                         {/* Current score */}
                         <motion.div
                           initial={{ width: 0 }}
@@ -902,7 +902,7 @@ export default function RegisterPage() {
                         initial={{ opacity: 0, scale: 0.8 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ delay: 1.2 + index * 0.1 }}
-                        className="px-2 py-1 bg-red-100  text-red-500 text-sm rounded-full"
+                        className="px-2 py-1 bg-red-200  text-red-800 border border-red-800 font-bold text-sm rounded-full"
                       >
                         {SYMPTOM_LABELS[symptom] || symptom}
                       </motion.span>
@@ -1003,10 +1003,10 @@ export default function RegisterPage() {
 
       {/* Quiz Phase */}
       {phase === "quiz" && (
-        <div className="flex-1 flex flex-col pt-2 sm:pt-4">
+        <div className="flex-1 flex flex-col min-h-0">
           {/* Progress Bar - More visible and compact */}
-          <div className="mb-3 sm:mb-4 pt-2 sm:pt-4">
-            <div className="flex items-center justify-between mb-2">
+          <div className="mb-3 sm:mb-4 shrink-0">
+            <div className="flex items-center justify-between mb-2 md:pt-22">
               <span className="text-xs sm:text-sm font-semibold text-foreground">
                 Question {stepIndex + 1} of {STEPS.length}
               </span>
@@ -1023,8 +1023,8 @@ export default function RegisterPage() {
           </div>
 
           {/* Question Content */}
-          <div className="flex-1 flex flex-col min-h-0">
-            <div className="rounded-xl sm:rounded-2xl border border-foreground/10 bg-card/50 backdrop-blur-sm p-4 sm:p-6 space-y-4 sm:space-y-6 flex-1 shadow-lg shadow-primary/5 overflow-y-auto">
+          <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+            <div className="rounded-xl sm:rounded-2xl border border-foreground/10 bg-card/50 backdrop-blur-sm p-4 sm:p-6 space-y-3 sm:space-y-4 flex-1 shadow-lg shadow-primary/5 overflow-y-auto">
               {/* Q1: Top Problems */}
               {currentStep === "q1_problems" && (
                 <div className="space-y-3 sm:space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
@@ -1319,8 +1319,8 @@ export default function RegisterPage() {
               )}
             </div>
 
-            {/* Navigation Buttons - Sticky on mobile */}
-            <div className="flex items-center justify-between mt-4 sm:mt-6 gap-3 sm:gap-4 sticky bottom-0 bg-card/95 backdrop-blur-sm py-2 sm:py-0 -mx-4 sm:-mx-6 px-4 sm:px-6 border-t border-foreground/10 sm:border-0">
+            {/* Navigation Buttons - Fixed at bottom */}
+            <div className="flex items-center justify-between mt-3 sm:mt-4 gap-3 sm:gap-4 shrink-0 py-3 sm:py-4">
               <button
                 type="button"
                 onClick={goBack}
@@ -1358,7 +1358,7 @@ export default function RegisterPage() {
               We sent you a magic link at <strong>{email}</strong>
             </p>
             <p className="text-muted-foreground mt-2">
-              Click the link in your email to continue with registration.
+              Click the <b>link in your email</b> to continue with registration.
             </p>
           </div>
           {browserInfo && hasBrowserMismatchIssue(browserInfo) && (
@@ -1374,10 +1374,7 @@ export default function RegisterPage() {
               </div>
             </div>
           )}
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <CheckCircle2 className="w-4 h-4 text-primary" />
-            <span>Your quiz answers are saved and will be stored when you click the magic link</span>
-          </div>
+
           {error && (
             <div className="rounded-xl border border-error/30 bg-error/10 p-3 text-sm text-error max-w-md">
               {error}

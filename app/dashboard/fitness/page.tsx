@@ -85,6 +85,10 @@ export default function FitnessPage() {
       }
 
       setFitness((prev) => prev.filter((f) => f.id !== id));
+      // Refresh the page to ensure all data is up to date
+      router.refresh();
+      // Also refetch fitness data
+      fetchFitness();
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to delete fitness entry");
     }
