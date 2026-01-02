@@ -164,12 +164,13 @@ function generateExploreItems(summary: any, symptomLogs: any[]): string[] {
   
   patterns.slice(0, 3).forEach((insight: any) => {
     if (insight.type === 'time-of-day' && insight.symptomName && insight.timeOfDay) {
-      const timeLabel = {
+      const timeLabels: Record<string, string> = {
         morning: 'morning (6am-12pm)',
         afternoon: 'afternoon (2-6pm)',
         evening: 'evening (6-10pm)',
         night: 'night (10pm-6am)',
-      }[insight.timeOfDay] || insight.timeOfDay;
+      };
+      const timeLabel = timeLabels[insight.timeOfDay as string] || insight.timeOfDay;
       items.push(`Your ${insight.symptomName.toLowerCase()} cluster in the ${timeLabel} - what happens around that time? Lunch? Work stress? Caffeine?`);
     } else if (insight.type === 'trigger' && insight.symptomName && insight.triggerName) {
       items.push(`${insight.symptomName} appears after ${insight.triggerName.toLowerCase()} - consider tracking ${insight.triggerName.toLowerCase()}-free weeks to confirm this pattern.`);
