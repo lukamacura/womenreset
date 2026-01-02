@@ -4,10 +4,6 @@ import { useMemo } from "react";
 import type { Nutrition } from "./NutritionList";
 import { Calendar, Sunrise, Sun, Moon, Cookie, Activity, UtensilsCrossed } from "lucide-react";
 
-const getTodayLabel = () => {
-  const today = new Date();
-  return today.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
-};
 
 type DateRange = 7 | 30 | 90;
 
@@ -75,17 +71,6 @@ export default function NutritionStats({
 
   return (
     <div className="space-y-6">
-      {/* Today's Date Display */}
-      <div className="rounded-xl border border-white/30 bg-white/30 backdrop-blur-lg p-4 shadow-xl">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-[#9A9A9A] mb-1">Today</p>
-            <p className="text-lg font-semibold text-[#3D3D3D]">{getTodayLabel()}</p>
-          </div>
-          <Calendar className="h-5 w-5 text-[#8B7E74]" />
-        </div>
-      </div>
-
       {/* Modern Date Range Selector */}
       <div className="flex items-center gap-2 flex-wrap">
         {([7, 30, 90] as DateRange[]).map((range) => (

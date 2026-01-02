@@ -28,7 +28,7 @@ ON notifications(user_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS notifications_user_seen_idx 
 ON notifications(user_id, seen, dismissed, created_at DESC);
 
-CREATE INDEX IF NOT EXISTS notifications_type_idx 
+CREATE INDEX IF NOT EXISTS notifications_type_idx
 ON notifications(type, created_at DESC);
 
 -- Enable RLS (Row Level Security)

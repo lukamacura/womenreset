@@ -153,8 +153,8 @@ export default function SymptomCard({
     }
   };
 
-  // Only show delete button for custom symptoms (not default ones)
-  const canDelete = !symptom.is_default && onDelete;
+  // Only show delete button for custom symptoms (not default ones) and not for "Good Day"
+  const canDelete = !symptom.is_default && symptom.name !== "Good Day" && onDelete;
 
   return (
     <div className="relative">
@@ -188,15 +188,6 @@ export default function SymptomCard({
                   : 'text-red-500'
               }`} />
             )}
-            {canDelete && (
-              <button
-                onClick={handleDeleteClick}
-                className="rounded-lg p-1 text-muted-foreground transition-colors hover:bg-primary-light/50 hover:text-primary-dark"
-                aria-label="Delete symptom"
-              >
-                <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-              </button>
-            )}
           </div>
         </div>
         {isLoggedToday && loggedTime && (
@@ -208,6 +199,15 @@ export default function SymptomCard({
           <p className="text-xs sm:text-sm text-[#9A9A9A] ml-7 sm:ml-11">Tap to log</p>
         )}
       </button>
+      {canDelete && (
+        <button
+          onClick={handleDeleteClick}
+          className="absolute top-2 right-2 rounded-lg p-1 text-muted-foreground transition-colors hover:bg-primary-light/50 hover:text-primary-dark z-10"
+          aria-label="Delete symptom"
+        >
+          <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+        </button>
+      )}
     </div>
   );
 }

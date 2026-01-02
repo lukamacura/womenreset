@@ -27,8 +27,9 @@ export default function LogSymptomModal({
   editingLog = null,
   allLogs = [],
 }: LogSymptomModalProps) {
+  const isGoodDay = symptom.name === "Good Day";
   const [currentStep, setCurrentStep] = useState<Step>(1);
-  const [severity, setSeverity] = useState(2); // Default to Moderate
+  const [severity, setSeverity] = useState(isGoodDay ? 1 : 2); // Good Day defaults to Mild (green), others to Moderate
   const [selectedTriggers, setSelectedTriggers] = useState<string[]>([]);
   const [notes, setNotes] = useState("");
   const [timeSelection, setTimeSelection] = useState<'now' | 'earlier-today' | 'yesterday'>('now');
@@ -97,7 +98,7 @@ export default function LogSymptomModal({
         setCurrentStep(1); // Start at step 1
       } else {
         // Reset to defaults for new log
-        setSeverity(2); // Default to Moderate
+        setSeverity(isGoodDay ? 1 : 2); // Good Day defaults to Mild (green), others to Moderate
         setSelectedTriggers([]);
         setNotes("");
         setTimeSelection('now');
@@ -194,7 +195,7 @@ export default function LogSymptomModal({
       });
 
       // Reset form
-      setSeverity(2); // Default to Moderate
+      setSeverity(isGoodDay ? 1 : 2); // Good Day defaults to Mild (green), others to Moderate
       setSelectedTriggers([]);
       setNotes("");
       setTimeSelection('now');
@@ -327,10 +328,27 @@ export default function LogSymptomModal({
                   <label className="text-[#3D3D3D] text-lg mb-4 block font-semibold">
                     How bad is it?
                   </label>
-                  <div className="flex gap-4 justify-center">
+                  <div className="flex gap-3 justify-center">
                     {[1, 2, 3].map((level) => {
                       const severityInfo = SEVERITY_LABELS[level as keyof typeof SEVERITY_LABELS];
                       const SeverityIconComponent = severityInfo.icon;
+                      const isSelected = severity === level;
+                      const borderColor = level === 1 
+                        ? 'border-green-500' 
+                        : level === 2 
+                        ? 'border-yellow-500' 
+                        : 'border-red-500';
+                      const bgColor = level === 1 
+                        ? 'bg-green-50/50' 
+                        : level === 2 
+                        ? 'bg-yellow-50/50' 
+                        : 'bg-red-50/50';
+                      const iconColor = level === 1 
+                        ? 'text-green-600' 
+                        : level === 2 
+                        ? 'text-yellow-600' 
+                        : 'text-red-600';
+                      
                       return (
                         <button
                           key={level}
@@ -339,28 +357,20 @@ export default function LogSymptomModal({
                             e.stopPropagation();
                             setSeverity(level);
                           }}
-                          className={`flex flex-col items-center gap-2 px-6 py-4 rounded-xl transition-all cursor-pointer
+                          className={`flex flex-col items-center gap-2 px-5 py-4 rounded-xl transition-all cursor-pointer border-2
                             ${
-                              severity === level
-                                ? level === 1
-                                  ? "bg-green-500 text-white scale-105 shadow-lg"
-                                  : level === 2
-                                  ? "bg-yellow-500 text-white scale-105 shadow-lg"
-                                  : "bg-red-500 text-white scale-105 shadow-lg"
-                                : "bg-white/60 text-[#6B6B6B] hover:bg-white/80 hover:text-[#3D3D3D] border border-white/30"
+                              isSelected
+                                ? `${borderColor} ${bgColor} scale-[1.02] shadow-sm`
+                                : "border-white/30 bg-white/60 hover:bg-white/80 hover:border-white/40"
                             }`}
                         >
-                          <SeverityIconComponent className={`h-8 w-8 ${
-                            severity === level 
-                              ? 'text-white' 
-                              : level === 1
-                              ? 'text-green-500'
-                              : level === 2
-                              ? 'text-yellow-500'
-                              : 'text-red-500'
-                          }`} />
-                          <span className="font-medium text-sm">{severityInfo.label}</span>
-                          <span className="text-xs opacity-80">{severityInfo.description}</span>
+                          <SeverityIconComponent className={`h-7 w-7 ${iconColor}`} />
+                          <span className={`font-medium text-sm ${isSelected ? 'text-[#3D3D3D]' : 'text-[#6B6B6B]'}`}>
+                            {severityInfo.label}
+                          </span>
+                          <span className={`text-xs ${isSelected ? 'text-[#6B6B6B]' : 'text-[#9A9A9A]'}`}>
+                            {severityInfo.description}
+                          </span>
                         </button>
                       );
                     })}

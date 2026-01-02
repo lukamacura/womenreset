@@ -30,11 +30,11 @@ export function getTrialState(
   if (expired) return "expired";
   // Urgent: less than 24 hours (0 days and any hours/minutes remaining)
   if (remaining.d === 0) return "urgent";
-  // Warning: exactly 1 day remaining
-  if (daysLeft === 1) return "warning";
-  // Calm: 2-3 days remaining
-  if (daysLeft >= 2 && daysLeft <= 3) return "calm";
-  return "calm"; // Default to calm for more than 3 days
+  // Warning: 1-2 days remaining
+  if (daysLeft >= 1 && daysLeft <= 2) return "warning";
+  // Calm: 3+ days remaining
+  if (daysLeft >= 3) return "calm";
+  return "calm"; // Default to calm
 }
 
 // Format countdown text
@@ -108,14 +108,14 @@ export function TrialCard({ trial, symptomCount = 0, patternCount = 0 }: TrialCa
         };
       case "urgent":
         return {
-          background: "from-gray-900 via-red-900/50 to-orange-900/50",
+          background: "from-red-900 via-red-950 to-gray-900",
           badgeBg: "bg-red-500/30",
           badgeText: "text-red-300",
           badgeBorder: "border-red-500/50",
           badgeLabel: "Ends today",
           progressBar: "from-red-500 to-red-600",
           buttonStyle: "bg-red-500 hover:bg-red-600 text-white! border border-red-400/50 w-full",
-          title: "⚠️ Trial Ending Soon",
+          title: "Trial Ending Soon",
         };
       case "expired":
         return {

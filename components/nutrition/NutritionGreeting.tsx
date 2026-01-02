@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState, useEffect, useRef } from "react";
-import { Flame } from "lucide-react";
 import { useNutrition } from "@/hooks/useNutrition";
 import { useUserProfile } from "@/hooks/useUserProfile";
 
@@ -141,12 +140,6 @@ export default function NutritionGreeting() {
         ))}
         {isAnimating && <span className="inline-block w-0.5 h-5 sm:h-6 md:h-7 bg-[#8B7E74] animate-pulse ml-1" />}
       </h2>
-      {streak > 0 && (
-        <p className="text-[#3D3D3D] text-base mb-1 flex items-center gap-2">
-          <Flame className="h-4 w-4 text-[#ff74b1]" />
-          <span>{streak}-day streak — you&apos;re building real insight into your nutrition</span>
-        </p>
-      )}
     </div>
   );
 }

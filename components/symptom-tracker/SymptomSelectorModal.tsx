@@ -19,6 +19,9 @@ export default function SymptomSelectorModal({
 }: SymptomSelectorModalProps) {
   if (!isOpen) return null;
 
+  // Filter out "Good Day" symptom - it's been replaced by daily mood tracking
+  const filteredSymptoms = symptoms.filter((s) => s.name !== "Good Day");
+
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
       onClose();
@@ -55,7 +58,7 @@ export default function SymptomSelectorModal({
         </div>
 
         {/* Symptoms Grid */}
-        {symptoms.length === 0 ? (
+        {filteredSymptoms.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-[#6B6B6B]">No symptoms available</p>
             <p className="text-sm text-[#9A9A9A] mt-2">
@@ -64,7 +67,7 @@ export default function SymptomSelectorModal({
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {symptoms.map((symptom) => {
+            {filteredSymptoms.map((symptom) => {
               // Map symptom names to icon names (prioritize name mapping for unique icons)
               const iconMap: Record<string, string> = {
                 'Hot flashes': 'Flame',

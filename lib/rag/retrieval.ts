@@ -671,6 +671,117 @@ function applyHybridSearch(
 }
 
 /**
+ * Check for exact intent pattern matches across ALL personas
+ * This ensures exact matches are found regardless of persona classification
+ * Returns KBEntry array if exact matches found, empty array otherwise
+ */
+export async function checkExactIntentMatchAcrossAllPersonas(
+  query: string,
+  topK: number = 3
+): Promise<KBEntry[]> {
+  try {
+    const supabaseClient = getSupabaseAdmin();
+    const normalizedQuery = normalizeTextForIntentMatching(query);
+    
+    console.log(`[Exact Intent Check] Checking for exact intent pattern matches across ALL personas`);
+    
+    // Query ALL documents (no persona filter) to check intent patterns
+    // Use a reasonable limit to avoid performance issues (300 should cover most cases)
+    const { data: allDocs, error: queryError } = await supabaseClient
+      .from('documents')
+      .select('id, content, metadata')
+      .limit(300);
+    
+    if (queryError || !allDocs || allDocs.length === 0) {
+      if (queryError) {
+        console.warn(`[Exact Intent Check] Error querying documents: ${queryError.message}`);
+      }
+      return [];
+    }
+    
+    console.log(`[Exact Intent Check] Checking ${allDocs.length} documents across all personas`);
+    
+    const exactMatchEntries: KBEntry[] = [];
+    
+    for (const doc of allDocs) {
+      const metadata = doc.metadata as any;
+      
+      if (!metadata) {
+        continue;
+      }
+      
+      // Handle intent_patterns - can be array or string
+      let intentPatterns: string[] = [];
+      const rawIntentPatterns = metadata.intent_patterns;
+      
+      if (rawIntentPatterns) {
+        if (Array.isArray(rawIntentPatterns)) {
+          intentPatterns = rawIntentPatterns
+            .map((p: any) => typeof p === 'string' ? p : String(p))
+            .filter((p: string) => p && p.trim().length > 0);
+        } else if (typeof rawIntentPatterns === 'string') {
+          intentPatterns = [rawIntentPatterns];
+        }
+      }
+      
+      if (intentPatterns.length === 0) {
+        continue; // Skip documents without intent patterns
+      }
+      
+      // Check for exact match after normalization
+      for (const pattern of intentPatterns) {
+        const patternNormalized = normalizeTextForIntentMatching(pattern);
+        
+        if (normalizedQuery === patternNormalized) {
+          console.log(`[Exact Intent Check] ✅ FOUND EXACT INTENT MATCH across all personas: "${pattern}" | Persona: ${metadata.persona} | Topic: ${metadata.topic} | Subtopic: ${metadata.subtopic}`);
+          
+          // Convert content_sections
+          const rawContentSections = metadata.content_sections as Partial<ContentSections> | undefined;
+          const contentSections: ContentSections = {
+            has_content: rawContentSections?.has_content ?? false,
+            has_action_tips: rawContentSections?.has_action_tips ?? false,
+            has_motivation: rawContentSections?.has_motivation ?? false,
+            has_followup: rawContentSections?.has_followup ?? false,
+            has_habit_strategy: rawContentSections?.has_habit_strategy ?? false,
+          };
+          
+          // Convert to KBEntry format
+          const kbEntry: KBEntry = {
+            id: doc.id || '',
+            content: doc.content,
+            metadata: {
+              persona: metadata.persona || '',
+              topic: metadata.topic || '',
+              subtopic: metadata.subtopic || '',
+              keywords: metadata.keywords || [],
+              intent_patterns: intentPatterns,
+              content_sections: contentSections,
+              follow_up_links: metadata.follow_up_links as any,
+              source: metadata.source,
+              section_index: metadata.section_index,
+            },
+            similarity: 1.0, // Exact match gets highest similarity
+            semanticSimilarity: 1.0,
+          };
+          
+          exactMatchEntries.push(kbEntry);
+          break; // Only add each document once (even if multiple patterns match)
+        }
+      }
+    }
+    
+    if (exactMatchEntries.length > 0) {
+      console.log(`[Exact Intent Check] ✅ Found ${exactMatchEntries.length} exact intent pattern match(es) across all personas`);
+    }
+    
+    return exactMatchEntries.slice(0, topK);
+  } catch (error) {
+    console.error('[Exact Intent Check] Error checking exact intent matches:', error);
+    return [];
+  }
+}
+
+/**
  * Strict Intent-Based Retrieval for kb_strict mode
  * Retrieves documents ONLY if their intents match the user query (score >= 0.9)
  * Falls back to semantic similarity if no intent matches found
@@ -685,6 +796,113 @@ export async function retrieveFromKBByIntentOnly(
     console.log(`[Intent-Only Retrieval] Starting strict intent-based retrieval for: "${query}"`);
     console.log(`[Intent-Only Retrieval] Intent threshold: ${intentThreshold}`);
     
+    // CRITICAL FIX: First, check for exact intent pattern matches via direct DB query
+    // This ensures exact matches are found even if semantic similarity is very low
+    const supabaseClient = getSupabaseAdmin();
+    const normalizedQuery = normalizeTextForIntentMatching(query);
+    const metadataPersona = mapPersonaToMetadata(persona);
+    
+    console.log(`[Intent-Only Retrieval] Checking for exact intent pattern matches in persona: ${metadataPersona}`);
+    
+    // Query all documents with this persona to check intent patterns
+    // Use a reasonable limit to avoid performance issues (200 should cover most cases)
+    const { data: personaDocs, error: personaError } = await supabaseClient
+      .from('documents')
+      .select('id, content, metadata')
+      .eq('metadata->>persona', metadataPersona)
+      .limit(200);
+    
+    if (!personaError && personaDocs && personaDocs.length > 0) {
+      console.log(`[Intent-Only Retrieval] Checking ${personaDocs.length} documents for exact intent pattern matches`);
+      
+      const exactMatchEntries: KBEntry[] = [];
+      
+      for (const doc of personaDocs) {
+        // Supabase returns JSONB fields as parsed objects, so doc.metadata is already an object
+        const metadata = doc.metadata as any;
+        
+        if (!metadata) {
+          console.warn(`[Intent-Only Retrieval] Document ${doc.id} has no metadata, skipping`);
+          continue;
+        }
+        
+        // Handle intent_patterns - can be array or string
+        let intentPatterns: string[] = [];
+        const rawIntentPatterns = metadata.intent_patterns;
+        
+        if (rawIntentPatterns) {
+          if (Array.isArray(rawIntentPatterns)) {
+            intentPatterns = rawIntentPatterns
+              .map((p: any) => typeof p === 'string' ? p : String(p))
+              .filter((p: string) => p && p.trim().length > 0);
+          } else if (typeof rawIntentPatterns === 'string') {
+            intentPatterns = [rawIntentPatterns];
+          }
+        }
+        
+        if (intentPatterns.length === 0) {
+          continue; // Skip documents without intent patterns
+        }
+        
+        // Check for exact match after normalization
+        for (const pattern of intentPatterns) {
+          const patternNormalized = normalizeTextForIntentMatching(pattern);
+          
+          if (normalizedQuery === patternNormalized) {
+            console.log(`[Intent-Only Retrieval] ✅ FOUND EXACT INTENT MATCH via direct DB query: "${pattern}" | Topic: ${metadata.topic} | Subtopic: ${metadata.subtopic}`);
+            
+            // Convert content_sections
+            const rawContentSections = metadata.content_sections as Partial<ContentSections> | undefined;
+            const contentSections: ContentSections = {
+              has_content: rawContentSections?.has_content ?? false,
+              has_action_tips: rawContentSections?.has_action_tips ?? false,
+              has_motivation: rawContentSections?.has_motivation ?? false,
+              has_followup: rawContentSections?.has_followup ?? false,
+              has_habit_strategy: rawContentSections?.has_habit_strategy ?? false,
+            };
+            
+            // Convert to KBEntry format
+            const kbEntry: KBEntry = {
+              id: doc.id || '',
+              content: doc.content,
+              metadata: {
+                persona: metadataPersona,
+                topic: metadata.topic || '',
+                subtopic: metadata.subtopic || '',
+                keywords: metadata.keywords || [],
+                intent_patterns: intentPatterns,
+                content_sections: contentSections,
+                follow_up_links: metadata.follow_up_links as any,
+                source: metadata.source,
+                section_index: metadata.section_index,
+              },
+              similarity: 1.0, // Exact match gets highest similarity
+              semanticSimilarity: 1.0,
+            };
+            
+            exactMatchEntries.push(kbEntry);
+            break; // Only add each document once (even if multiple patterns match)
+          }
+        }
+      }
+      
+      // If exact matches found, return them immediately (prioritize exact matches)
+      if (exactMatchEntries.length > 0) {
+        console.log(`[Intent-Only Retrieval] ✅ Returning ${exactMatchEntries.length} exact intent pattern match(es) - bypassing semantic retrieval`);
+        return {
+          kbEntries: exactMatchEntries.slice(0, topK),
+          hasMatch: true,
+          topScore: 1.0,
+          topSemanticScore: 1.0,
+        };
+      } else {
+        console.log(`[Intent-Only Retrieval] No exact intent pattern matches found, proceeding with semantic retrieval`);
+      }
+    } else if (personaError) {
+      console.warn(`[Intent-Only Retrieval] Error querying documents for exact matches: ${personaError.message}, proceeding with semantic retrieval`);
+    }
+    
+    // If no exact matches found, proceed with semantic retrieval + intent filtering
     // First, get semantic similarity candidates (to build candidate pool)
     const semanticResult = await retrieveFromKB(query, persona, Math.min(topK * 5, 30), 0.3);
     

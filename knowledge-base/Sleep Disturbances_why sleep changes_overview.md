@@ -21,7 +21,7 @@ follow_up_links:
 - persona: "menopause"
   topic: "Sleep Disturbances in Menopause"
   subtopic: "Sleep Recovery Roadmap – Step-by-Step Plan"
-  label: step-by-step guide to rebuild deep rest
+  label: Sleep Recovery Roadmap – Step-by-Step Plan
 
 intent_patterns:
   - "Why do I wake up every night?"

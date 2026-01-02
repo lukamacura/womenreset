@@ -5,7 +5,7 @@
 import type { Persona, RetrievalMode, OrchestrationResult, FollowUpLink, KBEntry, ContentSections } from "./types";
 import { classifyPersona } from "./persona-classifier";
 import { validateMenopauseQuery, generateRefusalResponse } from "./safety-validator";
-import { retrieveFromKB, retrieveFromKBByIntentOnly, normalizeTextForIntentMatching } from "./retrieval";
+import { retrieveFromKB, retrieveFromKBByIntentOnly, normalizeTextForIntentMatching, checkExactIntentMatchAcrossAllPersonas } from "./retrieval";
 import { formatVerbatimResponse, formatKBContextForLLM } from "./response-formatter";
 import { getConversationHistory } from "./conversation-memory";
 import { shouldRouteWhyToMenopause, isWhyHormoneQuestion } from "./classifier/whyRouter";
@@ -582,7 +582,35 @@ export async function orchestrateRAG(
     const queryForKB = userQuery;
     
     // Step 2: Classify persona (use original query, not enhanced) - do this early for follow-up link resolution
-    let persona = classifyPersona(userQuery);
+    let persona = await classifyPersona(userQuery);
+    
+    // CRITICAL FIX: Check for exact intent pattern matches across ALL personas FIRST
+    // This ensures exact matches always return verbatim responses regardless of persona classification
+    // or follow-up detection - if intent matches exactly, return verbatim from whichever persona has it
+    const exactIntentMatches = await checkExactIntentMatchAcrossAllPersonas(userQuery, 3);
+    
+    if (exactIntentMatches.length > 0) {
+      // Found exact intent match - return verbatim immediately
+      // Use the persona from the matched document, not the classified one
+      const matchedPersona = exactIntentMatches[0].metadata.persona;
+      const personaForMode = matchedPersona === "menopause" ? "menopause_specialist" : matchedPersona as Persona;
+      const retrievalModeForMatch = mode || getRetrievalMode(personaForMode);
+      
+      console.log(`[RAG Orchestrator] ✅ Exact intent match found across all personas - returning verbatim from persona: ${matchedPersona} (classified as: ${persona})`);
+      const verbatimResponse = formatVerbatimResponse(exactIntentMatches, true);
+      return {
+        response: verbatimResponse,
+        persona: personaForMode,
+        retrievalMode: retrievalModeForMatch,
+        usedKB: true,
+        source: "kb",
+        kbEntries: exactIntentMatches,
+        isVerbatim: true,
+      };
+    }
+    
+    // Step 2.5: Determine retrieval mode (if no exact match found, use classified persona)
+    const retrievalMode = mode || getRetrievalMode(persona);
     
     if (isFollowUp) {
       console.log(`[RAG Orchestrator] Follow-up question detected`);
@@ -669,9 +697,9 @@ export async function orchestrateRAG(
       };
     }
 
-    // Step 2.5: Check for WHY hormone questions and potentially route to menopause persona
+    // Step 2.6: Check for WHY hormone questions and potentially route to menopause persona
     
-    // Step 2.5: Check for WHY hormone questions and potentially route to menopause persona
+    // Step 2.6: Check for WHY hormone questions and potentially route to menopause persona
     // If it's a pure WHY hormone question (not asking for a plan), route to menopause
     // If it's asking for a plan + why, keep the persona and let prompt builder handle redirect
     const isWhyHormone = isWhyHormoneQuestion(userQuery);
@@ -683,14 +711,29 @@ export async function orchestrateRAG(
       if (!isAskingForPlan) {
         console.log(`[RAG Orchestrator] WHY hormone question detected - routing to menopause specialist`);
         persona = "menopause_specialist";
+        // Update retrieval mode after persona change (menopause_specialist uses kb_strict)
+        const newRetrievalMode = getRetrievalMode(persona);
+        // Re-check exact intent with new persona
+        const exactIntentCheckAfterRouting = await retrieveFromKBByIntentOnly(userQuery, persona, 3, 0.9);
+        if (exactIntentCheckAfterRouting.hasMatch && exactIntentCheckAfterRouting.kbEntries.length > 0) {
+          console.log(`[RAG Orchestrator] ✅ Exact intent match found after persona routing - returning verbatim`);
+          const verbatimResponse = formatVerbatimResponse(exactIntentCheckAfterRouting.kbEntries, true);
+          return {
+            response: verbatimResponse,
+            persona,
+            retrievalMode: newRetrievalMode,
+            usedKB: true,
+            source: "kb",
+            kbEntries: exactIntentCheckAfterRouting.kbEntries,
+            isVerbatim: true,
+          };
+        }
       } else {
         console.log(`[RAG Orchestrator] WHY hormone question + plan request - keeping ${persona} persona with redirect instruction`);
       }
     }
     
-    // Step 3: Determine retrieval mode (use provided mode or default based on persona)
-    // Only set if not already set in follow-up link handling
-    const retrievalMode = mode || getRetrievalMode(persona);
+    // Step 3: Retrieval mode already determined (set earlier)
 
     console.log(`[RAG Orchestrator] Query: "${userQuery}"`);
     console.log(`[RAG Orchestrator] Classified persona: ${persona}`);

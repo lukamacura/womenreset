@@ -14,18 +14,19 @@ import SymptomSelectorModal from "@/components/symptom-tracker/SymptomSelectorMo
 import LogSymptomModal from "@/components/symptom-tracker/LogSymptomModal";
 import QuickLogModal from "@/components/symptom-tracker/QuickLogModal";
 import AnalyticsSection from "@/components/symptom-tracker/AnalyticsSection";
-import WeekSummary from "@/components/symptom-tracker/WeekSummary";
 import RecentLogs from "@/components/symptom-tracker/RecentLogs";
 import PersonalizedGreeting from "@/components/symptom-tracker/PersonalizedGreeting";
 import EmptyState from "@/components/symptom-tracker/EmptyState";
 import MilestoneCelebration from "@/components/symptom-tracker/MilestoneCelebration";
 import ProgressComparison from "@/components/symptom-tracker/ProgressComparison";
 import WeekComparison from "@/components/symptom-tracker/WeekComparison";
-import DoctorReportButton from "@/components/symptom-tracker/DoctorReportButton";
-import GoodDayCard from "@/components/symptom-tracker/GoodDayCard";
+import HealthSummaryButton from "@/components/symptom-tracker/HealthSummaryButton";
+import DailyMoodSelector from "@/components/symptom-tracker/DailyMoodSelector";
+import TriggerQuickSelect from "@/components/symptom-tracker/TriggerQuickSelect";
 import DeleteConfirmationDialog from "@/components/DeleteConfirmationDialog";
 import type { Symptom, LogSymptomData, SymptomLog } from "@/lib/symptom-tracker-constants";
 import { orderSymptoms } from "@/lib/symptomOrdering";
+import { useDailyMood } from "@/hooks/useDailyMood";
 
 export const dynamic = "force-dynamic";
 
@@ -109,12 +110,21 @@ export default function SymptomsPage() {
   const { logs, loading: logsLoading, refetch: refetchLogs } =
     useSymptomLogs(30);
   const { profile } = useUserProfile();
+  const { mood: dailyMood } = useDailyMood();
   const [selectedSymptom, setSelectedSymptom] = useState<Symptom | null>(null);
   const [editingLog, setEditingLog] = useState<SymptomLog | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isQuickModalOpen, setIsQuickModalOpen] = useState(false);
   const [isSelectorOpen, setIsSelectorOpen] = useState(false);
   const [, setPageLoaded] = useState(false);
+  const [triggerPromptLog, setTriggerPromptLog] = useState<{ logId: string; symptomId: string; symptomName: string } | null>(null);
+  
+  // Session tracking for notifications
+  const [sessionState, setSessionState] = useState({
+    logsThisSession: 0,
+    triggerPromptsShown: 0,
+    duplicateWarningsShown: new Set<string>(), // symptom_id + date
+  });
   const [deleteDialog, setDeleteDialog] = useState<{
     isOpen: boolean;
     symptom: Symptom | null;
@@ -141,54 +151,92 @@ export default function SymptomsPage() {
 
   // Check for bad day support notification
   useEffect(() => {
-    const checkBadDaySupport = () => {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      
-      const todayLogs = logs.filter((log: SymptomLog) => {
-        const logDate = new Date(log.logged_at);
-        logDate.setHours(0, 0, 0, 0);
-        return logDate.getTime() === today.getTime();
-      });
+    let isChecking = false;
+    let hasCheckedOnce = false;
 
-      // Check if already shown today
-      const todayKey = `badDaySupport_${today.toDateString()}`;
-      const hasShownToday = sessionStorage.getItem(todayKey) === 'true';
+    const checkBadDaySupport = async () => {
+      // Prevent multiple simultaneous checks
+      if (isChecking || hasCheckedOnce) return;
+      isChecking = true;
 
-      // Trigger conditions: 3+ symptoms in one day, OR any symptom logged as Severe
-      const severeCount = todayLogs.filter((log: SymptomLog) => log.severity === 3).length;
-      const hasSevere = severeCount > 0;
-      const hasManySymptoms = todayLogs.length >= 3;
-
-      if ((hasSevere || hasManySymptoms) && !hasShownToday && todayLogs.length > 0) {
-        const displayName = profile?.name || '';
-        const symptomCount = todayLogs.length;
-        const symptomText = symptomCount === 1 ? 'symptom' : 'symptoms';
+      try {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
         
-        show(
-          "lisa_message",
-          "Tough Day Support",
-          {
-            message: `${displayName ? `${displayName}, ` : ''}You've logged ${symptomCount} ${symptomText} today. That's hard, and we see you. Remember: Tracking the hard days helps Lisa find patterns that lead to better days. You're doing something important by being here.`,
-            priority: "medium",
-            autoDismiss: false,
-            primaryAction: {
-              label: "Talk to Lisa",
-              action: () => {
-                router.push("/chat/lisa");
-              },
-            },
-            secondaryAction: {
-              label: "I'm okay, just logging",
-              action: () => {
-                // Just dismiss
-              },
-            },
-          }
-        );
+        const todayLogs = logs.filter((log: SymptomLog) => {
+          const logDate = new Date(log.logged_at);
+          logDate.setHours(0, 0, 0, 0);
+          return logDate.getTime() === today.getTime();
+        });
 
-        // Mark as shown today
-        sessionStorage.setItem(todayKey, 'true');
+        // Check if already shown today in sessionStorage
+        const todayKey = `badDaySupport_${today.toDateString()}`;
+        const hasShownToday = sessionStorage.getItem(todayKey) === 'true';
+
+        // Also check database to prevent duplicates across page reloads
+        let existsInDatabase = false;
+        if (!hasShownToday) {
+          try {
+            const response = await fetch(
+              `/api/notifications?limit=50&not_dismissed=true&include_read=true`
+            );
+            if (response.ok) {
+              const { data } = await response.json();
+              const todayStart = new Date(today);
+              const todayEnd = new Date(today);
+              todayEnd.setHours(23, 59, 59, 999);
+              
+              existsInDatabase = (data || []).some((notif: any) => {
+                if (notif.type === "lisa_message" && notif.title === "Tough Day Support") {
+                  const notifDate = new Date(notif.created_at);
+                  return notifDate >= todayStart && notifDate <= todayEnd && !notif.dismissed;
+                }
+                return false;
+              });
+            }
+          } catch (error) {
+            console.error("Error checking existing notifications:", error);
+          }
+        }
+
+        // Trigger conditions: 3+ symptoms in one day, OR any symptom logged as Severe
+        const severeCount = todayLogs.filter((log: SymptomLog) => log.severity === 3).length;
+        const hasSevere = severeCount > 0;
+        const hasManySymptoms = todayLogs.length >= 3;
+
+        if ((hasSevere || hasManySymptoms) && !hasShownToday && !existsInDatabase && todayLogs.length > 0) {
+          const displayName = profile?.name || '';
+          const symptomCount = todayLogs.length;
+          const symptomText = symptomCount === 1 ? 'symptom' : 'symptoms';
+          
+          await show(
+            "lisa_message",
+            "Tough Day Support",
+            {
+              message: `${displayName ? `${displayName}, ` : ''}You've logged ${symptomCount} ${symptomText} today. That's hard, and we see you. Remember: Tracking the hard days helps Lisa find patterns that lead to better days. You're doing something important by being here.`,
+              priority: "medium",
+              autoDismiss: false,
+              primaryAction: {
+                label: "Talk to Lisa",
+                action: () => {
+                  router.push("/chat/lisa");
+                },
+              },
+              secondaryAction: {
+                label: "I'm okay, just logging",
+                action: () => {
+                  // Just dismiss
+                },
+              },
+            }
+          );
+
+          // Mark as shown today in sessionStorage
+          sessionStorage.setItem(todayKey, 'true');
+          hasCheckedOnce = true;
+        }
+      } finally {
+        isChecking = false;
       }
     };
 
@@ -198,10 +246,10 @@ export default function SymptomsPage() {
     
     // Also check on logs change (with a small delay to avoid showing immediately on page load)
     const timeoutId = setTimeout(() => {
-      if (logs.length > 0) {
+      if (logs.length > 0 && !hasCheckedOnce) {
         checkBadDaySupport();
       }
-    }, 1000);
+    }, 1500);
 
     return () => {
       window.removeEventListener('check-bad-day-support', handler);
@@ -215,11 +263,14 @@ export default function SymptomsPage() {
     return null;
   }
 
-  // Get smart-ordered symptoms
+  // Get smart-ordered symptoms (exclude Good Day)
   const topSymptoms = useMemo(() => {
-    if (symptoms.length === 0 || logs.length === 0) {
+    // Filter out Good Day symptom
+    const filteredSymptoms = symptoms.filter((s) => s.name !== "Good Day");
+    
+    if (filteredSymptoms.length === 0 || logs.length === 0) {
       // Fallback: return default symptoms if no logs yet
-      return symptoms.filter((s) => s.is_default).slice(0, 6);
+      return filteredSymptoms.filter((s) => s.is_default).slice(0, 6);
     }
     
     // Use smart ordering algorithm
@@ -227,7 +278,7 @@ export default function SymptomsPage() {
     const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
     const limit = isMobile ? 6 : 8;
     
-    return orderSymptoms(symptoms, logs, limit);
+    return orderSymptoms(filteredSymptoms, logs, limit);
   }, [symptoms, logs]);
 
   // Get last logged time and severity for each symptom
@@ -264,6 +315,7 @@ export default function SymptomsPage() {
             severity: data.severity,
             triggers: data.triggers || [],
             notes: data.notes || "",
+            loggedAt: data.loggedAt,
           }),
         });
 
@@ -274,6 +326,15 @@ export default function SymptomsPage() {
           throw new Error(errorMessage);
         }
 
+        const { data: savedLog } = await response.json();
+        
+        // Update session state
+        const newLogsCount = sessionState.logsThisSession + 1;
+        setSessionState(prev => ({
+          ...prev,
+          logsThisSession: newLogsCount,
+        }));
+
         // Refetch logs and symptoms
         await Promise.all([refetchLogs(), refetchSymptoms()]);
         
@@ -282,11 +343,16 @@ export default function SymptomsPage() {
         
         // Show success notification
         showSuccess("Symptom logged");
+
+        // Check for notifications after a short delay
+        setTimeout(() => {
+          checkPostLogNotifications(savedLog, data.symptomId, data.triggers || []);
+        }, 500);
       } catch (error) {
         throw error; // Let QuickLogModal handle error display
       }
     },
-    [refetchLogs, refetchSymptoms, showSuccess, showError]
+    [refetchLogs, refetchSymptoms, showSuccess, showError, sessionState.logsThisSession]
   );
 
   // Handle quick modal close
@@ -302,73 +368,6 @@ export default function SymptomsPage() {
     // selectedSymptom is already set
   };
 
-  // Get Good Day symptom (or null if doesn't exist yet - will be created on first log)
-  const goodDaySymptom = useMemo(() => {
-    return symptoms.find((s) => s.name === "Good Day") || null;
-  }, [symptoms]);
-
-  // Handle good day logging - uses standard symptom-logs API same as other symptoms
-  // But ensures the Good Day symptom exists first
-  const handleLogGoodDay = useCallback(
-    async (data: LogSymptomData) => {
-      try {
-        // If symptom doesn't exist yet, create it first
-        let symptomId = data.symptomId;
-        if (data.symptomId === 'temp-good-day' || !goodDaySymptom) {
-          // Create the Good Day symptom
-          const createResponse = await fetch("/api/symptoms", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              name: "Good Day",
-              icon: "Sun",
-            }),
-          });
-
-          if (!createResponse.ok) {
-            const errorData = await createResponse.json();
-            throw new Error(errorData.error || "Failed to create Good Day symptom");
-          }
-
-          const { data: newSymptom } = await createResponse.json();
-          symptomId = newSymptom.id;
-          
-          // Refetch symptoms to update the list
-          await refetchSymptoms();
-        }
-
-        // Now use standard symptom-logs API
-        const response = await fetch("/api/symptom-logs", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            symptomId: symptomId,
-            severity: data.severity,
-            triggers: data.triggers || [],
-            notes: data.notes || "",
-          }),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || "Failed to log good day");
-        }
-
-        // Refetch logs and symptoms
-        await Promise.all([refetchLogs(), refetchSymptoms()]);
-        
-        // Dispatch custom event to notify AnalyticsSection to refresh
-        window.dispatchEvent(new CustomEvent('symptom-log-updated'));
-      } catch (error) {
-        throw error;
-      }
-    },
-    [goodDaySymptom, refetchLogs, refetchSymptoms]
-  );
 
   // Handle symptom card click
   const handleSymptomClick = (symptom: Symptom) => {
@@ -419,17 +418,6 @@ export default function SymptomsPage() {
     setEditingLog(null);
   };
 
-  // Handle log click from RecentLogs
-  const handleLogClick = (log: SymptomLog) => {
-    // Find the symptom definition for this log
-    const symptom = symptoms.find((s) => s.id === log.symptom_id);
-    if (symptom) {
-      setSelectedSymptom(symptom);
-      setEditingLog(log);
-      setIsModalOpen(true);
-    }
-  };
-
   // Handle log delete click
   const handleLogDeleteClick = useCallback((log: SymptomLog) => {
     setDeleteLogDialog({
@@ -468,6 +456,230 @@ export default function SymptomsPage() {
     }
   }, [deleteLogDialog.log, refetchLogs, router, showSuccess, showError]);
 
+  // Handle log click from RecentLogs
+  const handleLogClick = (log: SymptomLog) => {
+    // Find the symptom definition for this log
+    const symptom = symptoms.find((s) => s.id === log.symptom_id);
+    if (symptom) {
+      setSelectedSymptom(symptom);
+      setEditingLog(log);
+      setIsModalOpen(true);
+    }
+  };
+
+  // Check for post-log notifications (trigger prompt, duplicate warning)
+  const checkPostLogNotifications = useCallback(
+    (savedLog: SymptomLog, symptomId: string, triggers: string[]) => {
+      const symptom = symptoms.find(s => s.id === symptomId);
+      if (!symptom) return;
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      // Check for trigger prompt
+      if (triggers.length === 0) {
+        const newLogsCount = sessionState.logsThisSession;
+        const promptsShown = sessionState.triggerPromptsShown;
+        
+        // Show if: lastPromptCount < logsThisSession / 3, max 3 prompts per session
+        if (promptsShown < Math.floor(newLogsCount / 3) && promptsShown < 3) {
+          setTriggerPromptLog({
+            logId: savedLog.id,
+            symptomId: symptom.id,
+            symptomName: symptom.name,
+          });
+          setSessionState(prev => ({
+            ...prev,
+            triggerPromptsShown: prev.triggerPromptsShown + 1,
+          }));
+        }
+      }
+
+      // Check for duplicate warning (3rd+ log of same symptom today)
+      // This will be checked after logs are refetched, so we'll use a timeout
+      setTimeout(() => {
+        const todayLogs = logs.filter(log => {
+          const logDate = new Date(log.logged_at);
+          logDate.setHours(0, 0, 0, 0);
+          return logDate.getTime() === today.getTime() && log.symptom_id === symptomId;
+        });
+
+        if (todayLogs.length >= 3) {
+          const warningKey = `${symptomId}_${today.toISOString().split('T')[0]}`;
+          if (!sessionState.duplicateWarningsShown.has(warningKey)) {
+            const firstLogToday = todayLogs[todayLogs.length - 1]; // Oldest log today
+            
+            show(
+              "reminder",
+              "Tip",
+              {
+                message: `You've logged ${symptom.name} ${todayLogs.length} times today. For patterns, logging once with your worst severity is usually enough.`,
+                priority: "low",
+                autoDismiss: false,
+                primaryAction: {
+                  label: "Got it",
+                  action: () => {},
+                },
+                secondaryAction: {
+                  label: "Update earlier log",
+                  action: () => {
+                    const logToEdit = logs.find(l => l.id === firstLogToday.id);
+                    if (logToEdit) {
+                      const symptomForLog = symptoms.find((s) => s.id === logToEdit.symptom_id);
+                      if (symptomForLog) {
+                        setSelectedSymptom(symptomForLog);
+                        setEditingLog(logToEdit);
+                        setIsModalOpen(true);
+                      }
+                    }
+                  },
+                },
+                showOnce: true,
+              }
+            );
+
+            setSessionState(prev => ({
+              ...prev,
+              duplicateWarningsShown: new Set([...prev.duplicateWarningsShown, warningKey]),
+            }));
+          }
+        }
+      }, 1000);
+    },
+    [symptoms, logs, sessionState, show]
+  );
+
+  // Handle trigger prompt save
+  const handleTriggerPromptSave = useCallback(
+    async (triggers: string[]) => {
+      if (!triggerPromptLog) return;
+
+      try {
+        const response = await fetch("/api/symptom-logs", {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            id: triggerPromptLog.logId,
+            triggers: triggers,
+          }),
+        });
+
+        if (response.ok) {
+          await refetchLogs();
+          window.dispatchEvent(new CustomEvent('symptom-log-updated'));
+        }
+      } catch (error) {
+        console.error("Failed to update triggers:", error);
+      } finally {
+        setTriggerPromptLog(null);
+      }
+    },
+    [triggerPromptLog, refetchLogs]
+  );
+
+  // Check for end-of-day notification
+  useEffect(() => {
+    const checkEndOfDay = () => {
+      const now = new Date();
+      const hour = now.getHours();
+      
+      // Only show after 7pm
+      if (hour < 19) return;
+
+      // Check if mood already set today
+      if (dailyMood) return;
+
+      // Check if already shown today
+      const todayKey = `end_of_day_${now.toISOString().split('T')[0]}`;
+      const hasShown = sessionStorage.getItem(todayKey) === 'true';
+      if (hasShown) return;
+
+      // Count logs today
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayLogs = logs.filter(log => {
+        const logDate = new Date(log.logged_at);
+        logDate.setHours(0, 0, 0, 0);
+        return logDate.getTime() === today.getTime();
+      });
+
+      if (todayLogs.length > 0) {
+        // Has logged symptoms
+        show(
+          "reminder",
+          "🌙 End of Day",
+          {
+            message: `You logged ${todayLogs.length} symptom(s) today. Overall, how was your day?`,
+            priority: "low",
+            autoDismiss: false,
+            primaryAction: {
+              label: "Set mood",
+              action: () => {
+                // Scroll to mood selector or focus it
+                const moodSelector = document.querySelector('[data-daily-mood-selector]');
+                if (moodSelector) {
+                  moodSelector.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+              },
+            },
+            secondaryAction: {
+              label: "Skip for today",
+              action: () => {},
+            },
+            showOnce: true,
+          }
+        );
+      } else {
+        // No logs today
+        show(
+          "reminder",
+          "🌙 End of Day",
+          {
+            message: "No symptoms logged today — was it a good day?",
+            priority: "low",
+            autoDismiss: false,
+            primaryAction: {
+              label: "Yes! 🌟",
+              action: async () => {
+                try {
+                  const { setMood } = await import("@/hooks/useDailyMood");
+                  // This will be handled by DailyMoodSelector component
+                  const moodSelector = document.querySelector('[data-daily-mood-selector]');
+                  if (moodSelector) {
+                    moodSelector.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    // Trigger click on "Great" button
+                    const greatButton = moodSelector.querySelector('[data-mood="4"]');
+                    if (greatButton instanceof HTMLElement) {
+                      greatButton.click();
+                    }
+                  }
+                } catch (error) {
+                  console.error("Failed to set mood:", error);
+                }
+              },
+            },
+            secondaryAction: {
+              label: "Just forgot to log",
+              action: () => {
+                setIsSelectorOpen(true);
+              },
+            },
+            showOnce: true,
+          }
+        );
+      }
+
+      sessionStorage.setItem(todayKey, 'true');
+    };
+
+    // Check on mount and when logs/mood change
+    if (!trialStatus.loading && !trialStatus.expired) {
+      checkEndOfDay();
+    }
+  }, [logs, dailyMood, trialStatus, show, setIsSelectorOpen]);
+
   // Handle save symptom log (create or update)
   const handleSaveLog = useCallback(
     async (data: LogSymptomData) => {
@@ -482,6 +694,7 @@ export default function SymptomsPage() {
           triggers: string[];
           notes: string;
           id?: string;
+          loggedAt?: string;
         } = {
           symptomId: data.symptomId,
           severity: data.severity,
@@ -492,6 +705,11 @@ export default function SymptomsPage() {
         // Add log ID if editing
         if (isEditing && data.logId) {
           body.id = data.logId;
+        }
+
+        // Add loggedAt if provided
+        if (data.loggedAt) {
+          body.loggedAt = data.loggedAt;
         }
 
         const response = await fetch(url, {
@@ -509,6 +727,17 @@ export default function SymptomsPage() {
           throw new Error(errorMessage);
         }
 
+        const { data: savedLog } = await response.json();
+
+        // Update session state
+        if (!isEditing) {
+          const newLogsCount = sessionState.logsThisSession + 1;
+          setSessionState(prev => ({
+            ...prev,
+            logsThisSession: newLogsCount,
+          }));
+        }
+
         // Refetch logs and symptoms
         await Promise.all([refetchLogs(), refetchSymptoms()]);
         
@@ -524,6 +753,8 @@ export default function SymptomsPage() {
           await refetchLogs();
           setTimeout(() => {
             window.dispatchEvent(new CustomEvent('check-bad-day-support'));
+            // Check for post-log notifications
+            checkPostLogNotifications(savedLog, data.symptomId, data.triggers || []);
           }, 500);
         }
       } catch (error) {
@@ -531,7 +762,7 @@ export default function SymptomsPage() {
         throw error;
       }
     },
-    [refetchLogs, refetchSymptoms, showSuccess, showError]
+    [refetchLogs, refetchSymptoms, showSuccess, showError, sessionState.logsThisSession, checkPostLogNotifications]
   );
 
   // Show loading state while checking trial status
@@ -586,7 +817,7 @@ export default function SymptomsPage() {
           <PersonalizedGreeting />
         </div>
         <div className="flex flex-col sm:flex-row gap-3 items-center">
-          <DoctorReportButton />
+          <HealthSummaryButton />
           <button
             onClick={() => {
               setIsSelectorOpen(true);
@@ -607,8 +838,15 @@ export default function SymptomsPage() {
           <EmptyState />
         </AnimatedSection>
 
-        {/* Title */}
+        {/* Daily Mood Selector */}
         <AnimatedSection delay={200}>
+          <div data-daily-mood-selector>
+            <DailyMoodSelector />
+          </div>
+        </AnimatedSection>
+
+        {/* Title */}
+        <AnimatedSection delay={250}>
           <div>
             <h2 className="text-xl sm:text-2xl font-semibold text-[#8B7E74] mb-2">
               How are you feeling?
@@ -630,52 +868,46 @@ export default function SymptomsPage() {
             ))}
           </div>
         ) : topSymptoms.length > 0 ? (
-          <>
-            <AnimatedSection delay={250}>
-              <div
-                className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4 auto-rows-fr"
-                data-symptoms-grid
-                style={{
-                  gridAutoRows: 'minmax(80px, auto)'
-                }}
-              >
-                {topSymptoms.map((symptom, index) => {
-                  const lastLogged = getLastLoggedInfo(symptom.id);
-                  const spanClass = index === 0 && topSymptoms.length > 3
-                    ? 'md:col-span-2 md:row-span-1'
-                    : index === 1 && topSymptoms.length > 5
-                    ? 'md:col-span-2 md:row-span-1'
-                    : '';
-                  return (
-                    <div
-                      key={symptom.id}
-                      className={`${spanClass}`}
-                      style={{
-                        animation: `fadeInUp 0.5s ease-out forwards`,
-                        animationDelay: `${index * 70}ms`,
-                        opacity: 0,
-                      }}
-                    >
-                      <SymptomCard
-                        symptom={symptom}
-                        onClick={() => handleSymptomClick(symptom)}
-                        lastLoggedAt={lastLogged.time}
-                        lastLoggedSeverity={lastLogged.severity}
-                        onQuickLog={() => handleQuickLogClick(symptom)}
-                        onDelete={handleSymptomDeleteClick}
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-            </AnimatedSection>
-            {/* Good Day Card */}
-            <AnimatedSection delay={300}>
-              <GoodDayCard goodDaySymptom={goodDaySymptom} onSave={handleLogGoodDay} />
-            </AnimatedSection>
-          </>
+          <AnimatedSection delay={300}>
+            <div
+              className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4 auto-rows-fr"
+              data-symptoms-grid
+              style={{
+                gridAutoRows: 'minmax(80px, auto)'
+              }}
+            >
+              {topSymptoms.map((symptom, index) => {
+                const lastLogged = getLastLoggedInfo(symptom.id);
+                const spanClass = index === 0 && topSymptoms.length > 3
+                  ? 'md:col-span-2 md:row-span-1'
+                  : index === 1 && topSymptoms.length > 5
+                  ? 'md:col-span-2 md:row-span-1'
+                  : '';
+                return (
+                  <div
+                    key={symptom.id}
+                    className={`${spanClass}`}
+                    style={{
+                      animation: `fadeInUp 0.5s ease-out forwards`,
+                      animationDelay: `${index * 70}ms`,
+                      opacity: 0,
+                    }}
+                  >
+                    <SymptomCard
+                      symptom={symptom}
+                      onClick={() => handleSymptomClick(symptom)}
+                      lastLoggedAt={lastLogged.time}
+                      lastLoggedSeverity={lastLogged.severity}
+                      onQuickLog={() => handleQuickLogClick(symptom)}
+                      onDelete={handleSymptomDeleteClick}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </AnimatedSection>
         ) : (
-          <AnimatedSection delay={250}>
+          <AnimatedSection delay={300}>
             <div className="rounded-xl border border-white/30 bg-white/30 backdrop-blur-lg p-12 text-center shadow-xl">
               <p className="text-[#6B6B6B]">No symptoms available</p>
               <p className="text-sm text-[#9A9A9A] mt-2">
@@ -698,11 +930,6 @@ export default function SymptomsPage() {
         {/* Progress Comparison */}
         <AnimatedSection delay={0}>
           <ProgressComparison />
-        </AnimatedSection>
-
-        {/* Week Summary */}
-        <AnimatedSection delay={0}>
-          <WeekSummary />
         </AnimatedSection>
 
         {/* Recent Logs */}
@@ -736,7 +963,7 @@ export default function SymptomsPage() {
           isOpen={isQuickModalOpen}
           onClose={handleQuickModalClose}
           onSave={handleQuickLogSave}
-          onExpand={handleExpandToFullModal}
+          allLogs={logs}
         />
       )}
 
@@ -776,6 +1003,19 @@ export default function SymptomsPage() {
         itemName={deleteLogDialog.log?.symptoms?.name}
         isLoading={deleteLogDialog.isLoading}
       />
+
+      {/* Trigger Quick Select Modal */}
+      {triggerPromptLog && (
+        <TriggerQuickSelect
+          symptomName={triggerPromptLog.symptomName}
+          symptomId={triggerPromptLog.symptomId}
+          logId={triggerPromptLog.logId}
+          allLogs={logs}
+          isOpen={!!triggerPromptLog}
+          onClose={() => setTriggerPromptLog(null)}
+          onSave={handleTriggerPromptSave}
+        />
+      )}
     </div>
   );
 }

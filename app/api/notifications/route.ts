@@ -43,9 +43,12 @@ export async function GET(req: NextRequest) {
     }
 
     const { searchParams } = new URL(req.url);
-    const limit = searchParams.get("limit");
+    const limit = searchParams.get("limit") ? parseInt(searchParams.get("limit")!, 10) : 20;
+    const offset = searchParams.get("offset") ? parseInt(searchParams.get("offset")!, 10) : 0;
     const unseenOnly = searchParams.get("unseen") === "true";
     const notDismissed = searchParams.get("not_dismissed") !== "false"; // Default true
+    const includeDismissed = searchParams.get("include_dismissed") === "true";
+    const includeRead = searchParams.get("include_read") !== "false"; // Default true
 
     const supabaseAdmin = getSupabaseAdmin();
     let query = supabaseAdmin
@@ -56,15 +59,16 @@ export async function GET(req: NextRequest) {
 
     if (unseenOnly) {
       query = query.eq("seen", false);
+    } else if (!includeRead) {
+      query = query.eq("seen", false);
     }
 
-    if (notDismissed) {
+    if (!includeDismissed && notDismissed) {
       query = query.eq("dismissed", false);
     }
 
-    if (limit) {
-      query = query.limit(parseInt(limit, 10));
-    }
+    // Apply pagination
+    query = query.range(offset, offset + limit - 1);
 
     const { data, error: queryError } = await query;
 
@@ -192,6 +196,32 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Special handling for "Tough Day Support" - prevent duplicates for the same day
+    if (type === "lisa_message" && title === "Tough Day Support") {
+      const supabaseAdmin = getSupabaseAdmin();
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      const { data: existing } = await supabaseAdmin
+        .from("notifications")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("type", type)
+        .eq("title", title)
+        .gte("created_at", today.toISOString())
+        .lt("created_at", tomorrow.toISOString())
+        .eq("dismissed", false)
+        .limit(1)
+        .maybeSingle();
+
+      if (existing) {
+        // Notification already exists for today, return existing ID
+        return NextResponse.json({ data: existing }, { status: 200 });
+      }
+    }
+
     // Insert notification
     const supabaseAdmin = getSupabaseAdmin();
     const { data, error: insertError } = await supabaseAdmin
@@ -240,7 +270,28 @@ export async function PUT(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { id, seen, dismissed } = body;
+    const { id, seen, dismissed, markAllRead } = body;
+
+    // Handle mark all as read
+    if (markAllRead === true) {
+      const supabaseAdmin = getSupabaseAdmin();
+      const { error: updateError } = await supabaseAdmin
+        .from("notifications")
+        .update({ seen: true })
+        .eq("user_id", user.id)
+        .eq("seen", false)
+        .eq("dismissed", false);
+
+      if (updateError) {
+        console.error("Supabase update error:", updateError);
+        return NextResponse.json(
+          { error: "Failed to mark all as read" },
+          { status: 500 }
+        );
+      }
+
+      return NextResponse.json({ success: true });
+    }
 
     if (!id) {
       return NextResponse.json(

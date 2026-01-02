@@ -89,8 +89,9 @@ function dbToClientNotification(db: DBNotification): Notification {
         }
       },
     };
-    // Store route in the action object for easy access
-    (primaryAction as NotificationAction & { route?: string }).route = actionMeta.route || undefined;
+    // Store route and actionType in the action object for easy access
+    (primaryAction as NotificationAction & { route?: string; actionType?: string }).route = actionMeta.route || undefined;
+    (primaryAction as NotificationAction & { route?: string; actionType?: string }).actionType = actionMeta.actionType || undefined;
   }
 
   if (db.metadata?.secondaryAction) {
@@ -120,7 +121,9 @@ function dbToClientNotification(db: DBNotification): Notification {
     createdAt: new Date(db.created_at),
     seen: db.seen,
     dismissed: db.dismissed,
-  };
+    // Store metadata for access in NotificationCard
+    metadata: db.metadata,
+  } as Notification & { metadata?: DBNotification["metadata"] };
 }
 
 interface NotificationContextType {
@@ -141,19 +144,23 @@ export function useNotificationContext() {
   return context;
 }
 
-const MAX_VISIBLE_NOTIFICATIONS = 3;
+// Maximum number of toast notifications visible at once (for screen real estate)
+const MAX_TOAST_NOTIFICATIONS = 3;
 
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
+  // These are the notifications shown as toasts (max 3, non-dismissed only)
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const dismissTimersRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
   const seenNotificationsRef = useRef<Set<string>>(new Set());
 
-  // Fetch notifications from API on mount
+  // Fetch notifications from API on mount for toast display
+  // Note: Notification center fetches its own notifications separately
   useEffect(() => {
     const fetchNotifications = async () => {
       try {
         setLoading(true);
+        // Fetch non-dismissed notifications for toast display
         const response = await fetch("/api/notifications?not_dismissed=true&limit=10", {
           method: "GET",
           cache: "no-store",
@@ -166,10 +173,11 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
         const { data } = await response.json();
         if (data && Array.isArray(data)) {
+          // Filter out dismissed and limit to max toast notifications
           const clientNotifications = data
             .map(dbToClientNotification)
             .filter((n: Notification) => !n.dismissed)
-            .slice(0, MAX_VISIBLE_NOTIFICATIONS);
+            .slice(0, MAX_TOAST_NOTIFICATIONS);
 
           setNotifications(clientNotifications);
 
@@ -283,8 +291,9 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
             (a, b) => priorityOrder[b.priority] - priorityOrder[a.priority]
           );
 
-          // Keep only MAX_VISIBLE_NOTIFICATIONS
-          return sorted.slice(0, MAX_VISIBLE_NOTIFICATIONS);
+          // Keep only MAX_TOAST_NOTIFICATIONS for toast display
+          // Note: All notifications persist in database and are accessible via notification center
+          return sorted.slice(0, MAX_TOAST_NOTIFICATIONS);
         });
 
         // Set up auto-dismiss timer if needed
@@ -313,7 +322,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         dismissTimersRef.current.delete(id);
       }
 
-      // Update notification in API
+      // Mark notification as seen (but NOT dismissed) so it remains in notification center
+      // Dismissing a toast only removes it from toast display, not from the notification center
       try {
         await fetch("/api/notifications", {
           method: "PUT",
@@ -322,14 +332,15 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           },
           body: JSON.stringify({
             id,
-            dismissed: true,
             seen: true,
+            // Note: We do NOT set dismissed=true here, so notification remains in center
           }),
         });
       } catch (error) {
-        console.error("Error dismissing notification:", error);
+        console.error("Error updating notification:", error);
       }
 
+      // Remove from toast display only (notification persists in database for notification center)
       setNotifications((prev) => {
         const notification = prev.find((n) => n.id === id);
         if (notification?.showOnce) {
@@ -352,8 +363,9 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     dismissTimersRef.current.forEach((timer) => clearTimeout(timer));
     dismissTimersRef.current.clear();
 
-    // Mark all notifications as dismissed in API
-    const dismissPromises = notifications.map((notification) =>
+    // Mark all notifications as seen (but NOT dismissed) so they remain in notification center
+    // Clearing toasts only removes them from toast display
+    const updatePromises = notifications.map((notification) =>
       fetch("/api/notifications", {
         method: "PUT",
         headers: {
@@ -361,15 +373,15 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         },
         body: JSON.stringify({
           id: notification.id,
-          dismissed: true,
           seen: true,
+          // Note: We do NOT set dismissed=true here, so notifications remain in center
         }),
       }).catch((error) => {
-        console.error("Error dismissing notification:", error);
+        console.error("Error updating notification:", error);
       })
     );
 
-    await Promise.all(dismissPromises);
+    await Promise.all(updatePromises);
 
     // Mark all show-once notifications as seen
     notifications.forEach((notification) => {

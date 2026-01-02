@@ -5,8 +5,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import type { User } from "@supabase/supabase-js";
-import { Activity, ArrowRight, UtensilsCrossed, Dumbbell, Trash2, Sunrise, Sun, Moon, Cookie, Heart, StretchHorizontal, Trophy } from "lucide-react";
+import { Activity, ArrowRight, UtensilsCrossed, Dumbbell, Trash2, Heart, StretchHorizontal, Trophy } from "lucide-react";
 import type { Nutrition } from "@/components/nutrition/NutritionList";
+import NutritionList from "@/components/nutrition/NutritionList";
 import type { Fitness } from "@/components/fitness/FitnessList";
 import type { SymptomLog } from "@/lib/symptom-tracker-constants";
 import { useSymptomLogs } from "@/hooks/useSymptomLogs";
@@ -14,7 +15,7 @@ import AddNutritionModal from "@/components/nutrition/AddNutritionModal";
 import AddFitnessModal from "@/components/fitness/AddFitnessModal";
 import DeleteConfirmationDialog from "@/components/DeleteConfirmationDialog";
 import RecentLogs from "@/components/symptom-tracker/RecentLogs";
-import { TrialCard } from "@/components/TrialCard";
+import { TrialCard, getTrialState, type TrialState } from "@/components/TrialCard";
 import { Skeleton } from "@/components/ui/AnimatedComponents";
 
 // Prevent static prerendering (safe)
@@ -324,155 +325,36 @@ function RecentNutritionCard({
 }) {
   const recentNutrition = nutrition.slice(0, 5);
 
-  const getMealTypeColor = (mealType: string) => {
-    switch (mealType.toLowerCase()) {
-      case "breakfast":
-        return "bg-[#ffeb76]/30 text-[#e6d468] border border-[#ffeb76]/40";
-      case "lunch":
-        return "bg-[#65dbff]/30 text-[#4bc4e6] border border-[#65dbff]/40";
-      case "dinner":
-        return "bg-[#ff74b1]/30 text-[#d85a9a] border border-[#ff74b1]/40";
-      case "snack":
-        return "bg-[#a6eaff]/30 text-[#65dbff] border border-[#a6eaff]/40";
-      default:
-        return "bg-gray-500/20 text-gray-700";
+  // Convert onDelete from (nutrition: Nutrition) => void to (id: string) => void
+  const handleDelete = onDelete ? (id: string) => {
+    const entry = nutrition.find(n => n.id === id);
+    if (entry) {
+      onDelete(entry);
     }
-  };
-
-  const formatMealType = (mealType: string) => {
-    return mealType.charAt(0).toUpperCase() + mealType.slice(1);
-  };
-
-  const getMealTypeIcon = (mealType: string) => {
-    switch (mealType.toLowerCase()) {
-      case "breakfast":
-        return <Sunrise className="h-4 w-4 text-orange-600" />;
-      case "lunch":
-        return <Sun className="h-4 w-4 text-blue-600" />;
-      case "dinner":
-        return <Moon className="h-4 w-4 text-purple-600" />;
-      case "snack":
-        return <Cookie className="h-4 w-4 text-green-600" />;
-      default:
-        return null;
-    }
-  };
+  } : undefined;
 
   return (
     <AnimatedCard index={5} delay={350}>
       <div className="relative overflow-hidden rounded-2xl border border-white/30 bg-white/30 backdrop-blur-lg p-6 shadow-xl transition-all duration-300 hover:shadow-2xl hover:scale-[1.01]">
-      <div className="relative">
-        <div className="flex items-center justify-between mb-5">
-          <h3 className="text-lg font-bold text-foreground">Recent Meals</h3>
-          <Link
-            href="/dashboard/nutrition"
-            className="text-sm text-primary hover:underline flex items-center gap-1 font-medium"
-          >
-            View all
-            <ArrowRight className="h-4 w-4" />
-          </Link>
-        </div>
+        <div className="relative">
+          <div className="flex items-center justify-between mb-5">
+            <h3 className="text-lg font-bold text-foreground">Recent Meals</h3>
+            <Link
+              href="/dashboard/nutrition"
+              className="text-sm text-primary hover:underline flex items-center gap-1 font-medium"
+            >
+              View all
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
 
-      {isLoading ? (
-        <div className="space-y-3">
-          {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-16 w-full" />
-          ))}
+          <NutritionList
+            nutrition={recentNutrition}
+            isLoading={isLoading}
+            onEdit={onEdit}
+            onDelete={handleDelete}
+          />
         </div>
-      ) : recentNutrition.length === 0 ? (
-        <div className="text-center py-8">
-          <UtensilsCrossed className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
-          <p className="text-sm text-muted-foreground">No nutrition entries logged yet</p>
-          <Link
-            href="/dashboard/nutrition"
-            className="text-sm text-primary hover:underline mt-2 inline-block"
-          >
-            Start tracking →
-          </Link>
-        </div>
-        ) : (
-        <div className="space-y-3">
-          {recentNutrition.map((entry, index) => {
-            const formatDateTime = (dateString: string) => {
-              const date = new Date(dateString);
-              return {
-                date: date.toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                }),
-                time: date.toLocaleTimeString("en-US", {
-                  hour: "numeric",
-                  minute: "2-digit",
-                  hour12: true,
-                }),
-              };
-            };
-            const { date, time } = formatDateTime(entry.consumed_at);
-            const mealTypeColor = getMealTypeColor(entry.meal_type);
-            const mealTypeLabel = formatMealType(entry.meal_type);
-
-            return (
-              <AnimatedListItem key={entry.id} index={index}>
-                <div
-                  className="group rounded-xl border border-foreground/10 bg-background/60 p-4 transition-colors hover:border-foreground/20"
-                >
-                <div className="flex items-start justify-between gap-4">
-                  <div 
-                    className="flex-1 min-w-0 cursor-pointer"
-                    onClick={() => onEdit?.(entry)}
-                  >
-                    <div className="flex items-center gap-2 mb-2 flex-wrap">
-                      <h3 className="text-base font-semibold text-foreground truncate">
-                        {entry.food_item}
-                      </h3>
-                      <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
-                        <span
-                          className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${mealTypeColor}`}
-                        >
-                          {getMealTypeIcon(entry.meal_type)}
-                          {mealTypeLabel}
-                        </span>
-                        {entry.calories !== null && (
-                          <span className="text-xs text-muted-foreground font-medium">
-                            {entry.calories} cal
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <span>{date}</span>
-                      <span>•</span>
-                      <span>{time}</span>
-                    </div>
-                    {entry.notes && (
-                      <p className="mt-2 text-sm text-foreground/80 line-clamp-2">
-                        {entry.notes}
-                      </p>
-                    )}
-                  </div>
-                  {onDelete && (
-                    <div className="flex items-center gap-2 shrink-0">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onDelete(entry);
-                        }}
-                        className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-primary-light/50 hover:text-primary-dark"
-                        aria-label="Delete nutrition entry"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  )}
-                </div>
-                </div>
-              </AnimatedListItem>
-            );
-          })}
-        </div>
-      )}
-      </div>
       </div>
     </AnimatedCard>
   );
@@ -730,6 +612,7 @@ export default function DashboardPage() {
   const [loading] = useState(false); // Start as false - don't block rendering
   const [err, setErr] = useState<string | null>(null);
   const [now, setNow] = useState<Date>(new Date());
+  const lastNotifiedStateRef = useRef<TrialState | null>(null);
   const { logs: symptomLogs, loading: symptomLogsLoading } = useSymptomLogs(30);
   const [nutrition, setNutrition] = useState<Nutrition[]>([]);
   const [nutritionLoading, setNutritionLoading] = useState(true);
@@ -1212,6 +1095,83 @@ export default function DashboardPage() {
       trialDays,
     };
   }, [userTrial, now]);
+
+  // Send trial phase notifications
+  useEffect(() => {
+    if (!user || !trial.end || trial.expired === true) {
+      lastNotifiedStateRef.current = null;
+      return;
+    }
+
+    const currentState = getTrialState(!!trial.expired, trial.daysLeft, trial.remaining);
+    
+    // Only send notifications for warning and urgent states
+    if (currentState !== "warning" && currentState !== "urgent") {
+      // Reset ref when not in notification states
+      if (currentState === "calm") {
+        lastNotifiedStateRef.current = null;
+      }
+      return;
+    }
+
+    // Don't send duplicate notification for the same state
+    if (lastNotifiedStateRef.current === currentState) {
+      return;
+    }
+
+    const sendNotification = async () => {
+      try {
+        let title: string;
+        let message: string;
+        let priority: "high" | "medium" = "medium";
+
+        if (currentState === "warning") {
+          title = "Trial Ending Soon";
+          message = `Your trial ends in ${trial.daysLeft} ${trial.daysLeft === 1 ? "day" : "days"}. Upgrade now to keep your progress and access Lisa's insights.`;
+          priority = "medium";
+        } else if (currentState === "urgent") {
+          title = "Trial Ending Today";
+          message = `Your trial ends in ${trial.remaining.h}h ${trial.remaining.m}m. Upgrade now to save your progress and unlock Lisa's patterns.`;
+          priority = "high";
+        } else {
+          return;
+        }
+
+        const response = await fetch("/api/notifications", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            type: "trial",
+            title,
+            message,
+            priority,
+            showOnce: true, // Prevent duplicate notifications
+            metadata: {
+              primaryAction: {
+                label: "Upgrade Now",
+                route: "/dashboard",
+                actionType: "open_pricing",
+              },
+            },
+          }),
+        });
+
+        if (response.ok) {
+          // Mark this state as notified
+          lastNotifiedStateRef.current = currentState;
+        } else {
+          console.error("Failed to create trial notification");
+        }
+      } catch (error) {
+        console.error("Error creating trial notification:", error);
+      }
+    };
+
+    // Send notification when entering warning or urgent state
+    sendNotification();
+  }, [user, trial.expired, trial.daysLeft, trial.remaining, trial.end]);
 
   // ---------------------------
   // Event handlers

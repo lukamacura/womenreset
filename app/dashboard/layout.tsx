@@ -3,13 +3,16 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, Activity, UtensilsCrossed, Dumbbell, LogOut, ChevronDown } from "lucide-react";
+import { LayoutDashboard, Activity, UtensilsCrossed, Dumbbell, LogOut, ChevronDown, Bell } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import LisaSwipeButton from "@/components/LisaSwipeButton";
 import { useTrialStatus } from "@/lib/useTrialStatus";
 import SessionVerification from "@/components/SessionVerification";
 import { NotificationProvider } from "@/components/notifications/NotificationProvider";
 import NotificationContainer from "@/components/notifications/NotificationContainer";
+import NotificationBell from "@/components/notifications/NotificationBell";
+import { PricingModalProvider, usePricingModal } from "@/lib/PricingModalContext";
+import { PricingModal } from "@/components/PricingModal";
 
 // Animated Navigation Item Component
 function AnimatedNavItem({
@@ -60,7 +63,7 @@ export default function DashboardLayout({
     },
     {
       href: "/dashboard/symptoms",
-      label: "Daily Check-in",
+      label: "Symptom Tracker",
       icon: Activity,
       requiresActiveTrial: true,
     },
@@ -135,7 +138,9 @@ export default function DashboardLayout({
 
   return (
     <NotificationProvider>
-      <div className="min-h-screen flex flex-col pt-18">
+      <PricingModalProvider>
+        <PricingModalWrapper />
+        <div className="min-h-screen flex flex-col pt-18">
         {/* Session Verification - checks for browser mismatch issues */}
         <SessionVerification />
         
@@ -193,6 +198,17 @@ export default function DashboardLayout({
                     );
                   })}
                   <div className="border-t border-foreground/10">
+                    <Link
+                      href="/dashboard/notifications"
+                      onClick={() => setIsDropdownOpen(false)}
+                      className="flex w-full items-center gap-3 px-4 py-3 text-sm font-medium text-foreground hover:bg-foreground/5 transition-colors duration-200"
+                    >
+                      <div className="relative">
+                        <Bell className="h-5 w-5" />
+                        {/* Badge would be shown here if needed, but useUnreadCount is already in NotificationBell */}
+                      </div>
+                      <span>Notifications</span>
+                    </Link>
                     <button
                       onClick={handleLogout}
                       className="flex w-full items-center gap-3 px-4 py-3 text-sm font-medium text-muted-foreground hover:bg-foreground/5 hover:text-foreground transition-colors duration-200"
@@ -237,14 +253,17 @@ export default function DashboardLayout({
               })}
             </div>
 
-            {/* Desktop Logout Button */}
-            <button
-              onClick={handleLogout}
-              className="hidden lg:flex items-center cursor-pointer gap-2 rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-foreground/5 hover:text-foreground transition-colors duration-200"
-            >
-              <LogOut className="h-5 w-5" />
-              <span>Sign out</span>
-            </button>
+            {/* Desktop Notification Bell & Logout Button */}
+            <div className="hidden lg:flex items-center gap-2">
+              <NotificationBell />
+              <button
+                onClick={handleLogout}
+                className="flex items-center cursor-pointer gap-2 rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-foreground/5 hover:text-foreground transition-colors duration-200"
+              >
+                <LogOut className="h-5 w-5" />
+                <span>Sign out</span>
+              </button>
+            </div>
           </div>
         </div>
       </nav>
@@ -258,6 +277,23 @@ export default function DashboardLayout({
         {/* Notification Container */}
         <NotificationContainer />
       </div>
+      </PricingModalProvider>
     </NotificationProvider>
+  );
+}
+
+// Inner component to use PricingModal context
+function PricingModalWrapper() {
+  const { isOpen, closeModal, trialState, timeRemaining, symptomCount, patternCount } = usePricingModal();
+  
+  return (
+    <PricingModal
+      isOpen={isOpen}
+      onClose={closeModal}
+      trialState={trialState}
+      timeRemaining={timeRemaining}
+      symptomCount={symptomCount}
+      patternCount={patternCount}
+    />
   );
 }

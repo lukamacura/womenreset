@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Droplet, Minus, GlassWater, CheckCircle2 } from "lucide-react";
 import { useHydration } from "@/hooks/useHydration";
 
@@ -150,6 +150,50 @@ function getStatusConfig(state: HydrationState): Omit<HydrationStatus, "state" |
 export default function HydrationCounter() {
   const { todayGlasses, weeklyAverage, loading, refetch } = useHydration(7);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [displayGlasses, setDisplayGlasses] = useState(todayGlasses);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [buttonScale, setButtonScale] = useState(1);
+  const previousGlasses = useRef(todayGlasses);
+
+  // Animate number transition smoothly
+  useEffect(() => {
+    if (todayGlasses !== previousGlasses.current) {
+      setIsAnimating(true);
+      const startValue = previousGlasses.current;
+      const endValue = todayGlasses;
+      const duration = 500; // milliseconds
+      const startTime = Date.now();
+
+      const animate = () => {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        
+        // Ease-out cubic function for smooth deceleration
+        const easeOutCubic = 1 - Math.pow(1 - progress, 3);
+        const currentValue = Math.round(startValue + (endValue - startValue) * easeOutCubic);
+        
+        setDisplayGlasses(currentValue);
+
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        } else {
+          setDisplayGlasses(endValue);
+          setIsAnimating(false);
+        }
+      };
+
+      requestAnimationFrame(animate);
+      previousGlasses.current = todayGlasses;
+    }
+  }, [todayGlasses]);
+
+  // Sync displayGlasses on initial load
+  useEffect(() => {
+    if (displayGlasses !== todayGlasses && !isAnimating) {
+      setDisplayGlasses(todayGlasses);
+      previousGlasses.current = todayGlasses;
+    }
+  }, [todayGlasses, displayGlasses, isAnimating]);
 
   // Calculate hydration status
   const hydrationStatus = useMemo((): HydrationStatus => {
@@ -186,6 +230,10 @@ export default function HydrationCounter() {
   }, [todayGlasses]);
 
   const handleAddGlass = async () => {
+    // Button press animation
+    setButtonScale(0.95);
+    setTimeout(() => setButtonScale(1), 150);
+
     setIsSubmitting(true);
     try {
       const now = new Date();
@@ -254,7 +302,7 @@ export default function HydrationCounter() {
     }
   };
 
-  const progressPercentage = Math.min(100, (todayGlasses / GOAL_GLASSES) * 100);
+  const progressPercentage = Math.min(100, (displayGlasses / GOAL_GLASSES) * 100);
 
   if (loading) {
     return (
@@ -301,9 +349,24 @@ export default function HydrationCounter() {
       <div className="mb-4">
         <div className="flex items-center justify-between mb-2">
           <span className="text-2xl font-bold text-[#3D3D3D]">
-            {todayGlasses} / {GOAL_GLASSES} <span className="text-base font-normal text-[#9A9A9A]">glasses</span>
+            <span
+              className={`inline-block transition-transform duration-300 ${
+                isAnimating ? "scale-110" : "scale-100"
+              }`}
+              style={{
+                color: isAnimating ? hydrationStatus.progressColor : "#3D3D3D",
+              }}
+            >
+              {displayGlasses}
+            </span>
+            {" / "}
+            {GOAL_GLASSES} <span className="text-base font-normal text-[#9A9A9A]">glasses</span>
           </span>
-          <span className="text-sm font-semibold text-[#6B6B6B]">
+          <span 
+            className={`text-sm font-semibold text-[#6B6B6B] transition-all duration-300 ${
+              isAnimating ? "scale-110" : "scale-100"
+            }`}
+          >
             {Math.round(progressPercentage)}%
           </span>
         </div>
@@ -339,18 +402,21 @@ export default function HydrationCounter() {
         <button
           onClick={handleAddGlass}
           disabled={isSubmitting}
-          className="flex-1 flex items-center justify-center gap-2 rounded-lg text-white px-4 py-2.5 font-bold transition-colors hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
+          className="flex-1 flex items-center justify-center gap-2 rounded-lg text-white px-4 py-2.5 font-bold transition-all duration-150 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation active:scale-95 relative overflow-hidden"
           style={{
             backgroundColor: hydrationStatus.progressColor,
+            transform: `scale(${buttonScale})`,
           }}
         >
-          <GlassWater className="h-4 w-4" />
-          Add Glass
+          {/* Ripple effect */}
+          <span className="absolute inset-0 rounded-lg bg-white/20 opacity-0 hover:opacity-100 transition-opacity duration-200"></span>
+          <GlassWater className="h-4 w-4 relative z-10 transition-transform duration-200 hover:scale-110" />
+          <span className="relative z-10">Add Glass</span>
         </button>
         <button
           onClick={handleRemoveGlass}
           disabled={isSubmitting || todayGlasses <= 0}
-          className="flex items-center justify-center gap-2 rounded-lg border-2 border-gray-300 text-gray-700 px-4 py-2.5 font-medium transition-colors hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
+          className="flex items-center justify-center gap-2 rounded-lg border-2 border-gray-300 text-gray-700 px-4 py-2.5 font-medium transition-all duration-150 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation active:scale-95"
         >
           <Minus className="h-4 w-4" />
         </button>

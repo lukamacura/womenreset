@@ -1,0 +1,107 @@
+---
+persona: "menopause"
+topic: "Inflammation & Joint Pain in Menopause"
+subtopic: "Quick Relief Toolkit — 3-Step Morning Routine"
+content_text: |
+  Mornings can feel the toughest — but a few small rituals can change everything 🌅.
+  When you wake, your joints are dehydrated and your circulation is slow. The goal isn't intensity — it's *activation*.
+  Think of it as your gentle wake-up sequence: hydrate, move, breathe. Each signal tells your body, 'You're safe; it's time to flow again.' 💜
+
+action_tips:
+  - "💧 **Step 1 – Hydrate:** Drink a glass of water before coffee to re-lubricate joints."
+  - "🧘‍♀️ **Step 2 – Mobility:** Try 5 minutes of stretches — shoulder rolls, hip circles, or cat-cow."
+  - "🌞 **Step 3 – Activation:** Walk or stand in sunlight for circulation and mood."
+
+motivation_nudge: "🌿 Every small morning habit whispers: *I'm caring for you now.*"
+
+habit_strategy:
+  principle: "Micro-Movement Momentum"
+  explanation: "Tiny morning movements build consistency and reduce stiffness."
+  example: "Keep a yoga mat by your bed; stretch before checking your phone."
+  habit_tip: "🌸 Stack movement with automatic habits like boiling the kettle."
+
+follow_up_question: "Would you like to build on this with a gentle 10-minute mobility routine for your stiffest joints, the best anti-inflammatory breakfast + hydration ideas for mornings, or a simple strength + mobility plan to protect joints long-term?"
+
+intent_patterns:
+  - "What can I do when I wake up so stiff I can barely move?"
+  - "How do I get my joints moving in the morning?"
+  - "What helps when I wake up feeling like a board?"
+  - "What's a quick morning routine for joint pain?"
+  - "How can I feel better fast when I first get up?"
+  - "What should I do right away to loosen up?"
+  - "Is there an easy way to reduce morning stiffness?"
+  - "How do I wake up my body without making pain worse?"
+  - "What's the first thing I should do for my joints in the morning?"
+  - "How can I start my day without so much pain?"
+  - "What helps me feel less achy when I first wake up?"
+  - "What's a simple morning stretch routine for stiff joints?"
+  - "How do I get moving when everything hurts in the morning?"
+  - "What can I do before I even get out of bed?"
+  - "How do I make mornings easier on my body?"
+  - "What's the fastest way to feel better in the morning?"
+  - "How do I reduce swelling and stiffness right when I wake up?"
+  - "What should my first 10 minutes look like?"
+  - "How can I get my circulation going gently?"
+  - "What helps morning joint pain quickly?"
+keywords:
+  Morning-Specific Relief:
+    - "morning stiffness"
+    - "wake-up mobility"
+    - "first thing routine"
+    - "morning joint pain"
+    - "getting up with stiffness"
+    - "start the day routine"
+    - "morning inflammation"
+    - "waking up achy"
+  Quick Relief Actions:
+    - "hydration on waking"
+    - "gentle stretching"
+    - "joint lubrication"
+    - "circulation boost"
+    - "micro-movement sequence"
+    - "3-step routine"
+    - "quick morning flow"
+    - "5-minute stretches"
+    - "shoulder rolls"
+    - "hip circles"
+    - "cat-cow stretch"
+  Body Activation:
+    - "blood flow stimulation"
+    - "lymphatic movement"
+    - "light joint rotation"
+    - "gentle yoga"
+    - "warming muscles"
+    - "activation sequence"
+    - "wake up body gently"
+  Inflammation & Comfort:
+    - "reduce morning swelling"
+    - "calm inflammation fast"
+    - "ease stiffness naturally"
+    - "soothe achy joints"
+    - "anti-inflammatory morning"
+    - "quick pain relief"
+  Everyday Language:
+    - "can barely move in the morning"
+    - "wake up so stiff"
+    - "mornings are the worst"
+    - "feel like a board when I wake up"
+    - "hurts to get out of bed"
+    - "what do I do first thing"
+    - "need quick relief fast"
+    - "how do I loosen up"
+    - "make mornings easier"
+    - "don't want to start day in pain"
+    - "just need something simple"
+    - "what helps right away"
+    - "before I even stand up"
+    - "getting moving is so hard"
+    - "scared to move in the morning"
+    - "dread getting out of bed"
+    - "need to feel better NOW"
+    - "can't keep starting day like this"
+    - "morning stiffness is killing me"
+    - "want to wake up without pain"
+    - "tired of hurting every morning"
+    - "simple routine I can actually do"
+    - "something that works fast"
+---

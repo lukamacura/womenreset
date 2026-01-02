@@ -15,6 +15,8 @@ import {
   Heart
 } from "lucide-react";
 import type { Notification, NotificationAction } from "./NotificationProvider";
+import { usePricingModal } from "@/lib/PricingModalContext";
+import type { TrialState } from "@/components/TrialCard";
 
 interface NotificationCardProps {
   notification: Notification;
@@ -137,15 +139,50 @@ export default function NotificationCard({
 }: NotificationCardProps) {
   const router = useRouter();
   const styles = getNotificationStyles(notification.type);
+  const { openModal } = usePricingModal();
 
   const handlePrimaryAction = async () => {
     if (onPrimaryAction) {
       onPrimaryAction();
     }
     if (notification.primaryAction) {
-      // Check if route is stored (from database)
-      const actionWithRoute = notification.primaryAction as NotificationAction & { route?: string };
-      if (actionWithRoute.route) {
+      // Check if actionType is "open_pricing" (from metadata)
+      const actionWithRoute = notification.primaryAction as NotificationAction & { 
+        route?: string;
+        actionType?: string;
+      };
+      
+      // Check metadata for actionType (stored in database)
+      const notificationWithMetadata = notification as Notification & {
+        metadata?: {
+          primaryAction?: {
+            actionType?: string;
+          };
+        };
+      };
+      
+      const actionType = actionWithRoute.actionType || 
+        notificationWithMetadata.metadata?.primaryAction?.actionType;
+
+      if (actionType === "open_pricing") {
+        // Determine trial state from notification type and title
+        let trialState: TrialState = "calm";
+        if (notification.type === "trial") {
+          if (notification.title.includes("Today") || notification.title.includes("urgent")) {
+            trialState = "urgent";
+          } else if (notification.title.includes("Soon") || notification.title.includes("warning")) {
+            trialState = "warning";
+          } else if (notification.title.includes("Ended") || notification.title.includes("expired")) {
+            trialState = "expired";
+          }
+        }
+        
+        // Extract time remaining from message if available
+        const timeMatch = notification.message?.match(/(\d+h \d+m)/);
+        const timeRemaining = timeMatch ? timeMatch[1] : undefined;
+        
+        openModal(trialState, timeRemaining);
+      } else if (actionWithRoute.route) {
         // Navigate using Next.js router
         router.push(actionWithRoute.route);
       } else {
