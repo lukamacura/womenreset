@@ -644,7 +644,6 @@ export default function SymptomsPage() {
               label: "Yes! 🌟",
               action: async () => {
                 try {
-                  const { setMood } = await import("@/hooks/useDailyMood");
                   // This will be handled by DailyMoodSelector component
                   const moodSelector = document.querySelector('[data-daily-mood-selector]');
                   if (moodSelector) {
