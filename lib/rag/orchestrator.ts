@@ -434,121 +434,123 @@ async function retrieveKBEntryByMetadata(
 }
 
 /**
- * Handle follow-up question with link resolution
- * FIX: Do not use semantic search - match user query directly to follow_up_links
- * Route linked options to KB, unlinked options to LLM
+ * Find follow-up link by matching query to any link label in the database
+ * Simplified: No history checking, direct match by label across all documents
  */
-async function handleFollowUpWithLinks(
-  userQuery: string,
-  currentKBEntry: KBEntry,
-  persona: Persona,
-  mode: RetrievalMode
-): Promise<OrchestrationResult | null> {
-  const followUpLinks = currentKBEntry.metadata.follow_up_links || [];
-  
-  // If no follow-up links, return null to use default flow
-  if (followUpLinks.length === 0) {
-    return null;
-  }
-  
-  console.log(`[Follow-up Link] Processing follow-up with ${followUpLinks.length} link(s), skipping semantic search`);
-  
-  // Try to match user query directly to follow_up_links by label/topic
-  // This bypasses option parsing and matches directly
-  const matchedLink = findMatchingLink(userQuery, followUpLinks);
-  
-  if (matchedLink) {
-    // Found a direct match to a link - retrieve the linked KB entry
-    console.log(`[Follow-up Link] ✅ Direct match found! Query: "${userQuery.substring(0, 50)}" -> Link: ${matchedLink.topic} > ${matchedLink.subtopic} (label: "${matchedLink.label.substring(0, 50)}")`);
-    
-    // Retrieve the linked KB entry using direct metadata query (no semantic search)
-    const linkedEntry = await retrieveKBEntryByMetadata(
-      matchedLink.persona,
-      matchedLink.topic,
-      matchedLink.subtopic
-    );
-    
-    if (linkedEntry) {
-      const verbatimResponse = formatVerbatimResponse([linkedEntry], true);
-      return {
-        response: verbatimResponse,
-        persona: matchedLink.persona as Persona,
-        retrievalMode: mode,
-        usedKB: true,
-        source: "kb",
-        kbEntries: [linkedEntry],
-        isVerbatim: true,
-      };
-    } else {
-      console.log(`[Follow-up Link] ⚠️ Linked KB entry not found: ${matchedLink.persona} > ${matchedLink.topic} > ${matchedLink.subtopic}`);
-      // Still route to LLM if KB entry not found
-      return {
-        persona: matchedLink.persona as Persona,
-        retrievalMode: mode,
-        usedKB: false,
-        source: "llm",
-      };
-    }
-  }
-  
-  // If no direct match, try parsing follow-up question to match options
-  // This is a fallback for cases where user query doesn't directly match link labels
-  const followUpQuestion = extractFollowUpQuestion(currentKBEntry.content);
-  if (followUpQuestion) {
-    const options = parseFollowUpOptions(followUpQuestion, followUpLinks);
+async function findFollowUpLinkByQuery(userQuery: string): Promise<FollowUpLink | null> {
+  try {
+    const supabaseClient = getSupabaseAdmin();
     const normalizedQuery = userQuery.toLowerCase().trim();
     
-    for (const { option, link } of options) {
-      const normalizedOption = option.toLowerCase();
+    // Query all documents with follow_up_links
+    const { data: documents, error } = await supabaseClient
+      .from('documents')
+      .select('id, metadata')
+      .not('metadata->follow_up_links', 'is', null);
+    
+    if (error) {
+      console.error(`[Follow-up Link] Error querying documents: ${error.message}`);
+      return null;
+    }
+    
+    if (!documents || documents.length === 0) {
+      return null;
+    }
+    
+    // Search through all follow_up_links to find matching label
+    for (const doc of documents) {
+      const metadata = doc.metadata as SupabaseDocumentMetadata;
+      const followUpLinks = metadata.follow_up_links as FollowUpLink[] | undefined;
       
-      // Check if user query matches this option (contains key terms)
-      const optionTerms = normalizedOption.split(/\s+/).filter(term => term.length > 3);
-      const matchesOption = optionTerms.length > 0 && optionTerms.some(term => normalizedQuery.includes(term));
+      if (!followUpLinks || followUpLinks.length === 0) {
+        continue;
+      }
       
-      if (matchesOption) {
-        if (link) {
-          // Matched option with a link - retrieve the linked KB entry
-          console.log(`[Follow-up Link] ✅ Matched option "${option}" to KB entry: ${link.topic} > ${link.subtopic}`);
-          
-          const linkedEntry = await retrieveKBEntryByMetadata(
-            link.persona,
-            link.topic,
-            link.subtopic
-          );
-          
-          if (linkedEntry) {
-            const verbatimResponse = formatVerbatimResponse([linkedEntry], true);
-            return {
-              response: verbatimResponse,
-              persona: link.persona as Persona,
-              retrievalMode: mode,
-              usedKB: true,
-              source: "kb",
-              kbEntries: [linkedEntry],
-              isVerbatim: true,
-            };
+      // Try exact label match first
+      for (const link of followUpLinks) {
+        const linkLabel = link.label.toLowerCase().trim();
+        if (linkLabel === normalizedQuery) {
+          console.log(`[Follow-up Link] ✅ Exact label match found: "${link.label}"`);
+          return link;
+        }
+      }
+      
+      // Try partial match (query contains label or label contains query)
+      for (const link of followUpLinks) {
+        const linkLabel = link.label.toLowerCase().trim();
+        if (normalizedQuery.includes(linkLabel) || linkLabel.includes(normalizedQuery)) {
+          // Only match if substantial overlap (at least 5 characters)
+          if (linkLabel.length >= 5 && normalizedQuery.length >= 5) {
+            console.log(`[Follow-up Link] ✅ Partial label match found: "${link.label}"`);
+            return link;
           }
-        } else {
-          // Matched option but no link - route to LLM
-          console.log(`[Follow-up Link] Matched option "${option}" but no link - routing to LLM`);
-          return {
-            persona,
-            retrievalMode: mode,
-            usedKB: false,
-            source: "llm",
-          };
+          // Check for key terms match
+          const labelWords = linkLabel.split(/\s+/).filter(w => w.length > 3);
+          const queryWords = normalizedQuery.split(/\s+/).filter(w => w.length > 3);
+          const matchingWords = labelWords.filter(w => queryWords.includes(w));
+          if (matchingWords.length >= 2 || (matchingWords.length === 1 && labelWords.length <= 2)) {
+            console.log(`[Follow-up Link] ✅ Key terms match found: "${link.label}"`);
+            return link;
+          }
         }
       }
     }
+    
+    return null;
+  } catch (error) {
+    console.error(`[Follow-up Link] Error finding link:`, error);
+    return null;
+  }
+}
+
+/**
+ * Handle follow-up link routing - simplified: direct match and verbatim return
+ * No history checking, no questions - just route to target document
+ * ALWAYS returns verbatim KB content, bypassing persona classification
+ */
+async function handleFollowUpLinkRouting(
+  userQuery: string,
+  persona?: Persona,
+  mode?: RetrievalMode
+): Promise<OrchestrationResult | null> {
+  // Find matching follow-up link across all documents
+  const matchedLink = await findFollowUpLinkByQuery(userQuery);
+  
+  if (!matchedLink) {
+    // No matching link found - return null to use default flow
+    return null;
   }
   
-  // No match found - route to LLM (do not use semantic search)
-  console.log(`[Follow-up Link] No match found for query: "${userQuery.substring(0, 50)}" - routing to LLM (skipping KB search)`);
+  console.log(`[Follow-up Link] ✅ Match found! Query: "${userQuery.substring(0, 50)}" -> Target: ${matchedLink.topic} > ${matchedLink.subtopic}`);
+  
+  // Retrieve the target KB entry directly by metadata
+  const linkedEntry = await retrieveKBEntryByMetadata(
+    matchedLink.persona,
+    matchedLink.topic,
+    matchedLink.subtopic
+  );
+  
+  if (!linkedEntry) {
+    console.log(`[Follow-up Link] ⚠️ Target document not found: ${matchedLink.persona} > ${matchedLink.topic} > ${matchedLink.subtopic}`);
+    return null;
+  }
+  
+  // Return verbatim response - no questions, just the content
+  // Persona is determined from the target document, not from classification
+  const verbatimResponse = formatVerbatimResponse([linkedEntry], true);
+  const personaForMode = matchedLink.persona === "menopause" ? "menopause_specialist" : matchedLink.persona as Persona;
+  const retrievalModeForLink = mode || getRetrievalMode(personaForMode);
+  
+  console.log(`[Follow-up Link] ✅ Returning verbatim content from: ${matchedLink.topic} > ${matchedLink.subtopic} (persona: ${personaForMode})`);
+  
   return {
-    persona,
-    retrievalMode: mode,
-    usedKB: false,
-    source: "llm",
+    response: verbatimResponse,
+    persona: personaForMode,
+    retrievalMode: retrievalModeForLink,
+    usedKB: true,
+    source: "kb",
+    kbEntries: [linkedEntry],
+    isVerbatim: true,
   };
 }
 
@@ -573,6 +575,16 @@ export async function orchestrateRAG(
   conversationHistory?: Array<["user" | "assistant", string]>
 ): Promise<OrchestrationResult> {
   try {
+    // STEP 0: PRIORITY CHECK - Follow-up link routing (BEFORE persona classification)
+    // If user clicked a follow-up link, ALWAYS route to KB document verbatim, regardless of persona
+    // This bypasses all persona classification and LLM routing
+    console.log(`[RAG Orchestrator] Checking for follow-up link match...`);
+    const linkResult = await handleFollowUpLinkRouting(userQuery);
+    if (linkResult) {
+      console.log(`[RAG Orchestrator] ✅ Follow-up link matched - returning verbatim KB content (bypassing persona classification)`);
+      return linkResult;
+    }
+    
     // Step 1: Get conversation history from memory
     const memoryHistory = getConversationHistory(sessionId);
     const allHistory = conversationHistory || memoryHistory.map(msg => [msg.role, msg.content] as ["user" | "assistant", string]);
@@ -611,91 +623,6 @@ export async function orchestrateRAG(
     
     // Step 2.5: Determine retrieval mode (if no exact match found, use classified persona)
     const retrievalMode = mode || getRetrievalMode(persona);
-    
-    if (isFollowUp) {
-      console.log(`[RAG Orchestrator] Follow-up question detected`);
-      
-      // FIX: Skip semantic search when follow_up_links exist
-      // Try to get the last KB entry from conversation history
-      // Look for the last assistant message and try to find the KB entry it came from
-      let lastKBEntry: KBEntry | null = null;
-      
-      // Get the last assistant message
-      for (let i = allHistory.length - 1; i >= 0; i--) {
-        const [role, content] = allHistory[i];
-        if (role === "assistant" && content) {
-          // Try to retrieve KB entry that matches this content
-          // Use a reverse lookup: search for KB entries that contain key phrases from the response
-          const keyPhrases = extractKeyPhrases(content);
-          if (keyPhrases.length > 0) {
-            const searchQuery = keyPhrases.slice(0, 3).join(' ');
-            const reverseLookup = await retrieveFromKB(searchQuery, persona, 3, 0.6);
-            
-            // Check if any retrieved entry has follow_up_links
-            for (const entry of reverseLookup.kbEntries) {
-              if (entry.metadata.follow_up_links && entry.metadata.follow_up_links.length > 0) {
-                // Check if this entry's content matches the assistant response (partial match)
-                const entryContent = entry.content.toLowerCase();
-                const responseContent = content.toLowerCase();
-                const hasOverlap = keyPhrases.some(phrase => 
-                  entryContent.includes(phrase.toLowerCase()) || 
-                  responseContent.includes(phrase.toLowerCase())
-                );
-                
-                if (hasOverlap) {
-                  lastKBEntry = entry;
-                  console.log(`[RAG Orchestrator] Found last KB entry with follow-up links: ${entry.metadata.topic} > ${entry.metadata.subtopic}`);
-                  break;
-                }
-              }
-            }
-          }
-          break; // Only check the last assistant message
-        }
-      }
-      
-      // If we found a KB entry with follow-up links, resolve without semantic search
-      if (lastKBEntry && lastKBEntry.metadata.follow_up_links && lastKBEntry.metadata.follow_up_links.length > 0) {
-        console.log(`[RAG Orchestrator] KB entry with follow_up_links found - skipping semantic search, matching directly to links`);
-        
-        // Step 3: Determine retrieval mode (use provided mode or default based on persona)
-        const retrievalModeForLink = mode || getRetrievalMode(persona);
-        
-        // Handle follow-up with links - this will match user query to links and route accordingly
-        // It will NOT use semantic search, only direct link matching
-        const linkResult = await handleFollowUpWithLinks(
-          userQuery,
-          lastKBEntry,
-          persona,
-          retrievalModeForLink
-        );
-        
-        if (linkResult) {
-          console.log(`[RAG Orchestrator] Follow-up link resolved, returning result`);
-          return linkResult;
-        }
-        
-        // handleFollowUpWithLinks now handles routing to LLM if no match
-        // This should not happen, but just in case:
-        console.log(`[RAG Orchestrator] Follow-up question with links but no match - routing to LLM (skipping KB search)`);
-        return {
-          persona,
-          retrievalMode: retrievalModeForLink,
-          usedKB: false,
-          source: "llm",
-        };
-      }
-      
-      // No follow-up links found - skip KB search and route to LLM for unlinked follow-up questions
-      console.log(`[RAG Orchestrator] Follow-up question detected but no follow_up_links found - routing to LLM (skipping KB search)`);
-      const retrievalModeForLLM = mode || getRetrievalMode(persona);
-      return {
-        persona,
-        retrievalMode: retrievalModeForLLM,
-        usedKB: false,
-        source: "llm",
-      };
-    }
 
     // Step 2.6: Check for WHY hormone questions and potentially route to menopause persona
     

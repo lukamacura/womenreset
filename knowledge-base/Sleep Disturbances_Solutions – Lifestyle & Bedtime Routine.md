@@ -1,3 +1,4 @@
+---
 persona: "menopause"
 topic: "Sleep Disturbances in Menopause"
 subtopic: "Solutions – Lifestyle & Bedtime Routine"
@@ -20,7 +21,7 @@ motivation_nudge: "💖 You don’t need perfection — just rhythm. Every peace
 
 follow_up_question: "Want to know about the best supplements and food for sleep?"
 follow_up_links:
-  -persona: "menopause"
+  - persona: "menopause"
   topic: "Sleep Disturbances in Menopause"
   subtopic: "Solutions – Nutrition & Supplements for Sleep"
   label: "learn about the best supplements and food for sleep"
