@@ -114,12 +114,38 @@ export async function classifyPersona(query: string): Promise<Persona> {
     return "menopause_specialist";
   }
 
+  // NEW: "Why" questions seeking explanations route to menopause_specialist
+  // This catches "why do I feel anxious/stressed/exhausted/tired/wired" etc.
+  if (lowerQuery.match(/^why\s+(do|am|is|are|does|did|was|were)\s+(i|my|you|your)/)) {
+    console.log(`[Persona Classifier] Routing to menopause_specialist - "why" question seeking explanation`);
+    return "menopause_specialist";
+  }
+
   // Empathy Companion keywords (emotional/support)
-  // Only check if query doesn't match menopause KB
+  // Refined list: removed "feel" and added more specific emotional state keywords
   const empathyKeywords = [
-    "feel", "emotion", "mood", "anxiety", "stress", "overwhelm", 
-    "sad", "depressed", "lonely", "support", "struggling", "difficult",
-    "hard time", "coping", "mental health", "therapy", "cbt"
+    // Emotional states (unambiguous)
+    "anxious", "anxiety", "panic", "panicked", "overwhelm", "overwhelmed",
+    "stressed", "stress", "depressed", "depression", "sad", "lonely",
+    "frustrated", "angry", "upset", "scared", "afraid", "fearful",
+    "hopeless", "helpless", "exhausted", "drained", "burned out", "burnout",
+    
+    // Mental health terms
+    "mental health", "therapy", "therapist", "counseling", "cbt",
+    "panic attack", "anxiety attack",
+    
+    // Emotional support needs
+    "struggling", "coping", "difficult", "hard time", "can't handle",
+    "need support", "emotional support", "emotionally",
+    
+    // Mood and emotional experiences
+    "mood", "emotions", "emotional", "emotional state",
+    
+    // Relationship/social emotional
+    "isolated", "misunderstood", "judged", "invalidated",
+    
+    // Coping and processing
+    "processing", "dealing with", "managing emotions", "emotional regulation"
   ];
   if (empathyKeywords.some(keyword => lowerQuery.includes(keyword))) {
     return "empathy_companion";
@@ -156,11 +182,30 @@ export function classifyPersonaMultiIntent(query: string): Persona[] {
     personas.push("nutrition_coach");
   }
 
-  // Empathy Companion keywords
+  // Empathy Companion keywords (refined list)
   const empathyKeywords = [
-    "feel", "emotion", "mood", "anxiety", "stress", "overwhelm", 
-    "sad", "depressed", "lonely", "support", "struggling", "difficult",
-    "hard time", "coping", "mental health", "therapy", "cbt"
+    // Emotional states (unambiguous)
+    "anxious", "anxiety", "panic", "panicked", "overwhelm", "overwhelmed",
+    "stressed", "stress", "depressed", "depression", "sad", "lonely",
+    "frustrated", "angry", "upset", "scared", "afraid", "fearful",
+    "hopeless", "helpless", "exhausted", "drained", "burned out", "burnout",
+    
+    // Mental health terms
+    "mental health", "therapy", "therapist", "counseling", "cbt",
+    "panic attack", "anxiety attack",
+    
+    // Emotional support needs
+    "struggling", "coping", "difficult", "hard time", "can't handle",
+    "need support", "emotional support", "emotionally",
+    
+    // Mood and emotional experiences
+    "mood", "emotions", "emotional", "emotional state",
+    
+    // Relationship/social emotional
+    "isolated", "misunderstood", "judged", "invalidated",
+    
+    // Coping and processing
+    "processing", "dealing with", "managing emotions", "emotional regulation"
   ];
   if (empathyKeywords.some(keyword => lowerQuery.includes(keyword))) {
     personas.push("empathy_companion");

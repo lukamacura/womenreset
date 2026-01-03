@@ -131,6 +131,11 @@ const intentSynonymMap: Record<string, string[]> = {
   'evening': ['night', 'nighttime'],
   'each': ['every', 'all'],
   'always': ['every', 'each'],
+  // State description equivalences - ensures "why am i so foggy?" matches "why do I feel foggy?"
+  'so': ['feel', 'very', 'really', 'quite'],
+  'feel': ['so', 'very', 'really', 'quite', 'seem'],
+  'very': ['so', 'feel', 'really', 'quite'],
+  'really': ['so', 'feel', 'very', 'quite'],
   // Temporal phrase variations for robust matching
   'at night': ['every night', 'each night', 'nightly', 'during the night', 'in the night', 'throughout the night'],
   'every night': ['at night', 'each night', 'nightly', 'night after night'],
@@ -173,6 +178,14 @@ export function normalizeTextForIntentMatching(text: string): string {
   normalized = normalized.replace(/\b(don't|do not)\b/g, 'do not');
   normalized = normalized.replace(/\b(i'm|i am)\b/g, 'i am');
   normalized = normalized.replace(/\b(it's|it is)\b/g, 'it is');
+  
+  // NEW: Normalize "am/are/is [so/very/really] [adjective]" to "feel [adjective]"
+  // This ensures "why am i so foggy?" matches "why do I feel foggy?"
+  normalized = normalized.replace(/\b(am|are|is)\s+(so|very|really|quite)\s+([a-z]{3,})\b/g, 'feel $3');
+  
+  // NEW: Normalize "so [adjective]" to "feel [adjective]" (when not after am/are/is)
+  // This handles standalone "so" as intensifier
+  normalized = normalized.replace(/\bso\s+([a-z]{3,})\b/g, 'feel $1');
   
   // FIX: Comprehensive temporal phrase normalization
   // Handle all variations of "at night" / "every night" patterns
@@ -783,14 +796,14 @@ export async function checkExactIntentMatchAcrossAllPersonas(
 
 /**
  * Strict Intent-Based Retrieval for kb_strict mode
- * Retrieves documents ONLY if their intents match the user query (score >= 0.9)
- * Falls back to semantic similarity if no intent matches found
+ * Retrieves documents ONLY if their intents match the user query (score >= 0.80)
+ * Returns empty result if no intent matches found (routes to LLM instead of semantic fallback)
  */
 export async function retrieveFromKBByIntentOnly(
   query: string,
   persona: Persona,
   topK: number = 5,
-  intentThreshold: number = 0.9
+  intentThreshold: number = 0.80
 ): Promise<RetrievalResult> {
   try {
     console.log(`[Intent-Only Retrieval] Starting strict intent-based retrieval for: "${query}"`);
@@ -959,9 +972,8 @@ export async function retrieveFromKBByIntentOnly(
       }
     }
     
-    // Determine result: use intent matches if found, otherwise fallback to semantic
+    // Determine result: use intent matches if found, otherwise return empty (route to LLM)
     let finalEntries: KBEntry[];
-    let usedFallback = false;
     
     if (intentMatchedEntries.length > 0) {
       // Sort intent-matched entries by intent score (descending) - perfect matches first
@@ -998,23 +1010,26 @@ export async function retrieveFromKBByIntentOnly(
         });
       }
     } else {
-      // No intent matches - fallback to semantic similarity
-      finalEntries = semanticResult.kbEntries.slice(0, topK);
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      usedFallback = true;
+      // No intent matches - return empty (strict mode requires intent match, route to LLM)
       console.log(`[Intent-Only Retrieval] ⚠️  No intent matches found (all ${excludedEntries.length} candidates excluded)`);
-      console.log(`[Intent-Only Retrieval] 🔄 Falling back to semantic similarity (${finalEntries.length} documents)`);
+      console.log(`[Intent-Only Retrieval] ❌ Returning empty result - routing to LLM (strict mode requires intent match >= ${intentThreshold})`);
       
-      // Log why entries were excluded
+      // Log why entries were excluded for debugging
       if (excludedEntries.length > 0) {
-        console.log(`[Intent-Only Retrieval] Top excluded entries:`);
+        console.log(`[Intent-Only Retrieval] Top excluded entries (intent scores below threshold):`);
         excludedEntries
           .sort((a, b) => b.intentScore - a.intentScore)
           .slice(0, 3)
           .forEach(({ entry, intentScore }, idx) => {
-            console.log(`  [${idx + 1}] Intent: ${intentScore.toFixed(3)} | Topic: ${entry.metadata.topic} | Subtopic: ${entry.metadata.subtopic}`);
+            console.log(`  [${idx + 1}] Intent: ${intentScore.toFixed(3)} < ${intentThreshold} | Topic: ${entry.metadata.topic} | Subtopic: ${entry.metadata.subtopic}`);
           });
       }
+      
+      // Return empty result - this will trigger LLM routing in orchestrator
+      return {
+        kbEntries: [],
+        hasMatch: false,
+      };
     }
     
     return {

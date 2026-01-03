@@ -1,9 +1,11 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable react-hooks/rules-of-hooks */
 "use client";
 
 import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Plus } from "lucide-react";
+import { Book, BookOpen, Plus } from "lucide-react";
 import { useSymptoms } from "@/hooks/useSymptoms";
 import { useSymptomLogs } from "@/hooks/useSymptomLogs";
 import { useTrialStatus } from "@/lib/useTrialStatus";
@@ -13,16 +15,12 @@ import SymptomCard from "@/components/symptom-tracker/SymptomCard";
 import SymptomSelectorModal from "@/components/symptom-tracker/SymptomSelectorModal";
 import LogSymptomModal from "@/components/symptom-tracker/LogSymptomModal";
 import QuickLogModal from "@/components/symptom-tracker/QuickLogModal";
-import AnalyticsSection from "@/components/symptom-tracker/AnalyticsSection";
 import RecentLogs from "@/components/symptom-tracker/RecentLogs";
 import PersonalizedGreeting from "@/components/symptom-tracker/PersonalizedGreeting";
 import EmptyState from "@/components/symptom-tracker/EmptyState";
-import MilestoneCelebration from "@/components/symptom-tracker/MilestoneCelebration";
-import ProgressComparison from "@/components/symptom-tracker/ProgressComparison";
-import WeekComparison from "@/components/symptom-tracker/WeekComparison";
 import HealthSummaryButton from "@/components/symptom-tracker/HealthSummaryButton";
 import DailyMoodSelector from "@/components/symptom-tracker/DailyMoodSelector";
-import TriggerQuickSelect from "@/components/symptom-tracker/TriggerQuickSelect";
+import WhatLisaNoticed from "@/components/symptom-tracker/WhatLisaNoticed";
 import DeleteConfirmationDialog from "@/components/DeleteConfirmationDialog";
 import type { Symptom, LogSymptomData, SymptomLog } from "@/lib/symptom-tracker-constants";
 import { orderSymptoms } from "@/lib/symptomOrdering";
@@ -109,7 +107,7 @@ export default function SymptomsPage() {
     useSymptoms();
   const { logs, loading: logsLoading, refetch: refetchLogs } =
     useSymptomLogs(30);
-  const { profile } = useUserProfile();
+  useUserProfile();
   const { mood: dailyMood } = useDailyMood();
   const [selectedSymptom, setSelectedSymptom] = useState<Symptom | null>(null);
   const [editingLog, setEditingLog] = useState<SymptomLog | null>(null);
@@ -117,12 +115,10 @@ export default function SymptomsPage() {
   const [isQuickModalOpen, setIsQuickModalOpen] = useState(false);
   const [isSelectorOpen, setIsSelectorOpen] = useState(false);
   const [, setPageLoaded] = useState(false);
-  const [triggerPromptLog, setTriggerPromptLog] = useState<{ logId: string; symptomId: string; symptomName: string } | null>(null);
   
   // Session tracking for notifications
   const [sessionState, setSessionState] = useState({
     logsThisSession: 0,
-    triggerPromptsShown: 0,
     duplicateWarningsShown: new Set<string>(), // symptom_id + date
   });
   const [deleteDialog, setDeleteDialog] = useState<{
@@ -148,114 +144,6 @@ export default function SymptomsPage() {
   useEffect(() => {
     setPageLoaded(true);
   }, []);
-
-  // Check for bad day support notification
-  useEffect(() => {
-    let isChecking = false;
-    let hasCheckedOnce = false;
-
-    const checkBadDaySupport = async () => {
-      // Prevent multiple simultaneous checks
-      if (isChecking || hasCheckedOnce) return;
-      isChecking = true;
-
-      try {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        
-        const todayLogs = logs.filter((log: SymptomLog) => {
-          const logDate = new Date(log.logged_at);
-          logDate.setHours(0, 0, 0, 0);
-          return logDate.getTime() === today.getTime();
-        });
-
-        // Check if already shown today in sessionStorage
-        const todayKey = `badDaySupport_${today.toDateString()}`;
-        const hasShownToday = sessionStorage.getItem(todayKey) === 'true';
-
-        // Also check database to prevent duplicates across page reloads
-        let existsInDatabase = false;
-        if (!hasShownToday) {
-          try {
-            const response = await fetch(
-              `/api/notifications?limit=50&not_dismissed=true&include_read=true`
-            );
-            if (response.ok) {
-              const { data } = await response.json();
-              const todayStart = new Date(today);
-              const todayEnd = new Date(today);
-              todayEnd.setHours(23, 59, 59, 999);
-              
-              existsInDatabase = (data || []).some((notif: any) => {
-                if (notif.type === "lisa_message" && notif.title === "Tough Day Support") {
-                  const notifDate = new Date(notif.created_at);
-                  return notifDate >= todayStart && notifDate <= todayEnd && !notif.dismissed;
-                }
-                return false;
-              });
-            }
-          } catch (error) {
-            console.error("Error checking existing notifications:", error);
-          }
-        }
-
-        // Trigger conditions: 3+ symptoms in one day, OR any symptom logged as Severe
-        const severeCount = todayLogs.filter((log: SymptomLog) => log.severity === 3).length;
-        const hasSevere = severeCount > 0;
-        const hasManySymptoms = todayLogs.length >= 3;
-
-        if ((hasSevere || hasManySymptoms) && !hasShownToday && !existsInDatabase && todayLogs.length > 0) {
-          const displayName = profile?.name || '';
-          const symptomCount = todayLogs.length;
-          const symptomText = symptomCount === 1 ? 'symptom' : 'symptoms';
-          
-          await show(
-            "lisa_message",
-            "Tough Day Support",
-            {
-              message: `${displayName ? `${displayName}, ` : ''}You've logged ${symptomCount} ${symptomText} today. That's hard, and we see you. Remember: Tracking the hard days helps Lisa find patterns that lead to better days. You're doing something important by being here.`,
-              priority: "medium",
-              autoDismiss: false,
-              primaryAction: {
-                label: "Talk to Lisa",
-                action: () => {
-                  router.push("/chat/lisa");
-                },
-              },
-              secondaryAction: {
-                label: "I'm okay, just logging",
-                action: () => {
-                  // Just dismiss
-                },
-              },
-            }
-          );
-
-          // Mark as shown today in sessionStorage
-          sessionStorage.setItem(todayKey, 'true');
-          hasCheckedOnce = true;
-        }
-      } finally {
-        isChecking = false;
-      }
-    };
-
-    // Listen for the custom event
-    const handler = () => checkBadDaySupport();
-    window.addEventListener('check-bad-day-support', handler);
-    
-    // Also check on logs change (with a small delay to avoid showing immediately on page load)
-    const timeoutId = setTimeout(() => {
-      if (logs.length > 0 && !hasCheckedOnce) {
-        checkBadDaySupport();
-      }
-    }, 1500);
-
-    return () => {
-      window.removeEventListener('check-bad-day-support', handler);
-      clearTimeout(timeoutId);
-    };
-  }, [logs, profile?.name, router, show]);
 
   // Redirect to dashboard if trial is expired
   if (!trialStatus.loading && trialStatus.expired) {
@@ -338,7 +226,7 @@ export default function SymptomsPage() {
         // Refetch logs and symptoms
         await Promise.all([refetchLogs(), refetchSymptoms()]);
         
-        // Dispatch custom event to notify AnalyticsSection to refresh
+        // Dispatch custom event to notify components to refresh
         window.dispatchEvent(new CustomEvent('symptom-log-updated'));
         
         // Show success notification
@@ -362,11 +250,6 @@ export default function SymptomsPage() {
   };
 
   // Handle expand to full modal from quick modal
-  const handleExpandToFullModal = () => {
-    setIsQuickModalOpen(false);
-    setIsModalOpen(true);
-    // selectedSymptom is already set
-  };
 
 
   // Handle symptom card click
@@ -467,7 +350,7 @@ export default function SymptomsPage() {
     }
   };
 
-  // Check for post-log notifications (trigger prompt, duplicate warning)
+  // Check for post-log notifications (duplicate warning)
   const checkPostLogNotifications = useCallback(
     (savedLog: SymptomLog, symptomId: string, triggers: string[]) => {
       const symptom = symptoms.find(s => s.id === symptomId);
@@ -475,25 +358,6 @@ export default function SymptomsPage() {
 
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-
-      // Check for trigger prompt
-      if (triggers.length === 0) {
-        const newLogsCount = sessionState.logsThisSession;
-        const promptsShown = sessionState.triggerPromptsShown;
-        
-        // Show if: lastPromptCount < logsThisSession / 3, max 3 prompts per session
-        if (promptsShown < Math.floor(newLogsCount / 3) && promptsShown < 3) {
-          setTriggerPromptLog({
-            logId: savedLog.id,
-            symptomId: symptom.id,
-            symptomName: symptom.name,
-          });
-          setSessionState(prev => ({
-            ...prev,
-            triggerPromptsShown: prev.triggerPromptsShown + 1,
-          }));
-        }
-      }
 
       // Check for duplicate warning (3rd+ log of same symptom today)
       // This will be checked after logs are refetched, so we'll use a timeout
@@ -547,36 +411,6 @@ export default function SymptomsPage() {
       }, 1000);
     },
     [symptoms, logs, sessionState, show]
-  );
-
-  // Handle trigger prompt save
-  const handleTriggerPromptSave = useCallback(
-    async (triggers: string[]) => {
-      if (!triggerPromptLog) return;
-
-      try {
-        const response = await fetch("/api/symptom-logs", {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            id: triggerPromptLog.logId,
-            triggers: triggers,
-          }),
-        });
-
-        if (response.ok) {
-          await refetchLogs();
-          window.dispatchEvent(new CustomEvent('symptom-log-updated'));
-        }
-      } catch (error) {
-        console.error("Failed to update triggers:", error);
-      } finally {
-        setTriggerPromptLog(null);
-      }
-    },
-    [triggerPromptLog, refetchLogs]
   );
 
   // Check for end-of-day notification
@@ -740,7 +574,7 @@ export default function SymptomsPage() {
         // Refetch logs and symptoms
         await Promise.all([refetchLogs(), refetchSymptoms()]);
         
-        // Dispatch custom event to notify AnalyticsSection to refresh
+        // Dispatch custom event to notify components to refresh
         window.dispatchEvent(new CustomEvent('symptom-log-updated'));
         
         // Show success notification
@@ -916,26 +750,17 @@ export default function SymptomsPage() {
           </AnimatedSection>
         )}
 
-        {/* Week Comparison */}
+        {/* What Lisa Noticed */}
         <AnimatedSection delay={0}>
-          <WeekComparison />
-        </AnimatedSection>
-
-        {/* Analytics Section */}
-        <AnimatedSection delay={0}>
-          <AnalyticsSection />
-        </AnimatedSection>
-
-        {/* Progress Comparison */}
-        <AnimatedSection delay={0}>
-          <ProgressComparison />
+          <WhatLisaNoticed />
         </AnimatedSection>
 
         {/* Recent Logs */}
         <AnimatedSection delay={0}>
           <section className="bg-white/30 backdrop-blur-lg rounded-2xl p-4 sm:p-6 border border-white/30 shadow-xl transition-all duration-300 hover:shadow-2xl">
-            <div className="mb-3 sm:mb-4">
-              <h2 className="text-lg sm:text-xl font-semibold text-[#8B7E74]">Your Journal</h2>
+            <div className="mb-3 sm:mb-4 flex items-center gap-2">
+              <BookOpen className="h-8 w-8 text-pink-500 shrink-0 mt-0.5" />
+              <h2 className="text-lg sm:text-2xl font-semibold text-foreground">Your Journal</h2>
             </div>
             <RecentLogs logs={logs} loading={logsLoading} onLogClick={handleLogClick} onDelete={handleLogDeleteClick} />
           </section>
@@ -978,9 +803,6 @@ export default function SymptomsPage() {
         />
       )}
 
-      {/* Milestone Celebrations */}
-      <MilestoneCelebration />
-
       {/* Delete Symptom Confirmation Dialog */}
       <DeleteConfirmationDialog
         isOpen={deleteDialog.isOpen}
@@ -1003,18 +825,6 @@ export default function SymptomsPage() {
         isLoading={deleteLogDialog.isLoading}
       />
 
-      {/* Trigger Quick Select Modal */}
-      {triggerPromptLog && (
-        <TriggerQuickSelect
-          symptomName={triggerPromptLog.symptomName}
-          symptomId={triggerPromptLog.symptomId}
-          logId={triggerPromptLog.logId}
-          allLogs={logs}
-          isOpen={!!triggerPromptLog}
-          onClose={() => setTriggerPromptLog(null)}
-          onSave={handleTriggerPromptSave}
-        />
-      )}
     </div>
   );
 }

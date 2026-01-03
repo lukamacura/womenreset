@@ -641,7 +641,7 @@ export async function orchestrateRAG(
         // Update retrieval mode after persona change (menopause_specialist uses kb_strict)
         const newRetrievalMode = getRetrievalMode(persona);
         // Re-check exact intent with new persona
-        const exactIntentCheckAfterRouting = await retrieveFromKBByIntentOnly(userQuery, persona, 3, 0.9);
+        const exactIntentCheckAfterRouting = await retrieveFromKBByIntentOnly(userQuery, persona, 3, 0.80);
         if (exactIntentCheckAfterRouting.hasMatch && exactIntentCheckAfterRouting.kbEntries.length > 0) {
           console.log(`[RAG Orchestrator] ✅ Exact intent match found after persona routing - returning verbatim`);
           const verbatimResponse = formatVerbatimResponse(exactIntentCheckAfterRouting.kbEntries, true);
@@ -702,11 +702,11 @@ async function handleKBStrictMode(
 ): Promise<OrchestrationResult> {
   console.log(`[KB Strict Mode] Active for query: "${userQuery}"`);
   console.log(`[KB Strict Mode] Using STRICT INTENT-BASED RETRIEVAL`);
-  console.log(`[KB Strict Mode] Documents must have intent match score >= 0.9`);
+  console.log(`[KB Strict Mode] Documents must have intent match score >= 0.80`);
   
-  // Use strict intent-based retrieval (intent threshold = 0.9)
+  // Use strict intent-based retrieval (intent threshold = 0.80)
   // Falls back to semantic similarity if no intent matches found
-  const retrievalResult = await retrieveFromKBByIntentOnly(userQuery, persona, 3, 0.9);
+  const retrievalResult = await retrieveFromKBByIntentOnly(userQuery, persona, 3, 0.80);
 
   // CRITICAL: Check for exact intent match first - always return verbatim if found
   const exactMatch = findExactIntentMatch(retrievalResult, userQuery);
@@ -745,7 +745,7 @@ async function handleKBStrictMode(
   }
 
   // TRUST RETRIEVAL RESULTS: If retrieveFromKBByIntentOnly returned entries with hasMatch=true,
-  // those entries already passed the 0.9 intent threshold, so return verbatim immediately
+  // those entries already passed the 0.80 intent threshold, so return verbatim immediately
   // No need to recalculate intent scores - retrieval already did that
   if (retrievalResult.hasMatch && retrievalResult.kbEntries.length > 0) {
     console.log(`[KB Strict Mode] ✅ VERBATIM RESPONSE triggered (intent-matched entries from retrieval)`);
