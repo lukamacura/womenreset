@@ -31,11 +31,13 @@ interface MatchResult {
   similarity: number;
 }
 
-// Initialize embeddings - using text-embedding-3-small for cost efficiency
-// Consider upgrading to text-embedding-3-large for even better accuracy if needed
+// Initialize embeddings - using text-embedding-3-large with dimension reduction
+// Upgraded from text-embedding-3-small for better semantic understanding and retrieval accuracy
+// Reduced to 1536 dimensions to fit Supabase's 2000-dim limit while maintaining better quality than small model
 const embeddings = new OpenAIEmbeddings({
   openAIApiKey: process.env.OPENAI_API_KEY,
-  modelName: "text-embedding-3-small",
+  modelName: "text-embedding-3-large",
+  dimensions: 1536, // Reduced from 3072 to fit database limit, but still better than text-embedding-3-small
 });
 
 /**

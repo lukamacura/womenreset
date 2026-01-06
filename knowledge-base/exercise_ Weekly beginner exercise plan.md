@@ -6,13 +6,13 @@ content_text: |
 
         This plan builds strength, mobility, and stamina without overwhelming your body.
 
-      📅 **Day 1 – Strength + Core (40–45 min):** Bodyweight/bands (squats, push-ups, glute bridges, rows) + pelvic floor.  
-      📅 **Day 2 – Zone 2 Cardio + Stretch (30–40 min):** Brisk walk or cycle + gentle yoga.  
-      📅 **Day 3 – Intro Intervals (20–25 min):** 3 × 15–20 sec faster walk/jog + 90 sec recovery.  
-      📅 **Day 4 – Recovery & Balance (20–25 min):** Gentle yoga or tai chi + balance drills.  
-      📅 **Day 5 – Strength + Light Plyo (35–40 min):** Squats, presses, rows + optional low-impact jumps.  
-      📅 **Day 6 – Zone 2 Cardio (35–45 min):** Steady walk or cycle + stretch.  
-      📅 **Day 7 – Active Recovery (20–30 min):** Easy walk, yoga, or foam rolling.
+      1. 📅 **Day 1 – Strength + Core (40–45 min):** Bodyweight/bands (squats, push-ups, glute bridges, rows) + pelvic floor. 
+      2. 📅 **Day 2 – Zone 2 Cardio + Stretch (30–40 min):** Brisk walk or cycle + gentle yoga.  
+      3. 📅 **Day 3 – Intro Intervals (20–25 min):** 3 × 15–20 sec faster walk/jog + 90 sec recovery.  
+      4. 📅 **Day 4 – Recovery & Balance (20–25 min):** Gentle yoga or tai chi + balance drills.  
+      5. 📅 **Day 5 – Strength + Light Plyo (35–40 min):** Squats, presses, rows + optional low-impact jumps.  
+      6. 📅 **Day 6 – Zone 2 Cardio (35–45 min):** Steady walk or cycle + stretch.  
+      7. 📅 **Day 7 – Active Recovery (20–30 min):** Easy walk, yoga, or foam rolling.
 
       
 motivation_nudge:"❤️ Start where you are, keep it doable, and let the wins stack."
