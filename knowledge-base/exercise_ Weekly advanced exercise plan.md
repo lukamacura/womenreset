@@ -2,7 +2,7 @@ persona: "exercise"
 topic: "Exercise in Menopause"
 subtopic: "Weekly advanced exercise plan"
 
-content_text: |-
+content_text: |
       This advanced plan balances strength, cardio, and recovery for hormonal harmony.
 
       📅 **Day 1 – Strength + Core (60 min):** Full-body lifts (squats, deadlifts, presses, rows) + 10 min core (planks, bridges, carries).  

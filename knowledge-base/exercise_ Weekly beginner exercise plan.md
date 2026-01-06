@@ -2,7 +2,7 @@ persona: "exercise"
 topic: "Exercise in Menopause"
 subtopic: "Weekly beginner exercise plan"
 
-content_text: |-
+content_text: |
 
         This plan builds strength, mobility, and stamina without overwhelming your body.
 
@@ -52,7 +52,7 @@ follow_up_links:
   subtopic: "Core & Pelvic Floor Training"
   label: "Core & Pelvic Floor Training"
 
-  intent_patterns:
+intent_patterns:
   - "What does a beginner exercise week look like in menopause?"
   - "Can you give me a weekly workout plan for beginners over 40?"
   - "How should I structure my first week of exercise?"

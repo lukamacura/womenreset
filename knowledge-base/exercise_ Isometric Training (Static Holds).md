@@ -2,7 +2,7 @@ persona: "exercise"
 topic: "Exercise in Menopause"
 subtopic: "Isometric Training (Static Holds)"
 
-content_text: |-
+content_text: |
   🌿 Isometric training — also called **static holds** — means keeping your muscles engaged without moving the joint. Think of holding a plank, wall sit, or bridge: your body stays still, but the tension builds strength inside the muscle fibers.
 
   For women in midlife, isometrics are a secret weapon 💪 — **gentle on joints, powerful for strength.**

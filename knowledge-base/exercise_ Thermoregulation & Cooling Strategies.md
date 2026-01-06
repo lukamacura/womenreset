@@ -2,7 +2,7 @@ persona: "exercise"
 topic: "Exercise in Menopause"
 subtopic: "Thermoregulation & Cooling Strategies"
 
-content_text: |-
+content_text: |
   Feeling overheated faster these days? You’re not imagining it 💜. Estrogen used to help your body regulate temperature — now, with less of it, your **internal thermostat becomes more sensitive**.
 
   That means your body warms up quicker, sweats differently, and sometimes diverts blood flow from muscles to the skin, which can cause dizziness or sudden heat waves.

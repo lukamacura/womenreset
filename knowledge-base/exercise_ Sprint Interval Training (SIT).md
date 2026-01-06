@@ -2,7 +2,7 @@ persona: "exercise"
 topic: "Exercise in Menopause"
 subtopic: "Sprint Interval Training (SIT)"
 
-content_text: |-
+content_text: |
   — sprinting sounds intense, but when done wisely, it’s one of the most time-efficient workouts for midlife 🌸.
 
   **Sprint Interval Training (SIT)** is like the espresso shot of exercise ☕ — short bursts of high effort, followed by full recovery. You don’t have to run; it can be on a **bike, treadmill, hill walk, or even bodyweight moves.**

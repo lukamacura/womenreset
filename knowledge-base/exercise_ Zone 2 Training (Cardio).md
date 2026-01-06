@@ -2,7 +2,7 @@ persona: "exercise"
 topic: "Exercise in Menopause"
 subtopic: "Zone 2 Training (Cardio)"
 
-content_text: |-
+content_text: |
    Many women think only intense workouts bring results — but Zone 2 is your quiet powerhouse 💜.
 
   **Zone 2 exercise** means steady, comfortable cardio — like brisk walking, easy cycling, or swimming — where you can talk in full sentences but not sing. It’s the sweet spot between too easy and too hard.

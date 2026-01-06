@@ -2,7 +2,7 @@ persona: "exercise"
 topic: "Exercise in Menopause"
 subtopic: "Time-Poor & Simple Exercise Routines"
 
-content_text: |-
+content_text: |
   Most women in midlife juggle a thousand things 💜.
 
   The truth? **Short workouts absolutely count.** Even 10–15 minutes can lift energy, balance hormones, and protect muscle.

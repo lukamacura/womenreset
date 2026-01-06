@@ -2,7 +2,7 @@ persona: "exercise"
 topic: "Exercise in Menopause"
 subtopic: "Brain Health, Mood & Cognitive Support"
 
-content_text: |-
+content_text: |
   Exercise is brain medicine 💡. When you move, your body pumps oxygen and growth factors (like BDNF) into your brain — literally recharging neurons. That’s why movement helps with brain fog, mood swings, and focus issues in menopause. Cardio boosts energy and memory, strength training lowers depression and sharpens thinking, and yoga or outdoor walks calm the nervous system. Even a 5-minute movement snack can flip your brain chemistry from tired to focused. Skipping movement often worsens fog and irritability. Consistent exercise keeps your brain younger, calmer, and more resilient.
 
 action_tips:

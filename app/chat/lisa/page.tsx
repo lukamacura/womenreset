@@ -313,13 +313,14 @@ function renderMarkdownText(text: string) {
       return;
     }
 
-    // Check for ordered list (1. or 1) or unordered list (-, *, •)
+    // Check for ordered list (1. or 1) or emoji numbers (1️⃣, 2️⃣, etc.) or unordered list (-, *, •)
     const orderedListMatch = trimmed.match(/^(\d+)\.\s+(.+)$/);
+    const emojiNumberMatch = trimmed.match(/^([1-9]️⃣)\s+(.+)$/);
     const unorderedListMatch = trimmed.match(/^[-*•]\s+(.+)$/);
     
-    if (orderedListMatch || unorderedListMatch) {
-      const detectedType = orderedListMatch ? 'ol' : 'ul';
-      const itemContent = orderedListMatch ? orderedListMatch[2] : unorderedListMatch![1];
+    if (orderedListMatch || emojiNumberMatch || unorderedListMatch) {
+      const detectedType = (orderedListMatch || emojiNumberMatch) ? 'ol' : 'ul';
+      const itemContent = orderedListMatch ? orderedListMatch[2] : emojiNumberMatch ? emojiNumberMatch[2] : unorderedListMatch![1];
       
       if (currentBlock) {
         blocks.push(currentBlock);
@@ -567,34 +568,52 @@ function renderMarkdownText(text: string) {
                         key={`${blockIdx}-ol-${itemIdx}`}
                         style={{
                           position: 'relative',
-                          paddingLeft: '2rem',
-                          marginBottom: '0.875rem',
+                          paddingLeft: '2.75rem',
+                          marginBottom: '1rem',
                           fontSize: '1.125rem',
-                          lineHeight: '1.6',
+                          lineHeight: '1.7',
                           color: THEME.text[900],
+                          transition: 'transform 0.2s ease',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.transform = 'translateX(4px)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = 'translateX(0)';
                         }}
                       >
                         <span
                           style={{
                             position: 'absolute',
                             left: '0',
-                            top: '0',
-                            width: '1.75rem',
-                            height: '1.75rem',
-                            borderRadius: '50%',
-                            background: `linear-gradient(135deg, ${THEME.pink[400]}, ${THEME.pink[500]})`,
+                            top: '0.125rem',
+                            width: '2.25rem',
+                            height: '2.25rem',
+                            borderRadius: '0.625rem',
+                            background: `linear-gradient(135deg, ${THEME.pink[400]}, ${THEME.pink[500]}, ${THEME.purple[300]})`,
                             color: 'white',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            fontSize: '0.875rem',
-                            fontWeight: 700,
-                            boxShadow: `0 2px 4px rgba(236, 72, 153, 0.3)`,
+                            fontSize: '0.9375rem',
+                            fontWeight: 800,
+                            boxShadow: `0 4px 12px rgba(236, 72, 153, 0.35), 0 2px 4px rgba(216, 180, 254, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.4)`,
+                            border: `1.5px solid rgba(255, 255, 255, 0.4)`,
+                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                            textShadow: '0 1px 2px rgba(0, 0, 0, 0.1)',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.transform = 'scale(1.1) rotate(2deg)';
+                            e.currentTarget.style.boxShadow = `0 6px 16px rgba(236, 72, 153, 0.45), 0 3px 6px rgba(216, 180, 254, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.5)`;
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = 'scale(1) rotate(0deg)';
+                            e.currentTarget.style.boxShadow = `0 4px 12px rgba(236, 72, 153, 0.35), 0 2px 4px rgba(216, 180, 254, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.4)`;
                           }}
                         >
                           {itemNumber}
                         </span>
-                        <div style={{ paddingTop: '0.125rem' }}>
+                        <div style={{ paddingTop: '0.25rem' }}>
                           {renderInlineMarkdown(item)}
                         </div>
                       </li>

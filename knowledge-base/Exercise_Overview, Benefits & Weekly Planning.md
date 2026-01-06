@@ -2,31 +2,33 @@ persona: "exercise"
 topic: "Exercise in Menopause"
 subtopic: "Overview, Benefits & Weekly Planning (7 Pillars Intro)"
 
-content_text: |-
+content_text: |
   There’s no one *perfect* workout in menopause 🌸 — the magic lies in **balance**.
 
   After 40, your body doesn’t stop working — it just works differently.
   
-  Your body now thrives on variety and recovery. The ideal plan blends the **7 pillars of movement**:
+  Your body now thrives on variety and recovery. 
 
-  1️⃣ **Strength training** — preserves muscle, metabolism, and bone density  
-  2️⃣ **Sprint intervals** — boost fat burn, energy, and heart health  
-  3️⃣ **Plyometrics** — power and agility for joints and reaction speed  
-  4️⃣ **Zone 2 cardio** — builds endurance and supports mitochondria  
-  5️⃣ **Flexibility & mobility** — keeps joints supple and posture tall  
-  6️⃣ **Balance & stability** — prevents falls and strengthens mind-body connection  
-  7️⃣ **Core & pelvic floor** — protects your spine, bladder, and daily strength
+  The ideal plan blends the **7 pillars of movement**:
+
+  1. **Strength training** — preserves muscle, metabolism, and bone density
+  2. **Sprint intervals** — boost fat burn, energy, and heart health
+  3. **Plyometrics** — power and agility for joints and reaction speed
+  4. **Zone 2 cardio** — builds endurance and supports mitochondria
+  5. **Flexibility & mobility** — keeps joints supple and posture tall
+  6. **Balance & stability** — prevents falls and strengthens mind-body connection
+  7. **Core & pelvic floor** — protects your spine, bladder, and daily strength
 
   💜 Seems like a lot? You’re not alone. But think of it as your body’s new toolkit — each pillar supports another, helping you stay *strong, calm, and capable* in midlife.
 
 action_tips: 
 
-  ✨ **Hormones:** Estrogen and progesterone decline, affecting muscle, bone, and recovery.
-  💪 **Muscle:** Strength work becomes essential to offset natural loss.  
-  🦴 **Bones:** Resistance training now protects against bone thinning.  
-  🔥 **Metabolism:** Shorter, sharper intervals are more effective than endless cardio.  
-  🧘‍♀️ **Recovery:** Inflammation and fatigue rise — rest becomes part of training.  
-  🌙 **Sleep & energy:** Hot flashes, poor sleep, and stress need gentle pacing.
+  - ✨ **Hormones:** Estrogen and progesterone decline, affecting muscle, bone, and recovery.
+  - 💪 **Muscle:** Strength work becomes essential to offset natural loss.  
+  - 🦴 **Bones:** Resistance training now protects against bone thinning.  
+  - 🔥 **Metabolism:** Shorter, sharper intervals are more effective than endless cardio.  
+  - 🧘‍♀️ **Recovery:** Inflammation and fatigue rise — rest becomes part of training.  
+  - 🌙 **Sleep & energy:** Hot flashes, poor sleep, and stress need gentle pacing.
 
   Your goal shifts from *burning calories* to *future-proofing your body* — strong muscles for independence, resilient bones for protection, and smart recovery for longevity.
 

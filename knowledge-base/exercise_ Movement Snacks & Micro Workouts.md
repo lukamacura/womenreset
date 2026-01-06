@@ -2,7 +2,7 @@ persona: "exercise"
 topic: "Exercise in Menopause"
 subtopic: "Movement Snacks & Micro Workouts"
 
-content_text: |-
+content_text: |
   **Every bit of movement counts** 🌸.
 
   Movement snacks are short bursts of activity woven into your day — and they’re powerful for women in midlife. A few squats while the coffee brews, a brisk walk after lunch, a quick stretch between calls — all of these wake up your muscles, boost circulation, and lift mood.

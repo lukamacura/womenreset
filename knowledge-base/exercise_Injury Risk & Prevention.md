@@ -2,7 +2,7 @@ persona: "exercise"
 topic: "Exercise in Menopause"
 subtopic: "Injury Risk & Prevention"
 
-content_text: |-
+content_text: |
   After menopause, estrogen drops — collagen declines, tissues dry out, and repair slows. That’s why soreness lasts longer and injuries like tendonitis, plantar fasciitis, and back pain appear more easily. But prevention is powerful: strength training, smart warm-ups, and active recovery protect your joints and tendons.
 
   👉 **Train smart, not hard:**

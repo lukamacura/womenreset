@@ -2,7 +2,7 @@ persona: "exercise"
 topic: "Exercise in Menopause"
 subtopic: "Core & Pelvic Floor Training"
 
-content_text: |-
+content_text: |
   So many women tell me this 💜 — they want a stronger tummy, fewer leaks, and better posture but feel unsure where to start. The secret? It all begins with your **core and pelvic floor working together**.
 
   During menopause, lower estrogen and muscle loss weaken your deep support system — the muscles that stabilize your spine, hips, and bladder. When those weaken, you might notice back pain, poor posture, or leaks when coughing or sneezing. But your body can absolutely **relearn and rebuild strength at any age.**
@@ -72,7 +72,7 @@ intent_patterns:
   - "What if I can’t feel my pelvic floor contractions?"
   - "Are there safe core workouts for osteoporosis?"
 
-  keywords:
+keywords:
   - "core training menopause"
   - "pelvic floor exercises"
   - "Kegels"

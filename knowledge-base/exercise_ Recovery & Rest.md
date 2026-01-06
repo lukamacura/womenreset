@@ -2,7 +2,7 @@ persona: "exercise"
 topic: "Exercise in Menopause"
 subtopic: "Recovery & Rest"
 
-content_text: |-
+content_text: |
   So many women in midlife push hard and wonder why progress stalls 💜. The truth? **Recovery is where your body actually gets stronger.** Exercise creates stress — rest rebuilds your muscles, hormones, and energy.
 
   During menopause, lower estrogen slows repair and raises inflammation, so recovery isn’t optional — it’s your **secret advantage**.

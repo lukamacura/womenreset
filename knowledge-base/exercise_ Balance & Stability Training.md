@@ -3,7 +3,7 @@ persona: "exercise"
 topic: "Exercise in Menopause"
 subtopic: "Balance & Stability Training"
 
-content_text: |-
+content_text: |
   Feeling a bit unsteady lately? You’re not alone 💜. During menopause, hormonal shifts and gradual muscle loss can affect balance, coordination, and confidence. The good news — you can retrain it at any age.
 
   **Balance training** strengthens the tiny stabilizer muscles, improves reflexes, and teaches your brain and body to stay steady under pressure. Think of it as **fall prevention disguised as confidence training.**

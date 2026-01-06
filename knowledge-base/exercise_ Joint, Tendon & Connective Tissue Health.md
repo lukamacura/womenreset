@@ -2,7 +2,7 @@ persona: "exercise"
 topic: "Exercise in Menopause"
 subtopic: "Joint, Tendon & Connective Tissue Health"
 
-content_text: |-
+content_text: |
   After menopause, estrogen drops — collagen declines, tissues dry out, and repair slows. That’s why joints may ache, tendons feel tight, and recovery takes longer. But joint pain isn’t permanent.
 
   👉 **What helps:**

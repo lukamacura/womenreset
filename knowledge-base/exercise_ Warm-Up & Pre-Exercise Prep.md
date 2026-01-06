@@ -2,7 +2,7 @@ persona: "exercise"
 topic: "Exercise in Menopause"
 subtopic: "Warm-Up & Pre-Exercise Prep"
 
-content_text: |-
+content_text: |
   Let’s set your body up for success 🌞.
 
   A **warm-up** isn’t just a box to tick — it’s your way of waking up joints, muscles, and circulation before real work begins. For women in midlife, it’s especially important: it reduces stiffness, eases morning tightness, and lowers the risk of injury.
@@ -84,7 +84,7 @@ intent_patterns:
   - "Warm-up for morning workout with stiff body"
   - "Why do my joints crack during warm-up?"
  
-  keywords:
+keywords:
   - "pre-exercise prep"
   - "dynamic warm-up"
   - "mobility flow"

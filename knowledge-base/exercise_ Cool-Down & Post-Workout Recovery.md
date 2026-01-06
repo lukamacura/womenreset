@@ -2,7 +2,7 @@ persona: "exercise"
 topic: "Exercise in Menopause"
 subtopic: "Cool-Down & Post-Workout Recovery"
 
-content_text: |-
+content_text: |
   You’ve worked hard 💪 — now let’s help your body *land softly*.
 
   A **cool-down** is your bridge from activity to rest. It lowers heart rate, relaxes muscles, and prevents that heavy, stiff feeling later on.

@@ -2,7 +2,7 @@ persona: "exercise"
 topic: "Exercise in Menopause"
 subtopic: "Exercise Timing & Sleep"
 
-content_text: |-
+content_text: |
   Ever notice how a workout can help you sleep — or sometimes make it worse? 🌙 In menopause, **timing matters more than ever** because your hormones affect both temperature and circadian rhythm.
 
   💜 **Here’s the short story:**  

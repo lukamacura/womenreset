@@ -2,7 +2,7 @@ persona: "exercise"
 topic: "Exercise in Menopause"
 subtopic: "Workout Fueling & Examples"
 
-content_text: |-
+content_text: |
   So many women in midlife wonder what — and when — to eat around workouts 💜.
 
   Think of fueling as **priming and repairing your body’s engine**. Before exercise, a light mix of **carbs + protein** gives energy and protects muscle. After training, **protein is your repair signal** and carbs help restock glycogen and calm cortisol.

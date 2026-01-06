@@ -2,7 +2,7 @@ persona: "exercise"
 topic: "Exercise in Menopause"
 subtopic: "Strength Training"
 
-content_text: |-
+content_text: |
   Many women feel unsure where to start — or worry it’s too late. But it’s *never* too late to get stronger 💜.
 
   Strength training is one of the **7 pillars of menopause fitness** — your body’s secret ally for:

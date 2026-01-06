@@ -2,7 +2,7 @@ persona: "exercise"
 topic: "Exercise in Menopause"
 subtopic: "Plyometric Training (Jump Training)"
 
-content_text: |-
+content_text: |
    Many women hesitate to jump again — and it’s completely normal 💜. Hormonal changes can affect balance, confidence, and joint comfort.
 
   **Plyometric training** simply means **jump training** — quick, spring-like movements that teach your muscles and bones to *stay reactive, strong, and dense.*  
@@ -101,7 +101,7 @@ keywords:
 
 disclaimer: "⚠️ Always check with your doctor or physiotherapist before adding jump training, especially if you have pelvic floor issues, joint pain, or osteoporosis."
 
-
+---
 persona: "exercise"
 topic: "Exercise in Menopause"
 subtopic: "Pelvic-Floor-Friendly Alternatives to Plyometrics"

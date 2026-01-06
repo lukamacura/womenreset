@@ -2,7 +2,7 @@ persona: "exercise"
 topic: "Exercise in Menopause"
 subtopic: "Flexibility & Mobility"
 
-content_text: |-
+content_text: |
   Feeling stiff in the morning or after sitting is one of the most common midlife changes. It’s not weakness — it’s your body adapting to lower estrogen and slower collagen turnover.
 
   **Flexibility** is how far a muscle can stretch (like a rubber band).  
