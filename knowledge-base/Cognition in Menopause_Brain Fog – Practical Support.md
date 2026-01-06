@@ -22,12 +22,17 @@ motivation_nudge:
   - "✨ Your brain isn’t fading — it’s rewiring for a wiser phase of life."
  
 
-follow_up_question: "Would you like to learn specific exercises to actively train your brain back to sharpness?"
+follow_up_question: "Would you like to explore physical exercises that help with mental clarity, or specific exercises to actively train your brain back to sharpness?"
 follow_up_links: 
+    -persona: "exercise"
+    topic: "Exercise in Menopause"
+    subtopic: "Brain Health, Mood & Cognitive Support"
+    label: "Brain Health, Mood & Cognitive Support"
     -persona: "menopause"
     topic: "Cognition in Menopause"
     subtopic: "Cognitive Fitness & Memory Rewiring (Daily Practice Tools)"
     label:"Cognitive Fitness & Memory Rewiring (Daily Practice Tools)"
+    
 
 intent_patterns:
   - "What can I do about this brain fog right now?"
