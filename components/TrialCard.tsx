@@ -92,18 +92,18 @@ export function TrialCard({ trial, symptomCount = 0, patternCount = 0 }: TrialCa
           badgeBorder: "border-green-500/50",
           badgeLabel: "Active",
           progressBar: "from-[#ff74b1] via-[#ffeb76] to-info",
-          buttonStyle: "bg-white/10 hover:bg-white/20 text-white! border border-white/30",
+          buttonStyle: "bg-white/10 hover:bg-white/20 text-white! border border-white/30 w-full",
           title: "Your Trial",
         };
       case "warning":
         return {
-          background: "from-gray-900 via-orange-900/50 to-amber-900/50",
+          background: "from-orange-800 to-gray-900",
           badgeBg: "bg-orange-500/30",
           badgeText: "text-orange-300",
           badgeBorder: "border-orange-500/50",
           badgeLabel: "Last day",
           progressBar: "from-orange-500 to-amber-500",
-          buttonStyle: "bg-orange-500/80 hover:bg-orange-500 text-white! border border-orange-400/50",
+          buttonStyle: "bg-orange-500/80 hover:bg-orange-500 text-white! border border-orange-400/50 w-full",
           title: "Your Trial",
         };
       case "urgent":
@@ -125,7 +125,7 @@ export function TrialCard({ trial, symptomCount = 0, patternCount = 0 }: TrialCa
           badgeBorder: "border-gray-500/50",
           badgeLabel: "Expired",
           progressBar: "from-gray-500 to-gray-600",
-          buttonStyle: "bg-[#ff74b1] hover:bg-[#d85a9a] text-white! border border-[#ff74b1]/50",
+          buttonStyle: "bg-[#ff74b1] hover:bg-[#d85a9a] text-white! border border-[#ff74b1]/50 w-full",
           title: "Trial Ended",
         };
     }
