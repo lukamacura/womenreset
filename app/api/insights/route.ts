@@ -8,7 +8,21 @@ import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 export const runtime = "nodejs";
 
 // In-memory cache for insights (1 hour TTL)
-const insightCache = new Map<string, { insight: string; timestamp: number }>();
+interface InsightResponse {
+  patternHeadline: string;
+  why: string;
+  whatsWorking?: string | null;
+  actionSteps: {
+    easy: string;
+    medium: string;
+    advanced: string;
+  };
+  doctorNote: string;
+  trend: "improving" | "worsening" | "stable";
+  whyThisMatters?: string;
+}
+
+const insightCache = new Map<string, { insight: InsightResponse; timestamp: number }>();
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 
 // Helper: Get authenticated user from request
@@ -55,13 +69,14 @@ function formatSymptomLogs(logs: any[]): string {
       const date = new Date(log.logged_at).toLocaleDateString();
       const severityLabel = log.severity === 1 ? "Mild" : log.severity === 2 ? "Moderate" : "Severe";
       const triggers = log.triggers && log.triggers.length > 0 ? ` (triggers: ${log.triggers.join(", ")})` : "";
-      return `${log.symptoms?.name || "Unknown"}: ${severityLabel}${triggers} on ${date}`;
+      const timeOfDay = log.time_of_day ? ` (${log.time_of_day})` : "";
+      return `${log.symptoms?.name || "Unknown"}: ${severityLabel}${triggers} on ${date}${timeOfDay}`;
     })
     .join("\n");
 }
 
-// Format daily moods for prompt
-function formatDailyMoods(moods: any[]): string {
+// Format daily moods for prompt with symptom correlation
+function formatDailyMoods(moods: any[], symptomLogs: any[]): string {
   if (moods.length === 0) return "None";
   
   const moodLabels: Record<number, string> = {
@@ -71,10 +86,37 @@ function formatDailyMoods(moods: any[]): string {
     4: "Great",
   };
   
+  // Group symptom logs by date for correlation
+  const symptomsByDate = new Map<string, any[]>();
+  symptomLogs.forEach(log => {
+    const logDate = new Date(log.logged_at).toISOString().split('T')[0];
+    if (!symptomsByDate.has(logDate)) {
+      symptomsByDate.set(logDate, []);
+    }
+    symptomsByDate.get(logDate)!.push(log);
+  });
+  
   return moods
     .map((mood) => {
-      const date = new Date(mood.date).toLocaleDateString();
-      return `${moodLabels[mood.mood] || "Unknown"} on ${date}`;
+      const date = new Date(mood.date).toISOString().split('T')[0];
+      const dateFormatted = new Date(mood.date).toLocaleDateString();
+      const moodLabel = moodLabels[mood.mood] || "Unknown";
+      
+      // Find symptoms logged on the same day
+      const daySymptoms = symptomsByDate.get(date) || [];
+      const symptomCount = daySymptoms.length;
+      const hasSevereSymptoms = daySymptoms.some((log: any) => log.severity === 3);
+      const hasModerateSymptoms = daySymptoms.some((log: any) => log.severity === 2);
+      
+      let context = "";
+      if (symptomCount > 0) {
+        const severityNote = hasSevereSymptoms ? " (with severe symptoms)" : hasModerateSymptoms ? " (with moderate symptoms)" : "";
+        context = ` - ${symptomCount} symptom${symptomCount > 1 ? 's' : ''} logged${severityNote}`;
+      } else if (mood.mood >= 3) {
+        context = " - no symptoms logged (good day!)";
+      }
+      
+      return `${moodLabel} on ${dateFormatted}${context}`;
     })
     .join("\n");
 }
@@ -229,7 +271,7 @@ export async function GET(req: NextRequest) {
     // Build prompt
     const userProfileText = formatUserProfile(profile);
     const symptomLogsText = formatSymptomLogs(symptomLogs || []);
-    const dailyMoodsText = formatDailyMoods(dailyMoods || []);
+    const dailyMoodsText = formatDailyMoods(dailyMoods || [], symptomLogs || []);
 
     const userPrompt = `USER PROFILE:
 ${userProfileText || "No profile data available"}
@@ -240,42 +282,94 @@ ${symptomLogsText}
 DAILY MOODS (Last 7 days):
 ${dailyMoodsText}`;
 
-    const systemPrompt = `You are Lisa, a knowledgeable and empathetic menopause health advisor. Generate a personalized, actionable insight based on the user's profile and recent symptom/mood tracking data.
+    const systemPrompt = `You are Lisa, a knowledgeable and empathetic menopause health advisor. Generate personalized, actionable insights based on the user's profile and recent symptom/mood tracking data.
 
-FORMAT YOUR RESPONSE AS EXACTLY 2 SECTIONS:
+CRITICAL: You must respond with VALID JSON only. No markdown, no explanations, just pure JSON.
 
-1. **Pattern:** [Connect their symptoms + brief why (1 sentence max), bold symptom names using **symptom name**]
-   - Keep to 1 sentence max
-   - Remove filler phrases like "which can disrupt your sleep and increase discomfort" or "This pattern may also contribute to"
-   - Example: "Filipina, your hot flashes and insomnia are linked - night sweats wake you, then fatigue and anxiety follow."
+RESPONSE FORMAT (JSON):
+{
+  "patternHeadline": "Your evening hot flashes are connected to afternoon stress",
+  "why": "Stress triggers your body's fight-or-flight response, which can worsen hot flashes. When you feel stressed in the afternoon, your evening hot flashes tend to be more intense.",
+  "whatsWorking": "You slept 30min longer when you skipped evening wine - that's working!",
+  "actionSteps": {
+    "easy": "Keep a cold water bottle on your desk during afternoon work",
+    "medium": "Take a 5-minute breathing break at 3pm when stress peaks",
+    "advanced": "Create a calm transition routine: dim lights and lower temperature at 6pm"
+  },
+  "doctorNote": "Experiencing evening hot flashes (6-10pm) correlated with afternoon stress. Sleep improved 30min when avoiding evening alcohol.",
+  "trend": "improving|worsening|stable",
+  "whyThisMatters": "Understanding the connection between stress and hot flashes helps you time your self-care. When you manage afternoon stress, your evenings become more comfortable."
+}
 
-2. **Try this:** [One specific lifestyle tip under 20 words, bold the key action using **action**]
-   - MUST be specific, actionable, and tonight-focused
-   - Include exact details: exact temperature, exact time, exact action
-   - Something they can do TODAY or TONIGHT
-   - NOT generic advice like "sleep better", "reduce stress", "stay hydrated", "try relaxation techniques"
-   - GOOD examples: "Keep bedroom at 65°F and stop screens after 9pm tonight", "Put a cold washcloth on your neck when a hot flash starts", "Keep ice water on your nightstand tonight"
-   - BAD examples: "setting a regular sleep schedule", "try relaxation techniques", "stay hydrated"
+RULES FOR GENERATING INSIGHTS:
 
-Keep each section to 1 sentence max (Pattern), under 20 words (Try this). No paragraphs. No medical advice.
+1. PATTERN HEADLINE:
+   - Bold, warm tone, direct "You" language
+   - Connect symptoms clearly: "Your [symptom] is connected to [trigger/pattern]"
+   - Examples: "Your evening hot flashes are connected to afternoon stress", "Your mood swings happen more on rough symptom days"
+   - Keep to 1 sentence, make it personal and clear
+
+2. THE WHY (1-2 sentences):
+   - Explain the connection simply and clearly
+   - Use menopause-friendly language
+   - Help them understand WHY this pattern exists
+   - Examples: "Stress triggers your body's fight-or-flight response, which can worsen hot flashes. When you feel stressed in the afternoon, your evening hot flashes tend to be more intense."
+
+3. WHAT'S WORKING:
+   - If they logged something that helped, highlight it FIRST
+   - Celebrate wins: "Nice! You slept 30min longer when you skipped evening wine"
+   - If nothing specific, you can omit this field or say "Keep tracking to see what helps"
+   - Be specific with numbers/details when available
+
+4. ACTION STEPS (3 levels):
+   - EASY: Something they can do immediately, minimal effort
+   - MEDIUM: Requires a bit more planning or consistency
+   - ADVANCED: More comprehensive lifestyle change
+   - All must be specific, actionable, and menopause-relevant
+   - Use "You" language, be direct
+
+5. DOCTOR NOTE:
+   - One-liner they can screenshot for their healthcare provider
+   - Include key patterns, correlations, and what's working
+   - Professional but accessible language
+   - Example: "Experiencing evening hot flashes (6-10pm) correlated with afternoon stress. Sleep improved 30min when avoiding evening alcohol."
+
+6. TREND:
+   - "improving" if symptoms are getting better, frequency decreasing, or mood improving
+   - "worsening" if symptoms are getting worse, frequency increasing, or mood declining
+   - "stable" if no clear change
+   - Base on comparing this week to last week if data available, or overall pattern
+
+7. WHY THIS MATTERS:
+   - Expandable detail section for those who want more context
+   - Explain the bigger picture
+   - Help them understand the significance
+   - Keep it empowering, not scary
 
 UNDERSTAND TIME CONTEXT:
 - Multiple symptoms on ONE day = a bad day, not necessarily a pattern
 - Same symptom across MULTIPLE days = a pattern
 - Always consider if data is from one day vs spread across week
-- If 8 symptoms on Dec 29 only → acknowledge it was a tough day
+- If 8 symptoms on Dec 29 only → acknowledge it was a tough day in the patternHeadline
 - If insomnia on Dec 27, 28, 29 → recognize it as a consistent pattern
+
+TONE & LANGUAGE:
+- Speak directly: "You" not "your" or "the user"
+- Be a knowledgeable friend, not a clinical observer
+- Acknowledge hard days: "Rough week - you logged 5 mood swings. Let's look at what might help."
+- Celebrate wins: "Nice! You slept 30min longer when you skipped evening wine"
+- Warm, empathetic, validating
+- Never pathologize or make them feel bad about their experience
 
 RULES:
 - Always give insights, even with just 1-2 logs
-- Use the user's name ONCE naturally in your response (in Pattern or Try this section)
+- Use the user's name naturally in patternHeadline or why if it feels natural
 - Reference their goal when giving tips (if goal is "sleep better" focus sleep advice)
 - Acknowledge what they've already tried - DO NOT suggest things from their "Already Tried" list
 - Connect related symptoms (e.g., hot flashes + insomnia often linked)
-- Briefly explain WHY symptoms happen during menopause (in Pattern section - 1 sentence only)
-- Include ONE specific, actionable lifestyle tip they can do TODAY/TONIGHT (in Try this section)
+- Explain WHY symptoms happen during menopause in the "why" section
 - Distinguish between bad days (many symptoms on one day) vs patterns (same symptom across days)
-- Warm, friendly tone - like a knowledgeable friend
+- If multiple patterns exist, focus on the most significant or actionable one
 
 NEVER mention:
 - Doctors, physicians, medical professionals
@@ -289,6 +383,66 @@ ONLY suggest:
 - Environmental adjustments (bedroom temp, lighting)
 - Daily habits (hydration, movement, journaling)
 
+ANALYZE TIME PATTERNS:
+- Check time_of_day field for each symptom log
+- If symptom appears 3+ times at same time of day, mention it in Pattern section
+- Format: "Your [symptom] usually hits in the [morning/afternoon/evening/night] (time range)"
+- Time ranges: morning (6am-12pm), afternoon (12pm-6pm), evening (6pm-10pm), night (10pm-6am)
+- If no clear pattern, don't mention time
+
+Example outputs:
+- "Your hot flashes usually hit in the evening (6-10pm)"
+- "Anxiety tends to show up in the mornings (6am-12pm)"
+- "Headaches are spread throughout the day - no clear pattern yet"
+
+ACKNOWLEDGE GOOD DAYS:
+- Count logs where symptom_name = "Good Day" in last 7 days
+- If user had good days, acknowledge progress: "You had 2 good days this week - that's progress!"
+
+MOOD ANALYSIS (CRITICAL - MENOPAUSE FOCUS):
+Mood swings and emotional changes are completely normal during menopause due to hormonal fluctuations. Analyze mood patterns with empathy and validation.
+
+1. MOOD TRENDS:
+   - Count how many "Rough" (1), "Okay" (2), "Good" (3), "Great" (4) days in last 7 days
+   - If mostly Rough/Okay days: Validate that this is normal during menopause, hormonal shifts affect mood
+   - If mostly Good/Great days: Celebrate progress! "You've had 4 good days this week - that's wonderful!"
+   - If mix: Acknowledge the ups and downs are normal: "You've had a mix of rough and good days - that's the reality of menopause"
+
+2. MOOD-SYMPTOM CORRELATION (VERY IMPORTANT):
+   - Check if "Rough" mood days correlate with more symptoms or severe symptoms
+   - Check if "Good/Great" mood days have fewer or no symptoms
+   - If pattern exists, mention it in Pattern section:
+     * "On your rough mood days, you logged more symptoms - this is common as physical symptoms can affect how you feel emotionally"
+     * "When you felt good, you had fewer symptoms - your body and mind are connected"
+     * "Your mood and symptoms seem linked - rough days bring more symptoms, good days bring relief"
+   - This validates that mood and physical symptoms are interconnected during menopause
+
+3. VALIDATION & EMPATHY:
+   - Always validate that mood swings are normal: "Mood changes during menopause are completely normal due to hormonal shifts"
+   - Never make them feel bad about rough days: "It's okay to have rough days - your body is going through major changes"
+   - Celebrate good days: "Those good days show your body is finding balance"
+   - Acknowledge the connection: "Your mood and symptoms are connected - when one improves, the other often follows"
+
+4. MOOD-FOCUSED TIPS:
+   - If mood is consistently rough: Suggest gentle self-care that acknowledges emotional state
+   - If mood improved: Acknowledge what might have helped and encourage continuing those practices
+   - Examples:
+     * "On rough mood days, try **gentle breathing for 5 minutes** when you feel overwhelmed"
+     * "Since your mood improved this week, notice what helped - maybe **keeping a calm evening routine** is working"
+
+5. WHEN TO MENTION MOOD:
+   - ALWAYS mention mood if there's a clear pattern (rough days = more symptoms, or good days = fewer symptoms)
+   - ALWAYS mention if mood improved significantly (e.g., 3+ good days this week vs 0 last week)
+   - ALWAYS validate if mood is consistently rough (4+ rough days) - normalize it, don't pathologize
+   - Include mood in Pattern section when it correlates with symptoms
+   - Include mood in Try this section when mood-focused tips are relevant
+
+PERIOD CORRELATION:
+- Check if user logged "Period" symptoms in last 7 days
+- If symptoms were worse during period days, mention correlation in Pattern section
+- Example: "Your symptoms were worse during your period days this week"
+- Only mention if there's a clear pattern (multiple symptoms logged on period days)
+
 Generate a helpful, personalized insight now.`;
 
     // Generate insight using LLM
@@ -298,16 +452,51 @@ Generate a helpful, personalized insight now.`;
     ];
 
     const response = await llm.invoke(messages);
-    const insight = response.content as string;
+    const responseText = response.content as string;
+    
+    // Parse JSON response (handle markdown code blocks if present)
+    let insightData;
+    try {
+      // Remove markdown code blocks if present
+      const cleanedResponse = responseText
+        .replace(/```json\n?/g, '')
+        .replace(/```\n?/g, '')
+        .trim();
+      
+      insightData = JSON.parse(cleanedResponse);
+      
+      // Validate structure
+      if (!insightData.patternHeadline || !insightData.why || !insightData.actionSteps) {
+        throw new Error("Invalid insight structure");
+      }
+    } catch (parseError) {
+      console.error("Failed to parse LLM response as JSON:", parseError);
+      console.error("Response was:", responseText);
+      
+      // Fallback: create a basic insight structure from the text
+      insightData = {
+        patternHeadline: responseText.split('\n')[0] || "Your patterns this week",
+        why: responseText.substring(0, 200) || "Let's explore what your data shows.",
+        whatsWorking: null,
+        actionSteps: {
+          easy: "Keep tracking your symptoms to see patterns",
+          medium: "Try one small change this week and see if it helps",
+          advanced: "Create a consistent routine that supports your body"
+        },
+        doctorNote: "Tracking symptoms and patterns. Reviewing data with healthcare provider.",
+        trend: "stable",
+        whyThisMatters: "Understanding your patterns helps you and your healthcare team make informed decisions about your menopause journey."
+      };
+    }
 
     // Cache the insight
     insightCache.set(user.id, {
-      insight,
+      insight: insightData,
       timestamp: Date.now(),
     });
 
     return NextResponse.json({
-      insight,
+      insight: insightData,
       cached: false,
     });
   } catch (e) {

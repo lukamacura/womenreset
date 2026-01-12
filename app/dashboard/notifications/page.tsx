@@ -193,7 +193,7 @@ export default function NotificationsPage() {
 
       {/* Notifications List */}
       {notifications.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center bg-gradient-to-br from-white to-gray-50/50 rounded-xl border border-gray-200">
+        <div className="flex flex-col items-center justify-center py-20 text-center bg-linear-to-br from-white to-gray-50/50 rounded-xl border border-gray-200">
           <div className="p-4 bg-pink-100 rounded-full mb-4">
             <Bell className="h-12 w-12 text-pink-600" />
           </div>

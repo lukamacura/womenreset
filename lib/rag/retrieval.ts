@@ -218,6 +218,12 @@ function hasPerfectIntentMatch(
   
   const queryNormalized = normalizeTextForIntentMatching(userQuery);
   
+  // SAFEGUARD: Skip perfect intent matching for very short queries (< 4 chars)
+  // These are likely greetings (hey, hi, ok) and shouldn't match intent patterns
+  if (queryNormalized.length < 4) {
+    return false;
+  }
+  
   for (const pattern of docIntentPatterns) {
     const patternNormalized = normalizeTextForIntentMatching(pattern);
     
@@ -228,7 +234,7 @@ function hasPerfectIntentMatch(
     }
     
     // High semantic similarity with synonym-aware matching
-    const stopWords = new Set(['why', 'what', 'how', 'when', 'where', 'can', 'does', 'is', 'are', 'do', 'i', 'my', 'me', 'at', 'in', 'on', 'the', 'a', 'an']);
+    const stopWords = new Set(['why', 'what', 'how', 'when', 'where', 'can', 'does', 'is', 'are', 'do', 'i', 'my', 'me', 'at', 'in', 'on', 'the', 'a', 'an', 'hey', 'hi', 'ok', 'okay', 'yes', 'no']);
     
     const queryWords = queryNormalized
       .split(/\s+/)
@@ -238,7 +244,12 @@ function hasPerfectIntentMatch(
       .split(/\s+/)
       .filter(w => w.length > 2 && !stopWords.has(w));
     
-    if (queryWords.length > 0 && patternWords.length > 0) {
+    // If query has no meaningful words after filtering, skip this pattern
+    if (queryWords.length === 0) {
+      continue;
+    }
+    
+    if (patternWords.length > 0) {
       // Expand words with synonyms
       const queryWordSet = new Set<string>();
       const patternWordSet = new Set<string>();
@@ -280,6 +291,13 @@ function calculateIntentPatternScore(
   if (docIntentPatterns.length === 0) return 0;
 
   const queryNormalized = normalizeTextForIntentMatching(userQuery);
+  
+  // SAFEGUARD: Skip intent matching for very short queries (< 4 chars)
+  // These are likely greetings (hey, hi, ok) and shouldn't match intent patterns
+  if (queryNormalized.length < 4) {
+    return 0;
+  }
+
   let maxScore = 0;
   let primaryIntentMatches = 0;
 
@@ -295,18 +313,13 @@ function calculateIntentPatternScore(
       continue;
     }
     
-    // Check for substring match (still very strong)
-    if (queryNormalized.includes(patternNormalized) || patternNormalized.includes(queryNormalized)) {
-      maxScore = Math.max(maxScore, 0.95);
-      if (pattern.includes('PRIMARY') || !pattern.includes('SECONDARY')) {
-        primaryIntentMatches++;
-      }
-      continue;
-    }
+    // REMOVED: Substring matching is too permissive and causes false matches
+    // Examples: "hey" matching "hey, what about...", "sleep" matching "can't sleep at night"
+    // Instead, rely on word-based matching below which is more sophisticated and accurate
 
     // IMPROVED: Word-based matching with synonym-aware semantic similarity
     // Extract meaningful words (exclude common stop words and short words)
-    const stopWords = new Set(['why', 'what', 'how', 'when', 'where', 'can', 'does', 'is', 'are', 'do', 'i', 'my', 'me', 'at', 'in', 'on', 'the', 'a', 'an']);
+    const stopWords = new Set(['why', 'what', 'how', 'when', 'where', 'can', 'does', 'is', 'are', 'do', 'i', 'my', 'me', 'at', 'in', 'on', 'the', 'a', 'an', 'hey', 'hi', 'ok', 'okay', 'yes', 'no']);
     
     const queryWords = queryNormalized
       .split(/\s+/)
@@ -316,7 +329,13 @@ function calculateIntentPatternScore(
       .split(/\s+/)
       .filter(w => w.length > 2 && !stopWords.has(w));
     
-    if (queryWords.length === 0 || patternWords.length === 0) {
+    // If query has no meaningful words after filtering, skip this pattern
+    // This prevents greetings and very short queries from matching
+    if (queryWords.length === 0) {
+      continue;
+    }
+    
+    if (patternWords.length === 0) {
       continue;
     }
     

@@ -130,7 +130,8 @@ BEGIN
     (NEW.id, 'Bloating', '🎈', true),
     (NEW.id, 'Insomnia', '😵', true),
     (NEW.id, 'Weight gain', '⚖️', true),
-    (NEW.id, 'Low libido', '💔', true);
+    (NEW.id, 'Low libido', '💔', true),
+    (NEW.id, 'Period', '⭕', true);
   
   -- Also create user_preferences entry
   INSERT INTO user_preferences (user_id)
@@ -169,7 +170,8 @@ CROSS JOIN (
     ('Bloating', '🎈'),
     ('Insomnia', '😵'),
     ('Weight gain', '⚖️'),
-    ('Low libido', '💔')
+    ('Low libido', '💔'),
+    ('Period', '⭕')
 ) AS symptom_data(name, icon)
 WHERE NOT EXISTS (
   SELECT 1 FROM symptoms s WHERE s.user_id = u.id

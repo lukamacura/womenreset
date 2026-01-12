@@ -21,7 +21,10 @@ import EmptyState from "@/components/symptom-tracker/EmptyState";
 import HealthSummaryButton from "@/components/symptom-tracker/HealthSummaryButton";
 import DailyMoodSelector from "@/components/symptom-tracker/DailyMoodSelector";
 import WhatLisaNoticed from "@/components/symptom-tracker/WhatLisaNoticed";
+import GoodDayCard from "@/components/symptom-tracker/GoodDayCard";
 import DeleteConfirmationDialog from "@/components/DeleteConfirmationDialog";
+import TriggerPromptModal from "@/components/symptom-tracker/TriggerPromptModal";
+import WeekView from "@/components/symptom-tracker/WeekView";
 import type { Symptom, LogSymptomData, SymptomLog } from "@/lib/symptom-tracker-constants";
 import { orderSymptoms } from "@/lib/symptomOrdering";
 import { useDailyMood } from "@/hooks/useDailyMood";
@@ -114,6 +117,9 @@ export default function SymptomsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isQuickModalOpen, setIsQuickModalOpen] = useState(false);
   const [isSelectorOpen, setIsSelectorOpen] = useState(false);
+  const [showTriggerPrompt, setShowTriggerPrompt] = useState(false);
+  const [triggerPromptLog, setTriggerPromptLog] = useState<{ logId: string; symptom: Symptom } | null>(null);
+  const [viewMode, setViewMode] = useState<'list' | 'week'>('list');
   const [, setPageLoaded] = useState(false);
   
   // Session tracking for notifications
@@ -232,10 +238,27 @@ export default function SymptomsPage() {
         // Show success notification
         showSuccess("Symptom logged");
 
-        // Check for notifications after a short delay
-        setTimeout(() => {
-          checkPostLogNotifications(savedLog, data.symptomId, data.triggers || []);
-        }, 500);
+        // Close quick modal first
+        setIsQuickModalOpen(false);
+
+        // If severity is 2 or 3, show trigger prompt
+        if (data.severity >= 2 && savedLog) {
+          const symptom = symptoms.find(s => s.id === data.symptomId);
+          if (symptom) {
+            setTriggerPromptLog({ logId: savedLog.id, symptom });
+            setShowTriggerPrompt(true);
+          } else {
+            // Check notifications if we're not showing trigger prompt
+            setTimeout(() => {
+              checkPostLogNotifications(savedLog, data.symptomId, data.triggers || []);
+            }, 500);
+          }
+        } else {
+          // Check notifications if we're not showing trigger prompt
+          setTimeout(() => {
+            checkPostLogNotifications(savedLog, data.symptomId, data.triggers || []);
+          }, 500);
+        }
       } catch (error) {
         throw error; // Let QuickLogModal handle error display
       }
@@ -248,6 +271,46 @@ export default function SymptomsPage() {
     setIsQuickModalOpen(false);
     setSelectedSymptom(null);
   };
+
+  // Handle trigger prompt save
+  const handleTriggerPromptSave = useCallback(
+    async (triggers: string[]) => {
+      if (!triggerPromptLog) return;
+
+      try {
+        const response = await fetch("/api/symptom-logs", {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            id: triggerPromptLog.logId,
+            triggers: triggers,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Failed to update triggers");
+        }
+
+        // Refetch logs to update the list
+        await refetchLogs();
+        window.dispatchEvent(new CustomEvent('symptom-log-updated'));
+      } catch (error) {
+        showError("Couldn't save triggers", error instanceof Error ? error.message : "Failed to update triggers");
+        throw error;
+      }
+    },
+    [triggerPromptLog, refetchLogs, showError]
+  );
+
+  // Handle trigger prompt close
+  const handleTriggerPromptClose = useCallback(() => {
+    setShowTriggerPrompt(false);
+    setTriggerPromptLog(null);
+    setSelectedSymptom(null);
+  }, []);
 
   // Handle expand to full modal from quick modal
 
@@ -471,7 +534,7 @@ export default function SymptomsPage() {
           "reminder",
           "🌙 End of Day",
           {
-            message: "No symptoms logged today — was it a good day?",
+            message: "No symptoms logged today - was it a good day?",
             priority: "low",
             autoDismiss: false,
             primaryAction: {
@@ -642,7 +705,7 @@ export default function SymptomsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl p-4 sm:p-6 md:p-8 space-y-6 sm:space-y-8 min-h-screen">
+    <div className="mx-auto max-w-7xl p-4 sm:p-6 md:p-8 pb-12 sm:pb-16 space-y-6 sm:space-y-8 min-h-screen">
       {/* Header */}
       <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between opacity-0 animate-[fadeInDown_0.6s_ease-out_forwards]">
         <div className="flex-1">
@@ -737,6 +800,21 @@ export default function SymptomsPage() {
                   </div>
                 );
               })}
+              {/* Good Day Card */}
+              {symptoms.find(s => s.name === "Good Day") && (
+                <div
+                  style={{
+                    animation: `fadeInUp 0.5s ease-out forwards`,
+                    animationDelay: `${topSymptoms.length * 70}ms`,
+                    opacity: 0,
+                  }}
+                >
+                  <GoodDayCard
+                    goodDaySymptom={symptoms.find(s => s.name === "Good Day") || null}
+                    onSave={handleQuickLogSave}
+                  />
+                </div>
+              )}
             </div>
           </AnimatedSection>
         ) : (
@@ -757,12 +835,45 @@ export default function SymptomsPage() {
 
         {/* Recent Logs */}
         <AnimatedSection delay={0}>
-          <section className="bg-white/30 backdrop-blur-lg rounded-2xl p-4 sm:p-6 border border-white/30 shadow-xl transition-all duration-300 hover:shadow-2xl">
-            <div className="mb-3 sm:mb-4 flex items-center gap-2">
-              <BookOpen className="h-8 w-8 text-pink-500 shrink-0 mt-0.5" />
-              <h2 className="text-lg sm:text-2xl font-semibold text-foreground">Your Journal</h2>
+          <section className="bg-white/30 backdrop-blur-lg rounded-2xl p-4 sm:p-6 border border-white/30 shadow-xl transition-all duration-300 hover:shadow-2xl mb-30 sm:mb-30">
+            <div className="mb-3 sm:mb-4 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <BookOpen className="h-8 w-8 text-pink-500 shrink-0 mt-0.5" />
+                <h2 className="text-lg sm:text-2xl font-semibold text-foreground">Your Journal</h2>
+              </div>
+              {/* View Toggle */}
+              <div className="flex gap-2 bg-white/40 backdrop-blur-md rounded-lg p-1 border border-white/30">
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors cursor-pointer
+                    ${viewMode === 'list' 
+                      ? 'bg-[#ff74b1] text-white shadow-md' 
+                      : 'text-[#6B6B6B] hover:text-[#3D3D3D]'}`}
+                  type="button"
+                >
+                  List
+                </button>
+                <button
+                  onClick={() => setViewMode('week')}
+                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors cursor-pointer
+                    ${viewMode === 'week' 
+                      ? 'bg-[#ff74b1] text-white shadow-md' 
+                      : 'text-[#6B6B6B] hover:text-[#3D3D3D]'}`}
+                  type="button"
+                >
+                  Week
+                </button>
+              </div>
             </div>
-            <RecentLogs logs={logs} loading={logsLoading} onLogClick={handleLogClick} onDelete={handleLogDeleteClick} />
+            {viewMode === 'week' ? (
+              <WeekView 
+                logs={logs} 
+                onLogClick={handleLogClick} 
+                onDelete={handleLogDeleteClick} 
+              />
+            ) : (
+              <RecentLogs logs={logs} loading={logsLoading} onLogClick={handleLogClick} onDelete={handleLogDeleteClick} />
+            )}
           </section>
         </AnimatedSection>
       </div>
@@ -824,6 +935,18 @@ export default function SymptomsPage() {
         itemName={deleteLogDialog.log?.symptoms?.name}
         isLoading={deleteLogDialog.isLoading}
       />
+
+      {/* Trigger Prompt Modal */}
+      {triggerPromptLog && (
+        <TriggerPromptModal
+          symptom={triggerPromptLog.symptom}
+          logId={triggerPromptLog.logId}
+          allLogs={logs}
+          isOpen={showTriggerPrompt}
+          onClose={handleTriggerPromptClose}
+          onSave={handleTriggerPromptSave}
+        />
+      )}
 
     </div>
   );

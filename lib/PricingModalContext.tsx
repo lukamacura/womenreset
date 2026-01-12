@@ -5,12 +5,13 @@ import type { TrialState } from "@/components/TrialCard";
 
 interface PricingModalContextType {
   isOpen: boolean;
-  openModal: (trialState?: TrialState, timeRemaining?: string, symptomCount?: number, patternCount?: number) => void;
+  openModal: (trialState?: TrialState, timeRemaining?: string, symptomCount?: number, patternCount?: number, userName?: string) => void;
   closeModal: () => void;
   trialState: TrialState;
   timeRemaining?: string;
   symptomCount: number;
   patternCount: number;
+  userName?: string;
 }
 
 const PricingModalContext = createContext<PricingModalContextType | undefined>(undefined);
@@ -29,17 +30,20 @@ export function PricingModalProvider({ children }: { children: ReactNode }) {
   const [timeRemaining, setTimeRemaining] = useState<string | undefined>(undefined);
   const [symptomCount, setSymptomCount] = useState(0);
   const [patternCount, setPatternCount] = useState(0);
+  const [userName, setUserName] = useState<string | undefined>(undefined);
 
   const openModal = (
     newTrialState: TrialState = "calm",
     newTimeRemaining?: string,
     newSymptomCount = 0,
-    newPatternCount = 0
+    newPatternCount = 0,
+    newUserName?: string
   ) => {
     setTrialState(newTrialState);
     setTimeRemaining(newTimeRemaining);
     setSymptomCount(newSymptomCount);
     setPatternCount(newPatternCount);
+    setUserName(newUserName);
     setIsOpen(true);
   };
 
@@ -57,6 +61,7 @@ export function PricingModalProvider({ children }: { children: ReactNode }) {
         timeRemaining,
         symptomCount,
         patternCount,
+        userName,
       }}
     >
       {children}

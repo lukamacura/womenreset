@@ -168,7 +168,7 @@ function extractFollowUpQuestion(content: string): string | null {
 
 /**
  * Find matching follow-up link for an option text or user query
- * Matches by label, topic, and subtopic for better accuracy
+ * Uses subtopic as stable identifier for matching, label is only for display
  */
 function findMatchingLink(
   queryText: string,
@@ -176,14 +176,33 @@ function findMatchingLink(
 ): FollowUpLink | null {
   const normalized = queryText.toLowerCase().trim();
   
-  // Try exact label match first
+  // PRIORITY 1: Try exact subtopic match first (stable identifier)
+  // This is the primary matching method when links are clicked
+  for (const link of followUpLinks) {
+    if (link.subtopic.toLowerCase() === normalized) {
+      return link;
+    }
+  }
+  
+  // PRIORITY 2: Try partial subtopic match
+  for (const link of followUpLinks) {
+    const linkSubtopic = link.subtopic.toLowerCase();
+    if (normalized.includes(linkSubtopic) || linkSubtopic.includes(normalized)) {
+      // Only match if substantial overlap (at least 5 characters)
+      if (linkSubtopic.length >= 5 && normalized.length >= 5) {
+        return link;
+      }
+    }
+  }
+  
+  // PRIORITY 3: Try exact label match (for backward compatibility with text queries)
   for (const link of followUpLinks) {
     if (link.label.toLowerCase() === normalized) {
       return link;
     }
   }
   
-  // Try partial label match (query contains label or label contains query)
+  // PRIORITY 4: Try partial label match (query contains label or label contains query)
   for (const link of followUpLinks) {
     const linkLabel = link.label.toLowerCase();
     if (normalized.includes(linkLabel) || linkLabel.includes(normalized)) {
@@ -201,7 +220,7 @@ function findMatchingLink(
     }
   }
   
-  // Try matching by topic/subtopic keywords
+  // PRIORITY 5: Try matching by topic/subtopic keywords (fallback for natural language queries)
   for (const link of followUpLinks) {
     const linkLabel = link.label.toLowerCase();
     const linkTopic = link.topic.toLowerCase();
@@ -437,10 +456,21 @@ async function retrieveKBEntryByMetadata(
  * Find follow-up link by matching query to any link label in the database
  * Simplified: No history checking, direct match by label across all documents
  */
+/**
+ * Find follow-up link by query - ONLY matches when user clicks a follow-up link
+ * Uses subtopic as stable identifier (not label, which can change)
+ * NO LLM routing - returns verbatim KB content only
+ */
 async function findFollowUpLinkByQuery(userQuery: string): Promise<FollowUpLink | null> {
   try {
     const supabaseClient = getSupabaseAdmin();
     const normalizedQuery = userQuery.toLowerCase().trim();
+    
+    // SAFEGUARD: Skip very short queries (< 3 chars) - these are greetings, not follow-up links
+    if (normalizedQuery.length < 3) {
+      console.log(`[Follow-up Link] Skipping very short query: "${userQuery}" (likely not a follow-up link)`);
+      return null;
+    }
     
     // Query all documents with follow_up_links
     const { data: documents, error } = await supabaseClient
@@ -457,7 +487,7 @@ async function findFollowUpLinkByQuery(userQuery: string): Promise<FollowUpLink 
       return null;
     }
     
-    // Search through all follow_up_links to find matching label
+    // Search through all follow_up_links - PRIORITIZE subtopic (stable identifier)
     for (const doc of documents) {
       const metadata = doc.metadata as SupabaseDocumentMetadata;
       const followUpLinks = metadata.follow_up_links as FollowUpLink[] | undefined;
@@ -466,30 +496,35 @@ async function findFollowUpLinkByQuery(userQuery: string): Promise<FollowUpLink 
         continue;
       }
       
-      // Try exact label match first
+      // PRIORITY 1: Exact subtopic match (stable identifier - this is what frontend sends)
+      // This is the primary matching method when users click follow-up links
       for (const link of followUpLinks) {
-        const linkLabel = link.label.toLowerCase().trim();
-        if (linkLabel === normalizedQuery) {
-          console.log(`[Follow-up Link] ✅ Exact label match found: "${link.label}"`);
+        const linkSubtopic = link.subtopic.toLowerCase().trim();
+        if (linkSubtopic === normalizedQuery) {
+          console.log(`[Follow-up Link] ✅ Exact subtopic match found: "${link.subtopic}"`);
           return link;
         }
       }
       
-      // Try partial match (query contains label or label contains query)
+      // PRIORITY 2: Partial subtopic match (for backward compatibility)
+      // Only match if both are substantial (>= 5 chars) to avoid false matches
       for (const link of followUpLinks) {
-        const linkLabel = link.label.toLowerCase().trim();
-        if (normalizedQuery.includes(linkLabel) || linkLabel.includes(normalizedQuery)) {
-          // Only match if substantial overlap (at least 5 characters)
-          if (linkLabel.length >= 5 && normalizedQuery.length >= 5) {
-            console.log(`[Follow-up Link] ✅ Partial label match found: "${link.label}"`);
+        const linkSubtopic = link.subtopic.toLowerCase().trim();
+        if (normalizedQuery.includes(linkSubtopic) || linkSubtopic.includes(normalizedQuery)) {
+          if (linkSubtopic.length >= 5 && normalizedQuery.length >= 5) {
+            console.log(`[Follow-up Link] ✅ Partial subtopic match found: "${link.subtopic}"`);
             return link;
           }
-          // Check for key terms match
-          const labelWords = linkLabel.split(/\s+/).filter(w => w.length > 3);
-          const queryWords = normalizedQuery.split(/\s+/).filter(w => w.length > 3);
-          const matchingWords = labelWords.filter(w => queryWords.includes(w));
-          if (matchingWords.length >= 2 || (matchingWords.length === 1 && labelWords.length <= 2)) {
-            console.log(`[Follow-up Link] ✅ Key terms match found: "${link.label}"`);
+        }
+      }
+      
+      // PRIORITY 3: Exact label match (for backward compatibility only)
+      // Only if query is substantial (>= 5 chars) to avoid matching greetings
+      if (normalizedQuery.length >= 5) {
+        for (const link of followUpLinks) {
+          const linkLabel = link.label.toLowerCase().trim();
+          if (linkLabel === normalizedQuery) {
+            console.log(`[Follow-up Link] ✅ Exact label match found: "${link.label}"`);
             return link;
           }
         }
@@ -504,9 +539,10 @@ async function findFollowUpLinkByQuery(userQuery: string): Promise<FollowUpLink 
 }
 
 /**
- * Handle follow-up link routing - simplified: direct match and verbatim return
- * No history checking, no questions - just route to target document
- * ALWAYS returns verbatim KB content, bypassing persona classification
+ * Handle follow-up link routing - DIRECT KB retrieval ONLY, NO LLM
+ * When user clicks a follow-up link, always route to exact KB document
+ * Bypasses ALL LLM processing, persona classification, and reasoning
+ * Returns verbatim KB content immediately
  */
 async function handleFollowUpLinkRouting(
   userQuery: string,
@@ -517,13 +553,15 @@ async function handleFollowUpLinkRouting(
   const matchedLink = await findFollowUpLinkByQuery(userQuery);
   
   if (!matchedLink) {
-    // No matching link found - return null to use default flow
+    // No matching link found - return null to use default flow (which may use LLM)
     return null;
   }
   
   console.log(`[Follow-up Link] ✅ Match found! Query: "${userQuery.substring(0, 50)}" -> Target: ${matchedLink.topic} > ${matchedLink.subtopic}`);
+  console.log(`[Follow-up Link] 🚫 Bypassing LLM - returning verbatim KB content only`);
   
   // Retrieve the target KB entry directly by metadata
+  // NO LLM processing - direct KB lookup only
   const linkedEntry = await retrieveKBEntryByMetadata(
     matchedLink.persona,
     matchedLink.topic,
@@ -532,16 +570,17 @@ async function handleFollowUpLinkRouting(
   
   if (!linkedEntry) {
     console.log(`[Follow-up Link] ⚠️ Target document not found: ${matchedLink.persona} > ${matchedLink.topic} > ${matchedLink.subtopic}`);
+    // Even if KB entry not found, don't fall back to LLM - return null to let normal flow handle it
     return null;
   }
   
-  // Return verbatim response - no questions, just the content
-  // Persona is determined from the target document, not from classification
+  // Return verbatim response - NO LLM, NO reasoning, NO questions
+  // Just the raw KB content formatted for display
   const verbatimResponse = formatVerbatimResponse([linkedEntry], true);
   const personaForMode = matchedLink.persona === "menopause" ? "menopause_specialist" : matchedLink.persona as Persona;
   const retrievalModeForLink = mode || getRetrievalMode(personaForMode);
   
-  console.log(`[Follow-up Link] ✅ Returning verbatim content from: ${matchedLink.topic} > ${matchedLink.subtopic} (persona: ${personaForMode})`);
+  console.log(`[Follow-up Link] ✅ Returning verbatim KB content (NO LLM): ${matchedLink.topic} > ${matchedLink.subtopic} (persona: ${personaForMode})`);
   
   return {
     response: verbatimResponse,
@@ -596,10 +635,18 @@ export async function orchestrateRAG(
     // Step 2: Classify persona (use original query, not enhanced) - do this early for follow-up link resolution
     let persona = await classifyPersona(userQuery);
     
+    // SAFEGUARD: Skip exact intent matching for very short queries (< 4 chars)
+    // These are likely greetings (hey, hi, ok) and shouldn't trigger verbatim responses
+    const normalizedQuery = userQuery.toLowerCase().trim();
+    const shouldCheckExactIntent = normalizedQuery.length >= 4;
+    
     // CRITICAL FIX: Check for exact intent pattern matches across ALL personas FIRST
     // This ensures exact matches always return verbatim responses regardless of persona classification
     // or follow-up detection - if intent matches exactly, return verbatim from whichever persona has it
-    const exactIntentMatches = await checkExactIntentMatchAcrossAllPersonas(userQuery, 3);
+    // BUT skip for very short queries that are likely greetings
+    const exactIntentMatches = shouldCheckExactIntent 
+      ? await checkExactIntentMatchAcrossAllPersonas(userQuery, 3)
+      : [];
     
     if (exactIntentMatches.length > 0) {
       // Found exact intent match - return verbatim immediately

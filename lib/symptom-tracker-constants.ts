@@ -32,7 +32,8 @@ export const DEFAULT_SYMPTOMS = [
   { name: 'Bloating', icon: 'CircleDot' },
   { name: 'Insomnia', icon: 'Moon' },
   { name: 'Weight gain', icon: 'TrendingUp' },
-  { name: 'Low libido', icon: 'HeartOff' }
+  { name: 'Low libido', icon: 'HeartOff' },
+  { name: 'Period', icon: 'Circle' }
 ] as const;
 
 // TypeScript Types

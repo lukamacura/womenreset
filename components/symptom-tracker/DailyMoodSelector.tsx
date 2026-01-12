@@ -85,6 +85,11 @@ export default function DailyMoodSelector({ date }: DailyMoodSelectorProps) {
           );
         })}
       </div>
+      {selectedMood && (
+        <p className="text-sm text-[#6B6B6B] mt-3 text-center">
+          You said today was <strong>{MOOD_OPTIONS.find(m => m.value === selectedMood)?.label}</strong>
+        </p>
+      )}
     </div>
   );
 }

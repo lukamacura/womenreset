@@ -284,7 +284,7 @@ export default function DashboardLayout({
 
 // Inner component to use PricingModal context
 function PricingModalWrapper() {
-  const { isOpen, closeModal, trialState, timeRemaining, symptomCount, patternCount } = usePricingModal();
+  const { isOpen, closeModal, trialState, timeRemaining, symptomCount, patternCount, userName } = usePricingModal();
   
   return (
     <PricingModal
@@ -294,6 +294,7 @@ function PricingModalWrapper() {
       timeRemaining={timeRemaining}
       symptomCount={symptomCount}
       patternCount={patternCount}
+      userName={userName}
     />
   );
 }

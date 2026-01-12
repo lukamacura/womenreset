@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef, memo, useMemo } from "react";
+import { memo, useMemo } from "react";
 import { Trash2, Calendar } from "lucide-react";
+import { motion } from "framer-motion";
 import type { SymptomLog } from "@/lib/symptom-tracker-constants";
 import { SEVERITY_LABELS } from "@/lib/symptom-tracker-constants";
 import { formatDateSimple } from "@/lib/dateUtils";
@@ -35,8 +36,6 @@ function generateDailySummary(logsForDay: SymptomLog[]): string | null {
 }
 
 export default function RecentLogs({ logs, loading, onLogClick, onDelete }: RecentLogsProps) {
-  // Global map to track which items have animated (persists across re-renders)
-  const animatedItemsMap = useRef<Set<string>>(new Set());
 
   // Group logs by date and generate summaries
   const logsWithSummaries = useMemo(() => {
@@ -86,118 +85,37 @@ export default function RecentLogs({ logs, loading, onLogClick, onDelete }: Rece
     return result;
   }, [logs]);
 
-  // Animated List Item Component - memoized to prevent unnecessary re-renders
+  // Animated List Item Component - simplified for smooth fade-in
   const AnimatedListItem = memo(function AnimatedListItem({
     children,
     index,
-    itemId,
   }: {
     children: React.ReactNode;
     index: number;
-    itemId: string;
   }) {
-    const [isVisible, setIsVisible] = useState(() => animatedItemsMap.current.has(itemId));
-    const itemRef = useRef<HTMLDivElement>(null);
-    const observerRef = useRef<IntersectionObserver | null>(null);
-    const cleanupTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-    const hasSetupRef = useRef(false);
-
-    useEffect(() => {
-      // If already animated, skip setup
-      if (animatedItemsMap.current.has(itemId) || hasSetupRef.current) {
-        return;
-      }
-
-      const currentRef = itemRef.current;
-      if (!currentRef) return;
-
-      hasSetupRef.current = true;
-
-      // Check if element is already in viewport on mount
-      const checkViewport = () => {
-        const rect = currentRef.getBoundingClientRect();
-        return rect.top < window.innerHeight + 50 && rect.bottom > -50;
-      };
-
-      const triggerAnimation = () => {
-        if (animatedItemsMap.current.has(itemId)) return;
-        
-        animatedItemsMap.current.add(itemId);
-        setIsVisible(true);
-        
-        // Clean up will-change after animation completes
-        const delay = 500 + index * 80;
-        cleanupTimeoutRef.current = setTimeout(() => {
-          if (itemRef.current) {
-            itemRef.current.style.willChange = "auto";
-          }
-        }, delay);
-      };
-
-      if (checkViewport()) {
-        // Animate immediately if already in view
-        triggerAnimation();
-        return;
-      }
-
-      // Create observer only once
-      observerRef.current = new IntersectionObserver(
-        (entries) => {
-          entries.forEach((entry) => {
-            if (entry.isIntersecting && !animatedItemsMap.current.has(itemId)) {
-              triggerAnimation();
-              // Immediately disconnect observer to prevent retriggering
-              if (observerRef.current) {
-                observerRef.current.disconnect();
-                observerRef.current = null;
-              }
-            }
-          });
-        },
-        {
-          threshold: 0.01,
-          rootMargin: "50px 0px 50px 0px",
-        }
-      );
-
-      observerRef.current.observe(currentRef);
-
-      return () => {
-        if (cleanupTimeoutRef.current) {
-          clearTimeout(cleanupTimeoutRef.current);
-        }
-        if (observerRef.current && currentRef) {
-          observerRef.current.unobserve(currentRef);
-          observerRef.current = null;
-        }
-        hasSetupRef.current = false;
-      };
-    }, [itemId, index]); // Include itemId and index in deps
-
-    const delay = isVisible ? index * 80 : 0;
-
     return (
-      <div
-        ref={itemRef}
-        className={`transition-all duration-500 ease-out ${!isVisible ? "will-change-transform" : ""}`}
-        style={{
-          opacity: isVisible ? 1 : 0,
-          transform: isVisible ? "translate3d(0, 0, 0)" : "translate3d(0, 24px, 0)",
-          transitionDelay: `${delay}ms`,
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{
+          duration: 0.3,
+          delay: index * 0.05, // Fast stagger: 50ms per item
+          ease: [0.4, 0, 0.2, 1], // Smooth ease-in-out
         }}
       >
         {children}
-      </div>
+      </motion.div>
     );
   });
 
+  // Skeleton loading with fade transition
   if (loading) {
     return (
       <div className="space-y-3">
         {[1, 2, 3, 4, 5].map((i) => (
           <div
             key={i}
-            className="animate-pulse rounded-xl border border-foreground/10 bg-white p-4"
+            className="animate-pulse rounded-xl border border-foreground/10 bg-background/60 backdrop-blur-lg p-4"
           >
             <div className="h-5 w-48 bg-foreground/10 rounded mb-3" />
             <div className="h-4 w-32 bg-foreground/10 rounded" />
@@ -236,8 +154,13 @@ export default function RecentLogs({ logs, loading, onLogClick, onDelete }: Rece
   }
 
   return (
-    <div className="space-y-3">
-      {logsWithSummaries.map((item, index) => {
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.3, ease: "easeOut" }}
+      className="space-y-3"
+    >
+        {logsWithSummaries.map((item, index) => {
         const { log } = item;
         const { dateStr, timeStr } = formatDateSimple(log.logged_at);
         const symptomName = log.symptoms?.name || "Unknown";
@@ -281,7 +204,7 @@ export default function RecentLogs({ logs, loading, onLogClick, onDelete }: Rece
                 </p>
               </div>
             )}
-            <AnimatedListItem index={index} itemId={log.id}>
+            <AnimatedListItem index={index}>
               <div
                 className="group rounded-xl border border-white  backdrop-blur-md p-4 transition-colors hover:border-white/50 hover:bg-white/40"
               >
@@ -368,6 +291,6 @@ export default function RecentLogs({ logs, loading, onLogClick, onDelete }: Rece
           </div>
         );
       })}
-    </div>
+    </motion.div>
   );
 }

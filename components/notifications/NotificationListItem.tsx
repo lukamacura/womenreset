@@ -16,6 +16,7 @@ import { formatNotificationTime } from "@/lib/notificationUtils";
 import type { NotificationType } from "./NotificationProvider";
 import { usePricingModal } from "@/lib/PricingModalContext";
 import type { TrialState } from "@/components/TrialCard";
+import { supabase } from "@/lib/supabaseClient";
 
 interface NotificationListItemProps {
   id: string;
@@ -131,7 +132,31 @@ export default function NotificationListItem({
       const timeMatch = message?.match(/(\d+h \d+m)/);
       const timeRemaining = timeMatch ? timeMatch[1] : undefined;
       
-      openModal(trialState, timeRemaining);
+      // Fetch user's first name
+      const fetchUserName = async () => {
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            const { data: profile } = await supabase
+              .from("user_profiles")
+              .select("name")
+              .eq("user_id", user.id)
+              .single();
+            
+            if (profile?.name) {
+              // Extract first name from full name
+              const firstName = profile.name.split(' ')[0];
+              return firstName || undefined;
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching user name:", error);
+        }
+        return undefined;
+      };
+      
+      const userName = await fetchUserName();
+      openModal(trialState, timeRemaining, undefined, undefined, userName);
     } else if (route) {
       // Navigate if route exists
       router.push(route);
@@ -141,15 +166,15 @@ export default function NotificationListItem({
   return (
     <button
       onClick={handleClick}
-      className={`w-full text-left rounded-xl p-4 mb-2 transition-all duration-200 border border-gray-200 ${
+      className={`w-full text-left rounded-xl p-4 mb-2 transition-all duration-200 backdrop-blur-lg border ${
         seen
-          ? "bg-white hover:bg-gray-50"
-          : "bg-blue-50/50 hover:bg-blue-50 border-blue-200"
+          ? "bg-white/60 hover:bg-white/70 border-white/30"
+          : "bg-blue-50/40 hover:bg-blue-50/50 border-blue-200/50"
       }`}
     >
       <div className="flex items-start gap-3">
         {/* Icon */}
-        <div className={`flex-shrink-0 ${iconColor}`}>
+        <div className={`shrink-0 ${iconColor}`}>
           {renderNotificationIcon(type, title, "h-5 w-5")}
         </div>
 
@@ -163,10 +188,10 @@ export default function NotificationListItem({
             >
               {title}
             </h3>
-            <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="flex items-center gap-2 shrink-0">
               <span className="text-xs text-gray-400">{timeText}</span>
               {!seen && (
-                <span className="w-2 h-2 rounded-full bg-pink-500 flex-shrink-0" />
+                <span className="w-2 h-2 rounded-full bg-pink-500 shrink-0" />
               )}
             </div>
           </div>

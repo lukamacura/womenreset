@@ -2,7 +2,8 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { X, ChevronDown, ChevronUp } from "lucide-react";
+import { X, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Check } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { SEVERITY_LABELS, TRIGGER_OPTIONS } from "@/lib/symptom-tracker-constants";
 import type { Symptom, LogSymptomData, SymptomLog } from "@/lib/symptom-tracker-constants";
 import { getIconFromName } from "@/lib/symptomIconMapping";
@@ -27,7 +28,7 @@ export default function QuickLogModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
-  const [showDetails, setShowDetails] = useState(false);
+  const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4>(1); // Step 1 = severity, 2 = time, 3 = triggers, 4 = notes
   
   // Details state
   const [timeSelection, setTimeSelection] = useState<'now' | 'earlier-today' | 'yesterday'>('now');
@@ -47,7 +48,7 @@ export default function QuickLogModal({
   useEffect(() => {
     if (isOpen) {
       setSeverity(2);
-      setShowDetails(false);
+      setCurrentStep(1);
       setTimeSelection('now');
       setCustomTime("");
       setSelectedTriggers([]);
@@ -156,25 +157,38 @@ export default function QuickLogModal({
     });
   };
 
+  // Navigation handlers
+  const handleNext = () => {
+    if (currentStep < 4) {
+      setCurrentStep((prev) => (prev + 1) as 1 | 2 | 3 | 4);
+    }
+  };
+
+  const handlePrevious = () => {
+    if (currentStep > 1) {
+      setCurrentStep((prev) => (prev - 1) as 1 | 2 | 3 | 4);
+    }
+  };
+
   // Handle save (quick log or with details)
   const handleSave = async () => {
     try {
       setIsSubmitting(true);
       setError(null);
 
-      const loggedAt = showDetails ? getLoggedAtTimestamp() : undefined;
+      const loggedAt = currentStep > 1 ? getLoggedAtTimestamp() : undefined;
 
       await onSave({
         symptomId: symptom.id,
         severity: severity,
-        triggers: showDetails ? selectedTriggers : [],
-        notes: showDetails ? notes : "",
+        triggers: currentStep >= 3 ? selectedTriggers : [],
+        notes: currentStep === 4 ? notes : "",
         loggedAt,
       });
 
       // Reset form
       setSeverity(2);
-      setShowDetails(false);
+      setCurrentStep(1);
       setTimeSelection('now');
       setCustomTime("");
       setSelectedTriggers([]);
@@ -186,6 +200,13 @@ export default function QuickLogModal({
       setIsSubmitting(false);
     }
   };
+
+  const steps = [
+    { number: 1, title: "Severity" },
+    { number: 2, title: "When" },
+    { number: 3, title: "Triggers" },
+    { number: 4, title: "Notes" },
+  ];
 
   const modalContent = (
     <div
@@ -220,11 +241,52 @@ export default function QuickLogModal({
 
         {/* Content */}
         <div className="p-6">
-          {/* Step 1: Severity (always shown) */}
-          <div className="mb-6">
-            <label className="text-[#3D3D3D] text-lg mb-4 block font-semibold">
-              How bad?
-            </label>
+          {/* Step Indicator (only show when in details mode) */}
+          {currentStep > 1 && (
+            <div className="px-6 py-4 flex items-center justify-between border-b border-white/30 -mx-6 -mt-6 mb-6">
+              {steps.map((step, index) => (
+                <div key={step.number} className="flex items-center flex-1">
+                  <div className="flex flex-col items-center flex-1">
+                    <div
+                      className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold text-sm transition-all
+                        ${
+                          currentStep === step.number
+                            ? "bg-[#ff74b1] text-white shadow-lg scale-110"
+                            : currentStep > step.number
+                            ? "bg-green-500 text-white"
+                            : "bg-white/40 text-[#6B6B6B] border border-white/30"
+                        }`}
+                    >
+                      {currentStep > step.number ? <Check className="h-4 w-4" /> : step.number}
+                    </div>
+                    <span className="text-xs mt-1 text-[#6B6B6B] hidden sm:block">{step.title}</span>
+                  </div>
+                  {index < steps.length - 1 && (
+                    <div
+                      className={`h-0.5 flex-1 mx-2 transition-all
+                        ${currentStep > step.number ? "bg-green-500" : "bg-white/30"}
+                      `}
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          <AnimatePresence mode="wait">
+            {/* Step 1: Severity (always shown) */}
+            {currentStep === 1 && (
+              <motion.div
+                key="step1"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.2 }}
+              >
+                <div className="mb-6">
+                  <label className="text-[#3D3D3D] text-lg mb-4 block font-semibold">
+                    How bad?
+                  </label>
             <div className="flex gap-3 justify-center">
               {[1, 2, 3].map((level) => {
                 const severityInfo = SEVERITY_LABELS[level as keyof typeof SEVERITY_LABELS];
@@ -269,14 +331,21 @@ export default function QuickLogModal({
                 );
               })}
             </div>
-          </div>
+                </div>
+              </motion.div>
+            )}
 
-          {/* Step 2: Details (collapsible) */}
-          {showDetails && (
-            <div className="mb-6 space-y-6 border-t border-white/30 pt-6">
-              {/* Time Selection */}
-              <div>
-                <label className="text-[#3D3D3D] text-base mb-3 block font-medium">
+          {/* Step 2: Time Selection */}
+          {currentStep === 2 && (
+            <motion.div
+              key="step2"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.2 }}
+            >
+              <div className="mb-6">
+                <label className="text-[#3D3D3D] text-lg mb-4 block font-semibold">
                   When?
                 </label>
                 <div className="flex flex-col gap-2">
@@ -341,10 +410,20 @@ export default function QuickLogModal({
                   )}
                 </div>
               </div>
+            </motion.div>
+          )}
 
-              {/* Triggers */}
-              <div>
-                <label className="text-[#3D3D3D] text-base mb-3 block font-medium">
+          {/* Step 3: Triggers */}
+          {currentStep === 3 && (
+            <motion.div
+              key="step3"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.2 }}
+            >
+              <div className="mb-6">
+                <label className="text-[#3D3D3D] text-lg mb-4 block font-semibold">
                   Triggers (optional):
                 </label>
                 
@@ -451,25 +530,36 @@ export default function QuickLogModal({
                   )}
                 </div>
               </div>
+            </motion.div>
+          )}
 
-              {/* Notes */}
-              <div>
-                <label className="text-[#3D3D3D] text-base mb-3 block font-medium">
+          {/* Step 4: Notes */}
+          {currentStep === 4 && (
+            <motion.div
+              key="step4"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.2 }}
+            >
+              <div className="mb-6">
+                <label className="text-[#3D3D3D] text-lg mb-4 block font-semibold">
                   Note (optional):
                 </label>
-                <input
-                  type="text"
+                <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   onClick={(e) => e.stopPropagation()}
                   placeholder="Was in a meeting when it hit..."
+                  rows={4}
                   className="w-full bg-white/60 backdrop-blur-md text-[#3D3D3D] rounded-xl p-4 text-base 
                            placeholder-[#9A9A9A]
-                           focus:outline-none focus:ring-2 focus:ring-[#ff74b1] border border-white/30"
+                           focus:outline-none focus:ring-2 focus:ring-[#ff74b1] border border-white/30 resize-none"
                 />
               </div>
-            </div>
+            </motion.div>
           )}
+          </AnimatePresence>
 
           {/* Error Message */}
           {error && (
@@ -480,35 +570,66 @@ export default function QuickLogModal({
 
           {/* Actions */}
           <div className="space-y-3">
-            <button
-              onClick={handleSave}
-              disabled={isSubmitting}
-              className="w-full bg-[#ff74b1] hover:bg-primary-dark text-white 
-                       font-semibold py-4 rounded-xl transition-colors cursor-pointer
-                       disabled:opacity-50 disabled:cursor-not-allowed text-lg shadow-lg"
-            >
-              {isSubmitting ? "Logging..." : "Log it"}
-            </button>
+            {currentStep === 1 ? (
+              <>
+                <button
+                  onClick={handleSave}
+                  disabled={isSubmitting}
+                  className="w-full bg-[#ff74b1] hover:bg-primary-dark text-white 
+                           font-semibold py-4 rounded-xl transition-colors cursor-pointer
+                           disabled:opacity-50 disabled:cursor-not-allowed text-lg shadow-lg"
+                >
+                  {isSubmitting ? "Logging..." : "Log it"}
+                </button>
 
-            <button
-              onClick={() => setShowDetails(!showDetails)}
-              className="w-full text-[#ff74b1] hover:text-primary-dark 
-                       font-medium py-3 rounded-xl transition-colors cursor-pointer text-base
-                       bg-white/40 backdrop-blur-md border border-white/30 flex items-center justify-center gap-2"
-              type="button"
-            >
-              {showDetails ? (
-                <>
-                  <ChevronUp className="h-4 w-4" />
-                  Hide details
-                </>
-              ) : (
-                <>
+                <button
+                  onClick={() => setCurrentStep(2)}
+                  className="w-full text-[#ff74b1] hover:text-primary-dark 
+                           font-medium py-3 rounded-xl transition-colors cursor-pointer text-base
+                           bg-white/40 backdrop-blur-md border border-white/30 flex items-center justify-center gap-2"
+                  type="button"
+                >
                   <ChevronDown className="h-4 w-4" />
                   + Add details
-                </>
-              )}
-            </button>
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="flex gap-3">
+                  <button
+                    onClick={handlePrevious}
+                    className="flex-1 bg-white/40 backdrop-blur-md border border-white/30 text-[#6B6B6B] 
+                             hover:text-[#3D3D3D] font-medium py-3 rounded-xl transition-colors cursor-pointer 
+                             flex items-center justify-center gap-2"
+                    type="button"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Back
+                  </button>
+                  {currentStep < 4 && (
+                    <button
+                      onClick={handleNext}
+                      className="flex-1 bg-white/40 backdrop-blur-md border border-white/30 text-[#ff74b1] 
+                               hover:text-primary-dark font-semibold py-3 rounded-xl transition-colors cursor-pointer
+                               flex items-center justify-center gap-2"
+                      type="button"
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
+                  )}
+                  <button
+                    onClick={handleSave}
+                    disabled={isSubmitting}
+                    className={`${currentStep < 4 ? 'flex-1' : 'flex-1'} bg-[#ff74b1] hover:bg-primary-dark text-white 
+                             font-semibold py-3 rounded-xl transition-colors cursor-pointer
+                             disabled:opacity-50 disabled:cursor-not-allowed`}
+                  >
+                    {isSubmitting ? "Logging..." : "Log it"}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>

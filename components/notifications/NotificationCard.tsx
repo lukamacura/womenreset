@@ -17,6 +17,7 @@ import {
 import type { Notification, NotificationAction } from "./NotificationProvider";
 import { usePricingModal } from "@/lib/PricingModalContext";
 import type { TrialState } from "@/components/TrialCard";
+import { supabase } from "@/lib/supabaseClient";
 
 interface NotificationCardProps {
   notification: Notification;
@@ -181,7 +182,31 @@ export default function NotificationCard({
         const timeMatch = notification.message?.match(/(\d+h \d+m)/);
         const timeRemaining = timeMatch ? timeMatch[1] : undefined;
         
-        openModal(trialState, timeRemaining);
+        // Fetch user's first name
+        const fetchUserName = async () => {
+          try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+              const { data: profile } = await supabase
+                .from("user_profiles")
+                .select("name")
+                .eq("user_id", user.id)
+                .single();
+              
+              if (profile?.name) {
+                // Extract first name from full name
+                const firstName = profile.name.split(' ')[0];
+                return firstName || undefined;
+              }
+            }
+          } catch (error) {
+            console.error("Error fetching user name:", error);
+          }
+          return undefined;
+        };
+        
+        const userName = await fetchUserName();
+        openModal(trialState, timeRemaining, undefined, undefined, userName);
       } else if (actionWithRoute.route) {
         // Navigate using Next.js router
         router.push(actionWithRoute.route);
@@ -228,7 +253,7 @@ export default function NotificationCard({
       >
         <div className="flex items-center gap-2">
           {renderNotificationIcon(notification.type, notification.title, "h-5 w-5 text-green-600")}
-          <span className="text-sm font-medium text-[#3D3D3D] flex-1">
+          <span className="text-sm font-bold text-[#3D3D3D] flex-1">
             {notification.message || notification.title}
           </span>
         </div>

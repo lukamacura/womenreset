@@ -609,6 +609,7 @@ export default function DashboardPage() {
   const router = useRouter();
 
   const [user, setUser] = useState<User | null>(null);
+  const [userName, setUserName] = useState<string | null>(null);
   const [loading] = useState(false); // Start as false - don't block rendering
   const [err, setErr] = useState<string | null>(null);
   const [now, setNow] = useState<Date>(new Date());
@@ -787,6 +788,23 @@ export default function DashboardPage() {
         // Set user
         if (mounted) {
           setUser(sessionData.session.user);
+          
+          // Fetch user's name from profile
+          try {
+            const { data: profile } = await supabase
+              .from("user_profiles")
+              .select("name")
+              .eq("user_id", sessionData.session.user.id)
+              .single();
+            
+            if (profile?.name && mounted) {
+              // Extract first name from full name
+              const firstName = profile.name.split(' ')[0];
+              setUserName(firstName);
+            }
+          } catch (error) {
+            console.error("Error fetching user name:", error);
+          }
         }
 
         // Check for quiz data in sessionStorage and save immediately
@@ -1377,11 +1395,11 @@ export default function DashboardPage() {
     <main className="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8 min-h-screen" style={{ background: 'linear-gradient(to bottom, #DBEAFE 0%, #FEF3C7 50%, #FCE7F3 100%)' }}>
       {/* Header */}
       <header className="mb-6 sm:mb-8">
-        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-foreground mb-1 sm:mb-2">
-          Dashboard
+        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-foreground mb-2 sm:mb-3">
+          {userName ? `Welcome back, ${userName}!` : "Welcome back!"}
         </h1>
-        <p className="text-sm sm:text-base text-muted-foreground">
-          Welcome{user?.email ? `, ${user.email.split("@")[0]}` : ""}
+        <p className="text-base sm:text-lg text-muted-foreground">
+          Ready to take control of your health today?
         </p>
       </header>
 

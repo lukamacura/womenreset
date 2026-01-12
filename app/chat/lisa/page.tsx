@@ -28,6 +28,7 @@ import {
   History,
   Sparkles,
 } from "lucide-react";
+import CoffeeLoading from "@/components/CoffeeLoading";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { useTrialStatus } from "@/lib/useTrialStatus";
@@ -1605,6 +1606,13 @@ function ChatPageInner() {
       setStreamingMessageId(id);
       setStickToBottom(true);
 
+      // Create placeholder assistant message IMMEDIATELY so loading component shows right away
+      upsertAndAppendMessage(id, {
+        role: "assistant",
+        content: "",
+        ts: Date.now(),
+      });
+
       try {
         const convo = sessions.find((s) => s.id === id);
         const priorMessages = convo?.messages ?? [];
@@ -1656,20 +1664,9 @@ function ChatPageInner() {
             throw new Error("No response body");
           }
 
-          // Create a placeholder message for streaming if it doesn't exist
+          // Streaming already set up above, just ensure content is empty
           setStreamingMessageId(id);
           setStreamingContent("");
-
-          // Ensure there's a placeholder assistant message
-          const convo = sessions.find((s) => s.id === id);
-          const lastMsg = convo?.messages[convo.messages.length - 1];
-          if (!lastMsg || lastMsg.role !== "assistant" || lastMsg.content) {
-            upsertAndAppendMessage(id, {
-              role: "assistant",
-              content: "",
-              ts: Date.now(),
-            });
-          }
 
           let buffer = "";
           let fullResponse = "";
@@ -2243,18 +2240,31 @@ function ChatPageInner() {
               </div>
 
               <div className="relative z-10 mx-auto w-full max-w-3xl px-4 sm:px-6 py-3 sm:py-4 space-y-3">
-                {(active?.messages ?? []).filter(m => m.content || (isStreaming && m.role === "assistant")).map((m, i) => {
+                {(active?.messages ?? []).filter(m => {
+                  // Always show user messages
+                  if (m.role === "user") return true;
+                  // Show assistant messages if they have content OR if we're streaming and this is the streaming message
+                  if (m.role === "assistant") {
+                    if (m.content) return true;
+                    // Show empty assistant message if we're streaming to this session
+                    if (isStreaming && streamingMessageId === activeId) {
+                      const isLast = (active?.messages ?? []).indexOf(m) === (active?.messages ?? []).length - 1;
+                      return isLast;
+                    }
+                  }
+                  return false;
+                }).map((m, i) => {
                   const isUser = m.role === "user";
                   // Check if this is the streaming message: it's the last assistant message and we're currently streaming
                   const isLastMessage = i === (active?.messages ?? []).length - 1;
-                  const isStreamingMsg = isStreaming && !isUser && streamingMessageId === activeId && isLastMessage && (streamingContent || m.content === "");
+                  const isStreamingMsg = isStreaming && !isUser && streamingMessageId === activeId && isLastMessage;
                   return (
                     <div
                       key={`${m.ts ?? i}-${i}`}
                       className={`flex items-start gap-2 sm:gap-3 ${isUser ? "justify-end" : ""
                         }`}
                     >
-                      <div
+                      <motion.div
                         className={`rounded-2xl px-4 py-3 text-base leading-relaxed sm:px-5 sm:py-4 sm:text-lg transition-all ${isUser
                             ? "ml-auto max-w-full sm:max-w-[80%] shadow-lg"
                             : "max-w-full sm:max-w-[80%] shadow-lg"
@@ -2269,14 +2279,26 @@ function ChatPageInner() {
                             }
                             : {
                               color: THEME.text[900],
-                              backgroundColor: '#fff',
-                              boxShadow: "0 4px 16px rgba(236, 72, 153, 0.4)",
+                              backgroundColor: '#FFFBF8', // Warm cream/white
+                              boxShadow: "0 4px 20px rgba(236, 72, 153, 0.25), 0 0 0 1px rgba(139, 111, 71, 0.05)",
                             })
+                        }}
+                        animate={isStreamingMsg && !streamingContent ? {
+                          boxShadow: [
+                            "0 4px 20px rgba(236, 72, 153, 0.25), 0 0 0 1px rgba(139, 111, 71, 0.05), 0 0 15px rgba(139, 111, 71, 0.08)",
+                            "0 4px 24px rgba(236, 72, 153, 0.3), 0 0 0 1px rgba(139, 111, 71, 0.08), 0 0 25px rgba(139, 111, 71, 0.12)",
+                            "0 4px 20px rgba(236, 72, 153, 0.25), 0 0 0 1px rgba(139, 111, 71, 0.05), 0 0 15px rgba(139, 111, 71, 0.08)",
+                          ],
+                        } : {}}
+                        transition={{
+                          duration: 3,
+                          repeat: Infinity,
+                          ease: "easeInOut",
                         }}
                       >
                         {isStreamingMsg ? (
-                          <div className="relative w-full min-h-5 streaming-content">
-                            {streamingContent ? (
+                          <div className="relative w-full streaming-content">
+                            {streamingContent && streamingContent.trim().length > 0 ? (
                               <div className="streaming-text wrap-break-words" style={{
                                 fontSize: '1rem',
                                 lineHeight: '1.4',
@@ -2297,14 +2319,7 @@ function ChatPageInner() {
                                 />
                               </div>
                             ) : (
-                              <div className="flex items-center gap-3 text-lg" style={{ color: THEME.text[600] }}>
-                                <div className="flex gap-2">
-                                  <div className="w-3 h-3 rounded-full animate-bounce" style={{ backgroundColor: THEME.pink[400], animationDelay: "0ms" }} />
-                                  <div className="w-3 h-3 rounded-full animate-bounce" style={{ backgroundColor: THEME.pink[400], animationDelay: "150ms" }} />
-                                  <div className="w-3 h-3 rounded-full animate-bounce" style={{ backgroundColor: THEME.pink[400], animationDelay: "300ms" }} />
-                                </div>
-                                <span className="italic">Lisa is typing...</span>
-                              </div>
+                              <CoffeeLoading />
                             )}
                           </div>
                         ) : (
@@ -2340,7 +2355,8 @@ function ChatPageInner() {
                                           onClick={async () => {
                                             if (loading) return;
                                             const id = activeId ?? await newChat();
-                                            void sendToAPI(link.label, id);
+                                            // Use subtopic for matching (stable identifier), label is only for display
+                                            void sendToAPI(link.subtopic, id);
                                           }}
                                           className="px-4 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer hover:scale-105 active:scale-95"
                                           style={{
@@ -2360,18 +2376,22 @@ function ChatPageInner() {
                             )}
                           </>
                         )}
-                      </div>
+                      </motion.div>
                     </div>
                   );
                 })}
+                {/* Show loading component when loading but not yet streaming (fallback for edge cases) */}
                 {loading && !isStreaming && (
-                  <div className="flex items-center gap-3 pl-10 sm:pl-12 text-base sm:text-lg" style={{ color: THEME.text[700] }}>
-                    <div className="flex gap-2">
-                      <div className="w-2.5 h-2.5 rounded-full animate-bounce" style={{ backgroundColor: THEME.pink[500], animationDelay: "0ms" }} />
-                      <div className="w-2.5 h-2.5 rounded-full animate-bounce" style={{ backgroundColor: THEME.pink[500], animationDelay: "150ms" }} />
-                      <div className="w-2.5 h-2.5 rounded-full animate-bounce" style={{ backgroundColor: THEME.pink[500], animationDelay: "300ms" }} />
+                  <div className="flex items-start gap-2 sm:gap-3">
+                    <div
+                      className="rounded-2xl px-4 py-3 text-base leading-relaxed sm:px-5 sm:py-4 sm:text-lg shadow-lg max-w-full sm:max-w-[80%]"
+                      style={{
+                        backgroundColor: '#fff',
+                        boxShadow: "0 4px 16px rgba(236, 72, 153, 0.4)",
+                      }}
+                    >
+                      <CoffeeLoading />
                     </div>
-                    <span className="italic font-medium">Lisa is thinking...</span>
                   </div>
                 )}
                 <div ref={bottomRef} style={{ height: '1px', marginTop: '1rem' }} />
