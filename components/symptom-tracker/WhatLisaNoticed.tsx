@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { Network, RefreshCw, ChevronDown, ChevronUp, Copy, Check } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 function Skeleton({ className }: { className?: string }) {
-  return <div className={`animate-pulse rounded bg-[#E8E0DB]/30 ${className}`} />;
+  return <div className={`animate-pulse rounded bg-card/60 ${className}`} />;
 }
 
 interface ActionSteps {
@@ -138,7 +138,7 @@ export default function WhatLisaNoticed() {
   // Loading state
   if (loading) {
     return (
-      <div className="bg-white/30 backdrop-blur-lg rounded-2xl border border-white/30 p-4 sm:p-6 shadow-xl mb-6">
+      <div className="bg-card backdrop-blur-lg rounded-2xl border border-border/30 p-4 sm:p-6 shadow-xl mb-6">
         <div className="flex items-center gap-3 mb-4">
           <Skeleton className="h-8 w-8 rounded" />
           <Skeleton className="h-7 w-64" />
@@ -155,14 +155,14 @@ export default function WhatLisaNoticed() {
   // Error state
   if (error && !insight) {
     return (
-      <div className="bg-white/30 backdrop-blur-lg rounded-2xl border border-white/30 p-4 sm:p-6 shadow-xl mb-6">
+      <div className="bg-card backdrop-blur-lg rounded-2xl border border-border/30 p-4 sm:p-6 shadow-xl mb-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <Network className="h-8 w-8 text-pink-500" />
-            <h3 className="text-2xl font-semibold text-[#8B7E74]">Your Insights This Week</h3>
+            <h3 className="text-2xl font-semibold text-card-foreground">Your Insights This Week</h3>
           </div>
         </div>
-        <p className="text-sm text-[#9A9A9A]">{error}</p>
+        <p className="text-sm text-muted-foreground">{error}</p>
       </div>
     );
   }
@@ -180,7 +180,7 @@ export default function WhatLisaNoticed() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="bg-white/30 backdrop-blur-lg rounded-2xl border border-white/30 p-4 sm:p-6 shadow-xl mb-6"
+      className="bg-card backdrop-blur-lg rounded-2xl border border-white/30 p-4 sm:p-6 shadow-xl mb-6"
     >
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
@@ -188,7 +188,7 @@ export default function WhatLisaNoticed() {
           <Network className="h-8 w-8 text-pink-500 shrink-0" />
           <div className="flex-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="text-2xl font-semibold text-[#8B7E74]">Your Insights This Week</h3>
+              <h3 className="text-2xl font-semibold text-card-foreground">Your Insights This Week</h3>
               <span className={`px-2 py-1 rounded-full text-xs font-medium border ${trendColor}`}>
                 {trendIcon} {insight.trend}
               </span>
@@ -198,7 +198,7 @@ export default function WhatLisaNoticed() {
         <button
           onClick={handleRefresh}
           disabled={isRefreshing}
-          className="p-2 rounded-lg text-[#6B6B6B] hover:bg-white/40 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+          className="p-2 rounded-lg text-muted-foreground hover:bg-card/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
           aria-label="Refresh insight"
         >
           <RefreshCw
@@ -209,14 +209,14 @@ export default function WhatLisaNoticed() {
 
       {/* Pattern Headline */}
       <div className="mb-4">
-        <h4 className="text-lg sm:text-xl font-bold text-[#8B7E74] leading-tight">
+        <h4 className="text-lg sm:text-xl font-bold text-card-foreground leading-tight">
           {renderBoldText(insight.patternHeadline)}
         </h4>
       </div>
 
       {/* The Why */}
       <div className="mb-4">
-        <p className="text-[#6B6B6B] text-base leading-relaxed">
+        <p className="text-muted-foreground text-base leading-relaxed">
           {renderBoldText(insight.why)}
         </p>
       </div>
@@ -232,22 +232,22 @@ export default function WhatLisaNoticed() {
 
       {/* Action Steps */}
       <div className="mb-4">
-        <h5 className="text-sm font-semibold text-[#8B7E74] mb-3">What You Can Try:</h5>
+            <h5 className="text-sm font-semibold text-card-foreground mb-3">What You Can Try:</h5>
         <div className="space-y-2">
           <div className="flex items-start gap-3">
             <span className="px-2 py-1 rounded text-xs font-semibold bg-green-100 text-green-700 shrink-0 mt-0.5">
               Easy
             </span>
-            <p className="text-[#6B6B6B] text-sm flex-1">{renderBoldText(insight.actionSteps.easy)}</p>
+            <p className="text-muted-foreground text-sm flex-1">{renderBoldText(insight.actionSteps.easy)}</p>
           </div>
           <div className="flex items-start gap-3">
-            <span className="px-2 py-1 rounded text-xs font-semibold bg-amber-100 text-amber-700 shrink-0 mt-0.5">
+            <span className="px-2 py-1 rounded text-xs font-semibold bg-amber-200 text-amber-700 shrink-0 mt-0.5">
               Medium
             </span>
             <p className="text-[#6B6B6B] text-sm flex-1">{renderBoldText(insight.actionSteps.medium)}</p>
           </div>
           <div className="flex items-start gap-3">
-            <span className="px-2 py-1 rounded text-xs font-semibold bg-pink-100 text-pink-700 shrink-0 mt-0.5">
+            <span className="px-2 py-1 rounded text-xs font-semibold bg-red-200 text-pink-700 shrink-0 mt-0.5">
               Advanced
             </span>
             <p className="text-[#6B6B6B] text-sm flex-1">{renderBoldText(insight.actionSteps.advanced)}</p>
@@ -278,10 +278,10 @@ export default function WhatLisaNoticed() {
 
       {/* Why This Matters (Expandable) */}
       {insight.whyThisMatters && (
-        <div className="border-t border-white/30 pt-4">
+        <div className="border-t border-border/30 pt-4">
           <button
             onClick={toggleExpand}
-            className="flex items-center gap-2 w-full text-left text-sm font-semibold text-[#8B7E74] hover:text-pink-600 transition-colors"
+            className="flex items-center gap-2 w-full text-left text-sm font-semibold text-card-foreground hover:text-primary transition-colors"
           >
             {isExpanded ? (
               <ChevronUp className="h-4 w-4" />
@@ -299,7 +299,7 @@ export default function WhatLisaNoticed() {
                 transition={{ duration: 0.2 }}
                 className="overflow-hidden"
               >
-                <p className="text-[#6B6B6B] text-sm leading-relaxed mt-2 pl-6">
+                <p className="text-muted-foreground text-sm leading-relaxed mt-2 pl-6">
                   {renderBoldText(insight.whyThisMatters)}
                 </p>
               </motion.div>

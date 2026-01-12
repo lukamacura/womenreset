@@ -40,17 +40,17 @@ export default function SymptomSelectorModal({
       style={{ background: 'linear-gradient(to bottom, #DBEAFE, #FEF3C7, #FCE7F3)' }}
     >
       <div
-        className="bg-white/30 backdrop-blur-lg rounded-2xl w-full max-w-2xl mx-4 p-6 shadow-xl border border-white/30 cursor-default max-h-[80vh] overflow-y-auto"
+        className="bg-card backdrop-blur-lg rounded-2xl w-full max-w-2xl mx-4 p-6 shadow-xl border border-border/30 cursor-default max-h-[80vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-semibold text-[#3D3D3D]">
+          <h2 className="text-xl font-semibold text-card-foreground">
             Select a Symptom
           </h2>
           <button
             onClick={onClose}
-            className="text-[#9A9A9A] hover:text-[#3D3D3D] transition-colors cursor-pointer"
+            className="text-muted-foreground hover:text-card-foreground transition-colors cursor-pointer"
             type="button"
           >
             <X className="h-6 w-6" />
@@ -60,8 +60,8 @@ export default function SymptomSelectorModal({
         {/* Symptoms Grid */}
         {filteredSymptoms.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-[#6B6B6B]">No symptoms available</p>
-            <p className="text-sm text-[#9A9A9A] mt-2">
+            <p className="text-muted-foreground">No symptoms available</p>
+            <p className="text-sm text-muted-foreground/70 mt-2">
               Default symptoms will be created when you first log in.
             </p>
           </div>
@@ -100,14 +100,14 @@ export default function SymptomSelectorModal({
                 <button
                   key={symptom.id}
                   onClick={() => handleSymptomClick(symptom)}
-                  className="bg-white/40 backdrop-blur-md rounded-xl p-4 
+                  className="bg-card/40 backdrop-blur-md rounded-xl p-4 
                              flex flex-row items-center gap-3
-                             border border-white/30 transition-all
-                             hover:bg-white/60 hover:-translate-y-0.5 hover:shadow-lg
+                             border border-border/30 transition-all
+                             hover:bg-card/60 hover:-translate-y-0.5 hover:shadow-lg
                              active:scale-95 cursor-pointer text-left"
                 >
-                  <SymptomIcon className="h-6 w-6 text-[#3D3D3D] shrink-0" />
-                  <span className="text-[#3D3D3D] font-medium flex-1">
+                  <SymptomIcon className="h-6 w-6 text-card-foreground shrink-0" />
+                  <span className="text-card-foreground font-medium flex-1">
                     {symptom.name}
                   </span>
                 </button>

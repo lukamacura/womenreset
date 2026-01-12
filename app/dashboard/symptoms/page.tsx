@@ -664,17 +664,17 @@ export default function SymptomsPage() {
   // Show loading state while checking trial status
   if (trialStatus.loading) {
     return (
-      <div className="mx-auto max-w-7xl p-6 sm:p-8 space-y-8 min-h-screen" style={{ background: 'linear-gradient(to bottom, #DBEAFE 0%, #FEF3C7 50%, #FCE7F3 100%)' }}>
+      <div className="mx-auto max-w-7xl p-6 sm:p-8 space-y-8 min-h-screen bg-background">
         <div className="space-y-8">
           <div className="animate-pulse space-y-4">
-            <div className="h-10 w-64 bg-white/40 backdrop-blur-md rounded-xl" />
-            <div className="h-6 w-96 bg-white/30 backdrop-blur-md rounded-lg" />
+            <div className="h-10 w-64 bg-card/60 backdrop-blur-md rounded-xl" />
+            <div className="h-6 w-96 bg-card/60 backdrop-blur-md rounded-lg" />
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
             {[1, 2, 3, 4, 5, 6].map((i) => (
               <div
                 key={i}
-                className="h-24 bg-white/40 backdrop-blur-md rounded-2xl border border-white/30 animate-pulse"
+                className="h-24 bg-card/60 backdrop-blur-md rounded-2xl border border-border/30 animate-pulse"
                 style={{
                   animationDelay: `${i * 50}ms`,
                   animationDuration: '1.5s',
@@ -686,7 +686,7 @@ export default function SymptomsPage() {
             {[1, 2, 3].map((i) => (
               <div
                 key={i}
-                className="h-48 bg-white/40 backdrop-blur-md rounded-2xl border border-white/30 animate-pulse"
+                className="h-48 bg-card/60 backdrop-blur-md rounded-2xl border border-border/30 animate-pulse"
                 style={{
                   animationDelay: `${(i + 6) * 50}ms`,
                   animationDuration: '1.5s',
@@ -756,7 +756,7 @@ export default function SymptomsPage() {
             {[1, 2, 3, 4, 5, 6].map((i) => (
               <div
                 key={i}
-                className="animate-pulse bg-white/30 backdrop-blur-md rounded-2xl h-20 border border-white/30"
+                className="animate-pulse bg-card/60 backdrop-blur-md rounded-2xl h-20 border border-border/30"
                 style={{
                   animationDelay: `${i * 80}ms`,
                 }}
@@ -819,9 +819,9 @@ export default function SymptomsPage() {
           </AnimatedSection>
         ) : (
           <AnimatedSection delay={300}>
-            <div className="rounded-xl border border-white/30 bg-white/30 backdrop-blur-lg p-12 text-center shadow-xl">
-              <p className="text-[#6B6B6B]">No symptoms available</p>
-              <p className="text-sm text-[#9A9A9A] mt-2">
+            <div className="rounded-xl border border-border/30 bg-card backdrop-blur-lg p-12 text-center shadow-xl">
+              <p className="text-card-foreground">No symptoms available</p>
+              <p className="text-sm text-muted-foreground mt-2">
                 Default symptoms will be created when you first log in.
               </p>
             </div>
@@ -835,20 +835,20 @@ export default function SymptomsPage() {
 
         {/* Recent Logs */}
         <AnimatedSection delay={0}>
-          <section className="bg-white/30 backdrop-blur-lg rounded-2xl p-4 sm:p-6 border border-white/30 shadow-xl transition-all duration-300 hover:shadow-2xl mb-30 sm:mb-30">
+          <section className="bg-card backdrop-blur-lg rounded-2xl p-4 sm:p-6 border border-border/30 shadow-xl transition-all duration-300 hover:shadow-2xl mb-30 sm:mb-30">
             <div className="mb-3 sm:mb-4 flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <BookOpen className="h-8 w-8 text-pink-500 shrink-0 mt-0.5" />
                 <h2 className="text-lg sm:text-2xl font-semibold text-foreground">Your Journal</h2>
               </div>
               {/* View Toggle */}
-              <div className="flex gap-2 bg-white/40 backdrop-blur-md rounded-lg p-1 border border-white/30">
+              <div className="flex gap-2 bg-card/80 backdrop-blur-md rounded-lg p-1 border border-border/30">
                 <button
                   onClick={() => setViewMode('list')}
                   className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors cursor-pointer
                     ${viewMode === 'list' 
-                      ? 'bg-[#ff74b1] text-white shadow-md' 
-                      : 'text-[#6B6B6B] hover:text-[#3D3D3D]'}`}
+                      ? 'bg-primary text-primary-foreground shadow-md' 
+                      : 'text-muted-foreground hover:text-card-foreground'}`}
                   type="button"
                 >
                   List
@@ -857,8 +857,8 @@ export default function SymptomsPage() {
                   onClick={() => setViewMode('week')}
                   className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors cursor-pointer
                     ${viewMode === 'week' 
-                      ? 'bg-[#ff74b1] text-white shadow-md' 
-                      : 'text-[#6B6B6B] hover:text-[#3D3D3D]'}`}
+                      ? 'bg-primary text-primary-foreground shadow-md' 
+                      : 'text-muted-foreground hover:text-card-foreground'}`}
                   type="button"
                 >
                   Week

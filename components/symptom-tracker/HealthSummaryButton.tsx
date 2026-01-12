@@ -187,7 +187,7 @@ for medical concerns.
       <button
         onClick={handleGenerateSummary}
         disabled={isGenerating}
-        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs bg-white/30 hover:bg-white/40 backdrop-blur-md text-[#3D3D3D] font-medium rounded-lg transition-colors border border-white/30 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs bg-card/40 hover:bg-card/60 backdrop-blur-md text-foreground font-medium rounded-lg transition-colors border border-border/30 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {isGenerating ? (
           <>
@@ -202,7 +202,7 @@ for medical concerns.
         )}
       </button>
       {error && (
-        <p className="mt-2 text-sm text-[#ff74b1]">{error}</p>
+        <p className="mt-2 text-sm text-primary">{error}</p>
       )}
     </div>
   );

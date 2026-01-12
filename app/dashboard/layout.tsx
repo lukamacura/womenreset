@@ -140,7 +140,7 @@ export default function DashboardLayout({
     <NotificationProvider>
       <PricingModalProvider>
         <PricingModalWrapper />
-        <div className="min-h-screen flex flex-col pt-18">
+        <div className="min-h-screen flex flex-col pt-18 bg-background">
         {/* Session Verification - checks for browser mismatch issues */}
         <SessionVerification />
         
@@ -258,7 +258,7 @@ export default function DashboardLayout({
               <NotificationBell />
               <button
                 onClick={handleLogout}
-                className="flex items-center cursor-pointer gap-2 rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-foreground/5 hover:text-foreground transition-colors duration-200"
+                className="flex items-center bg-error/15 hover:bg-error/70 text-error cursor-pointer gap-2 rounded-lg px-4 py-2 text-sm font-bold  hover:text-foreground transition-colors duration-200"
               >
                 <LogOut className="h-5 w-5" />
                 <span>Sign out</span>

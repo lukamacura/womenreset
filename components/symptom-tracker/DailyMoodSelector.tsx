@@ -32,12 +32,12 @@ export default function DailyMoodSelector({ date }: DailyMoodSelectorProps) {
 
   if (loading) {
     return (
-      <div className="bg-white/30 backdrop-blur-lg rounded-2xl p-4 border border-white/30">
+      <div className="bg-card backdrop-blur-lg rounded-2xl p-4 border border-border/30">
         <div className="animate-pulse space-y-3">
-          <div className="h-5 w-32 bg-white/40 rounded"></div>
+          <div className="h-5 w-32 bg-card/60 rounded"></div>
           <div className="flex gap-2">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-12 flex-1 bg-white/40 rounded-xl"></div>
+              <div key={i} className="h-12 flex-1 bg-card/60 rounded-xl"></div>
             ))}
           </div>
         </div>
@@ -46,8 +46,8 @@ export default function DailyMoodSelector({ date }: DailyMoodSelectorProps) {
   }
 
   return (
-    <div className="bg-white/30 backdrop-blur-lg rounded-2xl p-4 sm:p-5 border border-white/30 shadow-xl">
-      <h3 className="text-base sm:text-lg font-semibold text-[#8B7E74] mb-3 sm:mb-4">
+    <div className="bg-card backdrop-blur-lg rounded-2xl p-4 sm:p-5 border border-border/30 shadow-xl">
+      <h3 className="text-base sm:text-lg font-semibold text-card-foreground mb-3 sm:mb-4">
         How's today going?
       </h3>
       <div className="flex flex-wrap gap-2 sm:gap-3">
@@ -65,7 +65,7 @@ export default function DailyMoodSelector({ date }: DailyMoodSelectorProps) {
                          ${
                            isSelected
                              ? `${option.color} border-opacity-100 scale-[1.02] shadow-md font-semibold`
-                             : "bg-white/40 border-white/30 text-[#6B6B6B] hover:bg-white/60 hover:border-white/40"
+                             : "bg-card/40 border-border/30 text-muted-foreground hover:bg-card/60 hover:border-border/40"
                          }`}
               type="button"
             >
@@ -78,7 +78,7 @@ export default function DailyMoodSelector({ date }: DailyMoodSelectorProps) {
                     : option.value === 3 
                     ? "text-green-700" 
                     : "text-emerald-700"
-                  : "text-[#6B6B6B]"
+                  : "text-muted-foreground"
               }`} />
               <span className="text-xs sm:text-sm font-medium">{option.label}</span>
             </button>
@@ -86,7 +86,7 @@ export default function DailyMoodSelector({ date }: DailyMoodSelectorProps) {
         })}
       </div>
       {selectedMood && (
-        <p className="text-sm text-[#6B6B6B] mt-3 text-center">
+        <p className="text-sm text-muted-foreground mt-3 text-center">
           You said today was <strong>{MOOD_OPTIONS.find(m => m.value === selectedMood)?.label}</strong>
         </p>
       )}

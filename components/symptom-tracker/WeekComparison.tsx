@@ -183,10 +183,10 @@ export default function WeekComparison() {
 
   if (loading) {
     return (
-      <div className="bg-white/30 backdrop-blur-lg rounded-2xl border border-white/30 p-6 mb-6 shadow-xl">
+      <div className="bg-card backdrop-blur-lg rounded-2xl border border-border/30 p-6 mb-6 shadow-xl">
         <div className="animate-pulse">
-          <div className="h-6 w-48 bg-[#E8E0DB]/30 rounded mb-4" />
-          <div className="h-32 w-full bg-[#E8E0DB]/30 rounded" />
+          <div className="h-6 w-48 bg-card/60 rounded mb-4" />
+          <div className="h-32 w-full bg-card/60 rounded" />
         </div>
       </div>
     );
@@ -195,17 +195,17 @@ export default function WeekComparison() {
   // Empty state - no data at all
   if (comparison.totalThisWeekLogs === 0 && comparison.totalLastWeekLogs === 0) {
     return (
-      <div className="bg-white/30 backdrop-blur-lg rounded-2xl border border-white/30 p-4 sm:p-6 mb-6 shadow-xl">
+      <div className="bg-card backdrop-blur-lg rounded-2xl border border-border/30 p-4 sm:p-6 mb-6 shadow-xl">
         <div className="flex items-center gap-2 mb-4">
-          <Calendar className="h-5 w-5 text-[#8B7E74]" />
-          <h3 className="text-lg sm:text-xl font-semibold text-[#8B7E74]">
+          <Calendar className="h-5 w-5 text-card-foreground" />
+          <h3 className="text-lg sm:text-xl font-semibold text-card-foreground">
             Your Week
           </h3>
         </div>
-        <p className="text-base text-[#6B6B6B] mb-2">
+        <p className="text-base text-muted-foreground mb-2">
           No symptoms logged yet.
         </p>
-        <p className="text-sm text-[#9A9A9A]">
+        <p className="text-sm text-muted-foreground/70">
           Start tracking to see weekly insights and patterns.
         </p>
       </div>
@@ -215,23 +215,23 @@ export default function WeekComparison() {
   // First Week View - no previous data
   if (comparison.totalLastWeekLogs === 0 && comparison.totalThisWeekLogs > 0) {
     return (
-      <div className="bg-white/30 backdrop-blur-lg rounded-2xl border border-white/30 p-4 sm:p-6 mb-6 shadow-xl">
+      <div className="bg-card backdrop-blur-lg rounded-2xl border border-border/30 p-4 sm:p-6 mb-6 shadow-xl">
         <div className="flex items-center gap-2 mb-4">
-          <Calendar className="h-5 w-5 text-[#8B7E74]" />
-          <h3 className="text-lg sm:text-xl font-semibold text-[#8B7E74]">
+          <Calendar className="h-5 w-5 text-card-foreground" />
+          <h3 className="text-lg sm:text-xl font-semibold text-card-foreground">
             Your First Week
           </h3>
         </div>
-        <p className="text-base text-[#3D3D3D] mb-4">
+        <p className="text-base text-card-foreground mb-4">
           You've logged on <span className="font-semibold">{comparison.thisWeekSymptomDays}</span> day{comparison.thisWeekSymptomDays !== 1 ? 's' : ''} so far - great start!
         </p>
         {comparison.thisWeekMostFrequent && (
           <div className="space-y-2 mb-4">
-            <div className="text-sm text-[#6B6B6B]">
-              Most common symptom: <span className="font-medium text-[#3D3D3D]">{comparison.thisWeekMostFrequent} ({comparison.thisWeekMostFrequentCount}x)</span>
+            <div className="text-sm text-muted-foreground">
+              Most common symptom: <span className="font-medium text-card-foreground">{comparison.thisWeekMostFrequent} ({comparison.thisWeekMostFrequentCount}x)</span>
             </div>
-            <div className="text-sm text-[#6B6B6B] flex items-center gap-2">
-              Average severity: <span className="font-medium text-[#3D3D3D] flex items-center gap-1.5">
+            <div className="text-sm text-muted-foreground flex items-center gap-2">
+              Average severity: <span className="font-medium text-card-foreground flex items-center gap-1.5">
                 {(() => {
                   const severity = getSeverityLabel(comparison.thisWeekAvgSeverity);
                   const Icon = severity.icon;
@@ -246,7 +246,7 @@ export default function WeekComparison() {
             </div>
           </div>
         )}
-        <p className="text-sm text-[#9A9A9A]">
+        <p className="text-sm text-muted-foreground/70">
           Keep tracking - next week you'll see your first comparison!
         </p>
       </div>
@@ -283,7 +283,7 @@ export default function WeekComparison() {
   const positiveDaysChange = getChangeDisplay(comparison.positiveDaysChange, true);
 
   return (
-    <div className="bg-white/30 backdrop-blur-lg rounded-2xl border border-white/30 p-4 sm:p-6 mb-6 shadow-xl transition-all duration-300 hover:shadow-2xl">
+    <div className="bg-card backdrop-blur-lg rounded-2xl border border-border/30 p-4 sm:p-6 mb-6 shadow-xl transition-all duration-300 hover:shadow-2xl">
       <div className="flex items-center gap-2 mb-3">
         <Calendar className="h-5 w-5 text-[#8B7E74]" />
         <h3 className="text-lg sm:text-xl font-semibold text-[#8B7E74]">
@@ -301,17 +301,17 @@ export default function WeekComparison() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-[#E8E0DB]">
-              <th className="text-left py-2 text-[#6B6B6B] font-medium"></th>
-              <th className="text-right py-2 text-[#3D3D3D] font-semibold">This Week</th>
-              <th className="text-right py-2 text-[#3D3D3D] font-semibold">Last Week</th>
-              <th className="text-right py-2 text-[#3D3D3D] font-semibold">Change</th>
+              <th className="text-left py-2 text-muted-foreground font-medium"></th>
+              <th className="text-right py-2 text-card-foreground font-semibold">This Week</th>
+              <th className="text-right py-2 text-card-foreground font-semibold">Last Week</th>
+              <th className="text-right py-2 text-card-foreground font-semibold">Change</th>
             </tr>
           </thead>
           <tbody className="text-base">
             <tr className="border-b border-[#E8E0DB]/50">
-              <td className="py-3 text-[#6B6B6B]">Days with symptoms</td>
-              <td className="py-3 text-right font-medium text-[#3D3D3D]">{comparison.thisWeekSymptomDays}</td>
-              <td className="py-3 text-right font-medium text-[#3D3D3D]">{comparison.lastWeekSymptomDays}</td>
+              <td className="py-3 text-muted-foreground">Days with symptoms</td>
+              <td className="py-3 text-right font-medium text-card-foreground">{comparison.thisWeekSymptomDays}</td>
+              <td className="py-3 text-right font-medium text-card-foreground">{comparison.lastWeekSymptomDays}</td>
               <td className="py-3 text-right font-medium flex items-center justify-end gap-1">
                 <span className={symptomDaysChange.color}>{symptomDaysChange.icon}</span>
                 <span className={symptomDaysChange.color}>{symptomDaysChange.text}</span>
@@ -319,7 +319,7 @@ export default function WeekComparison() {
             </tr>
             <tr className="border-b border-[#E8E0DB]/50">
               <td className="py-3 text-[#6B6B6B]">Average severity</td>
-              <td className="py-3 text-right font-medium text-[#3D3D3D]">
+              <td className="py-3 text-right font-medium text-card-foreground">
                 <div className="flex items-center justify-end gap-1.5">
                   {(() => {
                     const severity = getSeverityLabel(comparison.thisWeekAvgSeverity);
@@ -333,7 +333,7 @@ export default function WeekComparison() {
                   })()}
                 </div>
               </td>
-              <td className="py-3 text-right font-medium text-[#3D3D3D]">
+              <td className="py-3 text-right font-medium text-card-foreground">
                 <div className="flex items-center justify-end gap-1.5">
                   {(() => {
                     const severity = getSeverityLabel(comparison.lastWeekAvgSeverity);
@@ -355,8 +355,8 @@ export default function WeekComparison() {
             {showPositiveDays && (
               <tr className="border-b border-[#E8E0DB]/50">
                 <td className="py-3 text-[#6B6B6B]">Good days</td>
-                <td className="py-3 text-right font-medium text-[#3D3D3D]">{comparison.thisWeekPositiveDays}</td>
-                <td className="py-3 text-right font-medium text-[#3D3D3D]">{comparison.lastWeekPositiveDays}</td>
+                <td className="py-3 text-right font-medium text-card-foreground">{comparison.thisWeekPositiveDays}</td>
+                <td className="py-3 text-right font-medium text-card-foreground">{comparison.lastWeekPositiveDays}</td>
                 <td className="py-3 text-right font-medium flex items-center justify-end gap-1">
                   <span className={positiveDaysChange.color}>{positiveDaysChange.icon}</span>
                   <span className={positiveDaysChange.color}>{positiveDaysChange.text}</span>
@@ -364,14 +364,14 @@ export default function WeekComparison() {
               </tr>
             )}
             <tr>
-              <td className="py-3 text-[#6B6B6B]">Most frequent</td>
-              <td className="py-3 text-right font-medium text-[#3D3D3D]">
+              <td className="py-3 text-muted-foreground">Most frequent</td>
+              <td className="py-3 text-right font-medium text-card-foreground">
                 {comparison.thisWeekMostFrequent || "None"}
                 {comparison.thisWeekMostFrequentCount > 0 && (
-                  <span className="text-xs text-[#9A9A9A] ml-1">({comparison.thisWeekMostFrequentCount}x)</span>
+                  <span className="text-xs text-muted-foreground/70 ml-1">({comparison.thisWeekMostFrequentCount}x)</span>
                 )}
               </td>
-              <td className="py-3 text-right font-medium text-[#3D3D3D]">
+              <td className="py-3 text-right font-medium text-card-foreground">
                 {comparison.lastWeekMostFrequent || "None"}
                 {comparison.lastWeekMostFrequentCount > 0 && (
                   <span className="text-xs text-[#9A9A9A] ml-1">({comparison.lastWeekMostFrequentCount}x)</span>
@@ -379,10 +379,10 @@ export default function WeekComparison() {
               </td>
               <td className="py-3 text-right font-medium">
                 {comparison.thisWeekMostFrequent === comparison.lastWeekMostFrequent 
-                  ? <span className="text-[#9A9A9A]">Same</span>
+                  ? <span className="text-muted-foreground/70">Same</span>
                   : comparison.lastWeekMostFrequent === null
-                  ? <span className="text-[#9A9A9A]">New</span>
-                  : <span className="text-[#9A9A9A]">Changed</span>}
+                  ? <span className="text-muted-foreground/70">New</span>
+                  : <span className="text-muted-foreground/70">Changed</span>}
               </td>
             </tr>
           </tbody>
@@ -392,16 +392,16 @@ export default function WeekComparison() {
       {/* Mobile: Card layout */}
       <div className="md:hidden space-y-3">
         <div className="border-b border-[#E8E0DB]/50 pb-3">
-          <div className="text-sm text-[#6B6B6B] mb-2">Days with symptoms</div>
+          <div className="text-sm text-muted-foreground mb-2">Days with symptoms</div>
           <div className="flex justify-between items-center">
             <div className="flex gap-4">
               <div>
-                <div className="text-xs text-[#9A9A9A]">This Week</div>
-                <div className="text-base font-medium text-[#3D3D3D]">{comparison.thisWeekSymptomDays}</div>
+                <div className="text-xs text-muted-foreground/70">This Week</div>
+                <div className="text-base font-medium text-card-foreground">{comparison.thisWeekSymptomDays}</div>
               </div>
               <div>
-                <div className="text-xs text-[#9A9A9A]">Last Week</div>
-                <div className="text-base font-medium text-[#3D3D3D]">{comparison.lastWeekSymptomDays}</div>
+                <div className="text-xs text-muted-foreground/70">Last Week</div>
+                <div className="text-base font-medium text-card-foreground">{comparison.lastWeekSymptomDays}</div>
               </div>
             </div>
             <div className="text-right flex items-center gap-1">
@@ -411,12 +411,12 @@ export default function WeekComparison() {
           </div>
         </div>
         <div className="border-b border-[#E8E0DB]/50 pb-3">
-          <div className="text-sm text-[#6B6B6B] mb-2">Average severity</div>
+          <div className="text-sm text-muted-foreground mb-2">Average severity</div>
           <div className="flex justify-between items-center">
             <div className="flex gap-4">
               <div>
                 <div className="text-xs text-[#9A9A9A]">This Week</div>
-                <div className="text-base font-medium text-[#3D3D3D] flex items-center gap-1.5">
+                <div className="text-base font-medium text-card-foreground flex items-center gap-1.5">
                   {(() => {
                     const severity = getSeverityLabel(comparison.thisWeekAvgSeverity);
                     const Icon = severity.icon;
@@ -431,7 +431,7 @@ export default function WeekComparison() {
               </div>
               <div>
                 <div className="text-xs text-[#9A9A9A]">Last Week</div>
-                <div className="text-base font-medium text-[#3D3D3D] flex items-center gap-1.5">
+                <div className="text-base font-medium text-card-foreground flex items-center gap-1.5">
                   {(() => {
                     const severity = getSeverityLabel(comparison.lastWeekAvgSeverity);
                     const Icon = severity.icon;
@@ -453,12 +453,12 @@ export default function WeekComparison() {
         </div>
         {showPositiveDays && (
           <div className="border-b border-[#E8E0DB]/50 pb-3">
-            <div className="text-sm text-[#6B6B6B] mb-2">Good days</div>
+            <div className="text-sm text-muted-foreground mb-2">Good days</div>
             <div className="flex justify-between items-center">
               <div className="flex gap-4">
                 <div>
                   <div className="text-xs text-[#9A9A9A]">This Week</div>
-                  <div className="text-base font-medium text-[#3D3D3D]">{comparison.thisWeekPositiveDays}</div>
+                  <div className="text-base font-medium text-card-foreground">{comparison.thisWeekPositiveDays}</div>
                 </div>
                 <div>
                   <div className="text-xs text-[#9A9A9A]">Last Week</div>
@@ -473,21 +473,21 @@ export default function WeekComparison() {
           </div>
         )}
         <div className="pb-3">
-          <div className="text-sm text-[#6B6B6B] mb-2">Most frequent</div>
+          <div className="text-sm text-muted-foreground mb-2">Most frequent</div>
           <div className="flex justify-between items-center">
             <div className="flex gap-4">
               <div>
                 <div className="text-xs text-[#9A9A9A]">This Week</div>
-                <div className="text-base font-medium text-[#3D3D3D] truncate max-w-[100px]">
+                <div className="text-base font-medium text-card-foreground truncate max-w-[100px]">
                   {comparison.thisWeekMostFrequent || "None"}
                   {comparison.thisWeekMostFrequentCount > 0 && (
-                    <span className="text-xs text-[#9A9A9A] ml-1">({comparison.thisWeekMostFrequentCount}x)</span>
+                    <span className="text-xs text-muted-foreground/70 ml-1">({comparison.thisWeekMostFrequentCount}x)</span>
                   )}
                 </div>
               </div>
               <div>
                 <div className="text-xs text-[#9A9A9A]">Last Week</div>
-                <div className="text-base font-medium text-[#3D3D3D] truncate max-w-[100px]">
+                <div className="text-base font-medium text-card-foreground truncate max-w-[100px]">
                   {comparison.lastWeekMostFrequent || "None"}
                   {comparison.lastWeekMostFrequentCount > 0 && (
                     <span className="text-xs text-[#9A9A9A] ml-1">({comparison.lastWeekMostFrequentCount}x)</span>
@@ -497,10 +497,10 @@ export default function WeekComparison() {
             </div>
             <div className="text-right">
               {comparison.thisWeekMostFrequent === comparison.lastWeekMostFrequent 
-                ? <span className="text-[#9A9A9A] text-sm">Same</span>
+                ? <span className="text-muted-foreground/70 text-sm">Same</span>
                 : comparison.lastWeekMostFrequent === null
-                ? <span className="text-[#9A9A9A] text-sm">New</span>
-                : <span className="text-[#9A9A9A] text-sm">Changed</span>}
+                ? <span className="text-muted-foreground/70 text-sm">New</span>
+                : <span className="text-muted-foreground/70 text-sm">Changed</span>}
             </div>
           </div>
         </div>
@@ -508,7 +508,7 @@ export default function WeekComparison() {
 
       {/* Footer encouragement */}
       <div className="mt-4 pt-4 border-t border-[#E8E0DB]">
-        <p className="text-sm text-[#9A9A9A]">
+        <p className="text-sm text-muted-foreground/70">
           Keep tracking to identify patterns.
         </p>
       </div>

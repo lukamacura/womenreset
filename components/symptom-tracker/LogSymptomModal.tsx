@@ -262,20 +262,20 @@ export default function LogSymptomModal({
     >
       {/* Modal - stop propagation here too */}
       <div
-        className="bg-white/30 backdrop-blur-lg rounded-2xl w-full max-w-md mx-4 shadow-xl border border-white/30 cursor-default overflow-hidden"
+        className="bg-card backdrop-blur-lg rounded-2xl w-full max-w-md mx-4 shadow-xl border border-border/30 cursor-default overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex justify-between items-center p-6 pb-4 border-b border-white/30">
+        <div className="flex justify-between items-center p-6 pb-4 border-b border-border/30">
           <div className="flex items-center gap-3">
-            <SymptomIcon className="h-6 w-6 text-[#3D3D3D]" />
-            <h2 className="text-xl font-semibold text-[#3D3D3D]">
+            <SymptomIcon className="h-6 w-6 text-card-foreground" />
+            <h2 className="text-xl font-semibold text-card-foreground">
               {isEditing ? "Update" : "Log"} {symptom.name}
             </h2>
           </div>
           <button
             onClick={onClose}
-            className="text-[#9A9A9A] hover:text-[#3D3D3D] transition-colors cursor-pointer"
+            className="text-muted-foreground hover:text-card-foreground transition-colors cursor-pointer"
             type="button"
           >
             <X className="h-6 w-6" />
@@ -283,7 +283,7 @@ export default function LogSymptomModal({
         </div>
 
         {/* Step Indicator */}
-        <div className="px-6 py-4 flex items-center justify-between border-b border-white/30">
+        <div className="px-6 py-4 flex items-center justify-between border-b border-border/30">
           {steps.map((step, index) => (
             <div key={step.number} className="flex items-center flex-1">
               <div className="flex flex-col items-center flex-1">
@@ -291,20 +291,20 @@ export default function LogSymptomModal({
                   className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold text-sm transition-all
                     ${
                       currentStep === step.number
-                        ? "bg-[#ff74b1] text-white shadow-lg scale-110"
+                        ? "bg-primary text-primary-foreground shadow-lg scale-110"
                         : currentStep > step.number
                         ? "bg-green-500 text-white"
-                        : "bg-white/40 text-[#6B6B6B] border border-white/30"
+                        : "bg-card/60 text-muted-foreground border border-border/30"
                     }`}
                 >
                   {currentStep > step.number ? <Check className="h-4 w-4" /> : step.number}
                 </div>
-                <span className="text-xs mt-1 text-[#6B6B6B] hidden sm:block">{step.title}</span>
+                <span className="text-xs mt-1 text-muted-foreground hidden sm:block">{step.title}</span>
               </div>
               {index < steps.length - 1 && (
                 <div
                   className={`h-0.5 flex-1 mx-2 transition-all
-                    ${currentStep > step.number ? "bg-green-500" : "bg-white/30"}
+                    ${currentStep > step.number ? "bg-green-500" : "bg-border/30"}
                   `}
                 />
               )}
@@ -324,8 +324,8 @@ export default function LogSymptomModal({
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.2 }}
               >
-                <div className="bg-white/40 backdrop-blur-md rounded-xl p-6 border border-white/30">
-                  <label className="text-[#3D3D3D] text-lg mb-4 block font-semibold">
+                <div className="bg-card/40 backdrop-blur-md rounded-xl p-6 border border-border/30">
+                  <label className="text-card-foreground text-lg mb-4 block font-semibold">
                     How bad is it?
                   </label>
                   <div className="flex gap-3 justify-center">
@@ -361,14 +361,14 @@ export default function LogSymptomModal({
                             ${
                               isSelected
                                 ? `${borderColor} ${bgColor} scale-[1.02] shadow-sm`
-                                : "border-white/30 bg-white/60 hover:bg-white/80 hover:border-white/40"
+                                : "border-border/30 bg-card/60 hover:bg-card/80 hover:border-border/40"
                             }`}
                         >
                           <SeverityIconComponent className={`h-7 w-7 ${iconColor}`} />
-                          <span className={`font-medium text-sm ${isSelected ? 'text-[#3D3D3D]' : 'text-[#6B6B6B]'}`}>
+                          <span className={`font-medium text-sm ${isSelected ? 'text-card-foreground' : 'text-muted-foreground'}`}>
                             {severityInfo.label}
                           </span>
-                          <span className={`text-xs ${isSelected ? 'text-[#6B6B6B]' : 'text-[#9A9A9A]'}`}>
+                          <span className={`text-xs ${isSelected ? 'text-muted-foreground' : 'text-muted-foreground/70'}`}>
                             {severityInfo.description}
                           </span>
                         </button>
@@ -388,15 +388,15 @@ export default function LogSymptomModal({
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.2 }}
               >
-                <div className="bg-white/40 backdrop-blur-md rounded-xl p-6 border border-white/30">
-                  <label className="text-[#3D3D3D] text-lg mb-4 block font-semibold">
+                <div className="bg-card/40 backdrop-blur-md rounded-xl p-6 border border-border/30">
+                  <label className="text-card-foreground text-lg mb-4 block font-semibold">
                     Any idea what triggered it? (optional)
                   </label>
                   
                   {/* Suggested Triggers */}
                   {suggestedTriggers.length > 0 && !isEditing && (
                     <div className="mb-4">
-                      <p className="text-sm text-[#6B6B6B] mb-2">
+                      <p className="text-sm text-muted-foreground mb-2">
                         Suggested (based on your patterns):
                       </p>
                       <div className="flex flex-wrap gap-2">
@@ -409,7 +409,7 @@ export default function LogSymptomModal({
                               ${
                                 selectedTriggers.includes(trigger)
                                   ? "bg-[#ff74b1] text-white shadow-md"
-                                  : "bg-white/60 text-[#3D3D3D] hover:bg-white/80 border border-white/30"
+                                  : "bg-card/60 text-card-foreground hover:bg-card/80 border border-border/30"
                               }`}
                           >
                             {trigger}
@@ -423,7 +423,7 @@ export default function LogSymptomModal({
                   {/* Other Triggers */}
                   {remainingTriggers.length > 0 && (
                     <div>
-                      <p className="text-sm text-[#6B6B6B] mb-2">
+                      <p className="text-sm text-muted-foreground mb-2">
                         Other:
                       </p>
                       <div className="flex flex-wrap gap-2">
@@ -436,7 +436,7 @@ export default function LogSymptomModal({
                               ${
                                 selectedTriggers.includes(trigger)
                                   ? "bg-[#ff74b1] text-white shadow-md"
-                                  : "bg-white/60 text-[#3D3D3D] hover:bg-white/80 border border-white/30"
+                                  : "bg-card/60 text-card-foreground hover:bg-card/80 border border-border/30"
                               }`}
                           >
                             {trigger}
@@ -453,7 +453,7 @@ export default function LogSymptomModal({
                       <button
                         type="button"
                         onClick={() => setShowCustomTriggerInput(true)}
-                        className="px-4 py-2 rounded-full text-base text-[#ff74b1] hover:text-primary-dark hover:bg-white/60 transition-colors cursor-pointer border border-[#ff74b1]/50 bg-white/40"
+                        className="px-4 py-2 rounded-full text-base text-primary hover:text-primary/90 hover:bg-card/60 transition-colors cursor-pointer border border-primary/50 bg-card/40"
                       >
                         + Custom
                       </button>
@@ -475,7 +475,7 @@ export default function LogSymptomModal({
                             }
                           }}
                           placeholder="Enter custom trigger"
-                          className="flex-1 px-4 py-2 rounded-xl border border-white/30 text-base bg-white/60 backdrop-blur-md
+                          className="flex-1 px-4 py-2 rounded-xl border border-border/30 text-base bg-card/60 backdrop-blur-md
                                    focus:outline-none focus:ring-2 focus:ring-[#ff74b1]"
                           autoFocus
                         />
@@ -488,7 +488,7 @@ export default function LogSymptomModal({
                             setCustomTrigger("");
                             setShowCustomTriggerInput(false);
                           }}
-                          className="px-4 py-2 bg-[#ff74b1] text-white rounded-xl hover:bg-primary-dark transition-colors cursor-pointer text-base"
+                          className="px-4 py-2 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-colors cursor-pointer text-base"
                         >
                           Add
                         </button>
@@ -508,8 +508,8 @@ export default function LogSymptomModal({
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.2 }}
               >
-                <div className="bg-white/40 backdrop-blur-md rounded-xl p-6 border border-white/30">
-                  <label className="text-[#3D3D3D] text-lg mb-4 block font-semibold">
+                <div className="bg-card/40 backdrop-blur-md rounded-xl p-6 border border-border/30">
+                  <label className="text-card-foreground text-lg mb-4 block font-semibold">
                     When did this happen?
                   </label>
                   <div className="flex flex-col gap-2">
@@ -586,8 +586,8 @@ export default function LogSymptomModal({
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.2 }}
               >
-                <div className="bg-white/40 backdrop-blur-md rounded-xl p-6 border border-white/30">
-                  <label className="text-[#3D3D3D] text-lg mb-4 block font-semibold">
+                <div className="bg-card/40 backdrop-blur-md rounded-xl p-6 border border-border/30">
+                  <label className="text-card-foreground text-lg mb-4 block font-semibold">
                     Quick note (optional)
                   </label>
                   <textarea
@@ -595,9 +595,9 @@ export default function LogSymptomModal({
                     onChange={(e) => setNotes(e.target.value)}
                     onClick={(e) => e.stopPropagation()}
                     placeholder="Was in a meeting when it hit..."
-                    className="w-full bg-white/60 backdrop-blur-md text-[#3D3D3D] rounded-xl p-4 text-base 
-                             placeholder-[#9A9A9A] resize-none h-32
-                             focus:outline-none focus:ring-2 focus:ring-[#ff74b1] border border-white/30"
+                    className="w-full bg-card/60 backdrop-blur-md text-card-foreground rounded-xl p-4 text-base 
+                             placeholder-muted-foreground resize-none h-32
+                             focus:outline-none focus:ring-2 focus:ring-primary border border-border/30"
                   />
                 </div>
               </motion.div>
@@ -608,7 +608,7 @@ export default function LogSymptomModal({
         {/* Error Message */}
         {error && (
           <div className="px-6 pb-4">
-            <div className="rounded-lg border border-[#ff74b1]/30 bg-[#ff74b1]/10 p-3 text-sm text-[#ff74b1]">
+            <div className="rounded-lg border border-primary/30 bg-primary/10 p-3 text-sm text-primary">
               {error}
             </div>
           </div>

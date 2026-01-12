@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 // app/layout.tsx
 import localFont from "next/font/local";
-import { Dancing_Script } from "next/font/google";
+import { Dancing_Script, Poppins, Lora } from "next/font/google";
 
 const satoshi = localFont({
   src: [
@@ -25,6 +25,20 @@ const satoshi = localFont({
 const dancingScript = Dancing_Script({
   subsets: ["latin"],
   variable: "--font-script",
+  display: "swap",
+});
+
+// Tweakcn theme fonts
+const poppins = Poppins({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-poppins",
+  display: "swap",
+});
+
+const lora = Lora({
+  subsets: ["latin"],
+  variable: "--font-lora",
   display: "swap",
 });
 
@@ -64,8 +78,8 @@ export default async function RootLayout({
   const isAuthenticated = !authError && !!user;
 
   return (
-    <html lang="en" className={`${satoshi.variable}  ${dancingScript.variable}`}>
-      <body className="min-h-screen flex flex-col font-sans text-foreground bg-white">
+    <html lang="en" className={`${satoshi.variable} ${dancingScript.variable} ${poppins.variable} ${lora.variable}`}>
+      <body className="min-h-screen flex flex-col font-sans text-foreground bg-background">
         <ConditionalNavbar isAuthenticated={isAuthenticated} />
 
         <main className="flex-1 w-full">{children}</main>

@@ -253,7 +253,7 @@ export default function NotificationCard({
       >
         <div className="flex items-center gap-2">
           {renderNotificationIcon(notification.type, notification.title, "h-5 w-5 text-green-600")}
-          <span className="text-sm font-bold text-[#3D3D3D] flex-1">
+          <span className="text-sm font-bold text-foreground flex-1">
             {notification.message || notification.title}
           </span>
         </div>
@@ -274,13 +274,13 @@ export default function NotificationCard({
           <div className={`${styles.iconBg} rounded-full p-2`}>
             {renderNotificationIcon(notification.type, notification.title, `h-5 w-5 ${styles.iconColor}`)}
           </div>
-          <h3 className="font-semibold text-[#3D3D3D] text-base flex-1">
+          <h3 className="font-semibold text-foreground text-base flex-1">
             {notification.title}
           </h3>
         </div>
         <button
           onClick={() => onDismiss(notification.id)}
-          className="text-[#9A9A9A] hover:text-[#3D3D3D] transition-colors p-1 rounded hover:bg-gray-100"
+          className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded hover:bg-muted"
           aria-label="Dismiss"
         >
           <X className="h-4 w-4" />

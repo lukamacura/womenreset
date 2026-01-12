@@ -321,7 +321,7 @@ export function PricingModal({
                   background: hoveredPlan === "annual" || selectedPlan === "annual"
                     ? "linear-gradient(135deg, #dbeafe 0%, #e0e7ff 25%, #fce7f3 75%, #fce7f3 100%)"
                     : "linear-gradient(135deg, #eff6ff 0%, #f5f3ff 50%, #fdf2f8 100%)",
-                  border: selectedPlan === "annual" ? "2px solid #ff74b1" : "2px solid #c084fc",
+                  border: selectedPlan === "annual" ? "2px solid var(--primary)" : "2px solid var(--accent)",
                   transform: hoveredPlan === "annual" ? "scale(1.03) translateY(-3px)" : "scale(1.01)",
                   boxShadow: hoveredPlan === "annual" || selectedPlan === "annual"
                     ? "0 15px 30px rgba(192, 132, 252, 0.4)"
@@ -369,7 +369,7 @@ export function PricingModal({
                 <div
                   className="absolute top-2 right-2 px-2.5 py-1 rounded-full text-xs font-bold text-white flex items-center gap-1 shadow-lg transition-all duration-300"
                   style={{
-                    background: "linear-gradient(135deg, #ff74b1 0%, #c084fc 100%)",
+                    background: "linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%)",
                     animation: hoveredPlan === "annual" ? "pulse 2s infinite" : "none",
                   }}
                 >
@@ -383,8 +383,8 @@ export function PricingModal({
                     className="p-2 rounded-lg transition-all duration-300"
                     style={{
                       background: hoveredPlan === "annual" || selectedPlan === "annual"
-                        ? "linear-gradient(135deg, #ff74b1 0%, #c084fc 100%)"
-                        : "linear-gradient(135deg, #ec4899 0%, #a855f7 100%)",
+                        ? "linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%)"
+                        : "linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%)",
                       transform: hoveredPlan === "annual" ? "rotate(-10deg) scale(1.1)" : "rotate(0deg) scale(1)",
                     }}
                   >
@@ -418,7 +418,7 @@ export function PricingModal({
                     <span
                       className="text-3xl sm:text-4xl font-extrabold transition-all duration-300"
                       style={{
-                        background: "linear-gradient(135deg, #ff74b1 0%, #c084fc 100%)",
+                        background: "linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%)",
                         WebkitBackgroundClip: "text",
                         WebkitTextFillColor: "transparent",
                         backgroundClip: "text",
@@ -457,7 +457,7 @@ export function PricingModal({
                   style={{
                     background: hoveredPlan === "annual"
                       ? "linear-gradient(135deg, #d946ef 0%, #a855f7 100%)"
-                      : "linear-gradient(135deg, #ff74b1 0%, #c084fc 100%)",
+                      : "linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%)",
                     boxShadow: hoveredPlan === "annual"
                       ? "0 12px 30px rgba(255, 116, 177, 0.6), 0 0 20px rgba(168, 85, 247, 0.3)"
                       : "0 8px 20px rgba(255, 116, 177, 0.4)",

@@ -172,12 +172,12 @@ export default function SymptomCard({
                    active:scale-95
                    w-full text-left cursor-pointer
                    ${isLoggedToday 
-                     ? 'border-[#ff74b1] bg-white/40 backdrop-blur-lg hover:bg-white/60' 
-                     : 'border-white/30 bg-white/30 backdrop-blur-md hover:bg-white/50'}`}
+                     ? 'border-primary bg-card/80 backdrop-blur-lg hover:bg-card' 
+                     : 'border-border/30 bg-card backdrop-blur-md hover:bg-card/90'}`}
       >
         <div className="flex flex-row items-center gap-2 sm:gap-3">
-          <SymptomIcon className="h-5 w-5 sm:h-6 sm:w-6 text-[#3D3D3D] shrink-0" />
-          <span className="text-[#3D3D3D] font-medium flex-1 text-sm sm:text-base truncate">{symptom.name}</span>
+          <SymptomIcon className="h-5 w-5 sm:h-6 sm:w-6 text-card-foreground shrink-0" />
+          <span className="text-card-foreground font-medium flex-1 text-sm sm:text-base truncate">{symptom.name}</span>
           <div className="flex items-center gap-1 shrink-0">
             {isLoggedToday && SeverityIcon && lastLoggedSeverity && (
               <SeverityIcon className={`h-4 w-4 sm:h-5 sm:w-5 ${
@@ -196,7 +196,7 @@ export default function SymptomCard({
           </p>
         )}
         {!isLoggedToday && (
-          <p className="text-xs sm:text-sm text-[#9A9A9A] ml-7 sm:ml-11">Tap to log</p>
+          <p className="text-xs sm:text-sm text-muted-foreground ml-7 sm:ml-11">Tap to log</p>
         )}
       </button>
       {canDelete && (

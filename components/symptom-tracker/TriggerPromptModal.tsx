@@ -100,17 +100,17 @@ export default function TriggerPromptModal({
       />
       
       <div
-        className="relative bg-white/30 backdrop-blur-lg rounded-2xl w-full max-w-md mx-4 shadow-xl border border-white/30 cursor-default overflow-hidden"
+        className="relative bg-card backdrop-blur-lg rounded-2xl w-full max-w-md mx-4 shadow-xl border border-border/30 cursor-default overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex justify-between items-center p-6 pb-4 border-b border-white/30">
-          <h2 className="text-xl font-semibold text-[#3D3D3D]">
+        <div className="flex justify-between items-center p-6 pb-4 border-b border-border/30">
+          <h2 className="text-xl font-semibold text-card-foreground">
             Want to add what triggered this?
           </h2>
           <button
             onClick={handleSkip}
-            className="text-[#9A9A9A] hover:text-[#3D3D3D] transition-colors cursor-pointer"
+            className="text-muted-foreground hover:text-card-foreground transition-colors cursor-pointer"
             type="button"
           >
             <X className="h-6 w-6" />
@@ -119,7 +119,7 @@ export default function TriggerPromptModal({
 
         {/* Content */}
         <div className="p-6">
-          <p className="text-[#6B6B6B] mb-4 text-base">
+          <p className="text-muted-foreground mb-4 text-base">
             Quick-tap to add triggers for <strong>{symptom.name}</strong>
           </p>
 
@@ -133,8 +133,8 @@ export default function TriggerPromptModal({
                 className={`px-4 py-2 rounded-full text-base font-medium transition-all cursor-pointer
                   ${
                     selectedTriggers.includes(trigger)
-                      ? "bg-[#ff74b1] text-white shadow-md"
-                      : "bg-white/60 text-[#3D3D3D] hover:bg-white/80 border border-white/30"
+                      ? "bg-primary text-primary-foreground shadow-md"
+                      : "bg-card/60 text-card-foreground hover:bg-card/80 border border-border/30"
                   }`}
               >
                 {trigger}
@@ -148,7 +148,7 @@ export default function TriggerPromptModal({
             <button
               onClick={handleSave}
               disabled={isSubmitting || selectedTriggers.length === 0}
-              className="w-full bg-[#ff74b1] hover:bg-primary-dark text-white 
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground 
                        font-semibold py-3 rounded-xl transition-colors cursor-pointer
                        disabled:opacity-50 disabled:cursor-not-allowed text-base shadow-lg"
             >

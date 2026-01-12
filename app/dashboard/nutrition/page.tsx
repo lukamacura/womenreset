@@ -200,7 +200,7 @@ export default function NutritionPage() {
   // Show loading state while checking trial status
   if (trialStatus.loading) {
     return (
-      <div className="mx-auto max-w-7xl p-6 sm:p-8 space-y-8 min-h-screen" style={{ background: 'linear-gradient(to bottom, #DBEAFE 0%, #FEF3C7 50%, #FCE7F3 100%)' }}>
+      <div className="mx-auto max-w-7xl p-6 sm:p-8 space-y-8 min-h-screen bg-background">
         <div className="space-y-8">
           <div className="space-y-4">
             <Skeleton className="h-10 w-64" />

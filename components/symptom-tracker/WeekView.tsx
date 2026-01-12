@@ -108,18 +108,18 @@ export default function WeekView({ logs, onLogClick, onDelete }: WeekViewProps) 
             <div key={day.dateKey} className="flex flex-col items-center">
               <button
                 onClick={() => toggleDay(day.dateKey)}
-                className={`w-full rounded-lg p-2 cursor-pointer transition-all hover:bg-white/40 
-                  ${isToday ? 'ring-2 ring-[#ff74b1] ring-opacity-50' : ''}
-                  ${isExpanded ? 'bg-white/60' : ''}`}
+                className={`w-full rounded-lg p-2 cursor-pointer transition-all hover:bg-card/40 
+                  ${isToday ? 'ring-2 ring-primary ring-opacity-50' : ''}
+                  ${isExpanded ? 'bg-card/60' : ''}`}
                 type="button"
               >
                 {/* Day name */}
-                <div className="text-xs text-[#6B6B6B] mb-1 text-center font-medium">
+                <div className="text-xs text-muted-foreground mb-1 text-center font-medium">
                   {getDayName(day.date)}
                 </div>
                 
                 {/* Day number */}
-                <div className="text-sm text-[#3D3D3D] mb-2 text-center font-semibold">
+                <div className="text-sm text-card-foreground mb-2 text-center font-semibold">
                   {day.date.getDate()}
                 </div>
 
@@ -170,7 +170,7 @@ export default function WeekView({ logs, onLogClick, onDelete }: WeekViewProps) 
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="bg-white/30 backdrop-blur-lg rounded-xl p-4 border border-white/30 mt-2 space-y-2">
+            <div className="bg-card backdrop-blur-lg rounded-xl p-4 border border-border/30 mt-2 space-y-2">
               {(() => {
                 const day = weekData.find(d => d.dateKey === expandedDay);
                 if (!day || day.logs.length === 0) return null;
@@ -190,8 +190,8 @@ export default function WeekView({ logs, onLogClick, onDelete }: WeekViewProps) 
                       return (
                         <div
                           key={log.id}
-                          className="flex items-center gap-3 p-3 bg-white/40 backdrop-blur-md rounded-lg 
-                            border border-white/30 hover:bg-white/60 transition-colors cursor-pointer"
+                          className="flex items-center gap-3 p-3 bg-card/40 backdrop-blur-md rounded-lg 
+                            border border-border/30 hover:bg-card/60 transition-colors cursor-pointer"
                           onClick={() => onLogClick?.(log)}
                         >
                           <div className="flex-shrink-0">

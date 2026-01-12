@@ -4,20 +4,52 @@ export default {
   content: [
     "./app/**/*.{ts,tsx,js,jsx}",
     "./components/**/*.{ts,tsx,js,jsx}",
-    "./pages/**/*.{ts,tsx,js,jsx}",   // samo ako koristiš pages/
+    "./pages/**/*.{ts,tsx,js,jsx}",
   ],
   theme: {
     extend: {
       fontFamily: {
-        sans: ["var(--font-satoshi)", "system-ui", "sans-serif"],
-        script: ["var(--font-script)", "cursive"], // ovo ćemo dole
+        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
+        serif: ["var(--font-serif)", "serif"],
+        mono: ["var(--font-mono)", "monospace"],
+        script: ["var(--font-script)", "cursive"],
       },
       colors: {
+        // Tweakcn theme colors
+        background: "var(--background)",
+        foreground: "var(--foreground)",
         primary: {
-          DEFAULT: "#ff74b1",
-          light: "#ffb4d5",
-          dark: "#d85a9a",
+          DEFAULT: "var(--primary)",
+          foreground: "var(--primary-foreground)",
         },
+        secondary: {
+          DEFAULT: "var(--secondary)",
+          foreground: "var(--secondary-foreground)",
+        },
+        muted: {
+          DEFAULT: "var(--muted)",
+          foreground: "var(--muted-foreground)",
+        },
+        accent: {
+          DEFAULT: "var(--accent)",
+          foreground: "var(--accent-foreground)",
+        },
+        destructive: {
+          DEFAULT: "var(--destructive)",
+          foreground: "var(--destructive-foreground)",
+        },
+        card: {
+          DEFAULT: "var(--card)",
+          foreground: "var(--card-foreground)",
+        },
+        popover: {
+          DEFAULT: "var(--popover)",
+          foreground: "var(--popover-foreground)",
+        },
+        border: "var(--border)",
+        input: "var(--input)",
+        ring: "var(--ring)",
+        // Legacy colors for backward compatibility during migration
         navy: {
           DEFAULT: "#1D3557",
           light: "#4E6583",
@@ -52,6 +84,19 @@ export default {
           DEFAULT: "#65dbff",
           dark: "#4bc4e6",
         },
+      },
+      borderRadius: {
+        lg: "var(--radius)",
+        md: "calc(var(--radius) - 2px)",
+        sm: "calc(var(--radius) - 4px)",
+      },
+      boxShadow: {
+        sm: "var(--shadow-sm)",
+        DEFAULT: "var(--shadow)",
+        md: "var(--shadow-md)",
+        lg: "var(--shadow-lg)",
+        xl: "var(--shadow-xl)",
+        "2xl": "var(--shadow-2xl)",
       },
     },
   },

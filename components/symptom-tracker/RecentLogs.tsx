@@ -127,7 +127,7 @@ export default function RecentLogs({ logs, loading, onLogClick, onDelete }: Rece
 
   if (logs.length === 0) {
     return (
-      <div className="rounded-xl border border-foreground/10 bg-white p-12 text-center">
+      <div className="rounded-xl border border-border/30 bg-card p-12 text-center">
         <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-foreground/5">
           <svg
             className="h-8 w-8 text-muted-foreground"
@@ -206,7 +206,7 @@ export default function RecentLogs({ logs, loading, onLogClick, onDelete }: Rece
             )}
             <AnimatedListItem index={index}>
               <div
-                className="group rounded-xl border border-white  backdrop-blur-md p-4 transition-colors hover:border-white/50 hover:bg-white/40"
+                className="group rounded-xl border border-border backdrop-blur-md p-4 transition-colors hover:border-border/50 hover:bg-card/40"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div 

@@ -11,8 +11,8 @@ const MenoLisaHero: React.FC = () => {
     }
   };
 
-  const rootDivClassName = "min-h-screen w-full text-navy flex flex-col";
-  const rootDivStyle = { background: 'linear-gradient(to bottom, #ffb4d5 0%, #fff5f9 30%, #f0f9ff 60%, #a6eaff 100%)' };
+  const rootDivClassName = "min-h-screen w-full text-foreground flex flex-col";
+  const rootDivStyle = { background: 'linear-gradient(to bottom, var(--primary) 0%, var(--accent) 30%, var(--secondary) 60%, var(--background) 100%)' };
   
   return (
     <div className={rootDivClassName} style={rootDivStyle} suppressHydrationWarning>
@@ -25,10 +25,10 @@ const MenoLisaHero: React.FC = () => {
 
         {/* Headline */}
         <section className="flex flex-col justify-start items-center w-full text-center py-0 font-sans flex-1">
-          <h1 className="mx-auto max-w-4xl text-5xl pt-14 sm:text-6xl md:text-7xl font-extrabold leading-tight tracking-tight bg-clip-text text-transparent drop-shadow-xl" style={{ backgroundImage: 'linear-gradient(to right, #ff74b1 0%, #ffeb76 50%, #65dbff 100%)' }}>
+          <h1 className="mx-auto max-w-4xl text-5xl pt-14 sm:text-6xl md:text-7xl font-extrabold leading-tight tracking-tight bg-clip-text text-transparent drop-shadow-xl" style={{ backgroundImage: 'linear-gradient(to right, var(--primary) 0%, var(--accent) 50%, var(--secondary) 100%)' }}>
             Smart AI Coach for Women in Menopause
           </h1>
-          <p className="mx-auto mt-4 max-w-2xl font-script text-lg sm:text-2xl md:text-3xl font-medium text-navy/70">
+          <p className="mx-auto mt-4 max-w-2xl font-script text-lg sm:text-2xl md:text-3xl font-medium text-muted-foreground">
             Feel like yourself again
           </p>
           {/* Chat card */}
@@ -52,7 +52,7 @@ const MenoLisaHero: React.FC = () => {
             <form
               onSubmit={handleSubmit}
               className="rounded-4xl p-4 text-foreground shadow-2xl backdrop-blur w-full max-w-2xl border-2 border-white/50"
-              style={{ background: 'linear-gradient(135deg, #ffb4d5 0%, #fff4a3 30%, #a6eaff 60%, rgba(255,255,255,0.9) 100%)' }}
+              style={{ background: 'linear-gradient(135deg, var(--primary) 0%, var(--accent) 30%, var(--secondary) 60%, var(--card) 100%)' }}
             >
 
 
@@ -70,15 +70,15 @@ const MenoLisaHero: React.FC = () => {
 
               {/* Badges */}
               <div className="mt-4 flex flex-wrap items-center justify-center gap-3 text-md">
-                <div className="flex items-center gap-2 rounded-full px-4 py-2 shadow-sm transition-transform duration-300 hover:scale-105 text-white font-medium" style={{ background: 'linear-gradient(135deg, #ff74b1 0%, #ffb4d5 100%)' }}>
+                <div className="flex items-center gap-2 rounded-full px-4 py-2 shadow-sm transition-transform duration-300 hover:scale-105 text-primary-foreground font-medium" style={{ background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary) 100%)' }}>
                   <FileText className="h-4 w-4" />
                   <span>Evidence informed</span>
                 </div>
-                <div className="flex items-center gap-2 rounded-full px-4 py-2 shadow-sm transition-transform duration-300 hover:scale-105 text-[#1D3557] font-medium" style={{ background: 'linear-gradient(135deg, #ffeb76 0%, #fff4a3 100%)' }}>
+                <div className="flex items-center gap-2 rounded-full px-4 py-2 shadow-sm transition-transform duration-300 hover:scale-105 text-foreground font-medium" style={{ background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent) 100%)' }}>
                   <Lock className="h-4 w-4" />
                   <span>Private &amp; secure</span>
                 </div>
-                <div className="flex items-center gap-2 rounded-full px-4 py-2 shadow-sm transition-transform duration-300 hover:scale-105 text-white font-medium" style={{ background: 'linear-gradient(135deg, #65dbff 0%, #a6eaff 100%)' }}>
+                <div className="flex items-center gap-2 rounded-full px-4 py-2 shadow-sm transition-transform duration-300 hover:scale-105 text-secondary-foreground font-medium" style={{ background: 'linear-gradient(135deg, var(--secondary) 0%, var(--secondary) 100%)' }}>
                   <Gift className="h-4 w-4" />
                   <span>3 days free</span>
                 </div>

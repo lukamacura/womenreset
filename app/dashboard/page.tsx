@@ -199,7 +199,7 @@ function SymptomsOverviewCard({
     <AnimatedCard index={1} delay={100}>
       <Link
         href="/dashboard/symptoms"
-        className="group relative overflow-hidden block h-full rounded-2xl border border-white/30 bg-white/30 backdrop-blur-lg p-6 shadow-xl transition-all duration-300 hover:shadow-2xl hover:scale-[1.02]"
+        className="group relative overflow-hidden block h-full rounded-2xl border border-border/30 bg-card backdrop-blur-lg p-6 shadow-xl transition-all duration-300 hover:shadow-2xl hover:scale-[1.02]"
         >
       <div className="relative">
         <div className="flex items-start justify-between mb-4">
@@ -245,7 +245,7 @@ function RecentSymptomsCard({
 
   return (
     <AnimatedCard index={4} delay={300}>
-      <div className="relative overflow-hidden rounded-2xl border border-white/30 bg-white/30 backdrop-blur-lg p-6 shadow-xl transition-all duration-300 hover:shadow-2xl">
+      <div className="relative overflow-hidden rounded-2xl border border-border/30 bg-card backdrop-blur-lg p-6 shadow-xl transition-all duration-300 hover:shadow-2xl">
         <div className="relative">
           <div className="flex items-center justify-between mb-5">
             <h3 className="text-lg font-bold text-[#3D3D3D]">Recent Symptoms</h3>
@@ -281,12 +281,12 @@ function NutritionOverviewCard({
     <AnimatedCard index={2} delay={150}>
       <Link
         href="/dashboard/nutrition"
-        className="group relative overflow-hidden block h-full rounded-2xl border border-white/30 bg-white/30 backdrop-blur-lg p-6 shadow-xl transition-all duration-300 hover:shadow-2xl hover:scale-[1.02]"
+        className="group relative overflow-hidden block h-full rounded-2xl border border-border/30 bg-card backdrop-blur-lg p-6 shadow-xl transition-all duration-300 hover:shadow-2xl hover:scale-[1.02]"
       >
       <div className="relative">
         <div className="flex items-start justify-between mb-4">
           <div className="p-3 rounded-xl shadow-md" style={{ background: 'linear-gradient(135deg, #ffeb76 0%, #e6d468 100%)' }}>
-            <UtensilsCrossed className="h-6 w-6 text-[#1D3557]" />
+            <UtensilsCrossed className="h-6 w-6 text-headline" />
           </div>
           <ArrowRight className="h-5 w-5 text-[#e6d468] transition-transform group-hover:translate-x-1" />
         </div>
@@ -335,7 +335,7 @@ function RecentNutritionCard({
 
   return (
     <AnimatedCard index={5} delay={350}>
-      <div className="relative overflow-hidden rounded-2xl border border-white/30 bg-white/30 backdrop-blur-lg p-6 shadow-xl transition-all duration-300 hover:shadow-2xl hover:scale-[1.01]">
+      <div className="relative overflow-hidden rounded-2xl border border-border/30 bg-card backdrop-blur-lg p-6 shadow-xl transition-all duration-300 hover:shadow-2xl hover:scale-[1.01]">
         <div className="relative">
           <div className="flex items-center justify-between mb-5">
             <h3 className="text-lg font-bold text-foreground">Recent Meals</h3>
@@ -372,7 +372,7 @@ function FitnessOverviewCard({
     <AnimatedCard index={3} delay={200}>
       <Link
         href="/dashboard/fitness"
-        className="group relative overflow-hidden block h-full rounded-2xl border border-white/30 bg-white/30 backdrop-blur-lg p-6 shadow-xl transition-all duration-300 hover:shadow-2xl hover:scale-[1.02]"
+        className="group relative overflow-hidden block h-full rounded-2xl border border-border/30 bg-card backdrop-blur-lg p-6 shadow-xl transition-all duration-300 hover:shadow-2xl hover:scale-[1.02]"
       >
       <div className="relative">
         <div className="flex items-start justify-between mb-4">
@@ -456,7 +456,7 @@ function RecentFitnessCard({
 
   return (
     <AnimatedCard index={6} delay={400}>
-      <div className="relative overflow-hidden rounded-2xl border border-white/30 bg-white/30 backdrop-blur-lg p-6 shadow-xl transition-all duration-300 hover:shadow-2xl hover:scale-[1.01]">
+      <div className="relative overflow-hidden rounded-2xl border border-border/30 bg-card backdrop-blur-lg p-6 shadow-xl transition-all duration-300 hover:shadow-2xl hover:scale-[1.01]">
       <div className="relative">
         <div className="flex items-center justify-between mb-5">
           <h3 className="text-lg font-bold text-foreground">Recent Workouts</h3>
@@ -1392,7 +1392,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <main className="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8 min-h-screen" style={{ background: 'linear-gradient(to bottom, #DBEAFE 0%, #FEF3C7 50%, #FCE7F3 100%)' }}>
+    <main className="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8 min-h-screen bg-background">
       {/* Header */}
       <header className="mb-6 sm:mb-8">
         <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-foreground mb-2 sm:mb-3">

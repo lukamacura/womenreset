@@ -91,7 +91,7 @@ export function TrialCard({ trial, symptomCount = 0, patternCount = 0 }: TrialCa
           badgeText: "text-green-300",
           badgeBorder: "border-green-500/50",
           badgeLabel: "Active",
-          progressBar: "from-[#ff74b1] via-[#ffeb76] to-info",
+          progressBar: "from-primary via-accent to-secondary",
           buttonStyle: "bg-white/10 hover:bg-white/20 text-white! border border-white/30 w-full",
           title: "Your Trial",
         };
@@ -125,7 +125,7 @@ export function TrialCard({ trial, symptomCount = 0, patternCount = 0 }: TrialCa
           badgeBorder: "border-gray-500/50",
           badgeLabel: "Expired",
           progressBar: "from-gray-500 to-gray-600",
-          buttonStyle: "bg-[#ff74b1] hover:bg-[#d85a9a] text-white! border border-[#ff74b1]/50 w-full",
+          buttonStyle: "bg-primary hover:bg-primary/90 text-primary-foreground border border-primary/50 w-full",
           title: "Trial Ended",
         };
     }
