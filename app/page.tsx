@@ -2,9 +2,16 @@
 
 import { useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import MenopauseResetHero from "@/components/MenopauseResetHero";
-import MenoLisaHero from "@/components/Hero";
-import HomeSwipeButton from "@/components/HomeSwipeButton";
+import LandingHero from "@/components/landing/LandingHero";
+import LandingProblem from "@/components/landing/LandingProblem";
+import LandingWhyDifferent from "@/components/landing/LandingWhyDifferent";
+import LandingHowItWorks from "@/components/landing/LandingHowItWorks";
+import LandingFeatures from "@/components/landing/LandingFeatures";
+import LandingSocialProof from "@/components/landing/LandingSocialProof";
+import LandingPricing from "@/components/landing/LandingPricing";
+import LandingFAQ from "@/components/landing/LandingFAQ";
+import LandingFinalCTA from "@/components/landing/LandingFinalCTA";
+import LandingFooter from "@/components/landing/LandingFooter";
 
 export default function Home() {
   const router = useRouter();
@@ -35,10 +42,17 @@ export default function Home() {
   }, [searchParams, router]);
 
   return (
-    <main className="relative overflow-hidden p-0 m-0">
-      <MenoLisaHero/>
-      <MenopauseResetHero/>
-      <HomeSwipeButton />
+    <main className="relative overflow-hidden">
+      <LandingHero />
+      <LandingProblem />
+      <LandingWhyDifferent />
+      <LandingHowItWorks />
+      <LandingFeatures />
+      <LandingSocialProof />
+      <LandingPricing />
+      <LandingFAQ />
+      <LandingFinalCTA />
+      <LandingFooter />
     </main>
   );
 }
