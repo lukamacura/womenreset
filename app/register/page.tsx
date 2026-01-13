@@ -713,9 +713,9 @@ export default function RegisterPage() {
               transition={{ duration: 0.3, ease: "easeOut" }}
               className="fixed top-20 sm:top-20 left-1/2 -translate-x-1/2 z-40 w-[calc(100vw-3rem)] max-w-2xl px-3 sm:px-6 pointer-events-none"
             >
-              <div className="bg-white/70 backdrop-blur-xl border border-white/40 rounded-2xl p-5 shadow-2xl flex items-center gap-4 pointer-events-auto">
+              <div className="bg-card backdrop-blur-xl border border-white/40 rounded-2xl p-5 shadow-2xl flex items-center gap-4 pointer-events-auto">
                 <div className="p-2.5 rounded-xl bg-yellow-200 shrink-0">
-                  <Info className="h-5 w-5 text-yellow-400" />
+                  <Info className="h-5 w-5 text-yellow-800" />
                 </div>
                 <p className="text-xs md:text-sm text-foreground font-semibold flex-1 leading-relaxed">
                   {notificationMessage}
@@ -741,7 +741,7 @@ export default function RegisterPage() {
 
       {/* Results Phase */}
       {phase === "results" && (
-        <div className="flex-1 flex flex-col min-h-screen -mx-6 sm:-mx-8 px-6 sm:px-8">
+        <div className="h-screen flex flex-col overflow-hidden -mx-4 sm:-mx-6 px-4 sm:px-6">
           <AnimatePresence mode="wait">
             {isResultsLoading ? (
               // Loading Screen
@@ -780,48 +780,50 @@ export default function RegisterPage() {
                 </div>
               </motion.div>
             ) : (
-              // Results Page
+              // Results Page - Scrollable content with Next button
               <motion.div
                 key="results"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="max-w-md mx-auto w-full pt-12"
+                className="flex-1 flex flex-col overflow-hidden"
               >
-                {/* Lisa Icon */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                  className="flex justify-center mb-6"
-                >
-                  <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #ff74b1 0%, #ffb4d5 100%)' }}>
-                    <HeartPulse className="w-8 h-8 text-white" />
-                  </div>
-                </motion.div>
+                <div className="flex-1 overflow-y-auto pb-0">
+                  <div className="max-w-md mx-auto w-full pt-4 sm:pt-22">
+                    {/* Lisa Icon */}
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.2 }}
+                      className="flex justify-center mb-4 sm:mb-6"
+                    >
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #ff74b1 0%, #ffb4d5 100%)' }}>
+                        <HeartPulse className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
+                      </div>
+                    </motion.div>
 
-                {/* Headline */}
-                <motion.h1
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.4 }}
-                  className="text-2xl font-semibold text-[#3D3D3D] text-center mb-4"
-                >
-                  {getSeverityHeadline(severity, firstName || "you")}
-                </motion.h1>
+                    {/* Headline */}
+                    <motion.h1
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.4 }}
+                      className="text-xl sm:text-2xl font-semibold text-[#3D3D3D] text-center mb-3 sm:mb-4"
+                    >
+                      {getSeverityHeadline(severity, firstName || "you")}
+                    </motion.h1>
 
-                {/* Pain Paragraph */}
-                <motion.p
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.6 }}
-                  className="text-md text-[#5A5A5A] text-center leading-relaxed mb-8"
-                >
-                  {getSeverityPainText(
-                    severity,
-                    topProblems.length,
-                    firstName || "you"
-                  )}
-                </motion.p>
+                    {/* Pain Paragraph */}
+                    <motion.p
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.6 }}
+                      className="text-sm sm:text-md text-[#5A5A5A] text-center leading-relaxed mb-4 sm:mb-6"
+                    >
+                      {getSeverityPainText(
+                        severity,
+                        topProblems.length,
+                        firstName || "you"
+                      )}
+                    </motion.p>
 
                 {/* Quality of Life Score */}
                 {!isResultsLoading && (() => {
@@ -837,38 +839,37 @@ export default function RegisterPage() {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.8 }}
-                      className="rounded-2xl p-5 border border-[#E8DDD9] mb-6"
+                      className="rounded-2xl bg-card border-2 p-4 sm:p-5 border-[#E8DDD9] mb-4 sm:mb-6 shadow-lg shadow-primary/5"
                     >
                       {/* Header */}
-                      <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center justify-between mb-3 sm:mb-4">
                         <div className="flex items-center gap-2">
-                          <AlertTriangle className="w-6 h-6 text-orange-500" />
-                          <span className="text-lg font-bold font-large text-gray-900!">Your Menopause Score</span>
+                          <AlertTriangle className="w-5 h-5 sm:w-6 sm:h-6 text-orange-500" />
+                          <span className="text-base sm:text-lg font-bold text-gray-900!">Your Menopause Score</span>
                         </div>
-
                       </div>
 
                       {/* Score Display */}
-                      <div className="flex items-end gap-2 mb-3">
-                        <span className={`text-5xl font-bold ${getScoreColor(score)}`}>
+                      <div className="flex items-end gap-2 mb-2 sm:mb-3">
+                        <span className={`text-4xl sm:text-5xl font-bold ${getScoreColor(score)}`}>
                           {displayScore}
                         </span>
-                        <span className="text-2xl text-gray-900! font-medium mb-1">/100</span>
+                        <span className="text-xl sm:text-2xl text-gray-900! font-medium mb-1">/100</span>
                       </div>
 
                       {/* Score Label */}
-                      <p className="text-sm text-orange-600 mb-4">
+                      <p className="text-xs sm:text-sm text-orange-600 mb-3 sm:mb-4">
                         {getScoreLabel(score)}
                       </p>
 
                       {/* Progress Bar */}
-                      <div className="relative h-3 bg-white/20 backdrop-blur-2xl rounded-full mb-4 overflow-hidden">
+                      <div className="relative h-2 sm:h-6 border-2 border-foreground/10 bg-white/20 backdrop-blur-2xl rounded-full mb-3 sm:mb-4 overflow-hidden">
                         {/* Current score */}
                         <motion.div
                           initial={{ width: 0 }}
                           animate={{ width: `${score}%` }}
                           transition={{ duration: 1.5, ease: "easeOut" }}
-                          className="absolute left-0 top-0 h-full bg-linear-to-r from-red-400 via-orange-400 to-orange-300 rounded-full"
+                          className="absolute left-0 top-0  h-full bg-linear-to-r from-red-400 via-orange-400 to-orange-300 rounded-full"
                         />
                         {/* Target marker at 80% */}
                         <div
@@ -878,9 +879,9 @@ export default function RegisterPage() {
                       </div>
 
                       {/* Target Text */}
-                      <div className="flex items-center gap-2 text-sm">
-                        <Goal className="w-6 h-6 text-green-600" />
-                        <span className="text-[#5A5A5A] font-medium text-md">
+                      <div className="flex items-center gap-2 text-xs sm:text-sm">
+                        <Goal className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
+                        <span className="text-[#5A5A5A] font-medium">
                           Your target: <span className="font-bold">80+</span> (reachable in 8 weeks)
                         </span>
                       </div>
@@ -888,116 +889,151 @@ export default function RegisterPage() {
                   );
                 })()}
 
-                {/* Symptom Pills - Smaller, muted, under score card */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 1.0 }}
-                  className="mb-4"
-                >
-                  <div className="flex flex-wrap gap-2 justify-center">
-                    {topProblems.map((symptom, index) => (
-                      <motion.span
-                        key={symptom}
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: 1.2 + index * 0.1 }}
-                        className="px-2 py-1 bg-red-200  text-red-800 border border-red-800 font-bold text-sm rounded-full"
-                      >
-                        {SYMPTOM_LABELS[symptom] || symptom}
-                      </motion.span>
-                    ))}
-                  </div>
-                </motion.div>
-
-                {/* Outcomes Section */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 1.2 }}
-                  className="mb-8"
-                >
-                  <h2 className="text-lg font-medium text-[#3D3D3D] mb-4 text-center">
-                    In 8 weeks, women like you:
-                  </h2>
-                  <div className="space-y-3">
-                    {[
-                      { text: "Sleep through the night again" },
-                      { text: "Know exactly what triggers their symptoms" },
-                      { text: "Feel in control of their body again" },
-                    ].map((outcome, index) => (
-                      <div key={index} className="flex items-center gap-3">
-                        <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center shrink-0">
-                          <Check className="w-4 h-4 text-green-600" />
-                        </div>
-                        <span className="text-[#3D3D3D]">{outcome.text}</span>
+                    {/* Symptom Pills - Smaller, muted, under score card */}
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 1.0 }}
+                      className="mb-3 sm:mb-4"
+                    >
+                      <div className="flex flex-wrap gap-2 justify-center">
+                        {topProblems.map((symptom, index) => (
+                          <motion.span
+                            key={symptom}
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: 1.2 + index * 0.1 }}
+                            className="px-2 py-1 bg-red-200 text-red-800 border border-red-800 font-bold text-xs sm:text-sm rounded-full"
+                          >
+                            {SYMPTOM_LABELS[symptom] || symptom}
+                          </motion.span>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                </motion.div>
+                    </motion.div>
 
-                {/* Social Proof */}
+                    {/* Outcomes Section */}
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 1.2 }}
+                      className="mb-4 sm:mb-6"
+                    >
+                      <h2 className="text-base sm:text-lg font-medium text-[#3D3D3D] mb-3 sm:mb-4 text-center">
+                        In 8 weeks, women like you:
+                      </h2>
+                      <div className="space-y-2 sm:space-y-3">
+                        {[
+                          { text: "Sleep through the night again" },
+                          { text: "Know exactly what triggers their symptoms" },
+                          { text: "Feel in control of their body again" },
+                        ].map((outcome, index) => (
+                          <div key={index} className="flex items-center gap-2 sm:gap-3">
+                            <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+                              <Check className="w-3 h-3 sm:w-4 sm:h-4 text-green-600" />
+                            </div>
+                            <span className="text-sm sm:text-base text-[#3D3D3D]">{outcome.text}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </motion.div>
+
+                    {/* Social Proof */}
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 1.4 }}
+                      className="mb-0 text-center"
+                    >
+                      <div className="flex items-center justify-center gap-2 text-xs sm:text-sm text-[#5A5A5A]">
+                        <Users className="w-3 h-3 sm:w-4 sm:h-4 text-info" />
+                        <span>8,382 women joined this month</span>
+                      </div>
+                    </motion.div>
+                  </div>
+                </div>
+
+                {/* Next Button - Fixed at bottom */}
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 1.4 }}
-                  className="mb-8 text-center"
+                  className="pt-3 pb-4 sm:pb-6 shrink-0"
                 >
-                  <div className="flex items-center justify-center gap-2 text-sm text-[#5A5A5A]">
-                    <Users className="w-4 h-4 text-info" />
-                    <span>8,382 women joined this month</span>
+                  <div className="max-w-md mx-auto px-4">
+                    <button
+                      type="button"
+                      onClick={() => setPhase("email")}
+                      className="w-full py-3 sm:py-4 font-bold text-foreground rounded-xl transition-all flex items-center justify-center gap-2 hover:scale-[1.02] hover:shadow-lg"
+                      style={{ background: 'linear-gradient(135deg, #ff74b1 0%, #ffeb76 50%, #65dbff 100%)', boxShadow: '0 4px 15px rgba(255, 116, 177, 0.4)' }}
+                    >
+                      Next
+                      <ArrowRight className="w-5 h-5" />
+                    </button>
                   </div>
                 </motion.div>
-
-                {/* Email CTA */}
-                <motion.form
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 1.4 }}
-                  onSubmit={handleEmailSubmit}
-                  className="space-y-3"
-                >
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Enter your email"
-                    required
-                    className="w-full px-4 py-4 rounded-xl border border-[#E8DDD9] bg-white text-[#3D3D3D] placeholder:text-[#9A9A9A] focus:outline-none focus:ring-2 focus:ring-[#ff74b1]/50 focus:border-[#ff74b1]"
-                  />
-
-                  <button
-                    type="submit"
-                    disabled={loading || !emailValid}
-                    className="w-full py-4 font-bold text-gray-900! rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] hover:shadow-lg"
-                    style={{ background: 'linear-gradient(135deg, #ff74b1 0%, #ffeb76 50%, #65dbff 100%)', boxShadow: '0 4px 15px rgba(255, 116, 177, 0.4)' }}
-                  >
-                    {loading ? (
-                      <>
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                        Sending...
-                      </>
-                    ) : (
-                      <>
-                        Start my free trial
-                        <ArrowRight className="w-5 h-5" />
-                      </>
-                    )}
-                  </button>
-
-                  <p className="text-center text-sm text-[#5A5A5A]">
-                    Free for 3 days • No credit card required
-                  </p>
-
-                  {error && (
-                    <div className="rounded-xl border border-error/30 bg-error/10 p-3 text-sm text-error">
-                      {error}
-                    </div>
-                  )}
-                </motion.form>
               </motion.div>
             )}
           </AnimatePresence>
+        </div>
+      )}
+
+      {/* Email Phase */}
+      {phase === "email" && (
+        <div className="h-screen flex flex-col justify-center overflow-hidden -mx-4 sm:-mx-6 px-4 sm:px-6">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="max-w-md mx-auto w-full"
+          >
+            <motion.form
+              onSubmit={handleEmailSubmit}
+              className="space-y-4 sm:space-y-6"
+            >
+              <div>
+                <h2 className="text-2xl sm:text-3xl font-bold text-[#3D3D3D] text-center mb-2 sm:mb-3">
+                  Start your free trial
+                </h2>
+                <p className="text-sm sm:text-base text-[#5A5A5A] text-center mb-4 sm:mb-6">
+                  Enter your email to get started. Free for 3 days • No credit card required
+                </p>
+              </div>
+
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter your email"
+                required
+                className="w-full px-4 py-3 sm:py-4 rounded-xl border border-[#E8DDD9] bg-white text-[#3D3D3D] placeholder:text-[#9A9A9A] focus:outline-none focus:ring-2 focus:ring-[#ff74b1]/50 focus:border-[#ff74b1] text-base sm:text-lg"
+                autoFocus
+              />
+
+              <button
+                type="submit"
+                disabled={loading || !emailValid}
+                className="w-full py-3 sm:py-4 font-bold text-foreground rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] hover:shadow-lg"
+                style={{ background: 'linear-gradient(135deg, #ff74b1 0%, #ffeb76 50%, #65dbff 100%)', boxShadow: '0 4px 15px rgba(255, 116, 177, 0.4)' }}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    Start my free trial
+                    <ArrowRight className="w-5 h-5" />
+                  </>
+                )}
+              </button>
+
+              {error && (
+                <div className="rounded-xl border border-error/30 bg-error/10 p-3 text-sm text-error">
+                  {error}
+                </div>
+              )}
+            </motion.form>
+          </motion.div>
         </div>
       )}
 
@@ -1024,7 +1060,7 @@ export default function RegisterPage() {
 
           {/* Question Content */}
           <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-            <div className="rounded-xl sm:rounded-2xl border border-foreground/10 bg-card/50 backdrop-blur-sm p-4 sm:p-6 space-y-3 sm:space-y-4 flex-1 shadow-lg shadow-primary/5 overflow-y-auto">
+            <div className="rounded-xl sm:rounded-2xl border border-foreground/10 bg-card backdrop-blur-sm p-4 m-2 sm:p-6 space-y-3 sm:space-y-4 flex-1 shadow-lg shadow-primary/5 overflow-y-auto">
               {/* Q1: Top Problems */}
               {currentStep === "q1_problems" && (
                 <div className="space-y-3 sm:space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">

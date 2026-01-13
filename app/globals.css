@@ -580,6 +580,88 @@ input[type="button"],
   animation: slide-down 0.2s ease-in forwards;
 }
 
+/* Hero Section Animations */
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes float-slow {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+@keyframes float-rotate {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-15px) rotate(5deg);
+  }
+}
+
+@keyframes pulse-soft {
+  0%, 100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+}
+
+@keyframes drift {
+  0%, 100% {
+    transform: translate(0, 0);
+  }
+  25% {
+    transform: translate(10px, -10px);
+  }
+  50% {
+    transform: translate(20px, 0);
+  }
+  75% {
+    transform: translate(10px, 10px);
+  }
+}
+
+@keyframes subtle-float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.gradient-heading {
+  background: linear-gradient(
+    135deg,
+    var(--primary) 0%,
+    var(--chart-1) 30%,
+    var(--accent) 60%,
+    var(--primary) 100%
+  );
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradient-shift 10s ease infinite;
+  will-change: background-position;
+}
+
 /* Accessibility - Respect user motion preferences */
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -594,5 +676,11 @@ input[type="button"],
   /* Keep opacity transitions for better UX */
   * {
     transition-property: opacity !important;
+  }
+
+  .gradient-heading {
+    animation: none;
+    background: var(--primary);
+    -webkit-text-fill-color: var(--primary);
   }
 }

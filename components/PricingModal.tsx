@@ -276,11 +276,8 @@ export function PricingModal({
           {/* Urgency Banner */}
           {(trialState === "urgent" || trialState === "expired") && (
             <div 
-              className="mt-3 p-2.5 rounded-lg flex items-center justify-center gap-2"
-              style={{
-                backgroundColor: "var(--chart-3)",
-                border: "2px solid var(--chart-4)",
-              }}
+              className="mt-3 p-2.5 rounded-lg flex items-center justify-center gap-2 bg-yellow-500/20 border border-yellow-500/20"
+
             >
               <Clock className="h-4 w-4" style={{ color: "var(--foreground)" }} />
               <p 

@@ -12,6 +12,7 @@ import LandingPricing from "@/components/landing/LandingPricing";
 import LandingFAQ from "@/components/landing/LandingFAQ";
 import LandingFinalCTA from "@/components/landing/LandingFinalCTA";
 import LandingFooter from "@/components/landing/LandingFooter";
+import HomeSwipeButton from "@/components/HomeSwipeButton";
 
 export default function Home() {
   const router = useRouter();
@@ -53,6 +54,7 @@ export default function Home() {
       <LandingFAQ />
       <LandingFinalCTA />
       <LandingFooter />
+      <HomeSwipeButton />
     </main>
   );
 }
