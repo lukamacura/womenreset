@@ -157,31 +157,17 @@ export default function LandingHero() {
                 }}
               >
                 <div 
-                  className="absolute inset-0 rounded-[0.6rem] p-2"
+                  className="absolute inset-0 rounded-[2.5rem] p-2"
                   style={{
-                    background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.05) 100%)',
-                    border: '8px solid rgba(0, 0, 0, 0.15)',
-                    boxShadow: `
-                      0 25px 50px -12px rgba(0, 0, 0, 0.25),
-                      inset 0 0 0 1px rgba(255, 255, 255, 0.1),
-                      inset 0 1px 0 rgba(255, 255, 255, 0.2)
-                    `,
-                    backdropFilter: 'blur(10px)',
-                    WebkitBackdropFilter: 'blur(10px)'
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    border: '2px solid rgba(0, 0, 0, 0.08)',
+                    boxShadow: '0 30px 60px -15px rgba(0, 0, 0, 0.12), 0 15px 30px -10px rgba(0, 0, 0, 0.08)',
                   }}
                 >
-                  {/* Notch */}
-                  <div 
-                    className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 rounded-b-[0.2rem]"
-                    style={{
-                      background: 'rgba(0, 0, 0, 0.2)',
-                      border: '1px solid rgba(0, 0, 0, 0.1)',
-                      borderTop: 'none'
-                    }}
-                  />
+
                   
                   {/* Screen Content */}
-                  <div className="relative w-full h-full rounded-[0.5rem] overflow-hidden bg-background">
+                  <div className="relative w-full h-full rounded-4xl overflow-hidden bg-background">
                     <Image
                       src="/phone.png"
                       alt="MenoLisa mobile app preview"
