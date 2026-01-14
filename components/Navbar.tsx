@@ -3,6 +3,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Menu, X } from "lucide-react";
 
 type NavbarProps = {
@@ -31,8 +32,14 @@ const Navbar: React.FC<NavbarProps> = ({ isAuthenticated }) => {
           <nav className="flex w-full items-center justify-between rounded-full bg-gray-900 px-3 sm:px-5 py-2.5 sm:py-2 shadow-lg backdrop-blur-lg border border-white/25 overflow-hidden">
             {/* Left: Logo + Brand */}
             <Link href="/" className="flex items-center gap-2">
-              <div className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-primary-light shadow-md">
-                <div className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded-full border-2 border-primary-dark" />
+              <div className="relative h-7 w-7 sm:h-8 sm:w-8 rounded-full overflow-hidden shadow-md">
+                <Image
+                  src="/lisa_profile.webp"
+                  alt="MenoLisa"
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 640px) 28px, 32px"
+                />
               </div>
               <span className="text-xs sm:text-sm font-semibold tracking-wide text-white">
                 MenoLisa

@@ -1,54 +1,72 @@
 "use client"
 
-import { Card, CardContent } from "@/components/ui/card"
-import { Moon, Search, HeartCrack } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
 
 export default function LandingProblem() {
-  const painPoints = [
+  const insights = [
     {
-      icon: Moon,
-      text: "You can't sleep, then can't think straight the next day",
+      title: "Your symptoms follow patterns",
+      text: "Hot weather triggers headaches. Stress amplifies mood swings. See the connections.",
     },
     {
-      icon: Search,
-      text: "You Google symptoms and get confused, scary, or wrong answers",
+      title: "You need the right information",
+      text: "Not more information. The right information, explained clearly, when you need it.",
     },
     {
-      icon: HeartCrack,
-      text: "You feel dismissed — by apps, by articles, even by people around you",
+      title: "Clarity is possible",
+      text: "Thousands of women found relief through understanding, not magic solutions.",
     },
   ]
 
   return (
-    <section className="py-20 px-4 bg-background">
-      <div className="max-w-6xl mx-auto">
-        <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-center mb-12 text-foreground">
-          Sound familiar?
-        </h2>
-
-        <div className="grid md:grid-cols-3 gap-6 mb-12">
-          {painPoints.map((point, index) => {
-            const Icon = point.icon
-            return (
-              <Card 
-                key={index} 
-                className="border-2 hover:shadow-lg transition-shadow"
-                style={{ backgroundColor: "var(--accent)" }}
-              >
-                <CardContent className="p-6 text-center">
-                  <div className="flex justify-center mb-4">
-                    <Icon className="h-8 w-8" style={{ color: "var(--primary)" }} />
-                  </div>
-                  <p className="text-lg text-foreground leading-relaxed">{point.text}</p>
-                </CardContent>
-              </Card>
-            )
-          })}
+    <section className="py-16 px-4">
+      <div className="max-w-4xl mx-auto">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-6 text-foreground leading-tight">
+            The problem isn't you.<br />
+            It's the confusion.
+          </h2>
+          <p className="text-lg sm:text-xl text-muted-foreground leading-relaxed max-w-2xl mx-auto">
+            Menopause isn't a mystery. It's a transition to understand.
+          </p>
         </div>
 
-        <p className="text-xl sm:text-2xl text-center text-foreground font-semibold">
-          You deserve answers from a source you can trust.
-        </p>
+        <div className="space-y-8 mb-12">
+          {insights.map((insight, index) => (
+            <div 
+              key={index}
+              className="flex gap-4 items-start"
+            >
+              <Badge 
+                variant="secondary" 
+                className="flex-shrink-0 mt-1 h-8 w-8 rounded-full p-0 flex items-center justify-center text-sm font-bold"
+                style={{ 
+                  backgroundColor: "rgba(255, 182, 193, 0.15)",
+                  color: "var(--primary)",
+                  border: "none"
+                }}
+              >
+                {index + 1}
+              </Badge>
+              <div className="flex-1">
+                <h3 className="text-xl sm:text-2xl font-semibold mb-2 text-foreground">
+                  {insight.title}
+                </h3>
+                <p className="text-base sm:text-lg text-muted-foreground leading-relaxed">
+                  {insight.text}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="border-t border-border/30 pt-12">
+          <div className="text-center">
+            <p className="text-lg sm:text-xl text-foreground mb-2">
+              <strong>Evidence-based knowledge.</strong> Reviewed by specialists. Focused on menopause.
+            </p>
+          </div>
+        </div>
       </div>
     </section>
   )

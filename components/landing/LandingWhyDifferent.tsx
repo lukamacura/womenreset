@@ -1,174 +1,91 @@
 "use client"
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Globe, Target, FileWarning, BookOpen, MessageSquare, MessageCircleHeart, Brain, X, CheckCircle, BadgeCheck } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
 
 export default function LandingWhyDifferent() {
-  const comparisons = [
+  const steps = [
     {
-      generic: (
-        <>
-          Knows <strong>everything</strong>, masters <strong>nothing</strong>
-        </>
-      ),
-      genericIcon: Globe,
-      lisa: (
-        <>
-          Menopause <strong>specialist</strong> only
-        </>
-      ),
-      lisaIcon: Target,
+      number: "1",
+      title: "Log your experience",
+      description: "Quick notes when something feels off—or right. No forms.",
+      outcome: "You build a clear picture without overwhelm.",
     },
     {
-      generic: (
-        <>
-          Scrapes <strong>random internet</strong> content
-        </>
-      ),
-      genericIcon: FileWarning,
-      lisa: (
-        <>
-          <strong>Curated medical</strong> knowledge base
-        </>
-      ),
-      lisaIcon: BookOpen,
+      number: "2",
+      title: "See your patterns",
+      description: "Lisa finds connections: hot weather before headaches, stress before mood swings.",
+      outcome: "You understand why, not just what.",
     },
     {
-      generic: (
-        <>
-          Gives <strong>generic</strong>, <strong>cautious</strong> answers
-        </>
-      ),
-      genericIcon: MessageSquare,
-      lisa: (
-        <>
-          Gives <strong>relevant</strong>, <strong>practical</strong> guidance
-        </>
-      ),
-      lisaIcon: MessageCircleHeart,
-    },
-    {
-      generic: (
-        <>
-          <strong>No memory</strong> of your history
-        </>
-      ),
-      genericIcon: Brain,
-      lisa: (
-        <>
-          <strong>Learns</strong> your <strong>patterns</strong> over time
-        </>
-      ),
-      lisaIcon: Brain,
-    },
-    {
-      generic: (
-        <>
-          <strong>Can't track</strong> anything
-        </>
-      ),
-      genericIcon: X,
-      lisa: (
-        <>
-          <strong>Tracks</strong> symptoms, <strong>finds triggers</strong>
-        </>
-      ),
-      lisaIcon: CheckCircle,
+      number: "3",
+      title: "Get personalized guidance",
+      description: "Based on your patterns, Lisa explains what's happening and what helps.",
+      outcome: "You have a clear path forward, tailored to you.",
     },
   ]
 
-  const trustElements = [
-    {
-      icon: BadgeCheck,
-      text: "Reviewed by health experts",
-    },
-    {
-      icon: BookOpen,
-      text: "Based on medical research",
-    },
-    {
-      icon: Target,
-      text: "100% focused on menopause",
-    },
+  const trustSignals = [
+    "Reviewed by menopause specialists",
+    "Evidence-based medical knowledge",
+    "100% focused on menopause",
   ]
-
 
   return (
-    <section className="py-20 px-4 bg-background">
-      <div className="max-w-6xl mx-auto">
-        <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-center mb-4 text-foreground">
-          Lisa isn't another chatbot.
-        </h2>
-        <p className="text-xl sm:text-2xl text-center text-muted-foreground mb-12">
-          She's a menopause specialist — trained on curated, evidence-based knowledge.
-        </p>
-
-        {/* Comparison Table */}
-        <div className="grid md:grid-cols-2 gap-4 mb-12">
-          <Card 
-            className="border-2"
-            style={{ 
-              borderLeftColor: "var(--destructive)",
-              borderLeftWidth: "4px",
-              backgroundColor: "var(--card)"
-            }}
-          >
-            <CardHeader>
-              <CardTitle className="text-center text-xl">Other AI Apps</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {comparisons.map((comp, index) => {
-                const GenericIcon = comp.genericIcon
-                return (
-                  <div key={index} className="p-4 rounded-lg flex items-start gap-3">
-                    <GenericIcon className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
-                    <p className="text-foreground">{comp.generic}</p>
-                  </div>
-                )
-              })}
-            </CardContent>
-          </Card>
-
-          <Card 
-            className="border-2 border-primary"
-            style={{ 
-              borderLeftColor: "var(--chart-2)",
-              borderLeftWidth: "4px",
-              backgroundColor: "var(--accent)"
-            }}
-          >
-            <CardHeader>
-              <CardTitle className="text-center text-xl text-primary">Lisa</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {comparisons.map((comp, index) => {
-                const LisaIcon = comp.lisaIcon
-                return (
-                  <div key={index} className="p-4 rounded-lg flex items-start gap-3">
-                    <LisaIcon className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                    <p className="text-foreground font-medium">{comp.lisa}</p>
-                  </div>
-                )
-              })}
-            </CardContent>
-          </Card>
+    <section id="how-it-works" className="py-16 px-4">
+      <div className="max-w-4xl mx-auto">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-6 text-foreground leading-tight">
+            How it works
+          </h2>
+          <p className="text-lg sm:text-xl text-muted-foreground leading-relaxed max-w-2xl mx-auto">
+            Three steps. No complexity. Just clarity.
+          </p>
         </div>
 
-        {/* Trust Elements */}
-        <div className="grid sm:grid-cols-3 gap-4">
-          {trustElements.map((element, index) => {
-            const Icon = element.icon
-            return (
-              <div 
-                key={index} 
-                className="flex items-start gap-3 p-4 rounded-lg border"
-                style={{ backgroundColor: "var(--card)" }}
+        <div className="space-y-12 mb-12">
+          {steps.map((step, index) => (
+            <div 
+              key={index}
+              className="flex gap-6 items-start"
+            >
+              <Badge 
+                variant="secondary" 
+                className="flex-shrink-0 h-12 w-12 rounded-full p-0 flex items-center justify-center text-xl font-bold"
+                style={{ 
+                  backgroundColor: "rgba(255, 182, 193, 0.2)",
+                  color: "var(--primary)",
+                  border: "none"
+                }}
               >
-                <Icon className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                <p className="text-foreground">{element.text}</p>
+                {step.number}
+              </Badge>
+              <div className="flex-1 space-y-3">
+                <h3 className="text-2xl sm:text-3xl font-semibold text-foreground">
+                  {step.title}
+                </h3>
+                <p className="text-base sm:text-lg text-muted-foreground leading-relaxed">
+                  {step.description}
+                </p>
+                <p className="text-base sm:text-lg text-foreground font-medium">
+                  {step.outcome}
+                </p>
               </div>
-            )
-          })}
+            </div>
+          ))}
+        </div>
+
+        <div className="border-t border-border/30 pt-12">
+          <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6">
+            {trustSignals.map((signal, index) => (
+              <Badge 
+                key={index}
+                variant="outline"
+                className="text-sm font-medium px-4 py-2"
+              >
+                {signal}
+              </Badge>
+            ))}
+          </div>
         </div>
       </div>
     </section>

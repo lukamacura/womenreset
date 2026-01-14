@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { Check, Sparkles, Zap, Crown, Star, Lock } from "lucide-react"
 
 export default function LandingPricing() {
@@ -53,14 +54,22 @@ export default function LandingPricing() {
   }, []);
 
   return (
-    <section className="py-20 px-4 bg-background" id="pricing">
+    <section className="py-16 px-4" id="pricing">
       <div className="max-w-5xl mx-auto">
-        <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-center mb-4 text-foreground">
-          Start free. No credit card needed.
-        </h2>
-        <p className="text-xl sm:text-2xl text-center text-muted-foreground mb-12">
-          3-day full access trial. See if Lisa is right for you.
-        </p>
+        <div className="text-center mb-8">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 text-foreground">
+            Start free. No credit card needed.
+          </h2>
+          <p className="text-xl sm:text-2xl text-center text-muted-foreground mb-4">
+            <strong>3-day full access trial.</strong> See if Lisa is right for you.
+          </p>
+          <Badge 
+            variant="outline" 
+            className="text-sm font-medium px-4 py-2"
+          >
+            Reviewed by menopause specialists
+          </Badge>
+        </div>
 
         {/* Testimonial - Above pricing cards */}
         <div 
@@ -76,7 +85,7 @@ export default function LandingPricing() {
             ))}
           </div>
           <p className="text-sm font-bold italic mb-1" style={{ color: "var(--foreground)" }}>
-            &quot;Finally I understand why I feel awful on certain days. Lisa found that coffee was triggering my hot flashes.&quot;
+            &quot;Finally I understand why I feel awful on certain days. Lisa found that coffee was triggering my hot flashes. Now I know what to avoid.&quot;
           </p>
           <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>- Michelle, 52</p>
         </div>
