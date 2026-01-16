@@ -3,6 +3,7 @@
 
 import React, { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabaseClient";
 import { getRedirectBaseUrl, AUTH_CALLBACK_PATH } from "@/lib/constants";
@@ -286,6 +287,7 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [userExists, setUserExists] = useState(false);
 
   // Results loading state
   const [isResultsLoading, setIsResultsLoading] = useState(true);
@@ -460,9 +462,32 @@ export default function RegisterPage() {
     if (!canSubmit) return;
 
     setError(null);
+    setUserExists(false);
     setLoading(true);
 
     try {
+      // First, check if user already exists
+      try {
+        const checkResponse = await fetch("/api/auth/check-user", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        });
+        
+        if (checkResponse.ok) {
+          const checkData = await checkResponse.json();
+          if (checkData.exists === true) {
+            // User already has an account - show login prompt
+            setUserExists(true);
+            setLoading(false);
+            return;
+          }
+        }
+      } catch (checkError) {
+        console.warn("Could not check user existence, proceeding:", checkError);
+        // Continue with registration if check fails
+      }
+
       // Prepare quiz answers
       const quizAnswers = {
         top_problems: topProblems,
@@ -911,32 +936,6 @@ export default function RegisterPage() {
                       </div>
                     </motion.div>
 
-                    {/* Outcomes Section */}
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 1.2 }}
-                      className="mb-4 sm:mb-6"
-                    >
-                      <h2 className="text-base sm:text-lg font-medium text-[#3D3D3D] mb-3 sm:mb-4 text-center">
-                        In 8 weeks, women like you:
-                      </h2>
-                      <div className="space-y-2 sm:space-y-3">
-                        {[
-                          { text: "Sleep through the night again" },
-                          { text: "Know exactly what triggers their symptoms" },
-                          { text: "Feel in control of their body again" },
-                        ].map((outcome, index) => (
-                          <div key={index} className="flex items-center gap-2 sm:gap-3">
-                            <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-green-100 flex items-center justify-center shrink-0">
-                              <Check className="w-3 h-3 sm:w-4 sm:h-4 text-green-600" />
-                            </div>
-                            <span className="text-sm sm:text-base text-[#3D3D3D]">{outcome.text}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </motion.div>
-
                     {/* Social Proof */}
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
@@ -985,54 +984,100 @@ export default function RegisterPage() {
             animate={{ opacity: 1, y: 0 }}
             className="max-w-md mx-auto w-full"
           >
-            <motion.form
-              onSubmit={handleEmailSubmit}
-              className="space-y-4 sm:space-y-6"
-            >
-              <div>
-                <h2 className="text-2xl sm:text-3xl font-bold text-[#3D3D3D] text-center mb-2 sm:mb-3">
-                  Start your free trial
-                </h2>
-                <p className="text-sm sm:text-base text-[#5A5A5A] text-center mb-4 sm:mb-6">
-                  Enter your email to get started. Free for 3 days • No credit card required
-                </p>
-              </div>
-
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter your email"
-                required
-                className="w-full px-4 py-3 sm:py-4 rounded-xl border border-[#E8DDD9] bg-white text-[#3D3D3D] placeholder:text-[#9A9A9A] focus:outline-none focus:ring-2 focus:ring-[#ff74b1]/50 focus:border-[#ff74b1] text-base sm:text-lg"
-                autoFocus
-              />
-
-              <button
-                type="submit"
-                disabled={loading || !emailValid}
-                className="w-full py-3 sm:py-4 font-bold text-foreground rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] hover:shadow-lg"
-                style={{ background: 'linear-gradient(135deg, #ff74b1 0%, #ffeb76 50%, #65dbff 100%)', boxShadow: '0 4px 15px rgba(255, 116, 177, 0.4)' }}
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    Sending...
-                  </>
-                ) : (
-                  <>
-                    Start my free trial
-                    <ArrowRight className="w-5 h-5" />
-                  </>
-                )}
-              </button>
-
-              {error && (
-                <div className="rounded-xl border border-error/30 bg-error/10 p-3 text-sm text-error">
-                  {error}
+            {/* User Already Exists - Show Login Prompt */}
+            {userExists ? (
+              <div className="space-y-4 sm:space-y-6 text-center">
+                <div className="rounded-full bg-primary/10 p-6 w-fit mx-auto">
+                  <CheckCircle2 className="w-12 h-12 text-primary" />
                 </div>
-              )}
-            </motion.form>
+                <div>
+                  <h2 className="text-2xl sm:text-3xl font-bold text-[#3D3D3D] mb-2 sm:mb-3">
+                    You already have an account!
+                  </h2>
+                  <p className="text-sm sm:text-base text-[#5A5A5A] mb-2">
+                    An account with <strong>{email}</strong> already exists.
+                  </p>
+                  <p className="text-sm text-[#5A5A5A]">
+                    Log in to continue your journey.
+                  </p>
+                </div>
+                <Link
+                  href="/login"
+                  className="w-full py-3 sm:py-4 font-bold text-foreground rounded-xl transition-all flex items-center justify-center gap-2 hover:scale-[1.02] hover:shadow-lg"
+                  style={{ background: 'linear-gradient(135deg, #ff74b1 0%, #ffeb76 50%, #65dbff 100%)', boxShadow: '0 4px 15px rgba(255, 116, 177, 0.4)' }}
+                >
+                  Go to Login
+                  <ArrowRight className="w-5 h-5" />
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUserExists(false);
+                    setEmail("");
+                  }}
+                  className="text-sm text-[#5A5A5A] hover:text-primary underline"
+                >
+                  Use a different email
+                </button>
+              </div>
+            ) : (
+              /* Normal Email Entry Form */
+              <motion.form
+                onSubmit={handleEmailSubmit}
+                className="space-y-4 sm:space-y-6"
+              >
+                <div>
+                  <h2 className="text-2xl sm:text-3xl font-bold text-[#3D3D3D] text-center mb-2 sm:mb-3">
+                    Start your free trial
+                  </h2>
+                  <p className="text-sm sm:text-base text-[#5A5A5A] text-center mb-4 sm:mb-6">
+                    Enter your email to get started. Free for 3 days • No credit card required
+                  </p>
+                </div>
+
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Enter your email"
+                  required
+                  className="w-full px-4 py-3 sm:py-4 rounded-xl border border-[#E8DDD9] bg-white text-[#3D3D3D] placeholder:text-[#9A9A9A] focus:outline-none focus:ring-2 focus:ring-[#ff74b1]/50 focus:border-[#ff74b1] text-base sm:text-lg"
+                  autoFocus
+                />
+
+                <button
+                  type="submit"
+                  disabled={loading || !emailValid}
+                  className="w-full py-3 sm:py-4 font-bold text-foreground rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] hover:shadow-lg"
+                  style={{ background: 'linear-gradient(135deg, #ff74b1 0%, #ffeb76 50%, #65dbff 100%)', boxShadow: '0 4px 15px rgba(255, 116, 177, 0.4)' }}
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Checking...
+                    </>
+                  ) : (
+                    <>
+                      Start my free trial
+                      <ArrowRight className="w-5 h-5" />
+                    </>
+                  )}
+                </button>
+
+                {error && (
+                  <div className="rounded-xl border border-error/30 bg-error/10 p-3 text-sm text-error">
+                    {error}
+                  </div>
+                )}
+
+                <p className="text-sm text-[#5A5A5A] text-center">
+                  Already have an account?{" "}
+                  <Link href="/login" className="text-primary font-semibold hover:underline">
+                    Log in
+                  </Link>
+                </p>
+              </motion.form>
+            )}
           </motion.div>
         </div>
       )}
