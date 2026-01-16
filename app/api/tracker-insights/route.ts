@@ -53,10 +53,19 @@ export async function GET(req: NextRequest) {
       trackerData.hydration
     );
 
-    return NextResponse.json({ 
-      data: summary,
-      period: `${days} days`,
-    });
+    return NextResponse.json(
+      { 
+        data: summary,
+        period: `${days} days`,
+      },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        },
+      }
+    );
   } catch (e: any) {
     console.error("GET /api/tracker-insights error:", e);
     return NextResponse.json(

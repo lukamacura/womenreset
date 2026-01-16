@@ -71,7 +71,16 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    return NextResponse.json({ data: data || [] });
+    return NextResponse.json(
+      { data: data || [] },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        },
+      }
+    );
   } catch (e) {
     console.error("GET /api/symptom-logs error:", e);
     return NextResponse.json(

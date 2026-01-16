@@ -3,19 +3,19 @@
 export default function LandingSocialProof() {
   const testimonials = [
     {
-      quote: "Lisa helped me find my triggers. Hot weather before headaches, stress before mood swings. Now I understand why I feel the way I do.",
+      quote: "I finally have all my symptoms organized in one place. When I see my doctor, I have real data to show her instead of trying to remember everything from the last three months.",
       author: "Michelle",
       age: 52,
       initial: "M",
     },
     {
-      quote: "Finally, answers that make sense. Not scary Google results. Real help that's tailored to my experience.",
+      quote: "The chat with Lisa is amazing. I can ask questions about menopause anytime and get clear, research-based answers. No more scary Google rabbit holes.",
       author: "Sarah",
       age: 49,
       initial: "S",
     },
     {
-      quote: "Lisa remembered my symptoms and connected the dots. It's like having an expert who actually knows me.",
+      quote: "I track my symptoms every morning — takes 30 seconds. The weekly summary shows me that I had fewer hot flashes this week, which gives me so much hope.",
       author: "Linda",
       age: 54,
       initial: "L",
@@ -27,10 +27,10 @@ export default function LandingSocialProof() {
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-12">
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-6 text-foreground">
-            Women are getting real answers
+            Women are taking control of menopause
           </h2>
           <p className="text-lg sm:text-xl text-muted-foreground">
-            Join 10,000+ women who stopped guessing and started understanding.
+            Join 10,000+ women who track symptoms, get answers, and feel informed.
           </p>
         </div>
 

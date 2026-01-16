@@ -3,14 +3,13 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, Activity, LogOut, ChevronDown, Bell } from "lucide-react";
+import { Activity, LogOut, ChevronDown, Bell, MessageSquare, Settings, Compass } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import LisaSwipeButton from "@/components/LisaSwipeButton";
 import { useTrialStatus } from "@/lib/useTrialStatus";
 import SessionVerification from "@/components/SessionVerification";
 import { NotificationProvider } from "@/components/notifications/NotificationProvider";
 import NotificationContainer from "@/components/notifications/NotificationContainer";
-import NotificationBell from "@/components/notifications/NotificationBell";
 import { PricingModalProvider, usePricingModal } from "@/lib/PricingModalContext";
 import { PricingModal } from "@/components/PricingModal";
 
@@ -57,15 +56,33 @@ export default function DashboardLayout({
   const navItems = [
     {
       href: "/dashboard",
-      label: "Dashboard",
-      icon: LayoutDashboard,
+      label: "My Overview",
+      icon: Compass,
       requiresActiveTrial: false,
     },
     {
       href: "/dashboard/symptoms",
-      label: "Symptom Tracker",
+      label: "Track Symptoms",
       icon: Activity,
       requiresActiveTrial: true,
+    },
+    {
+      href: "/chat/lisa",
+      label: "Chat with Lisa",
+      icon: MessageSquare,
+      requiresActiveTrial: false,
+    },
+    {
+      href: "/dashboard/notifications",
+      label: "Notifications",
+      icon: Bell,
+      requiresActiveTrial: false,
+    },
+    {
+      href: "/dashboard/settings",
+      label: "Settings",
+      icon: Settings,
+      requiresActiveTrial: false,
     },
   ];
 
@@ -83,7 +100,8 @@ export default function DashboardLayout({
   const activeItem = navItems.find(
     (item) =>
       pathname === item.href ||
-      (item.href !== "/dashboard" && pathname?.startsWith(item.href))
+      (item.href !== "/dashboard" && item.href !== "/chat/lisa" && pathname?.startsWith(item.href)) ||
+      (item.href === "/chat/lisa" && pathname === "/chat/lisa")
   ) || navItems[0];
 
   const ActiveIcon = activeItem.icon;
@@ -143,8 +161,10 @@ export default function DashboardLayout({
             <div className="relative lg:hidden" ref={dropdownRef}>
               <button
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold text-white transition-all duration-200 w-full min-w-[200px] hover:scale-105"
-                style={{ background: 'linear-gradient(135deg, #ff74b1 0%, #ffb4d5 100%)', boxShadow: '0 2px 8px rgba(255, 116, 177, 0.3)' }}
+                className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold bg-pink-300 text-pink-800 transition-all duration-200 w-full min-w-[200px] hover:scale-105"
+                style={{ boxShadow: '0 2px 8px rgba(255, 116, 177, 0.3)' }}
+                aria-label="Open navigation menu"
+                aria-expanded={isDropdownOpen}
               >
                 <ActiveIcon className="h-5 w-5" />
                 <span className="flex-1 text-left">{activeItem.label}</span>
@@ -161,7 +181,8 @@ export default function DashboardLayout({
                     const Icon = item.icon;
                     const isActive =
                       pathname === item.href ||
-                      (item.href !== "/dashboard" && pathname?.startsWith(item.href));
+                      (item.href !== "/dashboard" && item.href !== "/chat/lisa" && pathname?.startsWith(item.href)) ||
+                      (item.href === "/chat/lisa" && pathname === "/chat/lisa");
 
                     const isDisabled = item.requiresActiveTrial && trialStatus.expired;
                     return (
@@ -182,6 +203,8 @@ export default function DashboardLayout({
                           }
                         `}
                         style={isActive ? { background: 'linear-gradient(135deg, #ff74b1 0%, #ffb4d5 100%)' } : {}}
+                        aria-label={item.label}
+                        aria-current={isActive ? "page" : undefined}
                       >
                         <Icon className="h-5 w-5" />
                         <span>{item.label}</span>
@@ -189,17 +212,6 @@ export default function DashboardLayout({
                     );
                   })}
                   <div className="border-t border-foreground/10">
-                    <Link
-                      href="/dashboard/notifications"
-                      onClick={() => setIsDropdownOpen(false)}
-                      className="flex w-full items-center gap-3 px-4 py-3 text-sm font-medium text-foreground hover:bg-foreground/5 transition-colors duration-200"
-                    >
-                      <div className="relative">
-                        <Bell className="h-5 w-5" />
-                        {/* Badge would be shown here if needed, but useUnreadCount is already in NotificationBell */}
-                      </div>
-                      <span>Notifications</span>
-                    </Link>
                     <button
                       onClick={handleLogout}
                       className="flex w-full items-center gap-3 px-4 py-3 text-sm font-medium text-muted-foreground hover:bg-foreground/5 hover:text-foreground transition-colors duration-200"
@@ -218,7 +230,9 @@ export default function DashboardLayout({
                 const Icon = item.icon;
                 const isActive =
                   pathname === item.href ||
-                  (item.href !== "/dashboard" && pathname?.startsWith(item.href));
+                  (item.href !== "/dashboard" && item.href !== "/chat/lisa" && pathname?.startsWith(item.href)) ||
+                  (item.href === "/chat/lisa" && pathname === "/chat/lisa") ||
+                  (item.href === "/dashboard/settings" && pathname?.startsWith("/dashboard/settings"));
 
                 const isDisabled = item.requiresActiveTrial && trialStatus.expired;
                 return (
@@ -235,6 +249,8 @@ export default function DashboardLayout({
                           : "text-foreground! hover:bg-foreground/5 hover:scale-105"
                         }
                       `}
+                      aria-label={item.label}
+                      aria-current={isActive ? "page" : undefined}
                     >
                       <Icon className="h-6 w-6 transition-transform duration-300" />
                       <span>{item.label}</span>
@@ -244,9 +260,8 @@ export default function DashboardLayout({
               })}
             </div>
 
-            {/* Desktop Notification Bell & Logout Button */}
+            {/* Desktop Logout Button */}
             <div className="hidden lg:flex items-center gap-2">
-              <NotificationBell />
               <button
                 onClick={handleLogout}
                 className="flex items-center bg-error/15 hover:bg-error/70 text-error cursor-pointer gap-2 rounded-lg px-4 py-2 text-sm font-bold  hover:text-foreground transition-colors duration-200"

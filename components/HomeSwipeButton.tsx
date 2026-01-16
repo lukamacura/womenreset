@@ -63,7 +63,7 @@ export default function HomeSwipeButton() {
     if (finalOffset >= SWIPE_THRESHOLD) {
       // Swipe successful - navigate based on auth status
       if (isAuthenticated) {
-        router.push("/chat/lisa");
+        router.push("/dashboard");
       } else {
         router.push("/register");
       }
@@ -82,7 +82,10 @@ export default function HomeSwipeButton() {
     dragOffsetRef.current = 0;
   };
 
-  // Inject glow animation styles
+  // Aggressive glow animation state
+  const [isGlowing, setIsGlowing] = useState(false);
+
+  // Inject aggressive glow animation styles
   useEffect(() => {
     const styleId = 'home-swipe-button-glow-styles';
     if (document.getElementById(styleId)) return;
@@ -90,18 +93,24 @@ export default function HomeSwipeButton() {
     const style = document.createElement('style');
     style.id = styleId;
     style.textContent = `
-      @keyframes pulseGlow {
-        0%, 100% {
-          box-shadow: 0 0 30px rgba(255, 116, 177, 0.7),
-                      0 0 60px rgba(255, 116, 177, 0.5),
-                      0 0 90px rgba(255, 116, 177, 0.4),
-                      0 0 120px rgba(255, 116, 177, 0.3);
+      @keyframes smoothGlow {
+        0% {
+          box-shadow: 0 0 20px rgba(255, 116, 177, 0.3),
+                      0 0 40px rgba(255, 116, 177, 0.2),
+                      0 0 60px rgba(255, 116, 177, 0.15);
+          transform: translateX(0);
         }
         50% {
-          box-shadow: 0 0 50px rgba(255, 116, 177, 0.9),
-                      0 0 100px rgba(255, 116, 177, 0.7),
-                      0 0 150px rgba(255, 116, 177, 0.5),
-                      0 0 200px rgba(255, 116, 177, 0.4);
+          box-shadow: 0 0 50px rgba(255, 116, 177, 0.7),
+                      0 0 80px rgba(255, 116, 177, 0.5),
+                      0 0 120px rgba(255, 116, 177, 0.4);
+          transform: translateX(8px);
+        }
+        100% {
+          box-shadow: 0 0 20px rgba(255, 116, 177, 0.3),
+                      0 0 40px rgba(255, 116, 177, 0.2),
+                      0 0 60px rgba(255, 116, 177, 0.15);
+          transform: translateX(0);
         }
       }
     `;
@@ -114,6 +123,36 @@ export default function HomeSwipeButton() {
       }
     };
   }, []);
+
+  // Trigger aggressive glow animation every 5 seconds
+  useEffect(() => {
+    // Trigger immediately on mount, then every 5 seconds
+    const triggerGlow = () => {
+      if (!isDragging) {
+        // Reset glow state first
+        setIsGlowing(false);
+        // Then trigger aggressive glow on next frame to ensure restart
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            setIsGlowing(true);
+            // Reset after animation completes (1.5s for smooth glow)
+            setTimeout(() => setIsGlowing(false), 1500);
+          });
+        });
+      }
+    };
+
+    // Initial trigger
+    const initialTimeout = setTimeout(triggerGlow, 100);
+    
+    // Then repeat every 5 seconds
+    const interval = setInterval(triggerGlow, 5000);
+
+    return () => {
+      clearTimeout(initialTimeout);
+      clearInterval(interval);
+    };
+  }, [isDragging]);
 
   // Handle mouse events for desktop
   useEffect(() => {
@@ -137,7 +176,7 @@ export default function HomeSwipeButton() {
       if (finalOffset >= SWIPE_THRESHOLD) {
         // Navigate based on auth status
         if (isAuthenticated) {
-          router.push("/chat/lisa");
+          router.push("/dashboard");
         } else {
           router.push("/register");
         }
@@ -160,7 +199,7 @@ export default function HomeSwipeButton() {
     // Only navigate if we didn't just complete a drag
     if (dragOffsetRef.current === 0 && !isDragging) {
       if (isAuthenticated) {
-        router.push("/chat/lisa");
+        router.push("/dashboard");
       } else {
         router.push("/register");
       }
@@ -194,10 +233,17 @@ export default function HomeSwipeButton() {
       };
     }
     
-    // Faster, more visible pulsing glow when idle
+    // Smooth glow animation with subtle movement when triggered (every 5 seconds)
+    if (isGlowing && !isDragging) {
+      return {
+        animation: 'smoothGlow 1.5s ease-in-out',
+        boxShadow: undefined
+      };
+    }
+    
+    // Default subtle glow when idle
     return {
-      animation: 'pulseGlow 1.5s ease-in-out infinite',
-      boxShadow: undefined
+      boxShadow: '0 0 20px rgba(255, 116, 177, 0.3), 0 0 40px rgba(255, 116, 177, 0.2)'
     };
   };
 
@@ -207,8 +253,8 @@ export default function HomeSwipeButton() {
       return "Swipe to get started";
     }
     return isAuthenticated 
-      ? "Swipe to chat with Lisa" 
-      : "Swipe to try for free";
+      ? "Swipe to see your overview" 
+      : "Swipe to start free trial";
   };
 
   return (
@@ -238,8 +284,10 @@ export default function HomeSwipeButton() {
                   ? `rgb(${255 - Math.floor(swipeProgress * 28)}, ${123 - Math.floor(swipeProgress * 25)}, ${156 - Math.floor(swipeProgress * 28)})`
                   : undefined,
                 transition: isDragging 
-                  ? 'background-color 0.1s ease-out, transform 0.1s ease-out, box-shadow 0.1s ease-out' 
-                  : 'background-color 0.3s ease-out, transform 0.3s ease-out, box-shadow 0.3s ease-out',
+                  ? 'background-color 0.1s ease-out, box-shadow 0.1s ease-out' 
+                  : isGlowing
+                    ? 'background-color 0.3s ease-out, box-shadow 0.3s ease-out'
+                    : 'background-color 0.3s ease-out, transform 0.3s ease-out, box-shadow 0.3s ease-out',
                 ...getGlowStyle()
               }}
             >

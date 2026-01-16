@@ -12,12 +12,12 @@ export default function LandingFAQ() {
     {
       question: "What makes Lisa different?",
       answer:
-        "Lisa is a menopause specialist focused entirely on your experience. Her knowledge comes from curated medical research, and she tracks your symptoms to find personal patterns. She's not a general assistant—she's built specifically for menopause.",
+        "This app focuses entirely on menopause — not a general health tracker. You get simple symptom tracking, clear data organization, weekly summaries, and a chat with Lisa who answers menopause questions using research-based information. Everything is designed for this phase of life.",
     },
     {
       question: "Is Lisa's information reliable?",
       answer:
-        "Yes. Lisa's knowledge base is built from evidence-based sources and reviewed by menopause specialists. She's not pulling random content from the internet—everything is curated and focused on menopause.",
+        "Yes. Lisa provides general menopause education based on medical research and reviewed by specialists. She answers questions about menopause, but she doesn't diagnose conditions or recommend treatments. Always consult your doctor for medical advice.",
     },
     {
       question: "Is my data private?",
@@ -31,7 +31,7 @@ export default function LandingFAQ() {
     {
       question: "Is this medical advice?",
       answer:
-        "No. Lisa provides education and tracking, not diagnosis or treatment. Always consult a healthcare provider for medical decisions.",
+        "No. This app provides symptom tracking and menopause education, not diagnosis or treatment. Lisa gives general information about menopause based on research. Always consult your healthcare provider for medical decisions.",
     },
     {
       question: "Can I cancel anytime?",

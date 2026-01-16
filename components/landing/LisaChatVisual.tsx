@@ -33,15 +33,13 @@ export default function LisaChatVisual() {
         }}
       >
         <p style={{ margin: '0 0 8px 0' }}>
-          <span style={{ fontWeight: 700 }}>Hey!</span> Before we chat — I found 
-          something interesting in your logs.
+          <span style={{ fontWeight: 700 }}>Hey!</span> I see you've been tracking for a week now.
         </p>
         <p style={{ margin: '0 0 8px 0' }}>
-          Looks like <span style={{ fontWeight: 700 }}>Hot weather</span> appears 
-          frequently with your <span style={{ fontWeight: 700 }}>Headaches</span>.
+          You logged symptoms <span style={{ fontWeight: 700 }}>6 out of 7 days</span> — that's great consistency!
         </p>
         <p style={{ margin: 0 }}>
-          Want me to explain what this means?
+          Want to know more about managing hot flashes?
         </p>
       </div>
 
@@ -80,7 +78,7 @@ export default function LisaChatVisual() {
             color: '#111827'
           }}
         >
-          Alright, here's the scoop! ☀️
+          Great question! Here's what research shows: ☀️
         </p>
 
         <p
@@ -92,9 +90,7 @@ export default function LisaChatVisual() {
             lineHeight: 1.5
           }}
         >
-          When it's hot, your body works overtime to stay cool, which can lead to 
-          dehydration and headaches. Plus, hormonal changes during menopause make you 
-          more sensitive to heat.
+          Hot flashes happen when changing estrogen levels affect your body's temperature regulation. Here's what can help:
         </p>
 
         <div
@@ -125,7 +121,7 @@ export default function LisaChatVisual() {
                   marginBottom: '2px'
                 }}
               >
-                Hydrate, hydrate, hydrate
+                Stay hydrated
               </span>
               <span
                 className="tip-text"
@@ -135,7 +131,7 @@ export default function LisaChatVisual() {
                   display: 'block'
                 }}
               >
-                Drink more water on hot days.
+                Drinking water helps regulate body temperature.
               </span>
             </div>
           </div>
@@ -160,7 +156,7 @@ export default function LisaChatVisual() {
                   marginBottom: '2px'
                 }}
               >
-                Cool yourself down
+                Layer your clothing
               </span>
               <span
                 className="tip-text"
@@ -170,7 +166,7 @@ export default function LisaChatVisual() {
                   display: 'block'
                 }}
               >
-                A cold pack on your forehead helps.
+                Easy to remove layers when a hot flash hits.
               </span>
             </div>
           </div>
@@ -195,7 +191,7 @@ export default function LisaChatVisual() {
                   marginBottom: '2px'
                 }}
               >
-                Stress management
+                Try deep breathing
               </span>
               <span
                 className="tip-text"
@@ -205,7 +201,7 @@ export default function LisaChatVisual() {
                   display: 'block'
                 }}
               >
-                Try deep breathing or gentle yoga.
+                Slow breathing can reduce intensity and duration.
               </span>
             </div>
           </div>

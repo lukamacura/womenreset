@@ -1912,7 +1912,7 @@ function ChatPageInner() {
               className="inline-flex items-center gap-2 rounded-lg px-6 py-3 text-base font-semibold text-white transition-all hover:opacity-90"
               style={{ backgroundColor: THEME.pink[500] }}
             >
-              Go to Dashboard
+              Go to My Overview
             </button>
           </div>
         </div>

@@ -112,6 +112,44 @@ export default function SymptomsPage() {
     useSymptomLogs(30);
   useUserProfile();
   const { mood: dailyMood } = useDailyMood();
+
+  // Refetch data when component mounts or auth state changes
+  useEffect(() => {
+    // Refetch on mount to ensure fresh data (with delay to ensure session is ready)
+    const timer = setTimeout(() => {
+      refetchSymptoms();
+      refetchLogs();
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [refetchSymptoms, refetchLogs]);
+
+  // Listen for auth state change events
+  useEffect(() => {
+    const handleAuthChange = () => {
+      // Refetch all data when auth state changes
+      refetchSymptoms();
+      refetchLogs();
+      router.refresh();
+    };
+
+    window.addEventListener('auth-state-changed', handleAuthChange);
+    return () => {
+      window.removeEventListener('auth-state-changed', handleAuthChange);
+    };
+  }, [refetchSymptoms, refetchLogs, router]);
+
+  // Handle URL query params from auth redirect
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('auth') === 'success') {
+      // Clear the query param
+      window.history.replaceState({}, '', '/dashboard/symptoms');
+      // Refetch all data
+      refetchSymptoms();
+      refetchLogs();
+      router.refresh();
+    }
+  }, [refetchSymptoms, refetchLogs, router]);
   const [selectedSymptom, setSelectedSymptom] = useState<Symptom | null>(null);
   const [editingLog, setEditingLog] = useState<SymptomLog | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);

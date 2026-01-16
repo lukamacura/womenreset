@@ -43,11 +43,20 @@ export async function GET(req: NextRequest) {
     const supabaseAdmin = getSupabaseAdmin();
     const { data, error: queryError } = await supabaseAdmin
       .from("user_preferences")
-      .select("notification_enabled, morning_checkin_time, evening_checkin_enabled, evening_checkin_time, weekly_summary_day, insight_notifications, streak_reminders")
+      .select("notification_enabled, reminder_time")
       .eq("user_id", user.id)
       .single();
 
     if (queryError) {
+      // If no preferences exist, return defaults
+      if (queryError.code === 'PGRST116') {
+        return NextResponse.json({
+          data: {
+            notification_enabled: true,
+            reminder_time: "09:00",
+          }
+        });
+      }
       console.error("Supabase query error:", queryError);
       return NextResponse.json(
         { error: "Failed to fetch notification preferences" },
@@ -58,17 +67,20 @@ export async function GET(req: NextRequest) {
     // Return defaults if no preferences found
     if (!data) {
       return NextResponse.json({
-        notification_enabled: true,
-        morning_checkin_time: "08:00",
-        evening_checkin_enabled: false,
-        evening_checkin_time: "20:00",
-        weekly_summary_day: 0,
-        insight_notifications: true,
-        streak_reminders: true,
+        data: {
+          notification_enabled: true,
+          reminder_time: "09:00",
+        }
       });
     }
 
-    return NextResponse.json({ data });
+    // Ensure reminder_time exists, default to 09:00 if not
+    return NextResponse.json({ 
+      data: {
+        notification_enabled: data.notification_enabled ?? true,
+        reminder_time: data.reminder_time || "09:00",
+      }
+    });
   } catch (e) {
     console.error("GET /api/notifications/preferences error:", e);
     return NextResponse.json(
@@ -89,33 +101,13 @@ export async function PUT(req: NextRequest) {
     const body = await req.json();
     const {
       notification_enabled,
-      morning_checkin_time,
-      evening_checkin_enabled,
-      evening_checkin_time,
-      weekly_summary_day,
-      insight_notifications,
-      streak_reminders,
+      reminder_time,
     } = body;
 
-    // Validate time format (HH:MM)
-    if (morning_checkin_time && !/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(morning_checkin_time)) {
+    // Validate reminder_time format (HH:MM)
+    if (reminder_time && !/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(reminder_time)) {
       return NextResponse.json(
-        { error: "Invalid morning_checkin_time format. Use HH:MM" },
-        { status: 400 }
-      );
-    }
-
-    if (evening_checkin_time && !/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(evening_checkin_time)) {
-      return NextResponse.json(
-        { error: "Invalid evening_checkin_time format. Use HH:MM" },
-        { status: 400 }
-      );
-    }
-
-    // Validate weekly_summary_day (0-6, where 0=Sunday)
-    if (weekly_summary_day !== undefined && (weekly_summary_day < 0 || weekly_summary_day > 6)) {
-      return NextResponse.json(
-        { error: "weekly_summary_day must be between 0 (Sunday) and 6 (Saturday)" },
+        { error: "Invalid reminder_time format. Use HH:MM (e.g., 09:00)" },
         { status: 400 }
       );
     }
@@ -123,19 +115,26 @@ export async function PUT(req: NextRequest) {
     const supabaseAdmin = getSupabaseAdmin();
     const updateData: any = {};
 
-    if (notification_enabled !== undefined) updateData.notification_enabled = notification_enabled;
-    if (morning_checkin_time !== undefined) updateData.morning_checkin_time = morning_checkin_time;
-    if (evening_checkin_enabled !== undefined) updateData.evening_checkin_enabled = evening_checkin_enabled;
-    if (evening_checkin_time !== undefined) updateData.evening_checkin_time = evening_checkin_time;
-    if (weekly_summary_day !== undefined) updateData.weekly_summary_day = weekly_summary_day;
-    if (insight_notifications !== undefined) updateData.insight_notifications = insight_notifications;
-    if (streak_reminders !== undefined) updateData.streak_reminders = streak_reminders;
+    if (notification_enabled !== undefined) {
+      updateData.notification_enabled = notification_enabled;
+    }
+    if (reminder_time !== undefined) {
+      updateData.reminder_time = reminder_time;
+    }
+
+    // Ensure we have at least one field to update
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json(
+        { error: "No fields to update" },
+        { status: 400 }
+      );
+    }
 
     const { data, error: updateError } = await supabaseAdmin
       .from("user_preferences")
       .update(updateData)
       .eq("user_id", user.id)
-      .select()
+      .select("notification_enabled, reminder_time")
       .single();
 
     if (updateError) {
@@ -144,8 +143,13 @@ export async function PUT(req: NextRequest) {
       if (updateError.code === 'PGRST116') {
         const { data: newData, error: insertError } = await supabaseAdmin
           .from("user_preferences")
-          .insert([{ user_id: user.id, ...updateData }])
-          .select()
+          .insert([{ 
+            user_id: user.id, 
+            notification_enabled: notification_enabled ?? true,
+            reminder_time: reminder_time || "09:00",
+            ...updateData 
+          }])
+          .select("notification_enabled, reminder_time")
           .single();
 
         if (insertError) {

@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '@/lib/supabaseClient';
 import type { Symptom } from '@/lib/symptom-tracker-constants';
 
 interface UseSymptomsResult {
@@ -12,8 +13,40 @@ export function useSymptoms(): UseSymptomsResult {
   const [symptoms, setSymptoms] = useState<Symptom[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [user, setUser] = useState<any>(null);
 
-  const fetchSymptoms = async () => {
+  // Get user on mount and listen for auth changes
+  useEffect(() => {
+    // Get initial user
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) {
+        setUser(data.user);
+      }
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session?.user) {
+        setUser(session.user);
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null);
+        setSymptoms([]);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const fetchSymptoms = useCallback(async () => {
+    // Don't fetch if no user
+    if (!user) {
+      setLoading(false);
+      setSymptoms([]);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
@@ -21,6 +54,10 @@ export function useSymptoms(): UseSymptomsResult {
       const response = await fetch('/api/symptoms', {
         method: 'GET',
         cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+        },
       });
 
       if (!response.ok) {
@@ -36,11 +73,11 @@ export function useSymptoms(): UseSymptomsResult {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
     fetchSymptoms();
-  }, []);
+  }, [fetchSymptoms]);
 
   return {
     symptoms,

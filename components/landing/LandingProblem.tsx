@@ -1,254 +1,183 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion"
-import { BookOpen, Book, FileText, Brain, Lightbulb, Sparkles } from "lucide-react"
+import { motion, AnimatePresence, useReducedMotion, useInView } from "framer-motion"
+import { Check, FileText, MessageCircle, Send } from "lucide-react"
 
-// Hook to get responsive dimensions - calculates based on container size
-function useResponsiveDimensions() {
-  const containerRef = useRef<HTMLDivElement>(null)
-  const [dimensions, setDimensions] = useState({ centerX: 300, centerY: 200, scale: 1 })
-  
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    
-    const updateDimensions = () => {
-      if (!containerRef.current) {
-        // Fallback to window-based calculation
-        const isMobile = window.innerWidth < 640
-        setDimensions({
-          centerX: isMobile ? 150 : 300,
-          centerY: isMobile ? 125 : 200,
-          scale: isMobile ? 0.5 : 1,
-        })
-        return
-      }
-      
-      const rect = containerRef.current.getBoundingClientRect()
-      const centerX = rect.width / 2
-      const centerY = rect.height / 2
-      const isMobile = rect.width < 640
-      
-      setDimensions({
-        centerX,
-        centerY,
-        scale: isMobile ? 0.5 : 1,
-      })
-    }
-    
-    updateDimensions()
-    window.addEventListener('resize', updateDimensions)
-    // Use ResizeObserver for more accurate container size tracking
-    const resizeObserver = new ResizeObserver(updateDimensions)
-    if (containerRef.current) {
-      resizeObserver.observe(containerRef.current)
-    }
-    
-    return () => {
-      window.removeEventListener('resize', updateDimensions)
-      resizeObserver.disconnect()
-    }
-  }, [])
-  
-  return { ...dimensions, containerRef }
+// Smooth spring config for premium feel
+const smoothSpring = {
+  type: "spring" as const,
+  damping: 30,
+  stiffness: 200,
 }
 
-// Animation 1: Pattern Network - Neural network showing symptom connections
-function PatternAnimation({ prefersReducedMotion }: { prefersReducedMotion: boolean | null }) {
-  const { centerX, centerY, containerRef } = useResponsiveDimensions()
-  const nodes = [
-    { id: "center", label: "You", x: centerX, y: centerY, isCenter: true },
-    { id: "hot", label: "Hot Flashes", x: centerX + 120, y: centerY - 80 },
-    { id: "mood", label: "Mood", x: centerX - 100, y: centerY - 60 },
-    { id: "sleep", label: "Sleep", x: centerX - 80, y: centerY + 100 },
-    { id: "energy", label: "Energy", x: centerX + 100, y: centerY + 90 },
+const ultraSmoothSpring = {
+  type: "spring" as const,
+  damping: 40,
+  stiffness: 150,
+}
+
+// ============================================
+// Animation 1: Scattered Symptoms (Confusion)
+// Message: "You know something's wrong"
+// Visual: Symptoms floating chaotically with question marks
+// ============================================
+function ScatteredSymptomsAnimation({ 
+  prefersReducedMotion,
+  isInView 
+}: { 
+  prefersReducedMotion: boolean | null
+  isInView: boolean
+}) {
+  const symptoms = [
+    { id: "hot", label: "Hot Flash", x: 20, y: 25, delay: 0 },
+    { id: "mood", label: "Mood Swing", x: 70, y: 20, delay: 0.1 },
+    { id: "brain", label: "Brain Fog", x: 25, y: 70, delay: 0.2 },
+    { id: "sleep", label: "Poor Sleep", x: 75, y: 65, delay: 0.3 },
+    { id: "fatigue", label: "Fatigue", x: 50, y: 45, delay: 0.15 },
   ]
 
   if (prefersReducedMotion) {
     return (
       <div className="relative w-full h-full flex items-center justify-center">
-        <div className="relative">
-          {nodes.map((node) => (
-            <div
-              key={node.id}
-              className={`absolute rounded-full flex items-center justify-center text-xs font-medium ${
-                node.isCenter
-                  ? "w-16 h-16 bg-linear-to-br from-[#FF6B9D] to-[#FFA07A] text-white shadow-lg"
-                  : "w-12 h-12 bg-pink-100 text-gray-700 shadow-md"
-              }`}
-              style={{
-                left: `${node.x - (node.isCenter ? 32 : 24)}px`,
-                top: `${node.y - (node.isCenter ? 32 : 24)}px`,
-              }}
-            >
-              {node.label}
-            </div>
-          ))}
+        {symptoms.map((s) => (
+          <div
+            key={s.id}
+            className="absolute px-4 py-2 rounded-full bg-red-100 border border-red-200 text-sm font-medium text-red-800"
+            style={{ left: `${s.x}%`, top: `${s.y}%`, transform: 'translate(-50%, -50%)' }}
+          >
+            {s.label}
+          </div>
+        ))}
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-4xl text-red-400 font-bold">
+          ?
         </div>
       </div>
     )
   }
 
   return (
-    <div ref={containerRef} className="relative w-full h-full flex items-center justify-center overflow-hidden">
-      <svg className="absolute inset-0 w-full h-full" style={{ filter: "drop-shadow(0 0 3px rgba(255, 107, 157, 0.4))" }}>
-        {/* Connection lines */}
-        {nodes
-          .filter((node) => !node.isCenter)
-          .map((node, index) => {
-            const path = `M ${centerX} ${centerY} L ${node.x} ${node.y}`
-            return (
-              <motion.path
-                key={`line-${node.id}`}
-                d={path}
-                stroke="url(#pinkGradientPattern)"
-                strokeWidth="2.5"
-                fill="none"
-                initial={{ pathLength: 0, opacity: 0 }}
-                animate={{ 
-                  pathLength: [0, 1, 1],
-                  opacity: [0, 0.7, 0.7],
-                }}
-                transition={{
-                  duration: 5.25,
-                  times: [0, 0.3, 1],
-                  delay: 0.3 + index * 0.1,
-                  repeat: Infinity,
-                  repeatDelay: 0.5,
-                  ease: [0.16, 1, 0.3, 1],
-                }}
-              />
-            )
-          })}
-        <defs>
-          <linearGradient id="pinkGradientPattern" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#FF6B9D" stopOpacity="0.9" />
-            <stop offset="100%" stopColor="#FFA07A" stopOpacity="0.9" />
-          </linearGradient>
-          <filter id="glowPattern">
-            <feGaussianBlur stdDeviation="3" result="coloredBlur" />
-            <feMerge>
-              <feMergeNode in="coloredBlur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-        </defs>
-      </svg>
-
-      {/* Energy pulses */}
-      {nodes
-        .filter((node) => !node.isCenter)
-        .map((node, index) => {
-          const dx = node.x - centerX
-          const dy = node.y - centerY
-
-          return (
-            <motion.div
-              key={`pulse-${node.id}`}
-              className="absolute w-4 h-4 rounded-full bg-linear-to-br from-[#FF6B9D] to-[#FFA07A] shadow-lg"
-              style={{
-                left: centerX - 8,
-                top: centerY - 8,
-                filter: "drop-shadow(0 0 6px rgba(255, 107, 157, 0.8))",
-              }}
-              initial={{ x: 0, y: 0, opacity: 0, scale: 0.3 }}
-              animate={{
-                x: [0, dx, dx],
-                y: [0, dy, dy],
-                opacity: [0, 1, 0],
-                scale: [0.3, 1.2, 0.3],
-              }}
-              transition={{
-                duration: 3.5,
-                times: [0, 0.4, 1],
-                delay: 0.9 + index * 0.2,
-                repeat: Infinity,
-                repeatDelay: 0.3,
-                ease: "easeOut",
-              }}
-            />
-          )
-        })}
-
-      {/* Nodes */}
-      {nodes.map((node, index) => (
+    <div className="relative w-full h-full">
+      {/* Symptom bubbles floating chaotically */}
+      {symptoms.map((symptom, index) => (
         <motion.div
-          key={node.id}
-          className={`absolute rounded-full flex items-center justify-center text-xs font-medium ${
-            node.isCenter
-              ? "w-16 h-16 bg-linear-to-br from-[#FF6B9D] to-[#FFA07A] text-white shadow-lg"
-              : "w-12 h-12 bg-pink-100/90 text-gray-700 shadow-md backdrop-blur-sm border border-pink-200/50"
-          }`}
-          style={{
-            left: `${node.x - (node.isCenter ? 32 : 24)}px`,
-            top: `${node.y - (node.isCenter ? 32 : 24)}px`,
-          }}
-          initial={{ opacity: 0, scale: 0 }}
-          animate={{
-            opacity: [0, 1, 1],
-            scale: [0, 1, 1],
-          }}
+          key={symptom.id}
+          className="absolute"
+          style={{ left: `${symptom.x}%`, top: `${symptom.y}%` }}
+          initial={{ opacity: 0, scale: 0, x: "-50%", y: "-50%" }}
+          animate={isInView ? {
+            opacity: 1,
+            scale: 1,
+            x: ["-50%", "-45%", "-55%", "-50%"],
+            y: ["-50%", "-55%", "-45%", "-50%"],
+            rotate: [-3, 3, -3],
+          } : { opacity: 0, scale: 0 }}
           transition={{
-            duration: 3.5,
-            times: [0, 0.15, 1],
-            delay: index * 0.1,
-            repeat: Infinity,
-            repeatDelay: 0.5,
-            ease: [0.16, 1, 0.3, 1],
+            opacity: { duration: 0.5, delay: symptom.delay },
+            scale: { ...smoothSpring, delay: symptom.delay },
+            x: { duration: 4, repeat: Infinity, ease: "easeInOut", delay: index * 0.3 },
+            y: { duration: 3.5, repeat: Infinity, ease: "easeInOut", delay: index * 0.2 },
+            rotate: { duration: 3, repeat: Infinity, ease: "easeInOut", delay: index * 0.1 },
           }}
         >
+          <div className="px-4 py-2 rounded-full bg-red-50 border-2 border-red-200 shadow-lg backdrop-blur-sm">
+            <span className="text-sm font-semibold text-red-700">{symptom.label}</span>
+          </div>
+          
+          {/* Floating question mark */}
           <motion.span
-            animate={node.isCenter ? {} : { scale: [1, 1.15, 1] }}
+            className="absolute -top-3 -right-2 text-red-400 text-lg font-bold"
+            animate={{
+              y: [0, -6, 0],
+              opacity: [0.5, 1, 0.5],
+            }}
             transition={{
-              duration: 0.4,
-              delay: 1.4 + index * 0.2,
+              duration: 2,
               repeat: Infinity,
-              repeatDelay: 0.6,
+              delay: index * 0.15,
               ease: "easeInOut",
             }}
-            className="text-center px-1"
           >
-            {node.label}
+            ?
           </motion.span>
         </motion.div>
       ))}
+
+      {/* Central large question mark */}
+      <motion.div
+        className="absolute left-1/2 top-1/2"
+        initial={{ opacity: 0, scale: 0 }}
+        animate={isInView ? { 
+          opacity: [0, 0.3, 0.15, 0.3],
+          scale: 1,
+          rotate: [0, 5, -5, 0],
+        } : { opacity: 0, scale: 0 }}
+        transition={{
+          opacity: { duration: 3, repeat: Infinity, ease: "easeInOut" },
+          scale: { ...ultraSmoothSpring, delay: 0.3 },
+          rotate: { duration: 4, repeat: Infinity, ease: "easeInOut" },
+        }}
+        style={{ x: "-50%", y: "-50%" }}
+      >
+        <span className="text-8xl font-bold text-red-300/50">?</span>
+      </motion.div>
+
+      {/* Subtle confusion lines */}
+      <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-20">
+        <motion.path
+          d="M 100 150 Q 200 100 300 180 Q 400 250 500 150"
+          stroke="#ef4444"
+          strokeWidth="2"
+          fill="none"
+          strokeDasharray="8 8"
+          initial={{ pathLength: 0 }}
+          animate={isInView ? { pathLength: [0, 1, 0] } : { pathLength: 0 }}
+          transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <motion.path
+          d="M 150 250 Q 250 180 350 280 Q 450 150 550 220"
+          stroke="#f87171"
+          strokeWidth="2"
+          fill="none"
+          strokeDasharray="8 8"
+          initial={{ pathLength: 0 }}
+          animate={isInView ? { pathLength: [0, 1, 0] } : { pathLength: 0 }}
+          transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+        />
+      </svg>
     </div>
   )
 }
 
-// Animation 2: Information Flow - Books organizing themselves
-function InformationAnimation({ prefersReducedMotion }: { prefersReducedMotion: boolean | null }) {
-  const icons = [BookOpen, Book, FileText, Brain, Lightbulb]
-  const { centerX, centerY, containerRef } = useResponsiveDimensions()
-  
-  // Start positions from edges - calculated relative to center
-  const [startPositions] = useState(() => {
-    return icons.map((_, i) => {
-      // Distribute icons from different edges in a circle pattern
-      const angle = (i / icons.length) * Math.PI * 2
-      const radius = 180 // Distance from center
-      const x = Math.cos(angle) * radius
-      const y = Math.sin(angle) * radius
-      const rotation = (Math.random() - 0.5) * 30
-      
-      return { x, y, rotation }
-    })
-  })
-  
-  const cardWidth = 80
-  const cardHeight = 100
-  const stackOffset = 8
+// ============================================
+// Animation 2: Organized Tracking
+// Message: "Track it. See it organized."
+// Visual: Phone screen with symptoms organizing into rows
+// ============================================
+function OrganizedTrackingAnimation({ 
+  prefersReducedMotion,
+  isInView 
+}: { 
+  prefersReducedMotion: boolean | null
+  isInView: boolean
+}) {
+  const symptoms = [
+    { id: "hot", label: "Hot Flash", color: "bg-orange-400" },
+    { id: "mood", label: "Mood Swing", color: "bg-purple-400" },
+    { id: "sleep", label: "Poor Sleep", color: "bg-blue-400" },
+    { id: "fatigue", label: "Fatigue", color: "bg-green-400" },
+  ]
 
   if (prefersReducedMotion) {
     return (
       <div className="relative w-full h-full flex items-center justify-center">
-        <div className="flex gap-2">
-          {icons.map((Icon, index) => (
-            <div
-              key={index}
-              className="w-16 h-20 rounded-lg bg-linear-to-br from-[#FF6B9D]/20 to-[#FFA07A]/20 border-2 border-[#FF6B9D]/30 flex items-center justify-center text-[#FF6B9D] shadow-lg"
-            >
-              <Icon size={32} strokeWidth={2} />
+        <div className="w-64 bg-white rounded-3xl shadow-2xl p-4 border border-gray-100">
+          <div className="h-8 bg-linear-to-r from-pink-400 to-orange-300 rounded-xl mb-4" />
+          {symptoms.map((s) => (
+            <div key={s.id} className="flex items-center gap-3 py-2 border-b border-gray-100">
+              <div className={`w-3 h-3 rounded-full ${s.color}`} />
+              <span className="text-sm text-gray-700">{s.label}</span>
+              <Check className="w-4 h-4 text-green-500 ml-auto" />
             </div>
           ))}
         </div>
@@ -257,327 +186,334 @@ function InformationAnimation({ prefersReducedMotion }: { prefersReducedMotion: 
   }
 
   return (
-    <div ref={containerRef} className="relative w-full h-full flex items-center justify-center overflow-hidden">
-      {icons.map((Icon, index) => {
-        // Target position: centered stack with slight offset
-        const targetX = centerX - cardWidth / 2 + index * stackOffset
-        const targetY = centerY - cardHeight / 2 - index * stackOffset
-        const startX = centerX + startPositions[index].x - cardWidth / 2
-        const startY = centerY + startPositions[index].y - cardHeight / 2
+    <div className="relative w-full h-full flex items-center justify-center">
+      {/* Phone mockup */}
+      <motion.div
+        className="relative w-64 sm:w-72 bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-200"
+        initial={{ opacity: 0, y: 30, scale: 0.95 }}
+        animate={isInView ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 30, scale: 0.95 }}
+        transition={ultraSmoothSpring}
+      >
+        {/* Phone header */}
+        <motion.div
+          className="h-12 bg-linear-to-r from-pink-400 to-orange-300 flex items-center justify-center"
+          initial={{ opacity: 0 }}
+          animate={isInView ? { opacity: 1 } : { opacity: 0 }}
+          transition={{ delay: 0.2, duration: 0.4 }}
+        >
+          <span className="text-white font-semibold text-sm">Today&apos;s Tracking</span>
+        </motion.div>
 
-        return (
-          <motion.div
-            key={index}
-            className="absolute"
-            style={{
-              left: startX,
-              top: startY,
-            }}
-            initial={{
-              x: 0,
-              y: 0,
-              rotate: startPositions[index].rotation,
-              scale: 0.5,
-              opacity: 0,
-            }}
-            animate={{
-              x: [0, targetX - startX, targetX - startX, 0],
-              y: [0, targetY - startY, targetY - startY, 0],
-              rotate: [startPositions[index].rotation, 0, 0, startPositions[index].rotation],
-              scale: [0.5, 1, 1, 0.5],
-              opacity: [0, 1, 1, 0],
-            }}
-            transition={{
-              duration: 3.5,
-              times: [0, 0.4, 0.7, 1],
-              delay: index * 0.15,
-              repeat: Infinity,
-              repeatDelay: 0.5,
-              ease: [0.16, 1, 0.3, 1],
-            }}
-          >
-            {/* Card container */}
+        {/* Content area */}
+        <div className="p-4 space-y-1">
+          {symptoms.map((symptom, index) => (
             <motion.div
-              className="w-16 h-20 rounded-lg bg-linear-to-br from-white to-pink-50/50 border-2 border-[#FF6B9D]/40 flex items-center justify-center shadow-xl backdrop-blur-sm"
-              style={{
-                boxShadow: "0 8px 24px rgba(255, 107, 157, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.8)",
-              }}
-              animate={{
-                boxShadow: [
-                  "0 8px 24px rgba(255, 107, 157, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.8)",
-                  "0 12px 32px rgba(255, 107, 157, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.9)",
-                  "0 8px 24px rgba(255, 107, 157, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.8)",
-                ],
-              }}
+              key={symptom.id}
+              className="flex items-center gap-3 py-3 px-3 rounded-xl"
+              initial={{ opacity: 0, x: -30 }}
+              animate={isInView ? { 
+                opacity: 1, 
+                x: 0,
+                backgroundColor: ["rgba(0,0,0,0)", "rgba(249,250,251,1)", "rgba(249,250,251,1)"],
+              } : { opacity: 0, x: -30 }}
               transition={{
-                duration: 0.6,
-                delay: 1.4 + index * 0.1,
-                repeat: Infinity,
-                repeatDelay: 2.4,
-                ease: "easeInOut",
+                opacity: { duration: 0.4, delay: 0.4 + index * 0.15 },
+                x: { ...smoothSpring, delay: 0.4 + index * 0.15 },
+                backgroundColor: { duration: 0.3, delay: 0.6 + index * 0.15 },
               }}
             >
+              {/* Color dot */}
               <motion.div
-                className="text-[#FF6B9D]"
-                style={{
-                  filter: "drop-shadow(0 2px 4px rgba(255, 107, 157, 0.4))",
-                }}
-                animate={{
-                  scale: [1, 1.1, 1],
-                }}
-                transition={{
-                  duration: 0.5,
-                  delay: 1.5 + index * 0.1,
-                  repeat: Infinity,
-                  repeatDelay: 2.3,
-                  ease: "easeInOut",
-                }}
+                className={`w-3 h-3 rounded-full ${symptom.color}`}
+                initial={{ scale: 0 }}
+                animate={isInView ? { scale: 1 } : { scale: 0 }}
+                transition={{ ...smoothSpring, delay: 0.5 + index * 0.15 }}
+              />
+              
+              {/* Label */}
+              <span className="text-sm font-medium text-gray-700 flex-1">{symptom.label}</span>
+              
+              {/* Checkmark */}
+              <motion.div
+                initial={{ scale: 0, opacity: 0 }}
+                animate={isInView ? { scale: 1, opacity: 1 } : { scale: 0, opacity: 0 }}
+                transition={{ ...smoothSpring, delay: 0.7 + index * 0.15 }}
               >
-                <Icon size={36} strokeWidth={2.5} fill="rgba(255, 107, 157, 0.15)" />
+                <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">
+                  <Check className="w-4 h-4 text-green-600" />
+                </div>
               </motion.div>
             </motion.div>
+          ))}
+
+          {/* Summary badge */}
+          <motion.div
+            className="mt-4 py-3 px-4 bg-linear-to-r from-pink-50 to-orange-50 rounded-xl border border-pink-100"
+            initial={{ opacity: 0, y: 10 }}
+            animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
+            transition={{ ...smoothSpring, delay: 1.3 }}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-pink-700">4 symptoms logged today</span>
+              <motion.div
+                animate={isInView ? { scale: [1, 1.2, 1] } : {}}
+                transition={{ duration: 0.5, delay: 1.5 }}
+              >
+                <span className="text-lg">✓</span>
+              </motion.div>
+            </div>
           </motion.div>
-        )
-      })}
-      
-      {/* Central glow effect when organized */}
+        </div>
+      </motion.div>
+
+      {/* Floating elements for polish */}
       <motion.div
-        className="absolute rounded-2xl bg-linear-to-br from-[#FF6B9D]/30 to-[#FFA07A]/30 blur-3xl"
-        style={{
-          left: centerX - 60,
-          top: centerY - 60,
-          width: 120,
-          height: 140,
-        }}
-        animate={{
-          scale: [1, 1.2, 1],
-          opacity: [0.4, 0.7, 0.4],
-        }}
-        transition={{
-          duration: 1.2,
-          delay: 1.4,
-          repeat: Infinity,
-          repeatDelay: 2.3,
-          ease: "easeInOut",
-        }}
+        className="absolute top-1/4 left-1/4 w-4 h-4 rounded-full bg-pink-200"
+        animate={isInView ? {
+          y: [0, -10, 0],
+          opacity: [0.3, 0.6, 0.3],
+        } : {}}
+        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
       />
-      
-      {/* Connecting lines animation */}
-      <svg
-        className="absolute inset-0 w-full h-full pointer-events-none"
-        style={{ zIndex: 0 }}
-      >
-        <defs>
-          <linearGradient id="pinkGradientInfo" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#FF6B9D" stopOpacity="0.5" />
-            <stop offset="100%" stopColor="#FFA07A" stopOpacity="0.5" />
-          </linearGradient>
-        </defs>
-        {icons.map((_, index) => {
-          const startX = centerX + startPositions[index].x
-          const startY = centerY + startPositions[index].y
-          const targetX = centerX + index * stackOffset
-          const targetY = centerY - index * stackOffset
-          const path = `M ${startX} ${startY} L ${targetX} ${targetY}`
-          
-          return (
-            <motion.path
-              key={`line-${index}`}
-              d={path}
-              stroke="url(#pinkGradientInfo)"
-              strokeWidth="2"
-              strokeDasharray="4 4"
-              fill="none"
-              initial={{ pathLength: 0, opacity: 0 }}
-              animate={{
-                pathLength: [0, 1, 1, 0],
-                opacity: [0, 0.5, 0.5, 0],
-              }}
-              transition={{
-                duration: 3.5,
-                times: [0, 0.4, 0.7, 1],
-                delay: index * 0.15,
-                repeat: Infinity,
-                repeatDelay: 0.5,
-                ease: [0.16, 1, 0.3, 1],
-              }}
-            />
-          )
-        })}
-      </svg>
+      <motion.div
+        className="absolute bottom-1/4 right-1/4 w-3 h-3 rounded-full bg-orange-200"
+        animate={isInView ? {
+          y: [0, -8, 0],
+          opacity: [0.3, 0.6, 0.3],
+        } : {}}
+        transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+      />
     </div>
   )
 }
 
-// Animation 3: Clarity Bloom - Confusion transforming to clarity
-function ClarityAnimation({ prefersReducedMotion }: { prefersReducedMotion: boolean | null }) {
-  const petalCount = 12
-  const { centerX, centerY, scale, containerRef } = useResponsiveDimensions()
-  const radius = 90 * scale
-
-  const petals = Array.from({ length: petalCount }, (_, i) => {
-    const angle = (i * 360) / petalCount
-    const radian = (angle * Math.PI) / 180
-    return {
-      angle,
-      radian,
-      x: centerX + Math.cos(radian) * radius,
-      y: centerY + Math.sin(radian) * radius,
-    }
-  })
+// ============================================
+// Animation 3: Take Control (Reports + Chat)
+// Message: "Take control with real data"
+// Visual: Document/report + chat bubble
+// ============================================
+function TakeControlAnimation({ 
+  prefersReducedMotion,
+  isInView 
+}: { 
+  prefersReducedMotion: boolean | null
+  isInView: boolean
+}) {
+  const reportData = [
+    { label: "Hot Flashes", value: "8 this week", trend: "↓ 23%" },
+    { label: "Sleep Quality", value: "6.2 avg", trend: "↑ 15%" },
+    { label: "Mood", value: "Good", trend: "Stable" },
+  ]
 
   if (prefersReducedMotion) {
     return (
-      <div className="relative w-full h-full flex items-center justify-center">
-        <div className="w-20 h-20 rounded-full bg-linear-to-br from-[#FF6B9D] to-[#FFA07A] flex items-center justify-center shadow-lg">
-          <Sparkles className="w-10 h-10 text-white" />
+      <div className="relative w-full h-full flex items-center justify-center gap-6">
+        {/* Report card */}
+        <div className="w-52 bg-white rounded-2xl shadow-xl p-4 border border-gray-100">
+          <div className="flex items-center gap-2 mb-3 pb-2 border-b border-gray-100">
+            <FileText className="w-5 h-5 text-pink-500" />
+            <span className="font-semibold text-gray-800 text-sm">Your Report</span>
+          </div>
+          {reportData.map((item) => (
+            <div key={item.label} className="flex justify-between py-1.5 text-xs">
+              <span className="text-gray-600">{item.label}</span>
+              <span className="font-medium text-gray-800">{item.value}</span>
+            </div>
+          ))}
+        </div>
+        
+        {/* Chat bubble */}
+        <div className="w-48 bg-pink-50 rounded-2xl p-4 border border-pink-100">
+          <div className="flex items-center gap-2 mb-2">
+            <MessageCircle className="w-4 h-4 text-pink-500" />
+            <span className="text-xs font-semibold text-pink-700">Lisa</span>
+          </div>
+          <p className="text-xs text-gray-700">Ready to answer your questions 24/7</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div ref={containerRef} className="relative w-full h-full flex items-center justify-center overflow-hidden">
-      {/* Center confusion circle */}
-      <motion.div
-        className="absolute w-24 h-24 rounded-full bg-gray-400/80 backdrop-blur-sm flex items-center justify-center border-2 border-gray-500/50"
-        style={{
-          left: centerX - 48,
-          top: centerY - 48,
-        }}
-        initial={{ opacity: 0.8, scale: 1 }}
-        animate={{
-          opacity: [0.8, 0.4, 0],
-          scale: [1, 0.7, 0],
-        }}
-        transition={{
-          duration: 3.5,
-          times: [0, 0.15, 0.3],
-          repeat: Infinity,
-          repeatDelay: 0.5,
-          ease: "easeIn",
-        }}
-      >
-        <motion.span
-          className="text-gray-700 text-2xl font-bold"
-          animate={{ rotate: [0, 360] }}
-          transition={{
-            duration: 1,
-            repeat: Infinity,
-            ease: "linear",
-          }}
-        >
-          ?
-        </motion.span>
-      </motion.div>
-
-      {/* Petals bursting out */}
-      {petals.map((petal, index) => (
+    <div className="relative w-full h-full flex items-center justify-center">
+      <div className="flex items-center gap-4 sm:gap-6">
+        {/* Professional Report Card */}
         <motion.div
-          key={index}
-          className="absolute w-14 h-14 rounded-full bg-linear-to-br from-[#FF6B9D] to-[#FFA07A] shadow-xl"
-          style={{
-            left: centerX - 28,
-            top: centerY - 28,
-            filter: "drop-shadow(0 0 8px rgba(255, 107, 157, 0.6))",
-          }}
-          initial={{ x: 0, y: 0, scale: 0, opacity: 0 }}
-          animate={{
-            x: [0, petal.x - centerX, petal.x - centerX, 0],
-            y: [0, petal.y - centerY, petal.y - centerY, 0],
-            scale: [0, 1.1, 1, 0],
-            opacity: [0, 1, 0.9, 0],
-            rotate: [0, petal.angle + 45, petal.angle + 45, 0],
-          }}
-          transition={{
-            duration: 3.5,
-            times: [0, 0.4, 0.65, 1],
-            delay: 0.3 + index * 0.04,
-            repeat: Infinity,
-            repeatDelay: 0.5,
-            ease: [0.16, 1, 0.3, 1],
-          }}
-        />
-      ))}
-
-      {/* Center clarity icon */}
-      <motion.div
-        className="absolute w-24 h-24 rounded-full bg-linear-to-br from-[#FF6B9D] to-[#FFA07A] flex items-center justify-center shadow-2xl"
-        style={{
-          left: centerX - 48,
-          top: centerY - 48,
-          filter: "drop-shadow(0 0 20px rgba(255, 107, 157, 0.8))",
-        }}
-        initial={{ opacity: 0, scale: 0 }}
-        animate={{
-          opacity: [0, 1, 1, 0],
-          scale: [0, 1.1, 1, 0],
-        }}
-        transition={{
-          duration: 3.5,
-          times: [0, 0.5, 0.7, 1],
-          delay: 0.5,
-          repeat: Infinity,
-          repeatDelay: 0.5,
-          ease: [0.16, 1, 0.3, 1],
-        }}
-      >
-        <motion.div
-          animate={{
-            scale: [1, 1.15, 1],
-            rotate: [0, 180, 360],
-          }}
-          transition={{
-            duration: 0.8,
-            delay: 0.7,
-            repeat: Infinity,
-            repeatDelay: 1.2,
-            ease: "easeInOut",
-          }}
+          className="w-48 sm:w-56 bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-100"
+          initial={{ opacity: 0, x: -40, rotateY: -15 }}
+          animate={isInView ? { opacity: 1, x: 0, rotateY: 0 } : { opacity: 0, x: -40, rotateY: -15 }}
+          transition={ultraSmoothSpring}
+          style={{ transformPerspective: 1000 }}
         >
-          <Sparkles className="w-12 h-12 text-white" strokeWidth={1.5} />
+          {/* Header */}
+          <motion.div
+            className="bg-linear-to-r from-pink-400 to-rose-400 p-3"
+            initial={{ opacity: 0 }}
+            animate={isInView ? { opacity: 1 } : { opacity: 0 }}
+            transition={{ delay: 0.3, duration: 0.4 }}
+          >
+            <div className="flex items-center gap-2">
+              <FileText className="w-5 h-5 text-white" />
+              <span className="font-semibold text-white text-sm">Symptom Report</span>
+            </div>
+          </motion.div>
+
+          {/* Content */}
+          <div className="p-4 space-y-3">
+            {reportData.map((item, index) => (
+              <motion.div
+                key={item.label}
+                className="flex items-center justify-between"
+                initial={{ opacity: 0, x: -20 }}
+                animate={isInView ? { opacity: 1, x: 0 } : { opacity: 0, x: -20 }}
+                transition={{ ...smoothSpring, delay: 0.5 + index * 0.1 }}
+              >
+                <span className="text-xs text-gray-500">{item.label}</span>
+                <div className="text-right">
+                  <span className="text-sm font-semibold text-gray-800 block">{item.value}</span>
+                  <motion.span
+                    className={`text-xs ${item.trend.includes('↓') ? 'text-green-600' : item.trend.includes('↑') ? 'text-blue-600' : 'text-gray-500'}`}
+                    initial={{ opacity: 0 }}
+                    animate={isInView ? { opacity: 1 } : { opacity: 0 }}
+                    transition={{ delay: 0.8 + index * 0.1 }}
+                  >
+                    {item.trend}
+                  </motion.span>
+                </div>
+              </motion.div>
+            ))}
+
+            {/* Share button */}
+            <motion.button
+              className="w-full mt-3 py-2 bg-linear-to-r from-pink-500 to-rose-500 text-white text-xs font-semibold rounded-lg flex items-center justify-center gap-2"
+              initial={{ opacity: 0, y: 10 }}
+              animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
+              transition={{ ...smoothSpring, delay: 1 }}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <Send className="w-3 h-3" />
+              Share with Doctor
+            </motion.button>
+          </div>
         </motion.div>
-      </motion.div>
-      
-      {/* Outer glow ring */}
-      <motion.div
-        className="absolute rounded-full border-2 border-[#FF6B9D]/40"
-        style={{
-          left: centerX - radius - 20,
-          top: centerY - radius - 20,
-          width: (radius + 20) * 2,
-          height: (radius + 20) * 2,
-        }}
-        animate={{
-          scale: [1, 1.2, 1],
-          opacity: [0.3, 0.6, 0.3],
-        }}
-        transition={{
-          duration: 1.2,
-          delay: 0.8,
-          repeat: Infinity,
-          repeatDelay: 1.2,
-          ease: "easeInOut",
-        }}
-      />
+
+        {/* Chat with Lisa */}
+        <motion.div
+          className="w-44 sm:w-52"
+          initial={{ opacity: 0, x: 40, rotateY: 15 }}
+          animate={isInView ? { opacity: 1, x: 0, rotateY: 0 } : { opacity: 0, x: 40, rotateY: 15 }}
+          transition={{ ...ultraSmoothSpring, delay: 0.2 }}
+          style={{ transformPerspective: 1000 }}
+        >
+          {/* Lisa's avatar + name */}
+          <motion.div
+            className="flex items-center gap-2 mb-3"
+            initial={{ opacity: 0 }}
+            animate={isInView ? { opacity: 1 } : { opacity: 0 }}
+            transition={{ delay: 0.5 }}
+          >
+            <div className="w-8 h-8 rounded-full bg-linear-to-br from-pink-400 to-rose-400 flex items-center justify-center shadow-md">
+              <span className="text-white font-bold text-sm">L</span>
+            </div>
+            <span className="font-semibold text-gray-800 text-sm">Lisa</span>
+          </motion.div>
+
+          {/* Chat bubble */}
+          <motion.div
+            className="bg-linear-to-br from-pink-50 to-rose-50 rounded-2xl rounded-tl-sm p-4 border border-pink-100 shadow-lg"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={isInView ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.9 }}
+            transition={{ ...smoothSpring, delay: 0.6 }}
+          >
+            <motion.p
+              className="text-sm text-gray-700 leading-relaxed"
+              initial={{ opacity: 0 }}
+              animate={isInView ? { opacity: 1 } : { opacity: 0 }}
+              transition={{ delay: 0.8 }}
+            >
+              Have questions about your symptoms? I&apos;m here to help 24/7.
+            </motion.p>
+            
+            {/* Typing indicator */}
+            <motion.div
+              className="flex gap-1 mt-3"
+              initial={{ opacity: 0 }}
+              animate={isInView ? { opacity: 1 } : { opacity: 0 }}
+              transition={{ delay: 1.2 }}
+            >
+              {[0, 1, 2].map((i) => (
+                <motion.div
+                  key={i}
+                  className="w-2 h-2 rounded-full bg-pink-300"
+                  animate={isInView ? {
+                    y: [0, -4, 0],
+                    opacity: [0.5, 1, 0.5],
+                  } : {}}
+                  transition={{
+                    duration: 0.8,
+                    repeat: Infinity,
+                    delay: i * 0.15,
+                    ease: "easeInOut",
+                  }}
+                />
+              ))}
+            </motion.div>
+          </motion.div>
+        </motion.div>
+      </div>
     </div>
   )
 }
 
-// Step text content component
+// ============================================
+// Supporting Components
+// ============================================
+
+function HighlightedText({
+  text,
+  isInView,
+  prefersReducedMotion,
+}: {
+  text: string
+  isInView: boolean
+  prefersReducedMotion: boolean
+}) {
+  const [shouldHighlight, setShouldHighlight] = useState(false)
+
+  useEffect(() => {
+    if (!isInView || prefersReducedMotion) return
+    const timer = setTimeout(() => setShouldHighlight(true), 500)
+    return () => clearTimeout(timer)
+  }, [isInView, prefersReducedMotion])
+
+  return (
+    <span className="relative inline-block">
+      <span className="relative z-10">{text}</span>
+      <motion.span
+        className="absolute inset-0 bg-yellow-400/40 rounded pointer-events-none"
+        initial={{ scaleX: 0, transformOrigin: "left" }}
+        animate={shouldHighlight ? { scaleX: 1 } : { scaleX: 0 }}
+        transition={{ duration: 1.2, ease: [0.4, 0, 0.2, 1] }}
+        style={{ zIndex: 0 }}
+      />
+    </span>
+  )
+}
+
 function StepText({ step }: { step: number }) {
   const content = [
     {
-      headline: "Your symptoms follow patterns",
-      description: "Hot weather triggers headaches. Stress amplifies mood swings.",
+      headline: "You know something's wrong",
+      description: "Hot flashes, mood swings, brain fog — but when? How often? You need to see it clearly.",
     },
     {
-      headline: "You deserve clear answers",
-      description: "Evidence-based guidance, explained simply, when you need it.",
+      headline: "Track it. See it organized.",
+      description: "Log symptoms in 30 seconds. See your data organized by day, week, month. Finally understand what's happening.",
     },
     {
-      headline: "Clarity brings relief",
-      description: "Join thousands of women who found understanding and relief.",
+      headline: "Take control with real data",
+      description: "Bring organized symptom reports to your doctor. Get menopause answers from Lisa 24/7. Feel informed, not confused.",
     },
   ]
 
@@ -602,23 +538,28 @@ function StepText({ step }: { step: number }) {
   )
 }
 
-// Main component
+// ============================================
+// Main Component
+// ============================================
 export default function LandingProblem() {
   const [currentStep, setCurrentStep] = useState(1)
   const prefersReducedMotion = useReducedMotion()
+  const sectionRef = useRef(null)
+  const isInView = useInView(sectionRef, { once: false, amount: 0.3 })
 
   useEffect(() => {
-    if (prefersReducedMotion) return
+    if (prefersReducedMotion || !isInView) return
 
     const interval = setInterval(() => {
       setCurrentStep((prev) => (prev % 3) + 1)
-    }, 5500) // Change every 5.5 seconds (matches animation duration)
+    }, 5000)
 
     return () => clearInterval(interval)
-  }, [prefersReducedMotion])
+  }, [prefersReducedMotion, isInView])
 
   return (
     <section
+      ref={sectionRef}
       className="py-20 px-4"
       style={{
         background: "linear-gradient(135deg, #F5E6FF 0%, #FFE6F5 100%)",
@@ -629,71 +570,71 @@ export default function LandingProblem() {
         <motion.div
           className="text-center mb-12"
           initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-100px" }}
+          animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
           transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
         >
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-6 text-gray-900 leading-tight">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-6 text-gray-900 leading-tight px-2 sm:px-4">
             The problem isn&apos;t you.<br />
-            <mark className="bg-pink-300/40 rounded px-2 py-1">It&apos;s the confusion.</mark>
+            <HighlightedText
+              text="It's the confusion."
+              isInView={isInView}
+              prefersReducedMotion={!!prefersReducedMotion}
+            />
           </h2>
         </motion.div>
 
         {/* Animation Container */}
-        <div className="relative h-[300px] sm:h-[400px] mb-12 rounded-2xl overflow-hidden">
+        <div className="relative h-[320px] sm:h-[400px] mb-12 rounded-2xl overflow-hidden">
           <AnimatePresence mode="wait">
             {currentStep === 1 && (
               <motion.div
                 key="step1"
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.5 }}
                 className="absolute inset-0"
-                aria-label="Animation showing symptom patterns and connections"
               >
-                <PatternAnimation prefersReducedMotion={prefersReducedMotion} />
+                <ScatteredSymptomsAnimation prefersReducedMotion={prefersReducedMotion} isInView={isInView} />
               </motion.div>
             )}
             {currentStep === 2 && (
               <motion.div
                 key="step2"
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.5 }}
                 className="absolute inset-0"
-                aria-label="Animation showing knowledge and information organizing"
               >
-                <InformationAnimation prefersReducedMotion={prefersReducedMotion} />
+                <OrganizedTrackingAnimation prefersReducedMotion={prefersReducedMotion} isInView={isInView} />
               </motion.div>
             )}
             {currentStep === 3 && (
               <motion.div
                 key="step3"
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.5 }}
                 className="absolute inset-0"
-                aria-label="Animation showing transformation from confusion to clarity"
               >
-                <ClarityAnimation prefersReducedMotion={prefersReducedMotion} />
+                <TakeControlAnimation prefersReducedMotion={prefersReducedMotion} isInView={isInView} />
               </motion.div>
             )}
           </AnimatePresence>
-              </div>
+        </div>
 
         {/* Step Indicators */}
-        <div className="flex justify-center gap-2 mb-8">
+        <div className="flex justify-center gap-3 mb-8">
           {[1, 2, 3].map((step) => (
             <button
               key={step}
               onClick={() => setCurrentStep(step)}
-              className={`w-2 h-2 rounded-full transition-all duration-300 ${
+              className={`h-2 rounded-full transition-all duration-500 ease-out ${
                 step === currentStep
-                  ? "w-8 bg-linear-to-r from-[#FF6B9D] to-[#FFA07A]"
-                  : "bg-gray-300 hover:bg-gray-400"
+                  ? "w-10 bg-linear-to-r from-pink-500 to-orange-400"
+                  : "w-2 bg-gray-300 hover:bg-gray-400"
               }`}
               aria-label={`Go to step ${step}`}
             />
@@ -717,7 +658,7 @@ export default function LandingProblem() {
         >
           <div className="text-center">
             <p className="text-lg sm:text-xl text-gray-700">
-              <strong>Evidence-based knowledge.</strong> Reviewed by specialists. Focused on menopause.
+              <strong>Evidence-based knowledge.</strong> Reviewed by menopause specialists. Focused on your experience.
             </p>
           </div>
         </motion.div>

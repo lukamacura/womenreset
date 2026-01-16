@@ -75,13 +75,40 @@ export async function GET(req: NextRequest) {
       if (insertError) {
         console.error("Failed to seed default symptoms:", insertError);
         // Return empty array instead of failing - user can still add custom symptoms
-        return NextResponse.json({ data: [] });
+        return NextResponse.json(
+          { data: [] },
+          {
+            headers: {
+              'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+              'Pragma': 'no-cache',
+              'Expires': '0',
+            },
+          }
+        );
       }
 
-      return NextResponse.json({ data: insertedData || [] });
+      return NextResponse.json(
+        { data: insertedData || [] },
+        {
+          headers: {
+            'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0',
+          },
+        }
+      );
     }
 
-    return NextResponse.json({ data: data || [] });
+    return NextResponse.json(
+      { data: data || [] },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        },
+      }
+    );
   } catch (e) {
     console.error("GET /api/symptoms error:", e);
     return NextResponse.json(

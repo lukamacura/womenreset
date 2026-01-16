@@ -61,7 +61,7 @@ export default function LandingPricing() {
             Start free. No credit card needed.
           </h2>
           <p className="text-xl sm:text-2xl text-center text-muted-foreground mb-4">
-            <strong>3-day full access trial.</strong> See if Lisa is right for you.
+            <strong>3-day full access trial.</strong> See if this helps you.
           </p>
           <Badge 
             variant="outline" 
@@ -85,7 +85,7 @@ export default function LandingPricing() {
             ))}
           </div>
           <p className="text-sm font-bold italic mb-1" style={{ color: "var(--foreground)" }}>
-            &quot;Finally I understand why I feel awful on certain days. Lisa found that coffee was triggering my hot flashes. Now I know what to avoid.&quot;
+            &quot;The weekly summary shows me my symptom frequency going down. Seeing '40% fewer hot flashes this week' gives me hope that I'm figuring this out.&quot;
           </p>
           <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>- Michelle, 52</p>
         </div>
@@ -353,14 +353,16 @@ export default function LandingPricing() {
         {/* Outcomes List */}
         <div className="border-t pt-4 mb-6" style={{ borderColor: "var(--border)" }}>
           <h4 className="text-base sm:text-lg font-bold mb-3 text-center" style={{ color: "var(--foreground)" }}>
-            With Lisa, you&apos;ll...
+            With this app, you&apos;ll...
           </h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
             {[
-              { text: "Finally understand your body", color: "var(--chart-1)" },
-              { text: "Discover what triggers your symptoms", color: "var(--chart-2)" },
-              { text: "Track patterns and see progress", color: "var(--chart-3)" },
-              { text: "Get answers from Lisa anytime", color: "var(--chart-4)" },
+              { text: "Track symptoms in 30 seconds daily", color: "var(--chart-1)" },
+              { text: "See your symptom history organized clearly", color: "var(--chart-2)" },
+              { text: "Get weekly summaries of your tracking data", color: "var(--chart-3)" },
+              { text: "Share professional reports with your doctor", color: "var(--chart-4)" },
+              { text: "Get menopause answers from Lisa 24/7", color: "var(--chart-1)" },
+              { text: "Finally feel in control of what's happening", color: "var(--chart-2)" },
             ].map((feature, index) => (
               <div
                 key={feature.text}

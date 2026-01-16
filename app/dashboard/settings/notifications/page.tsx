@@ -5,24 +5,34 @@ import { useRouter } from "next/navigation";
 
 interface NotificationPreferences {
   notification_enabled: boolean;
-  morning_checkin_time: string;
-  evening_checkin_enabled: boolean;
-  evening_checkin_time: string;
-  weekly_summary_day: number;
-  insight_notifications: boolean;
-  streak_reminders: boolean;
+  reminder_time: string; // Format: "HH:mm" (e.g., "09:00")
 }
+
+// Time options for the dropdown (6 AM to 9 PM)
+const TIME_OPTIONS = [
+  { value: "06:00", label: "6:00 AM" },
+  { value: "07:00", label: "7:00 AM" },
+  { value: "08:00", label: "8:00 AM" },
+  { value: "09:00", label: "9:00 AM" },
+  { value: "10:00", label: "10:00 AM" },
+  { value: "11:00", label: "11:00 AM" },
+  { value: "12:00", label: "12:00 PM" },
+  { value: "13:00", label: "1:00 PM" },
+  { value: "14:00", label: "2:00 PM" },
+  { value: "15:00", label: "3:00 PM" },
+  { value: "16:00", label: "4:00 PM" },
+  { value: "17:00", label: "5:00 PM" },
+  { value: "18:00", label: "6:00 PM" },
+  { value: "19:00", label: "7:00 PM" },
+  { value: "20:00", label: "8:00 PM" },
+  { value: "21:00", label: "9:00 PM" },
+];
 
 export default function NotificationSettingsPage() {
   const router = useRouter();
   const [preferences, setPreferences] = useState<NotificationPreferences>({
     notification_enabled: true,
-    morning_checkin_time: "08:00",
-    evening_checkin_enabled: false,
-    evening_checkin_time: "20:00",
-    weekly_summary_day: 0,
-    insight_notifications: true,
-    streak_reminders: true,
+    reminder_time: "09:00", // Default: 9:00 AM
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -40,7 +50,10 @@ export default function NotificationSettingsPage() {
       if (!response.ok) throw new Error("Failed to fetch preferences");
       const { data } = await response.json();
       if (data) {
-        setPreferences(data);
+        setPreferences({
+          notification_enabled: data.notification_enabled ?? true,
+          reminder_time: data.reminder_time || "09:00",
+        });
       }
     } catch (err) {
       console.error("Error fetching preferences:", err);
@@ -78,36 +91,19 @@ export default function NotificationSettingsPage() {
     }
   };
 
-  const handleToggle = (field: keyof NotificationPreferences) => {
+  const handleToggle = () => {
     setPreferences((prev) => ({
       ...prev,
-      [field]: !prev[field],
+      notification_enabled: !prev.notification_enabled,
     }));
   };
 
-  const handleTimeChange = (field: "morning_checkin_time" | "evening_checkin_time", value: string) => {
+  const handleTimeChange = (value: string) => {
     setPreferences((prev) => ({
       ...prev,
-      [field]: value,
+      reminder_time: value,
     }));
   };
-
-  const handleDayChange = (value: number) => {
-    setPreferences((prev) => ({
-      ...prev,
-      weekly_summary_day: value,
-    }));
-  };
-
-  const daysOfWeek = [
-    { value: 0, label: "Sunday" },
-    { value: 1, label: "Monday" },
-    { value: 2, label: "Tuesday" },
-    { value: 3, label: "Wednesday" },
-    { value: 4, label: "Thursday" },
-    { value: 5, label: "Friday" },
-    { value: 6, label: "Saturday" },
-  ];
 
   if (loading) {
     return (
@@ -124,7 +120,7 @@ export default function NotificationSettingsPage() {
     <div className="mx-auto max-w-3xl p-6 sm:p-8 space-y-8">
       <div>
         <h1 className="text-3xl font-bold text-[#3D3D3D] mb-2">Notification Settings</h1>
-        <p className="text-[#6B6B6B] text-base">Manage when and how you receive reminders</p>
+        <p className="text-[#6B6B6B] text-base">Manage when you receive reminders</p>
       </div>
 
       {error && (
@@ -139,152 +135,64 @@ export default function NotificationSettingsPage() {
         </div>
       )}
 
-      <div className="bg-white rounded-2xl border border-[#E8E0DB] p-6 space-y-8">
-        {/* Morning Check-in */}
-        <div className="border-b border-[#E8E0DB] pb-6">
+      <div className="bg-white rounded-2xl border border-[#E8E0DB] p-6 space-y-6">
+        {/* Daily Reminder */}
+        <div>
           <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-xl font-semibold text-[#3D3D3D] mb-1">Morning Check-in</h3>
+            <div className="flex-1">
+              <h3 className="text-xl font-semibold text-[#3D3D3D] mb-1">Daily Reminder</h3>
               <p className="text-[#6B6B6B] text-base">
-                A gentle reminder to log how you slept
+                Get a gentle nudge to track your symptoms
               </p>
             </div>
-            <label className="relative inline-flex items-center cursor-pointer">
+            <label className="relative inline-flex items-center cursor-pointer shrink-0 ml-4">
               <input
                 type="checkbox"
-                checked={preferences.notification_enabled && preferences.notification_enabled}
-                onChange={() => handleToggle("notification_enabled")}
+                checked={preferences.notification_enabled}
+                onChange={handleToggle}
                 className="sr-only peer"
               />
               <div className="w-14 h-7 bg-[#E8E0DB] peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[#ff74b1] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-[#ff74b1]"></div>
             </label>
           </div>
+          
           {preferences.notification_enabled && (
             <div className="mt-4">
               <label className="block text-[#6B6B6B] text-base mb-2 font-medium">
-                Time:
+                Remind me at:
               </label>
-              <input
-                type="time"
-                value={preferences.morning_checkin_time}
-                onChange={(e) => handleTimeChange("morning_checkin_time", e.target.value)}
-                className="px-4 py-2 rounded-xl border border-[#E8E0DB] text-base focus:outline-none focus:ring-2 focus:ring-[#ff74b1]"
-              />
+              <select
+                value={preferences.reminder_time}
+                onChange={(e) => handleTimeChange(e.target.value)}
+                className="px-4 py-2 rounded-xl border border-[#E8E0DB] text-base focus:outline-none focus:ring-2 focus:ring-[#ff74b1] cursor-pointer w-full max-w-xs"
+              >
+                {TIME_OPTIONS.map((time) => (
+                  <option key={time.value} value={time.value}>
+                    {time.label}
+                  </option>
+                ))}
+              </select>
             </div>
           )}
         </div>
 
-        {/* Evening Reflection */}
-        <div className="border-b border-[#E8E0DB] pb-6">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-xl font-semibold text-[#3D3D3D] mb-1">Evening Reflection</h3>
-              <p className="text-[#6B6B6B] text-base">
-                Reminder to capture anything you missed
-              </p>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={preferences.evening_checkin_enabled}
-                onChange={() => handleToggle("evening_checkin_enabled")}
-                className="sr-only peer"
-              />
-              <div className="w-14 h-7 bg-[#E8E0DB] peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[#ff74b1] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-[#ff74b1]"></div>
-            </label>
-          </div>
-          {preferences.evening_checkin_enabled && (
-            <div className="mt-4">
-              <label className="block text-[#6B6B6B] text-base mb-2 font-medium">
-                Time:
-              </label>
-              <input
-                type="time"
-                value={preferences.evening_checkin_time}
-                onChange={(e) => handleTimeChange("evening_checkin_time", e.target.value)}
-                className="px-4 py-2 rounded-xl border border-[#E8E0DB] text-base focus:outline-none focus:ring-2 focus:ring-[#ff74b1]"
-              />
-            </div>
-          )}
-        </div>
-
-        {/* Streak Reminders */}
-        <div className="border-b border-[#E8E0DB] pb-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-xl font-semibold text-[#3D3D3D] mb-1">Streak Reminders</h3>
-              <p className="text-[#6B6B6B] text-base">
-                Nudge if you haven&apos;t logged and have an active streak
-              </p>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={preferences.streak_reminders}
-                onChange={() => handleToggle("streak_reminders")}
-                className="sr-only peer"
-              />
-              <div className="w-14 h-7 bg-[#E8E0DB] peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[#ff74b1] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-[#ff74b1]"></div>
-            </label>
-          </div>
-        </div>
-
-        {/* Insight Alerts */}
-        <div className="border-b border-[#E8E0DB] pb-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-xl font-semibold text-[#3D3D3D] mb-1">Insight Alerts</h3>
-              <p className="text-[#6B6B6B] text-base">
-                Notify when Lisa finds a new pattern
-              </p>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={preferences.insight_notifications}
-                onChange={() => handleToggle("insight_notifications")}
-                className="sr-only peer"
-              />
-              <div className="w-14 h-7 bg-[#E8E0DB] peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[#ff74b1] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-[#ff74b1]"></div>
-            </label>
-          </div>
-        </div>
-
-        {/* Weekly Summary */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-xl font-semibold text-[#3D3D3D] mb-1">Weekly Summary</h3>
-              <p className="text-[#6B6B6B] text-base">
-                Your week&apos;s progress every week
-              </p>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={true} // Always enabled for now
-                disabled
-                className="sr-only peer"
-              />
-              <div className="w-14 h-7 bg-[#ff74b1] rounded-full cursor-not-allowed opacity-50"></div>
-            </label>
-          </div>
-          <div className="mt-4">
-            <label className="block text-[#6B6B6B] text-base mb-2 font-medium">
-              Day:
-            </label>
-            <select
-              value={preferences.weekly_summary_day}
-              onChange={(e) => handleDayChange(parseInt(e.target.value))}
-              className="px-4 py-2 rounded-xl border border-[#E8E0DB] text-base focus:outline-none focus:ring-2 focus:ring-[#ff74b1] cursor-pointer"
-            >
-              {daysOfWeek.map((day) => (
-                <option key={day.value} value={day.value}>
-                  {day.label}
-                </option>
-              ))}
-            </select>
-          </div>
+        {/* Divider */}
+        <div className="border-t border-[#E8E0DB] pt-6">
+          <h4 className="text-lg font-semibold text-[#3D3D3D] mb-3">How notifications work</h4>
+          <ul className="space-y-2 text-[#6B6B6B] text-base">
+            <li className="flex items-start gap-2">
+              <span className="text-[#ff74b1] mt-1">•</span>
+              <span>Daily reminder to track your symptoms</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-[#ff74b1] mt-1">•</span>
+              <span>Important app updates</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-[#ff74b1] mt-1">•</span>
+              <span>Insights about your health patterns</span>
+            </li>
+          </ul>
         </div>
       </div>
 

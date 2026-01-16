@@ -5,13 +5,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import type { User } from "@supabase/supabase-js";
-import { Activity, ArrowRight, Trash2 } from "lucide-react";
+import { Activity, ArrowRight, MessageSquare } from "lucide-react";
 import type { SymptomLog } from "@/lib/symptom-tracker-constants";
 import { useSymptomLogs } from "@/hooks/useSymptomLogs";
 import DeleteConfirmationDialog from "@/components/DeleteConfirmationDialog";
 import RecentLogs from "@/components/symptom-tracker/RecentLogs";
 import { TrialCard, getTrialState, type TrialState } from "@/components/TrialCard";
 import { Skeleton } from "@/components/ui/AnimatedComponents";
+import { useTrialStatus } from "@/lib/useTrialStatus";
 
 // Prevent static prerendering (safe)
 export const dynamic = "force-dynamic";
@@ -104,73 +105,6 @@ function AnimatedCard({
   );
 }
 
-// Optimized Animated List Item Component
-function AnimatedListItem({
-  children,
-  index,
-  className = "",
-}: {
-  children: React.ReactNode;
-  index: number;
-  className?: string;
-}) {
-  const [isVisible, setIsVisible] = useState(false);
-  const itemRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            setIsVisible(true);
-            observer.unobserve(entry.target);
-            // Remove will-change after animation completes
-            setTimeout(() => {
-              if (itemRef.current) {
-                itemRef.current.style.willChange = "auto";
-              }
-            }, 500 + index * 80);
-          }
-        });
-      },
-      {
-        threshold: 0.05,
-        rootMargin: "0px 0px -40px 0px",
-      }
-    );
-
-    const currentRef = itemRef.current;
-    if (currentRef) {
-      observer.observe(currentRef);
-    }
-
-    return () => {
-      if (currentRef) {
-        observer.unobserve(currentRef);
-      }
-    };
-  }, [index]);
-
-  return (
-    <div
-      ref={itemRef}
-      className={classNames(
-        "transition-all duration-500 ease-out",
-        isVisible
-          ? "opacity-100 translate-y-0"
-          : "opacity-0 translate-y-6",
-        className
-      )}
-      style={{
-        transitionDelay: isVisible ? `${index * 80}ms` : "0ms",
-        willChange: isVisible ? "auto" : "transform, opacity",
-        transform: isVisible ? "translate3d(0, 0, 0)" : "translate3d(0, 24px, 0)",
-      }}
-    >
-      {children}
-    </div>
-  );
-}
 
 // ---------------------------
 // Types
@@ -182,49 +116,8 @@ function AnimatedListItem({
 
 
 
-// Symptoms Overview Card
-function SymptomsOverviewCard({
-  totalSymptoms,
-  isLoading,
-}: {
-  totalSymptoms: number;
-  isLoading: boolean;
-}) {
-  return (
-    <AnimatedCard index={1} delay={100}>
-      <Link
-        href="/dashboard/symptoms"
-        className="group relative overflow-hidden block h-full rounded-2xl border border-border/30 bg-card backdrop-blur-lg p-6 shadow-xl transition-all duration-300 hover:shadow-2xl hover:scale-[1.02]"
-        >
-      <div className="relative">
-        <div className="flex items-start justify-between mb-4">
-          <div className="p-3 rounded-xl shadow-md" style={{ background: 'linear-gradient(135deg, #ff74b1 0%, #d85a9a 100%)' }}>
-            <Activity className="h-6 w-6 text-white" />
-          </div>
-          <ArrowRight className="h-5 w-5 text-[#ff74b1] transition-transform group-hover:translate-x-1" />
-        </div>
-        <div>
-          <h3 className="text-base font-medium text-muted-foreground mb-1">Symptom Tracker</h3>
-          {isLoading ? (
-            <div className="h-8 w-20 bg-foreground/10 rounded animate-pulse" />
-          ) : (
-            <div className="flex items-baseline gap-2">
-              <span className="text-4xl font-extrabold text-foreground tracking-tight">
-                {totalSymptoms}
-              </span>
-              <span className="text-sm text-foreground/50 font-bold">
-                {totalSymptoms === 1 ? "symptom" : "symptoms"}
-              </span>
-            </div>
-          )}
-        </div>
-      </div>
-      </Link>
-    </AnimatedCard>
-  );
-}
 
-// Recent Symptoms Card - Uses shared RecentLogs component
+// Recent Symptoms Card - Uses shared RecentLogs component - Simplified
 function RecentSymptomsCard({
   logs,
   isLoading,
@@ -239,26 +132,24 @@ function RecentSymptomsCard({
   const recentLogs = logs.slice(0, 5);
 
   return (
-    <AnimatedCard index={4} delay={300}>
-      <div className="relative overflow-hidden rounded-2xl border border-border/30 bg-card backdrop-blur-lg p-6 shadow-xl transition-all duration-300 hover:shadow-2xl">
-        <div className="relative">
-          <div className="flex items-center justify-between mb-5">
-            <h3 className="text-lg font-bold text-[#3D3D3D]">Recent Symptoms</h3>
-            <Link
-              href="/dashboard/symptoms"
-              className="text-sm text-[#ff74b1] hover:text-primary-dark hover:underline flex items-center gap-1 font-medium transition-colors"
-            >
-              View all
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </div>
-          <RecentLogs 
-            logs={recentLogs} 
-            loading={isLoading} 
-            onLogClick={onLogClick}
-            onDelete={onDelete}
-          />
+    <AnimatedCard index={3} delay={200}>
+      <div className="relative overflow-hidden rounded-xl border border-border/30 bg-card p-5 shadow-2xl">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-base font-bold text-foreground">Recent Symptoms</h3>
+          <Link
+            href="/dashboard/symptoms"
+            className="text-sm text-primary hover:underline flex items-center gap-1 font-medium transition-colors"
+          >
+            View all
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
         </div>
+        <RecentLogs 
+          logs={recentLogs} 
+          loading={isLoading} 
+          onLogClick={onLogClick}
+          onDelete={onDelete}
+        />
       </div>
     </AnimatedCard>
   );
@@ -270,6 +161,7 @@ function RecentSymptomsCard({
 // ---------------------------
 export default function DashboardPage() {
   const router = useRouter();
+  const trialStatus = useTrialStatus();
 
   const [user, setUser] = useState<User | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
@@ -277,7 +169,19 @@ export default function DashboardPage() {
   const [err, setErr] = useState<string | null>(null);
   const [now, setNow] = useState<Date>(new Date());
   const lastNotifiedStateRef = useRef<TrialState | null>(null);
-  const { logs: symptomLogs, loading: symptomLogsLoading } = useSymptomLogs(30);
+  const { logs: symptomLogs, loading: symptomLogsLoading, refetch: refetchSymptomLogs } = useSymptomLogs(30);
+
+  // Refetch symptom logs when user becomes available or auth state changes
+  useEffect(() => {
+    if (user) {
+      // Small delay to ensure session is fully established
+      const timer = setTimeout(() => {
+        refetchSymptomLogs();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [user, refetchSymptomLogs]);
+
   const [userTrial, setUserTrial] = useState<{
     trial_start: string | null;
     trial_end: string | null;
@@ -311,13 +215,111 @@ export default function DashboardPage() {
     isLoading: false,
   });
 
+  // Fetch user trial info from user_trials table - Define BEFORE useEffects that use it
+  const fetchUserTrial = useCallback(async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("user_trials")
+        .select("trial_start, trial_end, trial_days, account_status")
+        .eq("user_id", userId)
+        .single();
+
+      if (error) {
+        // Check if table doesn't exist
+        const errorMsg = error.message?.toLowerCase() || "";
+        const isTableMissing = errorMsg.includes("does not exist") || 
+                               errorMsg.includes("relation") ||
+                               error.code === "42P01";
+        
+        if (isTableMissing) {
+          // Table doesn't exist yet - return defaults silently
+          return {
+            trial_start: new Date().toISOString(),
+            trial_end: null,
+            trial_days: 3,
+            account_status: "trial",
+          };
+        }
+        
+        // If row doesn't exist (PGRST116), try to create it
+        if (error.code === "PGRST116") {
+          const nowIso = new Date().toISOString();
+          const { data: newTrial, error: insertError } = await supabase
+            .from("user_trials")
+            .insert([
+              {
+                user_id: userId,
+                trial_start: nowIso,
+                trial_days: 3,
+                account_status: "trial",
+              },
+            ])
+            .select("trial_start, trial_end, trial_days, account_status")
+            .single();
+
+          if (insertError) {
+            // If insert fails, return defaults
+            return {
+              trial_start: nowIso,
+              trial_end: null,
+              trial_days: 3,
+              account_status: "trial",
+            };
+          }
+          return newTrial;
+        }
+        
+        // Any other error - return defaults silently
+        return {
+          trial_start: new Date().toISOString(),
+          trial_end: null,
+          trial_days: 3,
+          account_status: "trial",
+        };
+      }
+
+      // If trial_start is null, initialize it
+      if (!data.trial_start) {
+        const nowIso = new Date().toISOString();
+        const { data: updated, error: updateError } = await supabase
+          .from("user_trials")
+          .update({
+            trial_start: nowIso,
+            trial_days: data.trial_days || 3,
+            account_status: "trial",
+          })
+          .eq("user_id", userId)
+          .select("trial_start, trial_end, trial_days, account_status")
+          .single();
+
+        if (updateError) {
+          return {
+            trial_start: nowIso,
+            trial_end: null,
+            trial_days: data.trial_days || 3,
+            account_status: "trial",
+          };
+        }
+        return updated;
+      }
+
+      return data;
+    } catch {
+      // Silently return defaults on any error
+      return {
+        trial_start: new Date().toISOString(),
+        trial_end: null,
+        trial_days: 3,
+        account_status: "trial",
+      };
+    }
+  }, []);
+
   // Ticker for live countdown
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), MS.SECOND);
     return () => clearInterval(id);
   }, []);
-
-
 
   // Keep session fresh and react to auth changes
   useEffect(() => {
@@ -327,16 +329,32 @@ export default function DashboardPage() {
       }
       if (event === "TOKEN_REFRESHED" || event === "USER_UPDATED") {
         const { data } = await supabase.auth.getUser();
-        setUser(data.user ?? null);
+        if (data.user) {
+          setUser(data.user);
+          // Refetch trial data when user updates
+          fetchUserTrial(data.user.id).then((trial) => {
+            setUserTrial(trial);
+          });
+        }
       }
       if (event === "SIGNED_IN") {
-        // Session was established - refresh user data
+        // Session was established - refresh user data and all data
         const { data } = await supabase.auth.getUser();
-        setUser(data.user ?? null);
+        if (data.user) {
+          setUser(data.user);
+          // Refetch trial data
+          fetchUserTrial(data.user.id).then((trial) => {
+            setUserTrial(trial);
+          });
+          // Clear Next.js cache and refetch all data
+          router.refresh();
+          // Dispatch event to trigger refetch in hooks
+          window.dispatchEvent(new CustomEvent('auth-state-changed'));
+        }
       }
     });
     return () => sub.subscription.unsubscribe();
-  }, [router]);
+  }, [router, fetchUserTrial]);
 
   // Verify session on mount and save quiz data if present
   useEffect(() => {
@@ -449,105 +467,6 @@ export default function DashboardPage() {
     };
   }, [router]);
 
-  // Fetch user trial info from user_trials table
-  const fetchUserTrial = useCallback(async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from("user_trials")
-        .select("trial_start, trial_end, trial_days, account_status")
-        .eq("user_id", userId)
-        .single();
-
-      if (error) {
-        // Check if table doesn't exist
-        const errorMsg = error.message?.toLowerCase() || "";
-        const isTableMissing = errorMsg.includes("does not exist") || 
-                               errorMsg.includes("relation") ||
-                               error.code === "42P01";
-        
-        if (isTableMissing) {
-          // Table doesn't exist yet - return defaults silently
-          return {
-            trial_start: new Date().toISOString(),
-            trial_end: null,
-            trial_days: 3,
-            account_status: "trial",
-          };
-        }
-        
-        // If row doesn't exist (PGRST116), try to create it
-        if (error.code === "PGRST116") {
-          const nowIso = new Date().toISOString();
-          const { data: newTrial, error: insertError } = await supabase
-            .from("user_trials")
-            .insert([
-              {
-                user_id: userId,
-                trial_start: nowIso,
-                trial_days: 3,
-                account_status: "trial",
-              },
-            ])
-            .select("trial_start, trial_end, trial_days, account_status")
-            .single();
-
-          if (insertError) {
-            // If insert fails, return defaults
-            return {
-              trial_start: nowIso,
-              trial_end: null,
-              trial_days: 3,
-              account_status: "trial",
-            };
-          }
-          return newTrial;
-        }
-        
-        // Any other error - return defaults silently
-        return {
-          trial_start: new Date().toISOString(),
-          trial_end: null,
-          trial_days: 3,
-          account_status: "trial",
-        };
-      }
-
-      // If trial_start is null, initialize it
-      if (!data.trial_start) {
-        const nowIso = new Date().toISOString();
-        const { data: updated, error: updateError } = await supabase
-          .from("user_trials")
-          .update({
-            trial_start: nowIso,
-            trial_days: data.trial_days || 3,
-            account_status: "trial",
-          })
-          .eq("user_id", userId)
-          .select("trial_start, trial_end, trial_days, account_status")
-          .single();
-
-        if (updateError) {
-          return {
-            trial_start: nowIso,
-            trial_end: null,
-            trial_days: data.trial_days || 3,
-            account_status: "trial",
-          };
-        }
-        return updated;
-      }
-
-      return data;
-    } catch {
-      // Silently return defaults on any error
-      return {
-        trial_start: new Date().toISOString(),
-        trial_end: null,
-        trial_days: 3,
-        account_status: "trial",
-      };
-    }
-  }, []);
 
   // Initial load - don't block rendering, fetch in background
   useEffect(() => {
@@ -570,6 +489,8 @@ export default function DashboardPage() {
           fetchUserTrial(u.id).then((trial) => {
             if (mounted) setUserTrial(trial);
           });
+          // Refresh router to clear cache
+          router.refresh();
         }
       } catch (e) {
         if (mounted) setErr(e instanceof Error ? e.message : "Unknown error");
@@ -579,6 +500,33 @@ export default function DashboardPage() {
       mounted = false;
     };
   }, [router, fetchUserTrial]);
+
+  // Refetch data when user becomes available (after redirect from auth)
+  useEffect(() => {
+    if (user && !userTrial) {
+      // User is set but trial data not loaded yet - fetch it
+      fetchUserTrial(user.id).then((trial) => {
+        setUserTrial(trial);
+      });
+    }
+  }, [user, userTrial, fetchUserTrial]);
+
+  // Handle URL query params from auth redirect (clear cache)
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('auth') === 'success') {
+      // Clear the query param
+      window.history.replaceState({}, '', '/dashboard');
+      // Refetch all data
+      if (user) {
+        refetchSymptomLogs();
+        fetchUserTrial(user.id).then((trial) => {
+          setUserTrial(trial);
+        });
+      }
+      router.refresh();
+    }
+  }, [user, refetchSymptomLogs, fetchUserTrial, router]);
 
   // Fetch pattern count for expired state
   const fetchPatternCount = useCallback(async () => {
@@ -864,20 +812,20 @@ export default function DashboardPage() {
 
   return (
     <main className="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8 min-h-screen bg-background">
-      {/* Header */}
-      <header className="mb-6 sm:mb-8">
-        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-foreground mb-2 sm:mb-3">
-          {userName ? `Welcome back, ${userName}!` : "Welcome back!"}
+      {/* Header - More compact */}
+      <header className="mb-4 sm:mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-1">
+          {userName ? `Hi ${userName}!` : "Welcome!"}
         </h1>
-        <p className="text-base sm:text-lg text-muted-foreground">
-          Ready to take control of your health today?
+        <p className="text-sm sm:text-base text-muted-foreground">
+          What would you like to do today?
         </p>
       </header>
 
-      {/* Bento Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
-        {/* Trial Status Card - Full width on desktop (3 columns) */}
-        <div className="lg:col-span-3">
+      {/* Bento Grid - Simplified and more compact */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+        {/* Trial Status Card - Full width */}
+        <div className="md:col-span-2">
           <AnimatedCard index={0} delay={0}>
             <TrialCard
               trial={{
@@ -890,27 +838,80 @@ export default function DashboardPage() {
           </AnimatedCard>
         </div>
 
-
-        {/* Symptoms Overview Card - 1 column */}
-        <div>
-          <SymptomsOverviewCard
-            totalSymptoms={new Set(symptomLogs.map(log => log.symptom_id)).size}
-            isLoading={symptomLogsLoading}
-          />
+        {/* Track Symptoms Action Card - Simplified */}
+        <div className="md:col-span-1">
+          <AnimatedCard index={1} delay={100} className="h-full">
+            <Link
+              href="/dashboard/symptoms"
+              className="group relative overflow-hidden flex flex-col h-full shadow-2xl rounded-xl border-2 border-primary/20 bg-card p-6 transition-all duration-200 hover:shadow-lg hover:border-primary/40"
+            >
+              <div className="flex items-start gap-4 flex-1">
+                <div className="p-3 rounded-xl shrink-0" style={{ background: 'linear-gradient(135deg, #ff74b1 0%, #d85a9a 100%)' }}>
+                  <Activity className="h-6 w-6 text-white" />
+                </div>
+                <div className="flex-1 min-w-0 flex flex-col">
+                  <h3 className="text-lg font-bold text-foreground mb-1">Track Symptoms</h3>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Log how you&apos;re feeling
+                  </p>
+                  {!trialStatus.expired && (
+                    <div className="flex items-baseline gap-1.5 mt-auto">
+                      <span className="text-2xl font-bold text-foreground">
+                        {new Set(symptomLogs.map(log => log.symptom_id)).size}
+                      </span>
+                      <span className="text-xs text-foreground/60">
+                        {new Set(symptomLogs.map(log => log.symptom_id)).size === 1 ? "symptom" : "symptoms"}
+                      </span>
+                    </div>
+                  )}
+                  {trialStatus.expired && (
+                    <div className="h-[28px]"></div>
+                  )}
+                </div>
+                <ArrowRight className="h-5 w-5 text-primary transition-transform group-hover:translate-x-1 shrink-0 mt-1" />
+              </div>
+            </Link>
+          </AnimatedCard>
         </div>
 
-        {/* Recent Symptoms Card - Full width on desktop (3 columns) */}
-        <div className="lg:col-span-3">
-          <RecentSymptomsCard 
-            logs={symptomLogs} 
-            isLoading={symptomLogsLoading}
-            onLogClick={() => {
-              // Navigate to symptoms page where logs can be viewed and edited
-              router.push("/dashboard/symptoms");
-            }}
-            onDelete={handleSymptomLogDeleteClick}
-          />
+        {/* Chat with Lisa Action Card - Simplified */}
+        <div className="md:col-span-1">
+          <AnimatedCard index={2} delay={150} className="h-full">
+            <Link
+              href="/chat/lisa"
+              className="group relative overflow-hidden flex flex-col h-full rounded-xl border-2 border-primary/20 bg-card p-6 shadow-2xl transition-all duration-200 hover:shadow-lg hover:border-primary/40"
+            >
+              <div className="flex items-start gap-4 flex-1">
+                <div className="p-3 rounded-xl shrink-0" style={{ background: 'linear-gradient(135deg, #ff74b1 0%, #d85a9a 100%)' }}>
+                  <MessageSquare className="h-6 w-6 text-white" />
+                </div>
+                <div className="flex-1 min-w-0 flex flex-col">
+                  <h3 className="text-lg font-bold text-foreground mb-1">Chat with Lisa</h3>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Ask Lisa anything
+                  </p>
+                  <div className="h-[28px]"></div>
+                </div>
+                <ArrowRight className="h-5 w-5 text-primary transition-transform group-hover:translate-x-1 shrink-0 mt-1" />
+              </div>
+            </Link>
+          </AnimatedCard>
         </div>
+
+        {/* Recent Symptoms Card - Only show if trial is active */}
+        {!trialStatus.expired && !trialStatus.loading && (
+          <div className="md:col-span-2">
+            <RecentSymptomsCard 
+              logs={symptomLogs} 
+              isLoading={symptomLogsLoading}
+              onLogClick={() => {
+                // Navigate to symptoms page where logs can be viewed and edited
+                router.push("/dashboard/symptoms");
+              }}
+              onDelete={handleSymptomLogDeleteClick}
+            />
+          </div>
+        )}
       </div>
 
       {/* Delete Confirmation Dialog */}

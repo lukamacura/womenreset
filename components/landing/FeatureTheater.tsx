@@ -14,26 +14,26 @@ const TIMING = {
 const features = [
   {
     id: "ask-anything",
-    title: "Ask Anything",
-    description: "Get answers to your menopause questions",
+    title: "Ask Lisa Anything",
+    description: "Get clear answers to your menopause questions — backed by medical research",
     icon: MessageCircle,
   },
   {
-    id: "pattern-detection",
-    title: "Pattern Detection",
-    description: "Lisa finds trends in your symptoms",
+    id: "symptom-timeline",
+    title: "Your Symptom Timeline",
+    description: "See all your logged symptoms organized by day, week, or month",
     icon: TrendingUp,
   },
   {
-    id: "personalized-insights",
-    title: "Personalized Insights",
-    description: "Advice tailored to your unique patterns",
+    id: "weekly-summaries",
+    title: "Weekly Summaries",
+    description: "See your symptom frequency compared to last week — your data at a glance",
     icon: Sparkles,
   },
   {
     id: "shareable-reports",
-    title: "Shareable Reports",
-    description: "Share your health summary with your doctor",
+    title: "Share with Your Doctor",
+    description: "Generate professional PDF symptom reports for your appointments",
     icon: FileText,
   },
 ]
@@ -81,9 +81,14 @@ export default function FeatureTheater() {
             duration: prefersReducedMotion ? 0 : 0.6,
           }}
         >
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 text-gray-900">
-            Everything You Need
-          </h2>
+          <HeadingWithHighlight
+            isInView={isInView}
+            prefersReducedMotion={!!prefersReducedMotion}
+          >
+            <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-4 text-gray-900">
+              Everything You Need
+            </h2>
+          </HeadingWithHighlight>
           <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">
             Powerful features that work together
           </p>
@@ -107,13 +112,13 @@ export default function FeatureTheater() {
                 />
               )}
               {currentFeature === 1 && (
-                <PatternDetectionPhone
+                <SymptomTimelinePhone
                   key="feature-1"
                   prefersReducedMotion={!!prefersReducedMotion}
                 />
               )}
               {currentFeature === 2 && (
-                <PersonalizedInsightsPhone
+                <WeeklySummaryPhone
                   key="feature-2"
                   prefersReducedMotion={!!prefersReducedMotion}
                 />
@@ -135,6 +140,46 @@ export default function FeatureTheater() {
         />
       </div>
     </section>
+  )
+}
+
+// Heading with Highlight Animation Component
+function HeadingWithHighlight({
+  children,
+  isInView,
+  prefersReducedMotion,
+}: {
+  children: React.ReactNode
+  isInView: boolean
+  prefersReducedMotion: boolean
+}) {
+  const [shouldHighlight, setShouldHighlight] = useState(false)
+
+  useEffect(() => {
+    if (!isInView || prefersReducedMotion) return
+
+    const timer = setTimeout(() => {
+      setShouldHighlight(true)
+    }, 300)
+
+    return () => clearTimeout(timer)
+  }, [isInView, prefersReducedMotion])
+
+  return (
+    <div className="relative inline-block">
+      <div className="relative z-10">{children}</div>
+      {/* Highlight overlay - animates from left to right */}
+      <motion.span
+        className="absolute inset-0 bg-yellow-400/40 rounded pointer-events-none"
+        initial={{ scaleX: 0, transformOrigin: "left" }}
+        animate={shouldHighlight ? { scaleX: 1 } : { scaleX: 0 }}
+        transition={{
+          duration: prefersReducedMotion ? 0 : 1.2,
+          ease: [0.4, 0, 0.2, 1],
+        }}
+        style={{ zIndex: 0 }}
+      />
+    </div>
   )
 }
 
@@ -426,8 +471,8 @@ function AskAnythingPhone({
   )
 }
 
-// Feature 2: Pattern Detection Phone
-function PatternDetectionPhone({
+// Feature 2: Symptom Timeline Phone
+function SymptomTimelinePhone({
   prefersReducedMotion,
 }: {
   prefersReducedMotion: boolean
@@ -444,29 +489,23 @@ function PatternDetectionPhone({
 
     timers.push(setTimeout(() => setAnimationPhase(0), 0))
     timers.push(setTimeout(() => setAnimationPhase(1), 100))   // Header
-    timers.push(setTimeout(() => setAnimationPhase(2), 500))   // Chart
-    timers.push(setTimeout(() => setAnimationPhase(3), 1500))  // Insight
+    timers.push(setTimeout(() => setAnimationPhase(2), 500))   // Timeline
+    timers.push(setTimeout(() => setAnimationPhase(3), 1500))  // Summary
 
     return () => timers.forEach(clearTimeout)
   }, [prefersReducedMotion])
 
   const showHeader = animationPhase >= 1
-  const showChart = animationPhase >= 2
-  const showInsight = animationPhase >= 3
+  const showTimeline = animationPhase >= 2
+  const showSummary = animationPhase >= 3
 
-  // Chart data points
-  const dataPoints = [
-    { x: 10, y: 70 },
-    { x: 30, y: 55 },
-    { x: 50, y: 65 },
-    { x: 70, y: 40 },
-    { x: 90, y: 50 },
-    { x: 110, y: 35 },
-    { x: 130, y: 45 },
-    { x: 150, y: 25 },
+  const timelineEntries = [
+    { date: "Jan 3", symptom: "Hot Flash" },
+    { date: "Jan 5", symptom: "Mood Swing" },
+    { date: "Jan 7", symptom: "Hot Flash" },
+    { date: "Jan 10", symptom: "Sleep Issue" },
+    { date: "Jan 12", symptom: "Hot Flash" },
   ]
-
-  const pathD = dataPoints.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ')
 
   return (
     <motion.div
@@ -489,101 +528,57 @@ function PatternDetectionPhone({
             transition={{ duration: prefersReducedMotion ? 0 : 0.3 }}
             className="h-11 bg-linear-to-r from-[#FF6B9D] to-[#FFA07A] rounded-xl flex items-center justify-center shrink-0 shadow-sm"
           >
-            <span className="text-white text-sm font-semibold">Your Patterns</span>
+            <span className="text-white text-sm font-semibold">Your Timeline</span>
           </motion.div>
 
-          {/* Chart Card */}
+          {/* Timeline Card */}
           <AnimatePresence>
-            {showChart && (
+            {showTimeline && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: prefersReducedMotion ? 0 : 0.4 }}
-                className="bg-white rounded-xl p-4 shadow-sm flex-1"
+                className="bg-white rounded-xl p-4 shadow-sm flex-1 overflow-y-auto"
               >
-                <div className="text-sm font-semibold text-gray-800 mb-2">
-                  Hot Flashes This Month
+                <div className="text-sm font-semibold text-gray-800 mb-3">
+                  January 2026
                 </div>
-                <div className="text-xs text-gray-500 mb-4">Trending downward 📉</div>
                 
-                {/* Chart */}
-                <div className="h-28 relative">
-                  <svg className="w-full h-full" viewBox="0 0 160 80" preserveAspectRatio="none">
-                    {/* Grid lines */}
-                    {[0, 20, 40, 60].map((y) => (
-                      <line
-                        key={y}
-                        x1="0"
-                        y1={y}
-                        x2="160"
-                        y2={y}
-                        stroke="#E5E7EB"
-                        strokeWidth="1"
-                      />
-                    ))}
-                    
-                    {/* Area fill */}
-                    <motion.path
-                      d={`${pathD} L 150 80 L 10 80 Z`}
-                      fill="url(#areaGradient)"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 0.3 }}
-                      transition={{ duration: 0.5, delay: 0.3 }}
-                    />
-                    
-                    {/* Line */}
-                    <motion.path
-                      d={pathD}
-                      fill="none"
-                      stroke="url(#lineGradient)"
-                      strokeWidth="3"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      initial={{ pathLength: 0 }}
-                      animate={{ pathLength: 1 }}
-                      transition={{ duration: prefersReducedMotion ? 0 : 1, ease: "easeOut" }}
-                    />
-                    
-                    {/* Dots */}
-                    {dataPoints.map((point, i) => (
-                      <motion.circle
-                        key={i}
-                        cx={point.x}
-                        cy={point.y}
-                        r="4"
-                        fill="#FF6B9D"
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        transition={{ delay: prefersReducedMotion ? 0 : 0.1 * i + 0.3 }}
-                      />
-                    ))}
-                    
-                    <defs>
-                      <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                        <stop offset="0%" stopColor="#FF6B9D" />
-                        <stop offset="100%" stopColor="#FFA07A" />
-                      </linearGradient>
-                      <linearGradient id="areaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                        <stop offset="0%" stopColor="#FF6B9D" />
-                        <stop offset="100%" stopColor="white" />
-                      </linearGradient>
-                    </defs>
-                  </svg>
+                {/* Timeline entries */}
+                <div className="space-y-2">
+                  {timelineEntries.map((entry, i) => (
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ 
+                        delay: prefersReducedMotion ? 0 : 0.1 * i + 0.2,
+                        duration: 0.3 
+                      }}
+                      className="flex items-center gap-3 py-2 border-b border-gray-100 last:border-0"
+                    >
+                      <div className="text-xs font-medium text-gray-500 w-12">
+                        {entry.date}
+                      </div>
+                      <div className="px-3 py-1 bg-pink-100 rounded-full text-xs font-medium text-pink-700">
+                        {entry.symptom}
+                      </div>
+                    </motion.div>
+                  ))}
                 </div>
 
-                {/* Insight Badge */}
+                {/* Summary */}
                 <AnimatePresence>
-                  {showInsight && (
+                  {showSummary && (
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: prefersReducedMotion ? 0 : 0.3 }}
-                      className="mt-4 flex items-center gap-2 bg-green-50 rounded-lg px-3 py-2"
+                      className="mt-4 pt-3 border-t border-gray-200"
                     >
-                      <TrendingUp className="h-4 w-4 text-green-600" />
-                      <span className="text-xs font-medium text-green-700">
-                        23% fewer symptoms than last month!
-                      </span>
+                      <div className="text-xs font-semibold text-gray-700 text-center">
+                        24 symptoms logged this month
+                      </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -596,8 +591,8 @@ function PatternDetectionPhone({
   )
 }
 
-// Feature 3: Personalized Insights Phone
-function PersonalizedInsightsPhone({
+// Feature 3: Weekly Summary Phone
+function WeeklySummaryPhone({
   prefersReducedMotion,
 }: {
   prefersReducedMotion: boolean
@@ -623,23 +618,23 @@ function PersonalizedInsightsPhone({
 
   const showHeader = animationPhase >= 1
   
-  const insights = [
+  const summaries = [
     {
-      emoji: "🌙",
-      title: "Evening Routine",
-      text: "Your symptoms peak at 9 PM. Try a cooling routine 30 mins before.",
+      emoji: "📊",
+      title: "This week: 8 symptoms",
+      text: "Last week: 14 symptoms ↓ 43% fewer",
       delay: 0.1,
     },
     {
-      emoji: "☕",
-      title: "Caffeine Trigger",
-      text: "Hot flashes increase 2x after afternoon coffee.",
+      emoji: "🔥",
+      title: "Most common: Hot flashes",
+      text: "5 times this week",
       delay: 0.2,
     },
     {
-      emoji: "🧘",
-      title: "Stress Connection",
-      text: "Symptoms are 40% lower on days you exercise.",
+      emoji: "✅",
+      title: "You tracked 6 out of 7 days",
+      text: "Great consistency!",
       delay: 0.3,
     },
   ]
@@ -665,12 +660,12 @@ function PersonalizedInsightsPhone({
             transition={{ duration: prefersReducedMotion ? 0 : 0.3 }}
             className="h-11 bg-linear-to-r from-[#FF6B9D] to-[#FFA07A] rounded-xl flex items-center justify-center shrink-0 shadow-sm"
           >
-            <span className="text-white text-sm font-semibold">Your Insights</span>
+            <span className="text-white text-sm font-semibold">Weekly Summary</span>
           </motion.div>
 
-          {/* Insights Cards */}
+          {/* Summary Cards */}
           <div className="flex-1 flex flex-col gap-2 overflow-hidden">
-            {insights.map((insight, index) => (
+            {summaries.map((summary, index) => (
               <AnimatePresence key={index}>
                 {animationPhase >= index + 2 && (
                   <motion.div
@@ -678,18 +673,18 @@ function PersonalizedInsightsPhone({
                     animate={{ opacity: 1, x: 0 }}
                     transition={{
                       duration: prefersReducedMotion ? 0 : 0.4,
-                      delay: prefersReducedMotion ? 0 : insight.delay,
+                      delay: prefersReducedMotion ? 0 : summary.delay,
                     }}
                     className="bg-white rounded-xl p-3 shadow-sm"
                   >
                     <div className="flex items-start gap-3">
-                      <span className="text-xl">{insight.emoji}</span>
+                      <span className="text-xl">{summary.emoji}</span>
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-semibold text-gray-800">
-                          {insight.title}
+                          {summary.title}
                         </div>
                         <p className="text-xs text-gray-600 mt-0.5 leading-relaxed">
-                          {insight.text}
+                          {summary.text}
                         </p>
                       </div>
                     </div>
@@ -793,8 +788,8 @@ function ShareableReportsPhone({
                     transition={{ delay: 0.3 }}
                     className="flex items-center justify-between text-sm"
                   >
-                    <span className="text-gray-600">Patterns found</span>
-                    <span className="font-semibold text-gray-800">5</span>
+                    <span className="text-gray-600">Days tracked</span>
+                    <span className="font-semibold text-gray-800">28</span>
                   </motion.div>
                   <motion.div
                     initial={{ opacity: 0, x: -10 }}
@@ -802,8 +797,8 @@ function ShareableReportsPhone({
                     transition={{ delay: 0.4 }}
                     className="flex items-center justify-between text-sm"
                   >
-                    <span className="text-gray-600">Insights generated</span>
-                    <span className="font-semibold text-gray-800">12</span>
+                    <span className="text-gray-600">Weekly summaries</span>
+                    <span className="font-semibold text-gray-800">4</span>
                   </motion.div>
                 </div>
 

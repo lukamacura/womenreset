@@ -1,8 +1,9 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 "use client"
 
 import { useRef, useState, useEffect, useMemo, useCallback } from "react"
 import { motion, useInView, useReducedMotion, AnimatePresence } from "framer-motion"
-import { Hand, Check, Sparkles } from "lucide-react"
+import { Hand, Check } from "lucide-react"
 
 // Animation timing constants (in ms)
 const TIMING = {
@@ -61,9 +62,14 @@ export default function HowItWorksSteps() {
             duration: prefersReducedMotion ? 0 : 0.6,
           }}
         >
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 text-gray-900">
-            How It Works
-          </h2>
+          <HeadingWithHighlight
+            isInView={isInView}
+            prefersReducedMotion={!!prefersReducedMotion}
+          >
+            <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-4 text-gray-900">
+              How It Works
+            </h2>
+          </HeadingWithHighlight>
           <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">
             Three simple steps to clarity
           </p>
@@ -73,6 +79,7 @@ export default function HowItWorksSteps() {
         <StepIndicators
           currentStep={currentStep}
           prefersReducedMotion={!!prefersReducedMotion}
+          onSelect={setCurrentStep}
         />
 
         {/* Phone Frame Container */}
@@ -86,7 +93,7 @@ export default function HowItWorksSteps() {
                 />
               )}
               {currentStep === 2 && (
-                <PatternCalendarPhone
+                <DataTimelinePhone
                   key="step-2"
                   prefersReducedMotion={!!prefersReducedMotion}
                 />
@@ -111,51 +118,80 @@ export default function HowItWorksSteps() {
   )
 }
 
+// Heading with Highlight Animation Component
+function HeadingWithHighlight({
+  children,
+  isInView,
+  prefersReducedMotion,
+}: {
+  children: React.ReactNode
+  isInView: boolean
+  prefersReducedMotion: boolean
+}) {
+  const [shouldHighlight, setShouldHighlight] = useState(false)
+
+  useEffect(() => {
+    if (!isInView || prefersReducedMotion) return
+
+    const timer = setTimeout(() => {
+      setShouldHighlight(true)
+    }, 300)
+
+    return () => clearTimeout(timer)
+  }, [isInView, prefersReducedMotion])
+
+  return (
+    <div className="relative inline-block">
+      <div className="relative z-10">{children}</div>
+      {/* Highlight overlay - animates from left to right */}
+      <motion.span
+        className="absolute inset-0 bg-yellow-400/40 rounded pointer-events-none"
+        initial={{ scaleX: 0, transformOrigin: "left" }}
+        animate={shouldHighlight ? { scaleX: 1 } : { scaleX: 0 }}
+        transition={{
+          duration: prefersReducedMotion ? 0 : 1.2,
+          ease: [0.4, 0, 0.2, 1],
+        }}
+        style={{ zIndex: 0 }}
+      />
+    </div>
+  )
+}
+
 // Step Indicators Component
 function StepIndicators({
   currentStep,
   prefersReducedMotion,
+  onSelect,
 }: {
   currentStep: number
   prefersReducedMotion: boolean
+  onSelect?: (step: number) => void
 }) {
   return (
-    <div className="flex justify-center items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
+    <div className="flex justify-center gap-2 mb-6 sm:mb-8">
       {[1, 2, 3].map((step) => {
         const isActive = currentStep === step
         return (
           <motion.button
             key={step}
             type="button"
-            aria-label={`Step ${step}`}
+            onClick={() => onSelect?.(step)}
+            aria-label={`Go to step ${step}`}
             aria-current={isActive ? "step" : undefined}
-            className={`
-              w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center
-              text-sm sm:text-base font-bold transition-shadow
-              ${isActive ? "shadow-lg" : "border-2 border-gray-300 bg-white/50"}
-            `}
-            style={
+            className={`h-2 rounded-full transition-all duration-300 ${
               isActive
-                ? {
-                    background: "linear-gradient(135deg, #FF6B9D 0%, #FFA07A 100%)",
-                    color: "white",
-                  }
-                : {
-                    color: "#9CA3AF",
-                  }
-            }
+                ? "w-8 bg-linear-to-r from-[#FF6B9D] to-[#FFA07A]"
+                : "w-2 bg-gray-300 hover:bg-gray-400"
+            }`}
             animate={{
-              scale: isActive ? 1.1 : 1,
+              width: isActive ? 32 : 8,
             }}
             transition={{
-              type: "spring",
-              stiffness: 300,
-              damping: 20,
               duration: prefersReducedMotion ? 0 : 0.3,
+              ease: "easeInOut",
             }}
-          >
-            {step}
-          </motion.button>
+          />
         )
       })}
     </div>
@@ -171,9 +207,9 @@ function StepLabels({
   prefersReducedMotion: boolean
 }) {
   const labels = [
-    "Log your symptom — Takes seconds",
-    "Lisa finds patterns — Automatically",
-    "Get clear insights — Personalized for you",
+    "Track daily — Takes 30 seconds",
+    "See your data — Organized and clear",
+    "Get answers — Chat with Lisa anytime",
   ]
 
   return (
@@ -201,7 +237,7 @@ function StepLabels({
 function PhoneFrame({ children }: { children: React.ReactNode }) {
   return (
     <div
-      className="relative rounded-[2.5rem] border-[3px] border-gray-900 w-full aspect-[9/18] shadow-2xl"
+      className="relative rounded-[2.5rem] border-[3px] border-gray-900 w-full aspect-9/18 shadow-2xl"
       style={{
         boxShadow:
           "0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05)",
@@ -288,7 +324,7 @@ function SymptomTrackingPhone({
             initial={{ opacity: 0, y: -10 }}
             animate={showHeader ? { opacity: 1, y: 0 } : { opacity: 0, y: -10 }}
             transition={{ duration: prefersReducedMotion ? 0 : 0.3 }}
-            className="h-11 bg-gradient-to-r from-[#FF6B9D] to-[#FFA07A] rounded-xl flex items-center justify-center shrink-0 shadow-sm"
+            className="h-11 bg-linear-to-r from-[#FF6B9D] to-[#FFA07A] rounded-xl flex items-center justify-center shrink-0 shadow-sm"
           >
             <span className="text-white text-sm font-semibold">Quick Log</span>
           </motion.div>
@@ -409,8 +445,8 @@ function SymptomTrackingPhone({
   )
 }
 
-// Step 2: Pattern Calendar Phone
-function PatternCalendarPhone({
+// Step 2: Data Timeline Phone
+function DataTimelinePhone({
   prefersReducedMotion,
 }: {
   prefersReducedMotion: boolean
@@ -419,15 +455,15 @@ function PatternCalendarPhone({
   // Phase 0: Initial
   // Phase 1: Header visible
   // Phase 2: Calendar visible
-  // Phase 3-6: Dots appear (one per phase)
-  // Phase 7: Line draws
-  // Phase 8: Pattern detected text + sparkles
+  // Phase 3-6: Symptom entries appear on different days
+  // Phase 7: Summary count appears
 
-  const patternDays = useMemo(() => [3, 10, 17, 24], []) // Weekly pattern
+  // Symptom days: 3, 7, 10, 14, 17, 21, 24
+  const symptomDays = useMemo(() => [3, 7, 10, 14, 17, 21, 24], [])
 
   useEffect(() => {
     if (prefersReducedMotion) {
-      setAnimationPhase(8)
+      setAnimationPhase(7)
       return
     }
 
@@ -436,21 +472,19 @@ function PatternCalendarPhone({
 
     timers.push(setTimeout(() => setAnimationPhase(1), 100))   // Header
     timers.push(setTimeout(() => setAnimationPhase(2), 400))   // Calendar
-    timers.push(setTimeout(() => setAnimationPhase(3), 700))   // Dot 1
-    timers.push(setTimeout(() => setAnimationPhase(4), 900))   // Dot 2
-    timers.push(setTimeout(() => setAnimationPhase(5), 1100))  // Dot 3
-    timers.push(setTimeout(() => setAnimationPhase(6), 1300))  // Dot 4
-    timers.push(setTimeout(() => setAnimationPhase(7), 1600))  // Line
-    timers.push(setTimeout(() => setAnimationPhase(8), 2200))  // Pattern detected
+    timers.push(setTimeout(() => setAnimationPhase(3), 700))   // Entry 1
+    timers.push(setTimeout(() => setAnimationPhase(4), 950))   // Entry 2
+    timers.push(setTimeout(() => setAnimationPhase(5), 1200))  // Entry 3
+    timers.push(setTimeout(() => setAnimationPhase(6), 1450))  // Entry 4
+    timers.push(setTimeout(() => setAnimationPhase(7), 1700))  // Summary
 
     return () => timers.forEach(clearTimeout)
   }, [prefersReducedMotion])
 
   const showHeader = animationPhase >= 1
   const showCalendar = animationPhase >= 2
-  const visibleDotCount = Math.max(0, Math.min(animationPhase - 2, 4))
-  const showLine = animationPhase >= 7
-  const showPatternDetected = animationPhase >= 8
+  const visibleEntryCount = Math.max(0, Math.min(animationPhase - 2, 7))
+  const showSummary = animationPhase >= 7
 
   return (
     <motion.div
@@ -471,9 +505,9 @@ function PatternCalendarPhone({
             initial={{ opacity: 0, y: -10 }}
             animate={showHeader ? { opacity: 1, y: 0 } : { opacity: 0, y: -10 }}
             transition={{ duration: prefersReducedMotion ? 0 : 0.3 }}
-            className="h-11 bg-gradient-to-r from-[#FF6B9D] to-[#FFA07A] rounded-xl flex items-center justify-center shrink-0 shadow-sm"
+            className="h-11 bg-linear-to-r from-[#FF6B9D] to-[#FFA07A] rounded-xl flex items-center justify-center shrink-0 shadow-sm"
           >
-            <span className="text-white text-sm font-semibold">Pattern Analysis</span>
+            <span className="text-white text-sm font-semibold">Your Timeline</span>
           </motion.div>
 
           {/* Calendar Container */}
@@ -496,7 +530,7 @@ function PatternCalendarPhone({
                     {["S", "M", "T", "W", "T", "F", "S"].map((day, i) => (
                       <div
                         key={i}
-                        className="text-[10px] font-medium text-gray-400 text-center py-1"
+                        className="text-[10px] font-medium text-center py-1 text-gray-400"
                       >
                         {day}
                       </div>
@@ -507,102 +541,66 @@ function PatternCalendarPhone({
                   <div className="grid grid-cols-7 gap-1 relative">
                     {Array.from({ length: 28 }, (_, i) => {
                       const day = i + 1
-                      const isPatternDay = patternDays.includes(day)
-                      const patternIndex = patternDays.indexOf(day)
-                      const isDotVisible = isPatternDay && patternIndex < visibleDotCount
+                      const isSymptomDay = symptomDays.includes(day)
+                      const symptomIndex = symptomDays.indexOf(day)
+                      const isEntryVisible = isSymptomDay && symptomIndex < visibleEntryCount
 
                       return (
                         <div
                           key={day}
-                          className={`
-                            aspect-square rounded-md flex items-center justify-center
-                            text-[11px] font-medium relative
-                            ${isDotVisible ? "bg-[#FF6B9D] text-white" : "bg-gray-50 text-gray-600"}
-                          `}
+                          className="aspect-square relative flex items-center justify-center"
                         >
+                          {/* Background cell */}
                           <motion.div
-                            initial={isPatternDay ? { scale: 0 } : { scale: 1 }}
-                            animate={{ scale: 1 }}
+                            className={`
+                              absolute inset-0 rounded-md flex items-center justify-center
+                              text-[11px] font-medium
+                              ${isEntryVisible ? "bg-[#FF6B9D] text-white" : "bg-gray-50 text-gray-600"}
+                            `}
+                            initial={isSymptomDay ? { scale: 0.8, opacity: 0 } : {}}
+                            animate={isEntryVisible ? { scale: 1, opacity: 1 } : {}}
                             transition={{
                               type: "spring",
-                              stiffness: 400,
-                              damping: 20,
+                              stiffness: 500,
+                              damping: 25,
                             }}
                           >
                             {day}
                           </motion.div>
                           
-                          {/* Pulse ring on pattern days */}
-                          {isDotVisible && showLine && !prefersReducedMotion && (
-                            <motion.div
-                              className="absolute inset-0 rounded-md border-2 border-[#FF6B9D]"
-                              initial={{ scale: 1, opacity: 0.8 }}
-                              animate={{ scale: 1.4, opacity: 0 }}
-                              transition={{
-                                duration: 1,
-                                repeat: Infinity,
-                                delay: patternIndex * 0.2,
-                              }}
-                            />
+                          {/* Non-symptom day number */}
+                          {!isSymptomDay && (
+                            <span className="relative z-10 text-[11px] font-medium text-gray-600">
+                              {day}
+                            </span>
                           )}
                         </div>
                       )
                     })}
-
-                    {/* Connecting curved line */}
-                    {showLine && visibleDotCount === 4 && (
-                      <svg
-                        className="absolute inset-0 w-full h-full pointer-events-none"
-                        style={{ overflow: "visible" }}
-                      >
-                        <defs>
-                          <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                            <stop offset="0%" stopColor="#FF6B9D" />
-                            <stop offset="100%" stopColor="#FFA07A" />
-                          </linearGradient>
-                        </defs>
-                        <motion.path
-                          d="M 22 22 C 45 10, 70 35, 93 22 S 140 10, 163 22 S 210 35, 233 22"
-                          stroke="url(#lineGrad)"
-                          strokeWidth="2"
-                          fill="none"
-                          strokeLinecap="round"
-                          strokeDasharray="200"
-                          initial={{ strokeDashoffset: 200 }}
-                          animate={{ strokeDashoffset: 0 }}
-                          transition={{
-                            duration: prefersReducedMotion ? 0 : 0.6,
-                            ease: "easeOut",
-                          }}
-                        />
-                      </svg>
-                    )}
                   </div>
 
-                  {/* Pattern Detected Badge */}
+                  {/* Data Summary Card */}
                   <AnimatePresence>
-                    {showPatternDetected && (
+                    {showSummary && (
                       <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: prefersReducedMotion ? 0 : 0.3 }}
-                        className="mt-3 flex items-center justify-center gap-2"
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        transition={{ 
+                          type: "spring",
+                          stiffness: 400,
+                          damping: 25,
+                          duration: prefersReducedMotion ? 0 : 0.4,
+                        }}
+                        className="mt-3 bg-linear-to-r from-[#FFF0F5] to-[#FFF5F0] rounded-lg p-2.5 border border-pink-100"
                       >
-                        <motion.div
-                          animate={!prefersReducedMotion ? { rotate: [0, 15, -15, 0] } : {}}
-                          transition={{ duration: 0.5, delay: 0.2 }}
-                        >
-                          <Sparkles className="h-4 w-4 text-amber-500" />
-                        </motion.div>
-                        <span className="text-xs font-semibold text-[#FF6B9D]">
-                          Weekly pattern detected!
-                        </span>
-                        <motion.div
-                          animate={!prefersReducedMotion ? { rotate: [0, -15, 15, 0] } : {}}
-                          transition={{ duration: 0.5, delay: 0.3 }}
-                        >
-                          <Sparkles className="h-4 w-4 text-amber-500" />
-                        </motion.div>
+                        <div className="text-center">
+                          <span className="text-xs font-bold text-[#FF6B9D] block">
+                            15 symptoms logged this month
+                          </span>
+                          <span className="text-[10px] text-gray-500">
+                            Your tracking history
+                          </span>
+                        </div>
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -629,7 +627,7 @@ function ChatInterfacePhone({
   // Phase 2: Typing indicator visible
   // Phase 3: Message bubble appears, text reveals
 
-  const fullMessage = "I noticed your hot flashes happen weekly. Try cooling down 30 mins before bed! 💙"
+  const fullMessage = "I see you've been tracking consistently! Here's what research shows about managing hot flashes: try cooling down 30 mins before bed. 💙"
 
   useEffect(() => {
     if (prefersReducedMotion) {
@@ -691,7 +689,7 @@ function ChatInterfacePhone({
             initial={{ opacity: 0, y: -10 }}
             animate={showHeader ? { opacity: 1, y: 0 } : { opacity: 0, y: -10 }}
             transition={{ duration: prefersReducedMotion ? 0 : 0.3 }}
-            className="h-11 bg-gradient-to-r from-[#FF6B9D] to-[#FFA07A] rounded-xl flex items-center justify-center shrink-0 shadow-sm"
+            className="h-11 bg-linear-to-r from-[#FF6B9D] to-[#FFA07A] rounded-xl flex items-center justify-center shrink-0 shadow-sm"
           >
             <span className="text-white text-sm font-semibold">Chat with Lisa</span>
           </motion.div>
@@ -710,7 +708,7 @@ function ChatInterfacePhone({
                   className="flex items-start gap-2"
                 >
                   {/* Avatar */}
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#FF6B9D] to-[#FFA07A] flex items-center justify-center shrink-0 shadow-sm">
+                  <div className="w-8 h-8 rounded-full bg-linear-to-br from-[#FF6B9D] to-[#FFA07A] flex items-center justify-center shrink-0 shadow-sm">
                     <span className="text-white text-xs font-bold">L</span>
                   </div>
                   
@@ -750,7 +748,7 @@ function ChatInterfacePhone({
                   className="flex items-start gap-2"
                 >
                   {/* Avatar */}
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#FF6B9D] to-[#FFA07A] flex items-center justify-center shrink-0 shadow-sm">
+                  <div className="w-8 h-8 rounded-full bg-linear-to-br from-[#FF6B9D] to-[#FFA07A] flex items-center justify-center shrink-0 shadow-sm">
                     <span className="text-white text-xs font-bold">L</span>
                   </div>
                   
