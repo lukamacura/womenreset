@@ -43,8 +43,13 @@ const lora = Lora({
 });
 
 export const metadata: Metadata = {
-  title: "WomenReset",
-  description: "AI companion for women’s health and menopause support",
+  title: "MenoLisa | AI support for women in menopause",
+  description: "AI companion for women's health and menopause support",
+  icons: {
+    icon: "/lisa_profile.webp",
+    shortcut: "/lisa_profile.webp",
+    apple: "/lisa_profile.webp",
+  },
 };
 
 export default async function RootLayout({
