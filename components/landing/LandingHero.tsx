@@ -67,13 +67,13 @@ export default function LandingHero() {
           <div className="text-center lg:text-left space-y-5 sm:space-y-6 relative z-20">
             {/* Heading with gradient on "menopause" - fully visible */}
             <h1 
-              className="text-4xl sm:text-5xl md:text-6xl lg:text-8xl font-extrabold leading-tight text-foreground"
+              className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold leading-tight text-foreground"
               style={{
                 textShadow: '0 2px 10px rgba(255, 255, 255, 0.5)'
               }}
             >
               Clear answers for  {' '}
-              <span className="gradient-heading">menopause</span>{' '}
+              <span className="gradient-heading">menopause</span>,{' '}
               tailored to you
             </h1>
 

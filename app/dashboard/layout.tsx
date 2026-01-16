@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, Activity, UtensilsCrossed, Dumbbell, LogOut, ChevronDown, Bell } from "lucide-react";
+import { LayoutDashboard, Activity, LogOut, ChevronDown, Bell } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import LisaSwipeButton from "@/components/LisaSwipeButton";
 import { useTrialStatus } from "@/lib/useTrialStatus";
@@ -67,18 +67,6 @@ export default function DashboardLayout({
       icon: Activity,
       requiresActiveTrial: true,
     },
-    {
-      href: "/dashboard/nutrition",
-      label: "Nutrition Tracker",
-      icon: UtensilsCrossed,
-      requiresActiveTrial: true,
-    },
-    {
-      href: "/dashboard/fitness",
-      label: "Fitness Tracker",
-      icon: Dumbbell,
-      requiresActiveTrial: true,
-    },
   ];
 
   const handleNavClick = (item: typeof navItems[0], e: React.MouseEvent) => {
@@ -140,12 +128,15 @@ export default function DashboardLayout({
     <NotificationProvider>
       <PricingModalProvider>
         <PricingModalWrapper />
-        <div className="min-h-screen flex flex-col pt-18 bg-background">
+        <div className="min-h-screen flex flex-col bg-background">
         {/* Session Verification - checks for browser mismatch issues */}
         <SessionVerification />
         
+        {/* Background fill above navigation */}
+        <div className="fixed top-0 left-0 right-0 z-10 h-[80px] bg-background/80 backdrop-blur-sm" />
+        
         {/* Top Navigation */}
-      <nav className="top-0 z-10 border-b border-foreground/10 bg-background/80 backdrop-blur-sm">
+      <nav className="fixed left-0 right-0 z-10 border-b border-foreground/10 bg-background/80 backdrop-blur-sm" style={{ top: '80px' }}>
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
             {/* Mobile Dropdown */}
@@ -269,7 +260,7 @@ export default function DashboardLayout({
       </nav>
 
       {/* Main Content */}
-      <main className="flex-1">{children}</main>
+      <main className="flex-1 pt-[144px] sm:pt-[148px]">{children}</main>
 
       {/* Fixed Lisa Swipe Button */}
       <LisaSwipeButton />

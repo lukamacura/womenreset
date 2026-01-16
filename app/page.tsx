@@ -4,14 +4,15 @@ import { useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import LandingHero from "@/components/landing/LandingHero";
 import LandingProblem from "@/components/landing/LandingProblem";
-import LandingWhyDifferent from "@/components/landing/LandingWhyDifferent";
-import LandingFeatures from "@/components/landing/LandingFeatures";
 import LandingSocialProof from "@/components/landing/LandingSocialProof";
 import LandingPricing from "@/components/landing/LandingPricing";
 import LandingFAQ from "@/components/landing/LandingFAQ";
 import LandingFinalCTA from "@/components/landing/LandingFinalCTA";
 import LandingFooter from "@/components/landing/LandingFooter";
 import HomeSwipeButton from "@/components/HomeSwipeButton";
+import ChaosToClarity from "@/components/landing/ChaosToClarity";
+import HowItWorksSteps from "@/components/landing/HowItWorksSteps";
+import FeatureTheater from "@/components/landing/FeatureTheater";
 
 export default function Home() {
   const router = useRouter();
@@ -326,10 +327,11 @@ export default function Home() {
 
       <div className="relative z-10">
         <LandingHero />
+        <ChaosToClarity />
         <LandingProblem />
-        <LandingWhyDifferent />
+        <HowItWorksSteps />
+        <FeatureTheater />
         <LandingSocialProof />
-        <LandingFeatures />
         <LandingPricing />
         <LandingFAQ />
         <LandingFinalCTA />

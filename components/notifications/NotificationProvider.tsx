@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
@@ -226,11 +227,10 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       try {
         // Extract action metadata (functions can't be serialized)
         // Store action labels and try to infer routes from common patterns
-        const actionMetadata: any = {};
+        const actionMetadata: Record<string, unknown> = {};
         if (notificationData.primaryAction) {
           const label = notificationData.primaryAction.label.toLowerCase();
           let route: string | null = null;
-          
           // Infer route from common action labels
           if (label.includes("lisa") || label.includes("talk to")) {
             route = "/chat/lisa";

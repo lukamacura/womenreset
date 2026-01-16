@@ -5,14 +5,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import type { User } from "@supabase/supabase-js";
-import { Activity, ArrowRight, UtensilsCrossed, Dumbbell, Trash2, Heart, StretchHorizontal, Trophy } from "lucide-react";
-import type { Nutrition } from "@/components/nutrition/NutritionList";
-import NutritionList from "@/components/nutrition/NutritionList";
-import type { Fitness } from "@/components/fitness/FitnessList";
+import { Activity, ArrowRight, Trash2 } from "lucide-react";
 import type { SymptomLog } from "@/lib/symptom-tracker-constants";
 import { useSymptomLogs } from "@/hooks/useSymptomLogs";
-import AddNutritionModal from "@/components/nutrition/AddNutritionModal";
-import AddFitnessModal from "@/components/fitness/AddFitnessModal";
 import DeleteConfirmationDialog from "@/components/DeleteConfirmationDialog";
 import RecentLogs from "@/components/symptom-tracker/RecentLogs";
 import { TrialCard, getTrialState, type TrialState } from "@/components/TrialCard";
@@ -269,338 +264,6 @@ function RecentSymptomsCard({
   );
 }
 
-// Nutrition Overview Card
-function NutritionOverviewCard({
-  totalNutrition,
-  isLoading,
-}: {
-  totalNutrition: number;
-  isLoading: boolean;
-}) {
-  return (
-    <AnimatedCard index={2} delay={150}>
-      <Link
-        href="/dashboard/nutrition"
-        className="group relative overflow-hidden block h-full rounded-2xl border border-border/30 bg-card backdrop-blur-lg p-6 shadow-xl transition-all duration-300 hover:shadow-2xl hover:scale-[1.02]"
-      >
-      <div className="relative">
-        <div className="flex items-start justify-between mb-4">
-          <div className="p-3 rounded-xl shadow-md" style={{ background: 'linear-gradient(135deg, #ffeb76 0%, #e6d468 100%)' }}>
-            <UtensilsCrossed className="h-6 w-6 text-headline" />
-          </div>
-          <ArrowRight className="h-5 w-5 text-[#e6d468] transition-transform group-hover:translate-x-1" />
-        </div>
-        <div>
-          <h3 className="text-base font-medium text-muted-foreground mb-1">Nutrition Tracker</h3>
-          {isLoading ? (
-            <div className="h-8 w-20 bg-foreground/10 rounded animate-pulse" />
-          ) : (
-            <div className="flex items-baseline gap-2">
-              <span className="text-4xl font-extrabold text-foreground tracking-tight">
-                {totalNutrition}
-              </span>
-              <span className="text-sm text-foreground/50 font-bold">
-                {totalNutrition === 1 ? "entry" : "entries"}
-              </span>
-            </div>
-          )}
-        </div>
-      </div>
-      </Link>
-    </AnimatedCard>
-  );
-}
-
-// Recent Nutrition Card
-function RecentNutritionCard({
-  nutrition,
-  isLoading,
-  onEdit,
-  onDelete,
-}: {
-  nutrition: Nutrition[];
-  isLoading: boolean;
-  onEdit?: (nutrition: Nutrition) => void;
-  onDelete?: (nutrition: Nutrition) => void;
-}) {
-  const recentNutrition = nutrition.slice(0, 5);
-
-  // Convert onDelete from (nutrition: Nutrition) => void to (id: string) => void
-  const handleDelete = onDelete ? (id: string) => {
-    const entry = nutrition.find(n => n.id === id);
-    if (entry) {
-      onDelete(entry);
-    }
-  } : undefined;
-
-  return (
-    <AnimatedCard index={5} delay={350}>
-      <div className="relative overflow-hidden rounded-2xl border border-border/30 bg-card backdrop-blur-lg p-6 shadow-xl transition-all duration-300 hover:shadow-2xl hover:scale-[1.01]">
-        <div className="relative">
-          <div className="flex items-center justify-between mb-5">
-            <h3 className="text-lg font-bold text-foreground">Recent Meals</h3>
-            <Link
-              href="/dashboard/nutrition"
-              className="text-sm text-primary hover:underline flex items-center gap-1 font-medium"
-            >
-              View all
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </div>
-
-          <NutritionList
-            nutrition={recentNutrition}
-            isLoading={isLoading}
-            onEdit={onEdit}
-            onDelete={handleDelete}
-          />
-        </div>
-      </div>
-    </AnimatedCard>
-  );
-}
-
-// Fitness Overview Card
-function FitnessOverviewCard({
-  totalFitness,
-  isLoading,
-}: {
-  totalFitness: number;
-  isLoading: boolean;
-}) {
-  return (
-    <AnimatedCard index={3} delay={200}>
-      <Link
-        href="/dashboard/fitness"
-        className="group relative overflow-hidden block h-full rounded-2xl border border-border/30 bg-card backdrop-blur-lg p-6 shadow-xl transition-all duration-300 hover:shadow-2xl hover:scale-[1.02]"
-      >
-      <div className="relative">
-        <div className="flex items-start justify-between mb-4">
-          <div className="p-3 rounded-xl shadow-md" style={{ background: 'linear-gradient(135deg, #65dbff 0%, #4bc4e6 100%)' }}>
-            <Dumbbell className="h-6 w-6 text-white" />
-          </div>
-          <ArrowRight className="h-5 w-5 text-info transition-transform group-hover:translate-x-1" />
-        </div>
-        <div>
-          <h3 className="text-base font-medium text-muted-foreground mb-1">Fitness Tracker</h3>
-          {isLoading ? (
-            <div className="h-8 w-20 bg-foreground/10 rounded animate-pulse" />
-          ) : (
-            <div className="flex items-baseline gap-2">
-              <span className="text-4xl font-extrabold text-foreground tracking-tight">
-                {totalFitness}
-              </span>
-              <span className="text-sm text-foreground/50 font-bold">
-                {totalFitness === 1 ? "workout" : "workouts"}
-              </span>
-            </div>
-          )}
-        </div>
-      </div>
-      </Link>
-    </AnimatedCard>
-  );
-}
-
-// Recent Fitness Card
-function RecentFitnessCard({
-  fitness,
-  isLoading,
-  onEdit,
-  onDelete,
-}: {
-  fitness: Fitness[];
-  isLoading: boolean;
-  onEdit?: (fitness: Fitness) => void;
-  onDelete?: (fitness: Fitness) => void;
-}) {
-  const recentFitness = fitness.slice(0, 5);
-
-  const getExerciseTypeColor = (exerciseType: string) => {
-    switch (exerciseType.toLowerCase()) {
-      case "cardio":
-        return "bg-[#ff74b1]/30 text-[#d85a9a] border border-[#ff74b1]/40";
-      case "strength":
-        return "bg-[#65dbff]/30 text-[#4bc4e6] border border-[#65dbff]/40";
-      case "flexibility":
-        return "bg-[#ffeb76]/30 text-[#e6d468] border border-[#ffeb76]/40";
-      case "sports":
-        return "bg-[#a6eaff]/30 text-[#65dbff] border border-[#a6eaff]/40";
-      case "other":
-        return "bg-gray-500/20 text-gray-700";
-      default:
-        return "bg-gray-500/20 text-gray-700";
-    }
-  };
-
-  const formatExerciseType = (exerciseType: string) => {
-    return exerciseType.charAt(0).toUpperCase() + exerciseType.slice(1);
-  };
-
-  const getExerciseTypeIcon = (exerciseType: string) => {
-    switch (exerciseType.toLowerCase()) {
-      case "cardio":
-        return <Heart className="h-4 w-4 text-red-600" />;
-      case "strength":
-        return <Dumbbell className="h-4 w-4 text-blue-600" />;
-      case "flexibility":
-        return <StretchHorizontal className="h-4 w-4 text-purple-600" />;
-      case "sports":
-        return <Trophy className="h-4 w-4 text-green-600" />;
-      case "other":
-        return <Activity className="h-4 w-4 text-gray-600" />;
-      default:
-        return null;
-    }
-  };
-
-  return (
-    <AnimatedCard index={6} delay={400}>
-      <div className="relative overflow-hidden rounded-2xl border border-border/30 bg-card backdrop-blur-lg p-6 shadow-xl transition-all duration-300 hover:shadow-2xl hover:scale-[1.01]">
-      <div className="relative">
-        <div className="flex items-center justify-between mb-5">
-          <h3 className="text-lg font-bold text-foreground">Recent Workouts</h3>
-          <Link
-            href="/dashboard/fitness"
-            className="text-sm text-primary hover:underline flex items-center gap-1 font-medium"
-          >
-            View all
-            <ArrowRight className="h-4 w-4" />
-          </Link>
-        </div>
-
-      {isLoading ? (
-        <div className="space-y-3">
-          {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-16 w-full" />
-          ))}
-        </div>
-      ) : recentFitness.length === 0 ? (
-        <div className="text-center py-8">
-          <Dumbbell className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
-          <p className="text-sm text-muted-foreground">No fitness entries logged yet</p>
-          <Link
-            href="/dashboard/fitness"
-            className="text-sm text-primary hover:underline mt-2 inline-block"
-          >
-            Start tracking →
-          </Link>
-        </div>
-        ) : (
-        <div className="space-y-3">
-          {recentFitness.map((entry, index) => {
-            const formatDateTime = (dateString: string) => {
-              const date = new Date(dateString);
-              return {
-                date: date.toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                }),
-                time: date.toLocaleTimeString("en-US", {
-                  hour: "numeric",
-                  minute: "2-digit",
-                  hour12: true,
-                }),
-              };
-            };
-            const { date, time } = formatDateTime(entry.performed_at);
-            const exerciseTypeColor = getExerciseTypeColor(entry.exercise_type);
-            const exerciseTypeLabel = formatExerciseType(entry.exercise_type);
-            const getIntensityColor = (intensity: string | null) => {
-              if (!intensity) return "";
-              switch (intensity.toLowerCase()) {
-                case "low":
-                  return "bg-[#a6eaff]/30 text-[#65dbff] border border-[#a6eaff]/40";
-                case "medium":
-                  return "bg-[#ffeb76]/30 text-[#e6d468] border border-[#ffeb76]/40";
-                case "high":
-                  return "bg-[#ff74b1]/30 text-[#d85a9a] border border-[#ff74b1]/40";
-                default:
-                  return "";
-              }
-            };
-            const intensityColor = getIntensityColor(entry.intensity);
-
-            return (
-              <AnimatedListItem key={entry.id} index={index}>
-                <div
-                  className="group rounded-xl border border-foreground/10 bg-background/60 p-4 transition-colors hover:border-foreground/20"
-                >
-                <div className="flex items-start justify-between gap-4">
-                  <div 
-                    className="flex-1 min-w-0 cursor-pointer"
-                    onClick={() => onEdit?.(entry)}
-                  >
-                    <div className="flex items-center gap-2 mb-2 flex-wrap">
-                      <h3 className="text-base font-semibold text-foreground truncate">
-                        {entry.exercise_name}
-                      </h3>
-                      <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
-                        <span
-                          className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${exerciseTypeColor}`}
-                          style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}
-                        >
-                          {getExerciseTypeIcon(entry.exercise_type)}
-                          {exerciseTypeLabel}
-                        </span>
-                        {entry.intensity && (
-                        <span
-                          className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${intensityColor}`}
-                          style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}
-                        >
-                            {entry.intensity.charAt(0).toUpperCase() + entry.intensity.slice(1)}
-                          </span>
-                        )}
-                        {entry.duration_minutes !== null && (
-                          <span className="text-xs text-muted-foreground font-medium">
-                            {entry.duration_minutes} min
-                          </span>
-                        )}
-                        {entry.calories_burned !== null && (
-                          <span className="text-xs text-muted-foreground font-medium">
-                            {entry.calories_burned} cal
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <span>{date}</span>
-                      <span>•</span>
-                      <span>{time}</span>
-                    </div>
-                    {entry.notes && (
-                      <p className="mt-2 text-sm text-foreground/80 line-clamp-2">
-                        {entry.notes}
-                      </p>
-                    )}
-                  </div>
-                  {onDelete && (
-                    <div className="flex items-center gap-2 shrink-0">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onDelete(entry);
-                        }}
-                        className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-primary-light/50 hover:text-primary-dark"
-                        aria-label="Delete fitness entry"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  )}
-                </div>
-                </div>
-              </AnimatedListItem>
-            );
-          })}
-        </div>
-      )}
-      </div>
-      </div>
-    </AnimatedCard>
-  );
-}
 
 // ---------------------------
 // Page
@@ -615,10 +278,6 @@ export default function DashboardPage() {
   const [now, setNow] = useState<Date>(new Date());
   const lastNotifiedStateRef = useRef<TrialState | null>(null);
   const { logs: symptomLogs, loading: symptomLogsLoading } = useSymptomLogs(30);
-  const [nutrition, setNutrition] = useState<Nutrition[]>([]);
-  const [nutritionLoading, setNutritionLoading] = useState(true);
-  const [fitness, setFitness] = useState<Fitness[]>([]);
-  const [fitnessLoading, setFitnessLoading] = useState(true);
   const [userTrial, setUserTrial] = useState<{
     trial_start: string | null;
     trial_end: string | null;
@@ -628,16 +287,10 @@ export default function DashboardPage() {
   const [patternCount, setPatternCount] = useState<number>(0);
   const [, setPatternCountLoading] = useState(true);
   
-  // Modal states
-  const [isNutritionModalOpen, setIsNutritionModalOpen] = useState(false);
-  const [isFitnessModalOpen, setIsFitnessModalOpen] = useState(false);
-  const [editingNutrition, setEditingNutrition] = useState<Nutrition | null>(null);
-  const [editingFitness, setEditingFitness] = useState<Fitness | null>(null);
-  
   // Delete confirmation states
   const [deleteDialog, setDeleteDialog] = useState<{
     isOpen: boolean;
-    type: "nutrition" | "fitness" | null;
+    type: null;
     id: string | null;
     name: string;
     isLoading: boolean;
@@ -665,79 +318,6 @@ export default function DashboardPage() {
   }, []);
 
 
-  // Fetch nutrition data
-  const fetchNutrition = useCallback(async () => {
-    // Don't fetch if user is not authenticated
-    if (!user) {
-      setNutritionLoading(false);
-      return;
-    }
-
-    try {
-      setNutritionLoading(true);
-      const response = await fetch("/api/nutrition", {
-        method: "GET",
-        cache: "no-store",
-      });
-
-      if (!response.ok) {
-        // If 401, user is not authenticated - stop trying
-        if (response.status === 401) {
-          console.warn("Nutrition fetch: Unauthorized - user not authenticated");
-          setNutrition([]);
-          setNutritionLoading(false);
-          return;
-        }
-        throw new Error("Failed to fetch nutrition");
-      }
-
-      const { data } = await response.json();
-      setNutrition(data || []);
-    } catch (err) {
-      console.error("Error fetching nutrition:", err);
-      // Don't show error to user, just use empty array
-      setNutrition([]);
-    } finally {
-      setNutritionLoading(false);
-    }
-  }, [user]);
-
-  // Fetch fitness data
-  const fetchFitness = useCallback(async () => {
-    // Don't fetch if user is not authenticated
-    if (!user) {
-      setFitnessLoading(false);
-      return;
-    }
-
-    try {
-      setFitnessLoading(true);
-      const response = await fetch("/api/fitness", {
-        method: "GET",
-        cache: "no-store",
-      });
-
-      if (!response.ok) {
-        // If 401, user is not authenticated - stop trying
-        if (response.status === 401) {
-          console.warn("Fitness fetch: Unauthorized - user not authenticated");
-          setFitness([]);
-          setFitnessLoading(false);
-          return;
-        }
-        throw new Error("Failed to fetch fitness");
-      }
-
-      const { data } = await response.json();
-      setFitness(data || []);
-    } catch (err) {
-      console.error("Error fetching fitness:", err);
-      // Don't show error to user, just use empty array
-      setFitness([]);
-    } finally {
-      setFitnessLoading(false);
-    }
-  }, [user]);
 
   // Keep session fresh and react to auth changes
   useEffect(() => {
@@ -1037,20 +617,15 @@ export default function DashboardPage() {
     }
   }, [user]);
 
-  // Fetch nutrition, fitness, and pattern count when user is loaded - run in parallel
+  // Fetch pattern count when user is loaded
   useEffect(() => {
     if (user) {
-      // Start all fetches immediately in parallel - don't wait for each other
-      fetchNutrition();
-      fetchFitness();
       fetchPatternCount();
     } else {
       // User not authenticated - stop loading states
-      setNutritionLoading(false);
-      setFitnessLoading(false);
       setPatternCountLoading(false);
     }
-  }, [user, fetchNutrition, fetchFitness, fetchPatternCount]);
+  }, [user, fetchPatternCount]);
 
   // Trial computations (UTC-safe) - now from user_trials
   const trial = useMemo(() => {
@@ -1196,110 +771,6 @@ export default function DashboardPage() {
   // ---------------------------
   
 
-  // Handle nutrition added/updated
-  const handleNutritionAdded = useCallback((entry: Nutrition) => {
-    if (editingNutrition) {
-      setNutrition((prev) => prev.map((n) => (n.id === entry.id ? entry : n)));
-      setEditingNutrition(null);
-    } else {
-      setNutrition((prev) => [entry, ...prev]);
-    }
-    setIsNutritionModalOpen(false);
-  }, [editingNutrition]);
-
-  const handleNutritionEdit = useCallback((entry: Nutrition) => {
-    setEditingNutrition(entry);
-    setIsNutritionModalOpen(true);
-  }, []);
-
-  const handleNutritionDeleteClick = useCallback((entry: Nutrition) => {
-    setDeleteDialog({
-      isOpen: true,
-      type: "nutrition",
-      id: entry.id,
-      name: entry.food_item,
-      isLoading: false,
-    });
-  }, []);
-
-  const handleNutritionDeleted = useCallback(async () => {
-    if (!deleteDialog.id || deleteDialog.type !== "nutrition") return;
-
-    setDeleteDialog((prev) => ({ ...prev, isLoading: true }));
-    try {
-      const response = await fetch(`/api/nutrition?id=${deleteDialog.id}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Failed to delete nutrition entry");
-      }
-
-      setNutrition((prev) => prev.filter((n) => n.id !== deleteDialog.id));
-      setDeleteDialog({ isOpen: false, type: null, id: null, name: "", isLoading: false });
-      // Refresh the page to ensure all data is up to date
-      router.refresh();
-      // Also refetch nutrition data
-      fetchNutrition();
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to delete nutrition entry");
-      setDeleteDialog((prev) => ({ ...prev, isLoading: false }));
-    }
-  }, [deleteDialog.id, deleteDialog.type, router, fetchNutrition]);
-
-  // Handle fitness added/updated
-  const handleFitnessAdded = useCallback((entry: Fitness) => {
-    if (editingFitness) {
-      setFitness((prev) => prev.map((f) => (f.id === entry.id ? entry : f)));
-      setEditingFitness(null);
-    } else {
-      setFitness((prev) => [entry, ...prev]);
-    }
-    setIsFitnessModalOpen(false);
-  }, [editingFitness]);
-
-  const handleFitnessEdit = useCallback((entry: Fitness) => {
-    setEditingFitness(entry);
-    setIsFitnessModalOpen(true);
-  }, []);
-
-  const handleFitnessDeleteClick = useCallback((entry: Fitness) => {
-    setDeleteDialog({
-      isOpen: true,
-      type: "fitness",
-      id: entry.id,
-      name: entry.exercise_name,
-      isLoading: false,
-    });
-  }, []);
-
-  const handleFitnessDeleted = useCallback(async () => {
-    if (!deleteDialog.id || deleteDialog.type !== "fitness") return;
-
-    setDeleteDialog((prev) => ({ ...prev, isLoading: true }));
-    try {
-      const response = await fetch(`/api/fitness?id=${deleteDialog.id}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Failed to delete fitness entry");
-      }
-
-      setFitness((prev) => prev.filter((f) => f.id !== deleteDialog.id));
-      setDeleteDialog({ isOpen: false, type: null, id: null, name: "", isLoading: false });
-      // Refresh the page to ensure all data is up to date
-      router.refresh();
-      // Also refetch fitness data
-      fetchFitness();
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to delete fitness entry");
-      setDeleteDialog((prev) => ({ ...prev, isLoading: false }));
-    }
-  }, [deleteDialog.id, deleteDialog.type, router, fetchFitness]);
-
   // Handle symptom log delete click
   const handleSymptomLogDeleteClick = useCallback((log: SymptomLog) => {
     setDeleteLogDialog({
@@ -1428,22 +899,6 @@ export default function DashboardPage() {
           />
         </div>
 
-        {/* Nutrition Overview Card - 1 column */}
-        <div>
-          <NutritionOverviewCard
-            totalNutrition={nutrition.length}
-            isLoading={nutritionLoading}
-          />
-        </div>
-
-        {/* Fitness Overview Card - 1 column */}
-        <div>
-          <FitnessOverviewCard
-            totalFitness={fitness.length}
-            isLoading={fitnessLoading}
-          />
-        </div>
-
         {/* Recent Symptoms Card - Full width on desktop (3 columns) */}
         <div className="lg:col-span-3">
           <RecentSymptomsCard 
@@ -1456,62 +911,17 @@ export default function DashboardPage() {
             onDelete={handleSymptomLogDeleteClick}
           />
         </div>
-
-        {/* Recent Nutrition Card - Full width on desktop (3 columns) */}
-        <div className="lg:col-span-3">
-          <RecentNutritionCard 
-            nutrition={nutrition} 
-            isLoading={nutritionLoading}
-            onEdit={handleNutritionEdit}
-            onDelete={handleNutritionDeleteClick}
-          />
-        </div>
-
-        {/* Recent Fitness Card - Full width on desktop (3 columns) */}
-        <div className="lg:col-span-3">
-          <RecentFitnessCard 
-            fitness={fitness} 
-            isLoading={fitnessLoading}
-            onEdit={handleFitnessEdit}
-            onDelete={handleFitnessDeleteClick}
-          />
-        </div>
       </div>
-
-      {/* Modals */}
-      <AddNutritionModal
-        isOpen={isNutritionModalOpen}
-        onClose={() => {
-          setIsNutritionModalOpen(false);
-          setEditingNutrition(null);
-        }}
-        onSuccess={handleNutritionAdded}
-        editingEntry={editingNutrition}
-      />
-
-      <AddFitnessModal
-        isOpen={isFitnessModalOpen}
-        onClose={() => {
-          setIsFitnessModalOpen(false);
-          setEditingFitness(null);
-        }}
-        onSuccess={handleFitnessAdded}
-        editingEntry={editingFitness}
-      />
 
       {/* Delete Confirmation Dialog */}
       <DeleteConfirmationDialog
         isOpen={deleteDialog.isOpen}
         onClose={() => setDeleteDialog({ isOpen: false, type: null, id: null, name: "", isLoading: false })}
         onConfirm={() => {
-          if (deleteDialog.type === "nutrition") {
-            handleNutritionDeleted();
-          } else if (deleteDialog.type === "fitness") {
-            handleFitnessDeleted();
-          }
+          // No nutrition or fitness handlers needed
         }}
-        title={`Delete ${deleteDialog.type === "nutrition" ? "Nutrition Entry" : "Workout"}?`}
-        message={`Are you sure you want to delete this ${deleteDialog.type === "nutrition" ? "nutrition entry" : "workout"}? This action cannot be undone.`}
+        title="Delete Item?"
+        message="Are you sure you want to delete this item? This action cannot be undone."
         itemName={deleteDialog.name}
         isLoading={deleteDialog.isLoading}
       />

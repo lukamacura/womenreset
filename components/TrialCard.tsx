@@ -119,13 +119,13 @@ export function TrialCard({ trial, symptomCount = 0, patternCount = 0 }: TrialCa
         };
       case "expired":
         return {
-          background: "from-gray-800/80 via-gray-700/60 to-gray-800/80",
-          badgeBg: "bg-gray-500/30",
-          badgeText: "text-gray-300",
-          badgeBorder: "border-gray-500/50",
+          background: "from-red-950 via-red-900 to-red-950",
+          badgeBg: "bg-red-500/30",
+          badgeText: "text-red-300",
+          badgeBorder: "border-red-500/50",
           badgeLabel: "Expired",
-          progressBar: "from-gray-500 to-gray-600",
-          buttonStyle: "bg-primary hover:bg-primary/90 text-primary-foreground border border-primary/50 w-full",
+          progressBar: "from-red-600 to-red-700",
+          buttonStyle: "bg-red-600 hover:bg-red-700 text-white! border border-red-500/50 w-full",
           title: "Trial Ended",
         };
     }
@@ -258,12 +258,6 @@ export function TrialCard({ trial, symptomCount = 0, patternCount = 0 }: TrialCa
           >
             {getCTAText()}
           </button>
-
-          {state === "expired" && (
-            <p className="mt-3 text-xs text-white/60 text-center">
-              or continue with limited free access
-            </p>
-          )}
         </div>
       </div>
 
