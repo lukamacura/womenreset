@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({
           data: {
             notification_enabled: true,
-            reminder_time: "09:00",
+            reminder_time: "08:00",
           }
         });
       }
@@ -69,7 +69,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({
         data: {
           notification_enabled: true,
-          reminder_time: "09:00",
+          reminder_time: "08:00",
         }
       });
     }
@@ -78,7 +78,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ 
       data: {
         notification_enabled: data.notification_enabled ?? true,
-        reminder_time: data.reminder_time || "09:00",
+        reminder_time: data.reminder_time || "08:00",
       }
     });
   } catch (e) {
@@ -107,9 +107,25 @@ export async function PUT(req: NextRequest) {
     // Validate reminder_time format (HH:MM)
     if (reminder_time && !/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(reminder_time)) {
       return NextResponse.json(
-        { error: "Invalid reminder_time format. Use HH:MM (e.g., 09:00)" },
+        { error: "Invalid reminder_time format. Use HH:MM (e.g., 08:00)" },
         { status: 400 }
       );
+    }
+
+    // Validate reminder_time is before 9:00 AM UTC (when cron runs)
+    // Only allow times from 6:00 AM to 8:59 AM UTC
+    if (reminder_time) {
+      const [hours, minutes] = reminder_time.split(":").map(Number);
+      const timeInMinutes = hours * 60 + minutes;
+      const minTime = 6 * 60; // 6:00 AM
+      const maxTime = 8 * 60 + 59; // 8:59 AM
+      
+      if (timeInMinutes < minTime || timeInMinutes > maxTime) {
+        return NextResponse.json(
+          { error: "Reminder time must be between 6:00 AM and 8:59 AM UTC" },
+          { status: 400 }
+        );
+      }
     }
 
     const supabaseAdmin = getSupabaseAdmin();
@@ -146,7 +162,7 @@ export async function PUT(req: NextRequest) {
           .insert([{ 
             user_id: user.id, 
             notification_enabled: notification_enabled ?? true,
-            reminder_time: reminder_time || "09:00",
+            reminder_time: reminder_time || "08:00",
             ...updateData 
           }])
           .select("notification_enabled, reminder_time")

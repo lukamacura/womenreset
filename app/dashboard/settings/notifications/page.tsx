@@ -8,31 +8,22 @@ interface NotificationPreferences {
   reminder_time: string; // Format: "HH:mm" (e.g., "09:00")
 }
 
-// Time options for the dropdown (6 AM to 9 PM)
+// Time options for the dropdown (6 AM to 8:59 AM UTC)
+// Limited to times before 9:00 AM UTC when the daily cron job runs
 const TIME_OPTIONS = [
   { value: "06:00", label: "6:00 AM" },
+  { value: "06:30", label: "6:30 AM" },
   { value: "07:00", label: "7:00 AM" },
+  { value: "07:30", label: "7:30 AM" },
   { value: "08:00", label: "8:00 AM" },
-  { value: "09:00", label: "9:00 AM" },
-  { value: "10:00", label: "10:00 AM" },
-  { value: "11:00", label: "11:00 AM" },
-  { value: "12:00", label: "12:00 PM" },
-  { value: "13:00", label: "1:00 PM" },
-  { value: "14:00", label: "2:00 PM" },
-  { value: "15:00", label: "3:00 PM" },
-  { value: "16:00", label: "4:00 PM" },
-  { value: "17:00", label: "5:00 PM" },
-  { value: "18:00", label: "6:00 PM" },
-  { value: "19:00", label: "7:00 PM" },
-  { value: "20:00", label: "8:00 PM" },
-  { value: "21:00", label: "9:00 PM" },
+  { value: "08:30", label: "8:30 AM" },
 ];
 
 export default function NotificationSettingsPage() {
   const router = useRouter();
   const [preferences, setPreferences] = useState<NotificationPreferences>({
     notification_enabled: true,
-    reminder_time: "09:00", // Default: 9:00 AM
+    reminder_time: "08:00", // Default: 8:00 AM
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -52,7 +43,7 @@ export default function NotificationSettingsPage() {
       if (data) {
         setPreferences({
           notification_enabled: data.notification_enabled ?? true,
-          reminder_time: data.reminder_time || "09:00",
+          reminder_time: data.reminder_time || "08:00",
         });
       }
     } catch (err) {
@@ -143,6 +134,9 @@ export default function NotificationSettingsPage() {
               <h3 className="text-xl font-semibold text-[#3D3D3D] mb-1">Daily Reminder</h3>
               <p className="text-[#6B6B6B] text-base">
                 Get a gentle nudge to track your symptoms
+              </p>
+              <p className="text-[#6B6B6B] text-sm mt-1 italic">
+                Reminders are sent once daily at 9:00 AM UTC
               </p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer shrink-0 ml-4">

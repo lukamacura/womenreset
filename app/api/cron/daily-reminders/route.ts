@@ -5,8 +5,8 @@ import { checkTrialExpired } from "@/lib/checkTrialStatus";
 export const runtime = "nodejs";
 
 // This endpoint should be called by a cron job (Vercel Cron, Supabase Edge Function, etc.)
-// Recommended schedule: Every hour at :00 (e.g., 9:00 AM, 10:00 AM, etc.)
-// Or every 15 minutes for better timing accuracy
+// Schedule: Once per day at 9:00 AM UTC (due to Vercel Hobby plan limitations)
+// The endpoint checks all users whose reminder_time has passed today and sends reminders
 
 export async function GET(req: NextRequest) {
   try {
@@ -23,14 +23,6 @@ export async function GET(req: NextRequest) {
     const currentHour = now.getHours();
     const currentMinute = now.getMinutes();
     
-    // Format current time as HH:MM (e.g., "09:00")
-    const currentTime = `${String(currentHour).padStart(2, "0")}:${String(currentMinute).padStart(2, "0")}`;
-    
-    // For hourly cron (runs at :00), we check if reminder_time matches current hour
-    // We'll fetch all users with notifications enabled and filter by time in code
-    // This is more reliable than SQL pattern matching
-    const hourStr = String(currentHour).padStart(2, "0");
-
     // Get today's date in UTC (start of day)
     const today = new Date(now);
     today.setUTCHours(0, 0, 0, 0);
@@ -40,7 +32,6 @@ export async function GET(req: NextRequest) {
     const todayEndStr = todayEnd.toISOString();
 
     // Fetch users who have notifications enabled
-    // We'll filter by reminder_time in code to match current hour
     const { data: allUsers, error: usersError } = await supabaseAdmin
       .from("user_preferences")
       .select("user_id, reminder_time")
@@ -61,23 +52,23 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // Filter users whose reminder_time matches current hour
-    // reminder_time is stored as TIME (HH:MM:SS), we check if hour matches
+    // Filter users whose reminder_time has passed today
+    // Since cron runs once per day at 9 AM, we check all users whose reminder time
+    // was earlier today (before current time)
+    const currentTimeMinutes = currentHour * 60 + currentMinute;
+    
     const users = allUsers.filter((userPref) => {
       if (!userPref.reminder_time) return false;
-      // reminder_time might be "09:00:00" or "09:00", extract hour
+      // reminder_time might be "09:00:00" or "09:00", extract hour and minute
       const timeStr = userPref.reminder_time.toString();
-      const timeHour = timeStr.split(":")[0];
-      return timeHour === hourStr;
+      const parts = timeStr.split(":");
+      const reminderHour = parseInt(parts[0], 10);
+      const reminderMinute = parseInt(parts[1] || "0", 10);
+      const reminderTimeMinutes = reminderHour * 60 + reminderMinute;
+      
+      // Include users whose reminder time has passed today
+      return reminderTimeMinutes <= currentTimeMinutes;
     });
-
-    if (usersError) {
-      console.error("Error fetching users:", usersError);
-      return NextResponse.json(
-        { error: "Failed to fetch users" },
-        { status: 500 }
-      );
-    }
 
     if (!users || users.length === 0) {
       return NextResponse.json({ 
