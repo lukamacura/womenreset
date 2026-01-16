@@ -1,13 +1,41 @@
 "use client"
 
-import { useRef, useState, useEffect, useCallback } from "react"
+import { useRef, useState, useEffect, useCallback, useMemo } from "react"
 import { motion, useInView, useReducedMotion, AnimatePresence } from "framer-motion"
-import { MessageCircle, TrendingUp, Sparkles, FileText, Send } from "lucide-react"
+import { 
+  MessageCircle, 
+  TrendingUp, 
+  Sparkles, 
+  FileText, 
+  Send,
+  Calendar,
+  Flame,
+  Moon,
+  Heart,
+  TrendingDown,
+  Check,
+  Share2,
+  Clock,
+  BarChart3
+} from "lucide-react"
 
-// Animation timing constants (in ms)
+// Smooth spring configs
+const smoothSpring = {
+  type: "spring" as const,
+  damping: 30,
+  stiffness: 200,
+}
+
+const ultraSmoothSpring = {
+  type: "spring" as const,
+  damping: 35,
+  stiffness: 150,
+}
+
+// Animation timing constants (KEEPING SAME)
 const TIMING = {
   CROSSFADE: 500,
-  FEATURE_HOLD: 2000, // Time to appreciate the completed animation
+  FEATURE_HOLD: 2000,
   ANIMATION_DURATION: 2000,
 } as const
 
@@ -22,13 +50,13 @@ const features = [
     id: "symptom-timeline",
     title: "Your Symptom Timeline",
     description: "See all your logged symptoms organized by day, week, or month",
-    icon: TrendingUp,
+    icon: Calendar,
   },
   {
     id: "weekly-summaries",
     title: "Weekly Summaries",
     description: "See your symptom frequency compared to last week — your data at a glance",
-    icon: Sparkles,
+    icon: BarChart3,
   },
   {
     id: "shareable-reports",
@@ -44,12 +72,10 @@ export default function FeatureTheater() {
   const prefersReducedMotion = useReducedMotion()
   const [currentFeature, setCurrentFeature] = useState(0)
 
-  // Calculate total duration for each feature
   const getFeatureDuration = useCallback(() => {
     return TIMING.ANIMATION_DURATION + TIMING.FEATURE_HOLD
   }, [])
 
-  // Feature cycling effect
   useEffect(() => {
     if (!isInView || prefersReducedMotion) return
 
@@ -74,12 +100,7 @@ export default function FeatureTheater() {
           className="text-center mb-10 sm:mb-14"
           initial={{ opacity: 0, y: 20 }}
           animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-          transition={{
-            type: "spring",
-            damping: 20,
-            stiffness: 100,
-            duration: prefersReducedMotion ? 0 : 0.6,
-          }}
+          transition={ultraSmoothSpring}
         >
           <HeadingWithHighlight
             isInView={isInView}
@@ -143,7 +164,9 @@ export default function FeatureTheater() {
   )
 }
 
-// Heading with Highlight Animation Component
+// ============================================
+// Heading with Highlight Animation
+// ============================================
 function HeadingWithHighlight({
   children,
   isInView,
@@ -157,33 +180,27 @@ function HeadingWithHighlight({
 
   useEffect(() => {
     if (!isInView || prefersReducedMotion) return
-
-    const timer = setTimeout(() => {
-      setShouldHighlight(true)
-    }, 300)
-
+    const timer = setTimeout(() => setShouldHighlight(true), 300)
     return () => clearTimeout(timer)
   }, [isInView, prefersReducedMotion])
 
   return (
     <div className="relative inline-block">
       <div className="relative z-10">{children}</div>
-      {/* Highlight overlay - animates from left to right */}
       <motion.span
         className="absolute inset-0 bg-yellow-400/40 rounded pointer-events-none"
         initial={{ scaleX: 0, transformOrigin: "left" }}
         animate={shouldHighlight ? { scaleX: 1 } : { scaleX: 0 }}
-        transition={{
-          duration: prefersReducedMotion ? 0 : 1.2,
-          ease: [0.4, 0, 0.2, 1],
-        }}
+        transition={{ duration: 1.2, ease: [0.4, 0, 0.2, 1] }}
         style={{ zIndex: 0 }}
       />
     </div>
   )
 }
 
-// Feature Indicators Component
+// ============================================
+// Feature Indicators
+// ============================================
 function FeatureIndicators({
   currentFeature,
   prefersReducedMotion,
@@ -204,31 +221,18 @@ function FeatureIndicators({
             type="button"
             onClick={() => onSelect(index)}
             aria-label={feature.title}
-            aria-current={isActive ? "true" : undefined}
             className={`
               h-10 sm:h-11 px-3 sm:px-4 rounded-full flex items-center justify-center gap-2
               text-xs sm:text-sm font-medium transition-shadow
-              ${isActive ? "shadow-lg" : "border-2 border-gray-300 bg-white/50"}
+              ${isActive ? "shadow-lg" : "border-2 border-gray-200 bg-white/80"}
             `}
             style={
               isActive
-                ? {
-                    background: "linear-gradient(135deg, #FF6B9D 0%, #FFA07A 100%)",
-                    color: "white",
-                  }
-                : {
-                    color: "#6B7280",
-                  }
+                ? { background: "linear-gradient(135deg, #FF6B9D 0%, #FFA07A 100%)", color: "white" }
+                : { color: "#6B7280" }
             }
-            animate={{
-              scale: isActive ? 1.05 : 1,
-            }}
-            transition={{
-              type: "spring",
-              stiffness: 300,
-              damping: 20,
-              duration: prefersReducedMotion ? 0 : 0.3,
-            }}
+            animate={{ scale: isActive ? 1.05 : 1 }}
+            transition={{ ...smoothSpring, duration: prefersReducedMotion ? 0 : 0.3 }}
           >
             <Icon className="h-4 w-4" />
             <span className="hidden sm:inline">{feature.title}</span>
@@ -239,7 +243,9 @@ function FeatureIndicators({
   )
 }
 
-// Feature Labels Component
+// ============================================
+// Feature Labels
+// ============================================
 function FeatureLabels({
   currentFeature,
   prefersReducedMotion,
@@ -248,20 +254,17 @@ function FeatureLabels({
   prefersReducedMotion: boolean
 }) {
   return (
-    <div className="mt-6 sm:mt-10 min-h-[56px] flex items-center justify-center">
+    <div className="mt-6 sm:mt-10 min-h-[70px] flex items-center justify-center">
       <AnimatePresence mode="wait">
         <motion.div
           key={`label-${currentFeature}`}
-          initial={{ opacity: 0, y: 8 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -8 }}
-          transition={{
-            duration: prefersReducedMotion ? 0 : 0.4,
-            ease: [0.4, 0, 0.2, 1],
-          }}
+          exit={{ opacity: 0, y: -10 }}
+          transition={{ ...smoothSpring, duration: prefersReducedMotion ? 0 : 0.4 }}
           className="text-center px-4"
         >
-          <p className="text-base sm:text-lg text-gray-700 font-medium">
+          <p className="text-base sm:text-lg text-gray-800 font-semibold">
             {features[currentFeature].title}
           </p>
           <p className="text-sm text-gray-500 mt-1">
@@ -273,20 +276,18 @@ function FeatureLabels({
   )
 }
 
-// Phone Frame Component (same as HowItWorksSteps)
+// ============================================
+// Phone Frame (UNCHANGED)
+// ============================================
 function PhoneFrame({ children }: { children: React.ReactNode }) {
   return (
     <div
       className="relative rounded-[2.5rem] border-[3px] border-gray-900 w-full aspect-9/18 shadow-2xl"
       style={{
-        boxShadow:
-          "0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05)",
+        boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05)",
       }}
     >
-      {/* Notch */}
       <div className="absolute top-3 left-1/2 -translate-x-1/2 w-20 h-5 bg-gray-900 rounded-full z-10" />
-      
-      {/* Screen */}
       <div className="w-full h-full rounded-[2.25rem] bg-white overflow-hidden">
         <div className="w-full h-full pt-8">{children}</div>
       </div>
@@ -294,67 +295,70 @@ function PhoneFrame({ children }: { children: React.ReactNode }) {
   )
 }
 
-// Shared transition variants
 const phoneTransition = {
-  initial: { opacity: 0, scale: 0.95 },
+  initial: { opacity: 0, scale: 0.96 },
   animate: { opacity: 1, scale: 1 },
-  exit: { opacity: 0, scale: 0.95 },
+  exit: { opacity: 0, scale: 0.96 },
 }
 
-// Feature 1: Ask Anything Phone
+// ============================================
+// Feature 1: Ask Lisa Anything (ENHANCED with longer response & emojis)
+// ============================================
 function AskAnythingPhone({
   prefersReducedMotion,
 }: {
   prefersReducedMotion: boolean
 }) {
-  const [animationPhase, setAnimationPhase] = useState(0)
-  const [revealedText, setRevealedText] = useState("")
+  const [phase, setPhase] = useState(0)
+  const [revealedLines, setRevealedLines] = useState(0)
   
   const question = "Why do I get hot flashes at night?"
-  const answer = "Night sweats often occur because your body temperature drops during sleep, triggering a hot flash response. Try keeping your room cool!"
+  
+  // Lisa's comprehensive response with emojis
+  const lisaResponse = useMemo(() => [
+    { type: "intro", content: "Great question! 🌙 Here's what research shows:" },
+    { type: "explanation", content: "Night sweats happen because your body's thermostat gets disrupted by hormone changes." },
+    { type: "tip", emoji: "❄️", title: "Keep it cool", desc: "Room temp around 65°F (18°C)" },
+    { type: "tip", emoji: "👚", title: "Breathable fabrics", desc: "Cotton or moisture-wicking PJs" },
+    { type: "tip", emoji: "💧", title: "Stay hydrated", desc: "Water by your bed helps!" },
+    { type: "outro", content: "Want more tips? Just ask! 💕" },
+  ], [])
 
   useEffect(() => {
     if (prefersReducedMotion) {
-      setAnimationPhase(4)
-      setRevealedText(answer)
+      setPhase(4)
+      setRevealedLines(lisaResponse.length)
       return
     }
-
-    setAnimationPhase(0)
-    setRevealedText("")
+    setPhase(0)
+    setRevealedLines(0)
     const timers: NodeJS.Timeout[] = []
-
-    timers.push(setTimeout(() => setAnimationPhase(1), 100))   // Header
-    timers.push(setTimeout(() => setAnimationPhase(2), 400))   // Question
-    timers.push(setTimeout(() => setAnimationPhase(3), 1000))  // Typing
-    timers.push(setTimeout(() => setAnimationPhase(4), 1600))  // Answer
-
+    timers.push(setTimeout(() => setPhase(1), 100))   // Header
+    timers.push(setTimeout(() => setPhase(2), 400))   // Question
+    timers.push(setTimeout(() => setPhase(3), 900))   // Typing
+    timers.push(setTimeout(() => setPhase(4), 1400))  // Answer
     return () => timers.forEach(clearTimeout)
-  }, [prefersReducedMotion, answer])
+  }, [prefersReducedMotion, lisaResponse.length])
 
-  // Text reveal effect
+  // Progressive line reveal
   useEffect(() => {
-    if (animationPhase < 4 || prefersReducedMotion) return
-    
-    const words = answer.split(" ")
-    let index = 0
-    
+    if (phase < 4 || prefersReducedMotion) return
+    let line = 0
     const interval = setInterval(() => {
-      if (index < words.length) {
-        setRevealedText(words.slice(0, index + 1).join(" "))
-        index++
+      if (line < lisaResponse.length) {
+        setRevealedLines(line + 1)
+        line++
       } else {
         clearInterval(interval)
       }
-    }, 40)
-
+    }, 120)
     return () => clearInterval(interval)
-  }, [animationPhase, prefersReducedMotion, answer])
+  }, [phase, prefersReducedMotion, lisaResponse.length])
 
-  const showHeader = animationPhase >= 1
-  const showQuestion = animationPhase >= 2
-  const showTyping = animationPhase === 3
-  const showAnswer = animationPhase >= 4
+  const showHeader = phase >= 1
+  const showQuestion = phase >= 2
+  const showTyping = phase === 3
+  const showAnswer = phase >= 4
 
   return (
     <motion.div
@@ -362,10 +366,7 @@ function AskAnythingPhone({
       initial="initial"
       animate="animate"
       exit="exit"
-      transition={{
-        duration: prefersReducedMotion ? 0 : 0.5,
-        ease: [0.4, 0, 0.2, 1],
-      }}
+      transition={{ ...ultraSmoothSpring, duration: prefersReducedMotion ? 0 : 0.5 }}
       className="w-full"
     >
       <PhoneFrame>
@@ -374,25 +375,26 @@ function AskAnythingPhone({
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={showHeader ? { opacity: 1, y: 0 } : { opacity: 0, y: -10 }}
-            transition={{ duration: prefersReducedMotion ? 0 : 0.3 }}
-            className="h-11 bg-linear-to-r from-[#FF6B9D] to-[#FFA07A] rounded-xl flex items-center justify-center shrink-0 shadow-sm"
+            transition={{ ...smoothSpring }}
+            className="h-11 bg-linear-to-r from-[#FF6B9D] to-[#FFA07A] rounded-xl flex items-center justify-center gap-2 shrink-0 shadow-sm"
           >
+            <MessageCircle className="w-4 h-4 text-white" />
             <span className="text-white text-sm font-semibold">Ask Lisa</span>
           </motion.div>
 
           {/* Chat Area */}
-          <div className="flex-1 flex flex-col gap-3 py-4 min-h-0 overflow-hidden">
+          <div className="flex-1 flex flex-col gap-2 py-3 min-h-0 overflow-hidden">
             {/* User Question */}
             <AnimatePresence>
               {showQuestion && (
                 <motion.div
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: prefersReducedMotion ? 0 : 0.3 }}
+                  transition={{ ...smoothSpring }}
                   className="self-end max-w-[85%]"
                 >
-                  <div className="bg-[#FF6B9D] text-white rounded-2xl rounded-br-md px-4 py-3 shadow-sm">
-                    <p className="text-sm leading-relaxed">{question}</p>
+                  <div className="bg-[#FF6B9D] text-white rounded-2xl rounded-br-sm px-3 py-2 shadow-sm">
+                    <p className="text-xs leading-relaxed">{question}</p>
                   </div>
                 </motion.div>
               )}
@@ -406,24 +408,20 @@ function AskAnythingPhone({
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0 }}
-                  transition={{ duration: 0.2 }}
+                  transition={{ ...smoothSpring }}
                   className="flex items-start gap-2"
                 >
                   <div className="w-7 h-7 rounded-full bg-linear-to-br from-[#FF6B9D] to-[#FFA07A] flex items-center justify-center shrink-0 shadow-sm">
-                    <span className="text-white text-[10px] font-bold">L</span>
+                    <Sparkles className="w-3.5 h-3.5 text-white" />
                   </div>
-                  <div className="bg-[#FFE5F0] rounded-2xl rounded-tl-md px-4 py-3">
-                    <div className="flex gap-1.5 items-center h-4">
+                  <div className="bg-[#FFE5F0] rounded-2xl rounded-tl-sm px-3 py-2">
+                    <div className="flex gap-1.5 items-center h-3">
                       {[0, 1, 2].map((i) => (
                         <motion.div
                           key={i}
                           className="w-1.5 h-1.5 bg-[#FF6B9D] rounded-full"
                           animate={{ y: [0, -3, 0] }}
-                          transition={{
-                            duration: 0.5,
-                            repeat: Infinity,
-                            delay: i * 0.12,
-                          }}
+                          transition={{ duration: 0.5, repeat: Infinity, delay: i * 0.12, ease: "easeInOut" }}
                         />
                       ))}
                     </div>
@@ -432,23 +430,54 @@ function AskAnythingPhone({
               )}
             </AnimatePresence>
 
-            {/* Lisa Answer */}
+            {/* Lisa's Response */}
             <AnimatePresence>
               {showAnswer && (
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: prefersReducedMotion ? 0 : 0.3 }}
+                  transition={{ ...smoothSpring }}
                   className="flex items-start gap-2"
                 >
                   <div className="w-7 h-7 rounded-full bg-linear-to-br from-[#FF6B9D] to-[#FFA07A] flex items-center justify-center shrink-0 shadow-sm">
-                    <span className="text-white text-[10px] font-bold">L</span>
+                    <Sparkles className="w-3.5 h-3.5 text-white" />
                   </div>
-                  <div className="flex-1 max-w-[85%]">
-                    <div className="bg-[#FFE5F0] rounded-2xl rounded-tl-md px-4 py-3 shadow-sm">
-                      <p className="text-sm text-gray-700 leading-relaxed">
-                        {revealedText || answer}
-                      </p>
+                  <div className="flex-1 max-w-[88%]">
+                    <div className="bg-[#FFE5F0] rounded-2xl rounded-tl-sm px-2.5 py-2 shadow-sm space-y-1.5">
+                      {lisaResponse.slice(0, revealedLines).map((item, index) => (
+                        <motion.div
+                          key={index}
+                          initial={{ opacity: 0, y: 4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ ...smoothSpring }}
+                        >
+                          {item.type === "intro" && (
+                            <p className="text-[11px] font-semibold text-gray-800">{item.content}</p>
+                          )}
+                          {item.type === "explanation" && (
+                            <p className="text-[10px] text-gray-600 leading-relaxed">{item.content}</p>
+                          )}
+                          {item.type === "tip" && (
+                            <div className="flex items-start gap-1.5 bg-white/50 rounded-lg px-2 py-1">
+                              <span className="text-xs">{item.emoji}</span>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-[10px] font-semibold text-gray-800">{item.title}</p>
+                                <p className="text-[9px] text-gray-500">{item.desc}</p>
+                              </div>
+                            </div>
+                          )}
+                          {item.type === "outro" && (
+                            <p className="text-[10px] font-medium text-[#FF6B9D] pt-0.5">{item.content}</p>
+                          )}
+                        </motion.div>
+                      ))}
+                      {!prefersReducedMotion && revealedLines < lisaResponse.length && (
+                        <motion.span
+                          className="inline-block w-0.5 h-2.5 bg-[#FF6B9D] rounded-sm"
+                          animate={{ opacity: [1, 0] }}
+                          transition={{ duration: 0.5, repeat: Infinity }}
+                        />
+                      )}
                     </div>
                   </div>
                 </motion.div>
@@ -460,10 +489,10 @@ function AskAnythingPhone({
           <motion.div
             initial={{ opacity: 0 }}
             animate={showHeader ? { opacity: 1 } : { opacity: 0 }}
-            className="h-10 bg-white rounded-full border border-gray-200 flex items-center px-4 gap-2 shrink-0"
+            className="h-9 bg-white rounded-full border border-gray-200 flex items-center px-3 gap-2 shrink-0"
           >
-            <span className="text-xs text-gray-400 flex-1">Ask anything...</span>
-            <Send className="h-4 w-4 text-[#FF6B9D]" />
+            <span className="text-[10px] text-gray-400 flex-1">Ask anything...</span>
+            <Send className="h-3.5 w-3.5 text-[#FF6B9D]" />
           </motion.div>
         </div>
       </PhoneFrame>
@@ -471,41 +500,40 @@ function AskAnythingPhone({
   )
 }
 
-// Feature 2: Symptom Timeline Phone
+// ============================================
+// Feature 2: Symptom Timeline Phone (ENHANCED with icons)
+// ============================================
 function SymptomTimelinePhone({
   prefersReducedMotion,
 }: {
   prefersReducedMotion: boolean
 }) {
-  const [animationPhase, setAnimationPhase] = useState(0)
+  const [phase, setPhase] = useState(0)
+
+  const timelineEntries = useMemo(() => [
+    { date: "Jan 3", symptom: "Hot Flash", icon: Flame, color: "bg-orange-100 text-orange-600" },
+    { date: "Jan 5", symptom: "Mood Swing", icon: Heart, color: "bg-pink-100 text-pink-600" },
+    { date: "Jan 7", symptom: "Hot Flash", icon: Flame, color: "bg-orange-100 text-orange-600" },
+    { date: "Jan 10", symptom: "Poor Sleep", icon: Moon, color: "bg-indigo-100 text-indigo-600" },
+    { date: "Jan 12", symptom: "Hot Flash", icon: Flame, color: "bg-orange-100 text-orange-600" },
+  ], [])
 
   useEffect(() => {
     const timers: NodeJS.Timeout[] = []
-    
     if (prefersReducedMotion) {
-      timers.push(setTimeout(() => setAnimationPhase(3), 0))
+      timers.push(setTimeout(() => setPhase(3), 0))
       return () => timers.forEach(clearTimeout)
     }
-
-    timers.push(setTimeout(() => setAnimationPhase(0), 0))
-    timers.push(setTimeout(() => setAnimationPhase(1), 100))   // Header
-    timers.push(setTimeout(() => setAnimationPhase(2), 500))   // Timeline
-    timers.push(setTimeout(() => setAnimationPhase(3), 1500))  // Summary
-
+    timers.push(setTimeout(() => setPhase(0), 0))
+    timers.push(setTimeout(() => setPhase(1), 100))
+    timers.push(setTimeout(() => setPhase(2), 500))
+    timers.push(setTimeout(() => setPhase(3), 1500))
     return () => timers.forEach(clearTimeout)
   }, [prefersReducedMotion])
 
-  const showHeader = animationPhase >= 1
-  const showTimeline = animationPhase >= 2
-  const showSummary = animationPhase >= 3
-
-  const timelineEntries = [
-    { date: "Jan 3", symptom: "Hot Flash" },
-    { date: "Jan 5", symptom: "Mood Swing" },
-    { date: "Jan 7", symptom: "Hot Flash" },
-    { date: "Jan 10", symptom: "Sleep Issue" },
-    { date: "Jan 12", symptom: "Hot Flash" },
-  ]
+  const showHeader = phase >= 1
+  const showTimeline = phase >= 2
+  const showSummary = phase >= 3
 
   return (
     <motion.div
@@ -513,10 +541,7 @@ function SymptomTimelinePhone({
       initial="initial"
       animate="animate"
       exit="exit"
-      transition={{
-        duration: prefersReducedMotion ? 0 : 0.5,
-        ease: [0.4, 0, 0.2, 1],
-      }}
+      transition={{ ...ultraSmoothSpring, duration: prefersReducedMotion ? 0 : 0.5 }}
       className="w-full"
     >
       <PhoneFrame>
@@ -525,9 +550,10 @@ function SymptomTimelinePhone({
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={showHeader ? { opacity: 1, y: 0 } : { opacity: 0, y: -10 }}
-            transition={{ duration: prefersReducedMotion ? 0 : 0.3 }}
-            className="h-11 bg-linear-to-r from-[#FF6B9D] to-[#FFA07A] rounded-xl flex items-center justify-center shrink-0 shadow-sm"
+            transition={{ ...smoothSpring }}
+            className="h-11 bg-linear-to-r from-[#FF6B9D] to-[#FFA07A] rounded-xl flex items-center justify-center gap-2 shrink-0 shadow-sm"
           >
+            <Calendar className="w-4 h-4 text-white" />
             <span className="text-white text-sm font-semibold">Your Timeline</span>
           </motion.div>
 
@@ -537,47 +563,49 @@ function SymptomTimelinePhone({
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: prefersReducedMotion ? 0 : 0.4 }}
-                className="bg-white rounded-xl p-4 shadow-sm flex-1 overflow-y-auto"
+                transition={{ ...smoothSpring }}
+                className="bg-white rounded-xl p-3 shadow-sm flex-1 overflow-y-auto"
               >
-                <div className="text-sm font-semibold text-gray-800 mb-3">
-                  January 2026
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm font-semibold text-gray-800">January 2026</span>
+                  <Clock className="w-4 h-4 text-gray-400" />
                 </div>
                 
-                {/* Timeline entries */}
                 <div className="space-y-2">
-                  {timelineEntries.map((entry, i) => (
-                    <motion.div
-                      key={i}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ 
-                        delay: prefersReducedMotion ? 0 : 0.1 * i + 0.2,
-                        duration: 0.3 
-                      }}
-                      className="flex items-center gap-3 py-2 border-b border-gray-100 last:border-0"
-                    >
-                      <div className="text-xs font-medium text-gray-500 w-12">
-                        {entry.date}
-                      </div>
-                      <div className="px-3 py-1 bg-pink-100 rounded-full text-xs font-medium text-pink-700">
-                        {entry.symptom}
-                      </div>
-                    </motion.div>
-                  ))}
+                  {timelineEntries.map((entry, i) => {
+                    const Icon = entry.icon
+                    return (
+                      <motion.div
+                        key={i}
+                        initial={{ opacity: 0, x: -15 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ ...smoothSpring, delay: prefersReducedMotion ? 0 : 0.08 * i + 0.2 }}
+                        className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0"
+                      >
+                        <div className="text-xs font-medium text-gray-400 w-10">
+                          {entry.date}
+                        </div>
+                        <div className={`w-7 h-7 rounded-full flex items-center justify-center ${entry.color}`}>
+                          <Icon className="w-3.5 h-3.5" />
+                        </div>
+                        <span className="text-xs font-medium text-gray-700">{entry.symptom}</span>
+                      </motion.div>
+                    )
+                  })}
                 </div>
 
                 {/* Summary */}
                 <AnimatePresence>
                   {showSummary && (
                     <motion.div
-                      initial={{ opacity: 0, y: 10 }}
+                      initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: prefersReducedMotion ? 0 : 0.3 }}
-                      className="mt-4 pt-3 border-t border-gray-200"
+                      transition={{ ...smoothSpring }}
+                      className="mt-3 p-2.5 bg-linear-to-r from-pink-50 to-orange-50 rounded-xl border border-pink-100"
                     >
-                      <div className="text-xs font-semibold text-gray-700 text-center">
-                        24 symptoms logged this month
+                      <div className="flex items-center justify-center gap-2">
+                        <TrendingUp className="w-4 h-4 text-[#FF6B9D]" />
+                        <span className="text-xs font-bold text-gray-800">24 symptoms logged this month</span>
                       </div>
                     </motion.div>
                   )}
@@ -591,53 +619,58 @@ function SymptomTimelinePhone({
   )
 }
 
-// Feature 3: Weekly Summary Phone
+// ============================================
+// Feature 3: Weekly Summary Phone (ENHANCED)
+// ============================================
 function WeeklySummaryPhone({
   prefersReducedMotion,
 }: {
   prefersReducedMotion: boolean
 }) {
-  const [animationPhase, setAnimationPhase] = useState(0)
+  const [phase, setPhase] = useState(0)
 
   useEffect(() => {
     const timers: NodeJS.Timeout[] = []
-    
     if (prefersReducedMotion) {
-      timers.push(setTimeout(() => setAnimationPhase(4), 0))
+      timers.push(setTimeout(() => setPhase(4), 0))
       return () => timers.forEach(clearTimeout)
     }
-
-    timers.push(setTimeout(() => setAnimationPhase(0), 0))
-    timers.push(setTimeout(() => setAnimationPhase(1), 100))   // Header
-    timers.push(setTimeout(() => setAnimationPhase(2), 400))   // Card 1
-    timers.push(setTimeout(() => setAnimationPhase(3), 700))   // Card 2
-    timers.push(setTimeout(() => setAnimationPhase(4), 1000))  // Card 3
-
+    timers.push(setTimeout(() => setPhase(0), 0))
+    timers.push(setTimeout(() => setPhase(1), 100))
+    timers.push(setTimeout(() => setPhase(2), 400))
+    timers.push(setTimeout(() => setPhase(3), 700))
+    timers.push(setTimeout(() => setPhase(4), 1000))
     return () => timers.forEach(clearTimeout)
   }, [prefersReducedMotion])
 
-  const showHeader = animationPhase >= 1
+  const showHeader = phase >= 1
   
-  const summaries = [
+  const summaries = useMemo(() => [
     {
-      emoji: "📊",
-      title: "This week: 8 symptoms",
-      text: "Last week: 14 symptoms ↓ 43% fewer",
-      delay: 0.1,
+      emoji: "📉",
+      icon: TrendingDown,
+      iconColor: "text-green-600",
+      title: "43% fewer symptoms",
+      text: "8 this week vs 14 last week",
+      bg: "bg-green-50",
     },
     {
       emoji: "🔥",
-      title: "Most common: Hot flashes",
-      text: "5 times this week",
-      delay: 0.2,
+      icon: Flame,
+      iconColor: "text-orange-600",
+      title: "Hot flashes: 5 times",
+      text: "Most common symptom",
+      bg: "bg-orange-50",
     },
     {
       emoji: "✅",
-      title: "You tracked 6 out of 7 days",
-      text: "Great consistency!",
-      delay: 0.3,
+      icon: Check,
+      iconColor: "text-emerald-600",
+      title: "6 out of 7 days tracked",
+      text: "Amazing consistency! 🎉",
+      bg: "bg-emerald-50",
     },
-  ]
+  ], [])
 
   return (
     <motion.div
@@ -645,10 +678,7 @@ function WeeklySummaryPhone({
       initial="initial"
       animate="animate"
       exit="exit"
-      transition={{
-        duration: prefersReducedMotion ? 0 : 0.5,
-        ease: [0.4, 0, 0.2, 1],
-      }}
+      transition={{ ...ultraSmoothSpring, duration: prefersReducedMotion ? 0 : 0.5 }}
       className="w-full"
     >
       <PhoneFrame>
@@ -657,41 +687,44 @@ function WeeklySummaryPhone({
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={showHeader ? { opacity: 1, y: 0 } : { opacity: 0, y: -10 }}
-            transition={{ duration: prefersReducedMotion ? 0 : 0.3 }}
-            className="h-11 bg-linear-to-r from-[#FF6B9D] to-[#FFA07A] rounded-xl flex items-center justify-center shrink-0 shadow-sm"
+            transition={{ ...smoothSpring }}
+            className="h-11 bg-linear-to-r from-[#FF6B9D] to-[#FFA07A] rounded-xl flex items-center justify-center gap-2 shrink-0 shadow-sm"
           >
+            <BarChart3 className="w-4 h-4 text-white" />
             <span className="text-white text-sm font-semibold">Weekly Summary</span>
           </motion.div>
 
           {/* Summary Cards */}
           <div className="flex-1 flex flex-col gap-2 overflow-hidden">
-            {summaries.map((summary, index) => (
-              <AnimatePresence key={index}>
-                {animationPhase >= index + 2 && (
-                  <motion.div
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{
-                      duration: prefersReducedMotion ? 0 : 0.4,
-                      delay: prefersReducedMotion ? 0 : summary.delay,
-                    }}
-                    className="bg-white rounded-xl p-3 shadow-sm"
-                  >
-                    <div className="flex items-start gap-3">
-                      <span className="text-xl">{summary.emoji}</span>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-semibold text-gray-800">
-                          {summary.title}
+            {summaries.map((summary, index) => {
+              const Icon = summary.icon
+              return (
+                <AnimatePresence key={index}>
+                  {phase >= index + 2 && (
+                    <motion.div
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ ...smoothSpring, delay: prefersReducedMotion ? 0 : index * 0.1 }}
+                      className={`${summary.bg} rounded-xl p-3 shadow-sm border border-white/50`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="w-9 h-9 bg-white rounded-full flex items-center justify-center shadow-sm">
+                          <Icon className={`w-4 h-4 ${summary.iconColor}`} />
                         </div>
-                        <p className="text-xs text-gray-600 mt-0.5 leading-relaxed">
-                          {summary.text}
-                        </p>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-semibold text-gray-800">
+                            {summary.title}
+                          </div>
+                          <p className="text-xs text-gray-600 mt-0.5">
+                            {summary.text}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              )
+            })}
           </div>
         </div>
       </PhoneFrame>
@@ -699,33 +732,38 @@ function WeeklySummaryPhone({
   )
 }
 
-// Feature 4: Shareable Reports Phone
+// ============================================
+// Feature 4: Shareable Reports Phone (ENHANCED)
+// ============================================
 function ShareableReportsPhone({
   prefersReducedMotion,
 }: {
   prefersReducedMotion: boolean
 }) {
-  const [animationPhase, setAnimationPhase] = useState(0)
+  const [phase, setPhase] = useState(0)
 
   useEffect(() => {
     const timers: NodeJS.Timeout[] = []
-    
     if (prefersReducedMotion) {
-      timers.push(setTimeout(() => setAnimationPhase(3), 0))
+      timers.push(setTimeout(() => setPhase(3), 0))
       return () => timers.forEach(clearTimeout)
     }
-
-    timers.push(setTimeout(() => setAnimationPhase(0), 0))
-    timers.push(setTimeout(() => setAnimationPhase(1), 100))   // Header
-    timers.push(setTimeout(() => setAnimationPhase(2), 400))   // Report card
-    timers.push(setTimeout(() => setAnimationPhase(3), 1200))  // Share button
-
+    timers.push(setTimeout(() => setPhase(0), 0))
+    timers.push(setTimeout(() => setPhase(1), 100))
+    timers.push(setTimeout(() => setPhase(2), 400))
+    timers.push(setTimeout(() => setPhase(3), 1200))
     return () => timers.forEach(clearTimeout)
   }, [prefersReducedMotion])
 
-  const showHeader = animationPhase >= 1
-  const showReport = animationPhase >= 2
-  const showShare = animationPhase >= 3
+  const showHeader = phase >= 1
+  const showReport = phase >= 2
+  const showShare = phase >= 3
+
+  const stats = useMemo(() => [
+    { label: "Symptoms tracked", value: "47", icon: TrendingUp },
+    { label: "Days tracked", value: "28", icon: Calendar },
+    { label: "Weekly reports", value: "4", icon: BarChart3 },
+  ], [])
 
   return (
     <motion.div
@@ -733,10 +771,7 @@ function ShareableReportsPhone({
       initial="initial"
       animate="animate"
       exit="exit"
-      transition={{
-        duration: prefersReducedMotion ? 0 : 0.5,
-        ease: [0.4, 0, 0.2, 1],
-      }}
+      transition={{ ...ultraSmoothSpring, duration: prefersReducedMotion ? 0 : 0.5 }}
       className="w-full"
     >
       <PhoneFrame>
@@ -745,9 +780,10 @@ function ShareableReportsPhone({
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={showHeader ? { opacity: 1, y: 0 } : { opacity: 0, y: -10 }}
-            transition={{ duration: prefersReducedMotion ? 0 : 0.3 }}
-            className="h-11 bg-linear-to-r from-[#FF6B9D] to-[#FFA07A] rounded-xl flex items-center justify-center shrink-0 shadow-sm"
+            transition={{ ...smoothSpring }}
+            className="h-11 bg-linear-to-r from-[#FF6B9D] to-[#FFA07A] rounded-xl flex items-center justify-center gap-2 shrink-0 shadow-sm"
           >
+            <FileText className="w-4 h-4 text-white" />
             <span className="text-white text-sm font-semibold">Health Reports</span>
           </motion.div>
 
@@ -757,58 +793,53 @@ function ShareableReportsPhone({
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: prefersReducedMotion ? 0 : 0.4 }}
+                transition={{ ...smoothSpring }}
                 className="bg-white rounded-xl p-4 shadow-sm flex-1"
               >
+                {/* Report Header */}
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 bg-linear-to-br from-blue-100 to-purple-100 rounded-lg flex items-center justify-center">
+                  <div className="w-10 h-10 bg-linear-to-br from-blue-100 to-purple-100 rounded-xl flex items-center justify-center">
                     <FileText className="h-5 w-5 text-blue-600" />
                   </div>
                   <div>
-                    <div className="text-sm font-semibold text-gray-800">
-                      Monthly Summary
-                    </div>
+                    <div className="text-sm font-semibold text-gray-800">Monthly Summary</div>
                     <div className="text-xs text-gray-500">January 2026</div>
                   </div>
                 </div>
 
-                <div className="space-y-3 mb-4">
-                  <motion.div
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.2 }}
-                    className="flex items-center justify-between text-sm"
-                  >
-                    <span className="text-gray-600">Symptoms tracked</span>
-                    <span className="font-semibold text-gray-800">47</span>
-                  </motion.div>
-                  <motion.div
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.3 }}
-                    className="flex items-center justify-between text-sm"
-                  >
-                    <span className="text-gray-600">Days tracked</span>
-                    <span className="font-semibold text-gray-800">28</span>
-                  </motion.div>
-                  <motion.div
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.4 }}
-                    className="flex items-center justify-between text-sm"
-                  >
-                    <span className="text-gray-600">Weekly summaries</span>
-                    <span className="font-semibold text-gray-800">4</span>
-                  </motion.div>
+                {/* Stats */}
+                <div className="space-y-2.5 mb-4">
+                  {stats.map((stat, index) => {
+                    const Icon = stat.icon
+                    return (
+                      <motion.div
+                        key={stat.label}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ ...smoothSpring, delay: prefersReducedMotion ? 0 : 0.1 * index + 0.2 }}
+                        className="flex items-center justify-between p-2 bg-gray-50 rounded-lg"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Icon className="w-4 h-4 text-gray-400" />
+                          <span className="text-xs text-gray-600">{stat.label}</span>
+                        </div>
+                        <span className="text-sm font-bold text-gray-800">{stat.value}</span>
+                      </motion.div>
+                    )
+                  })}
                 </div>
 
+                {/* Ready to share */}
                 <div className="border-t border-gray-100 pt-3">
-                  <div className="text-xs text-gray-500 mb-2">Ready to share with:</div>
+                  <div className="text-xs text-gray-500 mb-2 flex items-center gap-1">
+                    <Share2 className="w-3 h-3" />
+                    Ready to share with:
+                  </div>
                   <div className="flex gap-2">
-                    <span className="px-3 py-1 bg-blue-50 rounded-full text-xs font-medium text-blue-700">
+                    <span className="px-2.5 py-1 bg-blue-50 rounded-full text-[10px] font-medium text-blue-700">
                       Dr. Smith
                     </span>
-                    <span className="px-3 py-1 bg-purple-50 rounded-full text-xs font-medium text-purple-700">
+                    <span className="px-2.5 py-1 bg-purple-50 rounded-full text-[10px] font-medium text-purple-700">
                       Gynecologist
                     </span>
                   </div>
@@ -820,17 +851,11 @@ function ShareableReportsPhone({
                     <motion.button
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{
-                        type: "spring",
-                        stiffness: 300,
-                        damping: 25,
-                      }}
-                      className="mt-4 w-full h-10 bg-linear-to-r from-[#FF6B9D] to-[#FFA07A] rounded-lg flex items-center justify-center gap-2 shadow-sm"
+                      transition={{ ...smoothSpring }}
+                      className="mt-4 w-full h-10 bg-linear-to-r from-[#FF6B9D] to-[#FFA07A] rounded-xl flex items-center justify-center gap-2 shadow-sm"
                     >
-                      <FileText className="h-4 w-4 text-white" />
-                      <span className="text-white text-sm font-semibold">
-                        Share Report
-                      </span>
+                      <Share2 className="h-4 w-4 text-white" />
+                      <span className="text-white text-sm font-semibold">Share Report</span>
                     </motion.button>
                   )}
                 </AnimatePresence>

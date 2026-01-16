@@ -505,7 +505,7 @@ function StepText({ step }: { step: number }) {
   const content = [
     {
       headline: "You know something's wrong",
-      description: "Hot flashes, mood swings, brain fog — but when? How often? You need to see it clearly.",
+      description: "Hot flashes, mood swings, brain fog - but when? How often? You need to see it clearly.",
     },
     {
       headline: "Track it. See it organized.",

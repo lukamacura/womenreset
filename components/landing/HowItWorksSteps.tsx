@@ -3,12 +3,36 @@
 
 import { useRef, useState, useEffect, useMemo, useCallback } from "react"
 import { motion, useInView, useReducedMotion, AnimatePresence } from "framer-motion"
-import { Hand, Check } from "lucide-react"
+import { 
+  Hand, 
+  Check, 
+  Plus,
+  Flame,
+  Moon,
+  Heart,
+  Calendar,
+  TrendingDown,
+  Sparkles,
+  MessageCircle
+} from "lucide-react"
 
-// Animation timing constants (in ms)
+// Smooth spring configs
+const smoothSpring = {
+  type: "spring" as const,
+  damping: 30,
+  stiffness: 200,
+}
+
+const ultraSmoothSpring = {
+  type: "spring" as const,
+  damping: 35,
+  stiffness: 150,
+}
+
+// Animation timing constants (in ms) - KEEPING SAME
 const TIMING = {
   CROSSFADE: 500,
-  STEP_HOLD: 1500, // Time to appreciate the completed animation
+  STEP_HOLD: 1500,
   STEP_1_ANIMATION: 2000,
   STEP_2_ANIMATION: 2500,
   STEP_3_ANIMATION: 2500,
@@ -20,7 +44,6 @@ export default function HowItWorksSteps() {
   const prefersReducedMotion = useReducedMotion()
   const [currentStep, setCurrentStep] = useState(1)
 
-  // Calculate total duration for each step (animation + hold time)
   const getStepDuration = useCallback((step: number) => {
     const animationTimes = {
       1: TIMING.STEP_1_ANIMATION,
@@ -30,7 +53,6 @@ export default function HowItWorksSteps() {
     return animationTimes[step as keyof typeof animationTimes] + TIMING.STEP_HOLD
   }, [])
 
-  // Step cycling effect
   useEffect(() => {
     if (!isInView || prefersReducedMotion) return
 
@@ -55,12 +77,7 @@ export default function HowItWorksSteps() {
           className="text-center mb-10 sm:mb-14"
           initial={{ opacity: 0, y: 20 }}
           animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-          transition={{
-            type: "spring",
-            damping: 20,
-            stiffness: 100,
-            duration: prefersReducedMotion ? 0 : 0.6,
-          }}
+          transition={ultraSmoothSpring}
         >
           <HeadingWithHighlight
             isInView={isInView}
@@ -118,7 +135,9 @@ export default function HowItWorksSteps() {
   )
 }
 
-// Heading with Highlight Animation Component
+// ============================================
+// Heading with Highlight Animation
+// ============================================
 function HeadingWithHighlight({
   children,
   isInView,
@@ -132,33 +151,27 @@ function HeadingWithHighlight({
 
   useEffect(() => {
     if (!isInView || prefersReducedMotion) return
-
-    const timer = setTimeout(() => {
-      setShouldHighlight(true)
-    }, 300)
-
+    const timer = setTimeout(() => setShouldHighlight(true), 300)
     return () => clearTimeout(timer)
   }, [isInView, prefersReducedMotion])
 
   return (
     <div className="relative inline-block">
       <div className="relative z-10">{children}</div>
-      {/* Highlight overlay - animates from left to right */}
       <motion.span
         className="absolute inset-0 bg-yellow-400/40 rounded pointer-events-none"
         initial={{ scaleX: 0, transformOrigin: "left" }}
         animate={shouldHighlight ? { scaleX: 1 } : { scaleX: 0 }}
-        transition={{
-          duration: prefersReducedMotion ? 0 : 1.2,
-          ease: [0.4, 0, 0.2, 1],
-        }}
+        transition={{ duration: 1.2, ease: [0.4, 0, 0.2, 1] }}
         style={{ zIndex: 0 }}
       />
     </div>
   )
 }
 
-// Step Indicators Component
+// ============================================
+// Step Indicators
+// ============================================
 function StepIndicators({
   currentStep,
   prefersReducedMotion,
@@ -169,7 +182,7 @@ function StepIndicators({
   onSelect?: (step: number) => void
 }) {
   return (
-    <div className="flex justify-center gap-2 mb-6 sm:mb-8">
+    <div className="flex justify-center gap-3 mb-6 sm:mb-8">
       {[1, 2, 3].map((step) => {
         const isActive = currentStep === step
         return (
@@ -178,19 +191,13 @@ function StepIndicators({
             type="button"
             onClick={() => onSelect?.(step)}
             aria-label={`Go to step ${step}`}
-            aria-current={isActive ? "step" : undefined}
-            className={`h-2 rounded-full transition-all duration-300 ${
+            className={`h-2 rounded-full transition-colors duration-300 ${
               isActive
-                ? "w-8 bg-linear-to-r from-[#FF6B9D] to-[#FFA07A]"
-                : "w-2 bg-gray-300 hover:bg-gray-400"
+                ? "bg-linear-to-r from-[#FF6B9D] to-[#FFA07A]"
+                : "bg-gray-300 hover:bg-gray-400"
             }`}
-            animate={{
-              width: isActive ? 32 : 8,
-            }}
-            transition={{
-              duration: prefersReducedMotion ? 0 : 0.3,
-              ease: "easeInOut",
-            }}
+            animate={{ width: isActive ? 40 : 8 }}
+            transition={{ ...smoothSpring, duration: prefersReducedMotion ? 0 : 0.4 }}
           />
         )
       })}
@@ -198,7 +205,9 @@ function StepIndicators({
   )
 }
 
-// Step Labels Component
+// ============================================
+// Step Labels
+// ============================================
 function StepLabels({
   currentStep,
   prefersReducedMotion,
@@ -217,13 +226,10 @@ function StepLabels({
       <AnimatePresence mode="wait">
         <motion.p
           key={`label-${currentStep}`}
-          initial={{ opacity: 0, y: 8 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -8 }}
-          transition={{
-            duration: prefersReducedMotion ? 0 : 0.4,
-            ease: [0.4, 0, 0.2, 1],
-          }}
+          exit={{ opacity: 0, y: -10 }}
+          transition={{ ...smoothSpring, duration: prefersReducedMotion ? 0 : 0.4 }}
           className="text-center text-base sm:text-lg text-gray-700 font-medium px-4"
         >
           {labels[currentStep - 1]}
@@ -233,7 +239,9 @@ function StepLabels({
   )
 }
 
-// Phone Frame Component
+// ============================================
+// Phone Frame (UNCHANGED)
+// ============================================
 function PhoneFrame({ children }: { children: React.ReactNode }) {
   return (
     <div
@@ -243,10 +251,7 @@ function PhoneFrame({ children }: { children: React.ReactNode }) {
           "0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05)",
       }}
     >
-      {/* Notch */}
       <div className="absolute top-3 left-1/2 -translate-x-1/2 w-20 h-5 bg-gray-900 rounded-full z-10" />
-      
-      {/* Screen */}
       <div className="w-full h-full rounded-[2.25rem] bg-white overflow-hidden">
         <div className="w-full h-full pt-8">{children}</div>
       </div>
@@ -254,56 +259,50 @@ function PhoneFrame({ children }: { children: React.ReactNode }) {
   )
 }
 
-// Shared transition variants
 const phoneTransition = {
-  initial: { opacity: 0, scale: 0.95 },
+  initial: { opacity: 0, scale: 0.96 },
   animate: { opacity: 1, scale: 1 },
-  exit: { opacity: 0, scale: 0.95 },
+  exit: { opacity: 0, scale: 0.96 },
 }
 
-// Step 1: Symptom Tracking Phone
+// ============================================
+// Step 1: Symptom Tracking Phone (Enhanced)
+// ============================================
 function SymptomTrackingPhone({
   prefersReducedMotion,
 }: {
   prefersReducedMotion: boolean
 }) {
-  const [animationPhase, setAnimationPhase] = useState(0)
-  // Phase 0: Initial
-  // Phase 1: Header visible
-  // Phase 2: Button visible
-  // Phase 3: Finger appears
-  // Phase 4: Button tapped, finger animates
-  // Phase 5: Tags appear
-  // Phase 6: Checkmark appears
+  const [phase, setPhase] = useState(0)
+
+  const symptoms = useMemo(() => [
+    { id: "hot", label: "Hot Flash", icon: Flame, color: "bg-orange-100 text-orange-600" },
+    { id: "sleep", label: "Poor Sleep", icon: Moon, color: "bg-indigo-100 text-indigo-600" },
+    { id: "mood", label: "Mood Swing", icon: Heart, color: "bg-pink-100 text-pink-600" },
+  ], [])
 
   useEffect(() => {
     if (prefersReducedMotion) {
-      setAnimationPhase(6)
+      setPhase(6)
       return
     }
-
-    // Reset on mount
-    setAnimationPhase(0)
-
+    setPhase(0)
     const timers: NodeJS.Timeout[] = []
-    
-    // Sequence with proper cleanup
-    timers.push(setTimeout(() => setAnimationPhase(1), 100))   // Header
-    timers.push(setTimeout(() => setAnimationPhase(2), 400))   // Button
-    timers.push(setTimeout(() => setAnimationPhase(3), 800))   // Finger appears
-    timers.push(setTimeout(() => setAnimationPhase(4), 1200))  // Tap animation
-    timers.push(setTimeout(() => setAnimationPhase(5), 1500))  // Tags appear
-    timers.push(setTimeout(() => setAnimationPhase(6), 1800))  // Checkmark
-
+    timers.push(setTimeout(() => setPhase(1), 100))   // Header
+    timers.push(setTimeout(() => setPhase(2), 400))   // Symptom buttons
+    timers.push(setTimeout(() => setPhase(3), 800))   // Finger appears
+    timers.push(setTimeout(() => setPhase(4), 1200))  // Tap
+    timers.push(setTimeout(() => setPhase(5), 1500))  // Selected card
+    timers.push(setTimeout(() => setPhase(6), 1800))  // Checkmark
     return () => timers.forEach(clearTimeout)
   }, [prefersReducedMotion])
 
-  const showHeader = animationPhase >= 1
-  const showButton = animationPhase >= 2
-  const showFinger = animationPhase >= 3 && animationPhase < 5
-  const buttonTapped = animationPhase >= 4
-  const showTags = animationPhase >= 5
-  const showCheckmark = animationPhase >= 6
+  const showHeader = phase >= 1
+  const showButtons = phase >= 2
+  const showFinger = phase >= 3 && phase < 5
+  const buttonTapped = phase >= 4
+  const showSelected = phase >= 5
+  const showCheck = phase >= 6
 
   return (
     <motion.div
@@ -311,10 +310,7 @@ function SymptomTrackingPhone({
       initial="initial"
       animate="animate"
       exit="exit"
-      transition={{
-        duration: prefersReducedMotion ? 0 : 0.5,
-        ease: [0.4, 0, 0.2, 1],
-      }}
+      transition={{ ...ultraSmoothSpring, duration: prefersReducedMotion ? 0 : 0.5 }}
       className="w-full"
     >
       <PhoneFrame>
@@ -323,118 +319,106 @@ function SymptomTrackingPhone({
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={showHeader ? { opacity: 1, y: 0 } : { opacity: 0, y: -10 }}
-            transition={{ duration: prefersReducedMotion ? 0 : 0.3 }}
-            className="h-11 bg-linear-to-r from-[#FF6B9D] to-[#FFA07A] rounded-xl flex items-center justify-center shrink-0 shadow-sm"
+            transition={{ ...smoothSpring, duration: prefersReducedMotion ? 0 : 0.3 }}
+            className="h-11 bg-linear-to-r from-[#FF6B9D] to-[#FFA07A] rounded-xl flex items-center justify-center gap-2 shrink-0 shadow-sm"
           >
+            <Plus className="w-4 h-4 text-white" />
             <span className="text-white text-sm font-semibold">Quick Log</span>
           </motion.div>
 
-          {/* Content Area */}
-          <div className="flex-1 flex flex-col gap-3">
-            {/* Add Symptom Button */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={showButton ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
-              transition={{ duration: prefersReducedMotion ? 0 : 0.4 }}
-              className="relative"
+          {/* Symptom Selection Grid */}
+          <div className="flex-1 flex flex-col gap-2">
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={showButtons ? { opacity: 1 } : { opacity: 0 }}
+              className="text-xs font-medium text-gray-500 px-1"
             >
-              <motion.div
-                className={`
-                  w-full bg-white rounded-xl p-4 border-2 border-dashed
-                  flex items-center justify-center gap-2
-                  ${buttonTapped ? "border-[#FF6B9D]" : "border-gray-300"}
-                `}
-                animate={buttonTapped ? { scale: 0.97 } : { scale: 1 }}
-                transition={{ type: "spring", stiffness: 400, damping: 25 }}
-              >
-                <span className="text-sm text-gray-500 font-medium">+ Add symptom</span>
-              </motion.div>
+              How are you feeling?
+            </motion.p>
+            
+            <div className="grid grid-cols-1 gap-2 relative">
+              {symptoms.map((symptom, index) => {
+                const Icon = symptom.icon
+                const isFirst = index === 0
+                const isSelected = showSelected && isFirst
+                
+                return (
+                  <motion.div
+                    key={symptom.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={showButtons ? { opacity: 1, x: 0 } : { opacity: 0, x: -20 }}
+                    transition={{ 
+                      ...smoothSpring, 
+                      delay: prefersReducedMotion ? 0 : index * 0.08,
+                    }}
+                  >
+                    <motion.button
+                      className={`
+                        w-full flex items-center gap-3 p-3 rounded-xl border-2 transition-colors
+                        ${isSelected 
+                          ? "bg-pink-50 border-[#FF6B9D]" 
+                          : "bg-white border-gray-100 hover:border-gray-200"
+                        }
+                      `}
+                      animate={buttonTapped && isFirst ? { scale: 0.97 } : { scale: 1 }}
+                      transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                    >
+                      <div className={`w-9 h-9 rounded-full flex items-center justify-center ${symptom.color}`}>
+                        <Icon className="w-4 h-4" />
+                      </div>
+                      <span className="text-sm font-medium text-gray-700">{symptom.label}</span>
+                      
+                      {/* Check indicator */}
+                      <AnimatePresence>
+                        {isSelected && (
+                          <motion.div
+                            initial={{ scale: 0, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            className="ml-auto"
+                          >
+                            <div className="w-5 h-5 rounded-full bg-[#FF6B9D] flex items-center justify-center">
+                              <Check className="w-3 h-3 text-white" strokeWidth={3} />
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </motion.button>
+                  </motion.div>
+                )
+              })}
 
               {/* Finger Pointer */}
               <AnimatePresence>
                 {showFinger && !prefersReducedMotion && (
                   <motion.div
-                    className="absolute right-3 top-1/2 pointer-events-none"
-                    initial={{ x: 30, y: "-50%", opacity: 0 }}
-                    animate={{ 
-                      x: 0, 
-                      y: "-50%", 
-                      opacity: 1,
-                      scale: buttonTapped ? 0.85 : 1,
-                    }}
-                    exit={{ x: 30, opacity: 0 }}
-                    transition={{ duration: 0.3 }}
+                    className="absolute right-4 top-6 pointer-events-none"
+                    initial={{ x: 40, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1, scale: buttonTapped ? 0.85 : 1 }}
+                    exit={{ x: 40, opacity: 0 }}
+                    transition={{ ...smoothSpring }}
                   >
                     <Hand className="h-7 w-7 text-[#FF6B9D] rotate-[-15deg]" />
                   </motion.div>
                 )}
               </AnimatePresence>
-            </motion.div>
+            </div>
 
-            {/* Symptom Tags Card */}
+            {/* Success Message */}
             <AnimatePresence>
-              {showTags && (
+              {showCheck && (
                 <motion.div
-                  initial={{ opacity: 0, y: 15, scale: 0.95 }}
+                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
-                  transition={{
-                    type: "spring",
-                    stiffness: 300,
-                    damping: 25,
-                    duration: prefersReducedMotion ? 0 : 0.4,
-                  }}
-                  className="bg-white rounded-xl p-4 shadow-sm relative"
+                  transition={smoothSpring}
+                  className="mt-auto p-3 bg-green-50 rounded-xl border border-green-100 flex items-center gap-3"
                 >
-                  <div className="text-sm font-semibold text-gray-800 mb-3">Today</div>
-                  <div className="flex flex-wrap gap-2">
-                    <motion.span
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{
-                        type: "spring",
-                        stiffness: 400,
-                        damping: 20,
-                        delay: prefersReducedMotion ? 0 : 0.1,
-                      }}
-                      className="px-4 py-2 bg-pink-100 rounded-full text-sm font-medium text-pink-700"
-                    >
-                      Hot Flash
-                    </motion.span>
-                    <motion.span
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{
-                        type: "spring",
-                        stiffness: 400,
-                        damping: 20,
-                        delay: prefersReducedMotion ? 0 : 0.2,
-                      }}
-                      className="px-4 py-2 bg-orange-100 rounded-full text-sm font-medium text-orange-700"
-                    >
-                      Moderate
-                    </motion.span>
+                  <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center shadow-sm">
+                    <Check className="h-4 w-4 text-white" strokeWidth={3} />
                   </div>
-
-                  {/* Checkmark - inside the card */}
-                  <AnimatePresence>
-                    {showCheckmark && (
-                      <motion.div
-                        className="absolute -top-2 -right-2"
-                        initial={{ opacity: 0, scale: 0 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{
-                          type: "spring",
-                          stiffness: 500,
-                          damping: 25,
-                          duration: prefersReducedMotion ? 0 : 0.3,
-                        }}
-                      >
-                        <div className="w-7 h-7 bg-green-500 rounded-full flex items-center justify-center shadow-md">
-                          <Check className="h-4 w-4 text-white" strokeWidth={3} />
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                  <div>
+                    <p className="text-sm font-semibold text-green-800">Logged!</p>
+                    <p className="text-xs text-green-600">Hot Flash • Just now</p>
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -445,46 +429,38 @@ function SymptomTrackingPhone({
   )
 }
 
-// Step 2: Data Timeline Phone
+// ============================================
+// Step 2: Data Timeline Phone (Enhanced)
+// ============================================
 function DataTimelinePhone({
   prefersReducedMotion,
 }: {
   prefersReducedMotion: boolean
 }) {
-  const [animationPhase, setAnimationPhase] = useState(0)
-  // Phase 0: Initial
-  // Phase 1: Header visible
-  // Phase 2: Calendar visible
-  // Phase 3-6: Symptom entries appear on different days
-  // Phase 7: Summary count appears
-
-  // Symptom days: 3, 7, 10, 14, 17, 21, 24
+  const [phase, setPhase] = useState(0)
   const symptomDays = useMemo(() => [3, 7, 10, 14, 17, 21, 24], [])
 
   useEffect(() => {
     if (prefersReducedMotion) {
-      setAnimationPhase(7)
+      setPhase(7)
       return
     }
-
-    setAnimationPhase(0)
+    setPhase(0)
     const timers: NodeJS.Timeout[] = []
-
-    timers.push(setTimeout(() => setAnimationPhase(1), 100))   // Header
-    timers.push(setTimeout(() => setAnimationPhase(2), 400))   // Calendar
-    timers.push(setTimeout(() => setAnimationPhase(3), 700))   // Entry 1
-    timers.push(setTimeout(() => setAnimationPhase(4), 950))   // Entry 2
-    timers.push(setTimeout(() => setAnimationPhase(5), 1200))  // Entry 3
-    timers.push(setTimeout(() => setAnimationPhase(6), 1450))  // Entry 4
-    timers.push(setTimeout(() => setAnimationPhase(7), 1700))  // Summary
-
+    timers.push(setTimeout(() => setPhase(1), 100))
+    timers.push(setTimeout(() => setPhase(2), 400))
+    timers.push(setTimeout(() => setPhase(3), 700))
+    timers.push(setTimeout(() => setPhase(4), 950))
+    timers.push(setTimeout(() => setPhase(5), 1200))
+    timers.push(setTimeout(() => setPhase(6), 1450))
+    timers.push(setTimeout(() => setPhase(7), 1700))
     return () => timers.forEach(clearTimeout)
   }, [prefersReducedMotion])
 
-  const showHeader = animationPhase >= 1
-  const showCalendar = animationPhase >= 2
-  const visibleEntryCount = Math.max(0, Math.min(animationPhase - 2, 7))
-  const showSummary = animationPhase >= 7
+  const showHeader = phase >= 1
+  const showCalendar = phase >= 2
+  const visibleCount = Math.max(0, Math.min(phase - 2, 7))
+  const showSummary = phase >= 7
 
   return (
     <motion.div
@@ -492,10 +468,7 @@ function DataTimelinePhone({
       initial="initial"
       animate="animate"
       exit="exit"
-      transition={{
-        duration: prefersReducedMotion ? 0 : 0.5,
-        ease: [0.4, 0, 0.2, 1],
-      }}
+      transition={{ ...ultraSmoothSpring, duration: prefersReducedMotion ? 0 : 0.5 }}
       className="w-full"
     >
       <PhoneFrame>
@@ -504,102 +477,78 @@ function DataTimelinePhone({
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={showHeader ? { opacity: 1, y: 0 } : { opacity: 0, y: -10 }}
-            transition={{ duration: prefersReducedMotion ? 0 : 0.3 }}
-            className="h-11 bg-linear-to-r from-[#FF6B9D] to-[#FFA07A] rounded-xl flex items-center justify-center shrink-0 shadow-sm"
+            transition={{ ...smoothSpring }}
+            className="h-11 bg-linear-to-r from-[#FF6B9D] to-[#FFA07A] rounded-xl flex items-center justify-center gap-2 shrink-0 shadow-sm"
           >
+            <Calendar className="w-4 h-4 text-white" />
             <span className="text-white text-sm font-semibold">Your Timeline</span>
           </motion.div>
 
-          {/* Calendar Container */}
+          {/* Calendar */}
           <div className="flex-1 flex flex-col justify-center">
             <AnimatePresence>
               {showCalendar && (
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: prefersReducedMotion ? 0 : 0.4 }}
+                  transition={{ ...smoothSpring }}
                   className="bg-white rounded-xl p-3 shadow-sm"
                 >
-                  {/* Month header */}
                   <div className="text-center text-sm font-semibold text-gray-700 mb-2">
                     January 2026
                   </div>
 
-                  {/* Day headers */}
                   <div className="grid grid-cols-7 gap-1 mb-1">
                     {["S", "M", "T", "W", "T", "F", "S"].map((day, i) => (
-                      <div
-                        key={i}
-                        className="text-[10px] font-medium text-center py-1 text-gray-400"
-                      >
+                      <div key={i} className="text-[10px] font-medium text-center py-1 text-gray-400">
                         {day}
                       </div>
                     ))}
                   </div>
 
-                  {/* Calendar grid - 4 weeks */}
-                  <div className="grid grid-cols-7 gap-1 relative">
+                  <div className="grid grid-cols-7 gap-1">
                     {Array.from({ length: 28 }, (_, i) => {
                       const day = i + 1
-                      const isSymptomDay = symptomDays.includes(day)
-                      const symptomIndex = symptomDays.indexOf(day)
-                      const isEntryVisible = isSymptomDay && symptomIndex < visibleEntryCount
+                      const isSymptom = symptomDays.includes(day)
+                      const idx = symptomDays.indexOf(day)
+                      const isVisible = isSymptom && idx < visibleCount
 
                       return (
-                        <div
-                          key={day}
-                          className="aspect-square relative flex items-center justify-center"
-                        >
-                          {/* Background cell */}
+                        <div key={day} className="aspect-square relative flex items-center justify-center">
                           <motion.div
                             className={`
-                              absolute inset-0 rounded-md flex items-center justify-center
-                              text-[11px] font-medium
-                              ${isEntryVisible ? "bg-[#FF6B9D] text-white" : "bg-gray-50 text-gray-600"}
+                              absolute inset-0.5 rounded-md flex items-center justify-center text-[11px] font-medium
+                              ${isVisible ? "bg-[#FF6B9D] text-white shadow-sm" : "text-gray-600"}
                             `}
-                            initial={isSymptomDay ? { scale: 0.8, opacity: 0 } : {}}
-                            animate={isEntryVisible ? { scale: 1, opacity: 1 } : {}}
-                            transition={{
-                              type: "spring",
-                              stiffness: 500,
-                              damping: 25,
-                            }}
+                            initial={isSymptom ? { scale: 0.5, opacity: 0 } : {}}
+                            animate={isVisible ? { scale: 1, opacity: 1 } : {}}
+                            transition={{ ...smoothSpring }}
                           >
                             {day}
                           </motion.div>
-                          
-                          {/* Non-symptom day number */}
-                          {!isSymptomDay && (
-                            <span className="relative z-10 text-[11px] font-medium text-gray-600">
-                              {day}
-                            </span>
+                          {!isSymptom && (
+                            <span className="text-[11px] font-medium text-gray-500">{day}</span>
                           )}
                         </div>
                       )
                     })}
                   </div>
 
-                  {/* Data Summary Card */}
+                  {/* Summary */}
                   <AnimatePresence>
                     {showSummary && (
                       <motion.div
-                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        transition={{ 
-                          type: "spring",
-                          stiffness: 400,
-                          damping: 25,
-                          duration: prefersReducedMotion ? 0 : 0.4,
-                        }}
-                        className="mt-3 bg-linear-to-r from-[#FFF0F5] to-[#FFF5F0] rounded-lg p-2.5 border border-pink-100"
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ ...smoothSpring }}
+                        className="mt-3 p-3 bg-linear-to-r from-pink-50 to-orange-50 rounded-xl border border-pink-100"
                       >
-                        <div className="text-center">
-                          <span className="text-xs font-bold text-[#FF6B9D] block">
-                            15 symptoms logged this month
-                          </span>
-                          <span className="text-[10px] text-gray-500">
-                            Your tracking history
-                          </span>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <TrendingDown className="w-4 h-4 text-green-600" />
+                            <span className="text-xs font-bold text-gray-800">15 logged</span>
+                          </div>
+                          <span className="text-xs text-green-600 font-semibold">↓ 20% vs last month</span>
                         </div>
                       </motion.div>
                     )}
@@ -614,61 +563,60 @@ function DataTimelinePhone({
   )
 }
 
-// Step 3: Chat Interface Phone
+// ============================================
+// Step 3: Chat Interface Phone (ENHANCED - Longer response with emojis)
+// ============================================
 function ChatInterfacePhone({
   prefersReducedMotion,
 }: {
   prefersReducedMotion: boolean
 }) {
-  const [animationPhase, setAnimationPhase] = useState(0)
-  const [revealedText, setRevealedText] = useState("")
-  // Phase 0: Initial
-  // Phase 1: Header visible
-  // Phase 2: Typing indicator visible
-  // Phase 3: Message bubble appears, text reveals
+  const [phase, setPhase] = useState(0)
+  const [revealedLines, setRevealedLines] = useState(0)
 
-  const fullMessage = "I see you've been tracking consistently! Here's what research shows about managing hot flashes: try cooling down 30 mins before bed. 💙"
+  // Lisa's comprehensive response with emojis
+  const lisaResponse = useMemo(() => [
+    { type: "intro", content: "Great job tracking! 🌟 Here's what I found:" },
+    { type: "stat", content: "📊 Hot flashes down 20% this week!" },
+    { type: "tip", emoji: "💧", title: "Stay hydrated", desc: "Water helps regulate temperature" },
+    { type: "tip", emoji: "🌙", title: "Cool bedroom", desc: "Keep it around 65°F (18°C)" },
+    { type: "tip", emoji: "🧘", title: "Deep breathing", desc: "Can reduce intensity by 50%" },
+    { type: "outro", content: "You're doing amazing! 💪✨" },
+  ], [])
 
   useEffect(() => {
     if (prefersReducedMotion) {
-      setAnimationPhase(3)
-      setRevealedText(fullMessage)
+      setPhase(3)
+      setRevealedLines(lisaResponse.length)
       return
     }
-
-    setAnimationPhase(0)
-    setRevealedText("")
+    setPhase(0)
+    setRevealedLines(0)
     const timers: NodeJS.Timeout[] = []
-
-    timers.push(setTimeout(() => setAnimationPhase(1), 100))   // Header
-    timers.push(setTimeout(() => setAnimationPhase(2), 500))   // Typing indicator
-    timers.push(setTimeout(() => setAnimationPhase(3), 1400))  // Message
-
+    timers.push(setTimeout(() => setPhase(1), 100))   // Header
+    timers.push(setTimeout(() => setPhase(2), 500))   // Typing
+    timers.push(setTimeout(() => setPhase(3), 1200))  // Message
     return () => timers.forEach(clearTimeout)
-  }, [prefersReducedMotion, fullMessage])
+  }, [prefersReducedMotion, lisaResponse.length])
 
-  // Text reveal effect
+  // Reveal lines progressively
   useEffect(() => {
-    if (animationPhase < 3 || prefersReducedMotion) return
-    
-    const words = fullMessage.split(" ")
-    let index = 0
-    
+    if (phase < 3 || prefersReducedMotion) return
+    let line = 0
     const interval = setInterval(() => {
-      if (index < words.length) {
-        setRevealedText(words.slice(0, index + 1).join(" "))
-        index++
+      if (line < lisaResponse.length) {
+        setRevealedLines(line + 1)
+        line++
       } else {
         clearInterval(interval)
       }
-    }, 60)
-
+    }, 180)
     return () => clearInterval(interval)
-  }, [animationPhase, prefersReducedMotion, fullMessage])
+  }, [phase, prefersReducedMotion, lisaResponse.length])
 
-  const showHeader = animationPhase >= 1
-  const showTyping = animationPhase === 2
-  const showMessage = animationPhase >= 3
+  const showHeader = phase >= 1
+  const showTyping = phase === 2
+  const showMessage = phase >= 3
 
   return (
     <motion.div
@@ -676,10 +624,7 @@ function ChatInterfacePhone({
       initial="initial"
       animate="animate"
       exit="exit"
-      transition={{
-        duration: prefersReducedMotion ? 0 : 0.5,
-        ease: [0.4, 0, 0.2, 1],
-      }}
+      transition={{ ...ultraSmoothSpring, duration: prefersReducedMotion ? 0 : 0.5 }}
       className="w-full"
     >
       <PhoneFrame>
@@ -688,14 +633,15 @@ function ChatInterfacePhone({
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={showHeader ? { opacity: 1, y: 0 } : { opacity: 0, y: -10 }}
-            transition={{ duration: prefersReducedMotion ? 0 : 0.3 }}
-            className="h-11 bg-linear-to-r from-[#FF6B9D] to-[#FFA07A] rounded-xl flex items-center justify-center shrink-0 shadow-sm"
+            transition={{ ...smoothSpring }}
+            className="h-11 bg-linear-to-r from-[#FF6B9D] to-[#FFA07A] rounded-xl flex items-center justify-center gap-2 shrink-0 shadow-sm"
           >
+            <MessageCircle className="w-4 h-4 text-white" />
             <span className="text-white text-sm font-semibold">Chat with Lisa</span>
           </motion.div>
 
           {/* Chat Area */}
-          <div className="flex-1 flex flex-col justify-end py-4 min-h-0">
+          <div className="flex-1 flex flex-col justify-end py-3 min-h-0 overflow-hidden">
             <AnimatePresence mode="wait">
               {/* Typing Indicator */}
               {showTyping && (
@@ -704,15 +650,12 @@ function ChatInterfacePhone({
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: prefersReducedMotion ? 0 : 0.3 }}
+                  transition={{ ...smoothSpring }}
                   className="flex items-start gap-2"
                 >
-                  {/* Avatar */}
                   <div className="w-8 h-8 rounded-full bg-linear-to-br from-[#FF6B9D] to-[#FFA07A] flex items-center justify-center shrink-0 shadow-sm">
                     <span className="text-white text-xs font-bold">L</span>
                   </div>
-                  
-                  {/* Typing bubble */}
                   <div className="bg-[#FFE5F0] rounded-2xl rounded-tl-md px-4 py-3">
                     <div className="flex gap-1.5 items-center h-4">
                       {[0, 1, 2].map((i) => (
@@ -720,12 +663,7 @@ function ChatInterfacePhone({
                           key={i}
                           className="w-2 h-2 bg-[#FF6B9D] rounded-full"
                           animate={{ y: [0, -4, 0] }}
-                          transition={{
-                            duration: 0.6,
-                            repeat: Infinity,
-                            delay: i * 0.15,
-                            ease: "easeInOut",
-                          }}
+                          transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.15, ease: "easeInOut" }}
                         />
                       ))}
                     </div>
@@ -733,41 +671,62 @@ function ChatInterfacePhone({
                 </motion.div>
               )}
 
-              {/* Message */}
+              {/* Lisa's Message */}
               {showMessage && (
                 <motion.div
                   key="message"
                   initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{
-                    type: "spring",
-                    stiffness: 300,
-                    damping: 25,
-                    duration: prefersReducedMotion ? 0 : 0.4,
-                  }}
+                  transition={{ ...smoothSpring }}
                   className="flex items-start gap-2"
                 >
                   {/* Avatar */}
                   <div className="w-8 h-8 rounded-full bg-linear-to-br from-[#FF6B9D] to-[#FFA07A] flex items-center justify-center shrink-0 shadow-sm">
-                    <span className="text-white text-xs font-bold">L</span>
+                    <Sparkles className="w-4 h-4 text-white" />
                   </div>
                   
-                  {/* Message bubble */}
+                  {/* Message Content */}
                   <div className="flex-1 max-w-[85%]">
-                    <span className="text-[10px] font-semibold text-[#FF6B9D] ml-1 mb-1 block">
-                      Lisa
-                    </span>
-                    <div className="bg-[#FFE5F0] rounded-2xl rounded-tl-md px-4 py-3 shadow-sm">
-                      <p className="text-sm text-gray-700 leading-relaxed">
-                        {revealedText || fullMessage}
-                        {!prefersReducedMotion && revealedText && revealedText !== fullMessage && (
-                          <motion.span
-                            className="inline-block w-0.5 h-4 bg-[#FF6B9D] ml-0.5 align-middle"
-                            animate={{ opacity: [1, 0] }}
-                            transition={{ duration: 0.5, repeat: Infinity }}
-                          />
-                        )}
-                      </p>
+                    <span className="text-[10px] font-semibold text-[#FF6B9D] ml-1 mb-1 block">Lisa</span>
+                    <div className="bg-[#FFE5F0] rounded-2xl rounded-tl-md px-3 py-2.5 shadow-sm space-y-2">
+                      {lisaResponse.slice(0, revealedLines).map((item, index) => (
+                        <motion.div
+                          key={index}
+                          initial={{ opacity: 0, y: 5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ ...smoothSpring }}
+                        >
+                          {item.type === "intro" && (
+                            <p className="text-xs font-semibold text-gray-800">{item.content}</p>
+                          )}
+                          {item.type === "stat" && (
+                            <p className="text-xs text-gray-700 bg-white/60 rounded-lg px-2 py-1.5 font-medium">
+                              {item.content}
+                            </p>
+                          )}
+                          {item.type === "tip" && (
+                            <div className="flex items-start gap-2 bg-white/40 rounded-lg px-2 py-1.5">
+                              <span className="text-sm">{item.emoji}</span>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-semibold text-gray-800">{item.title}</p>
+                                <p className="text-[10px] text-gray-600">{item.desc}</p>
+                              </div>
+                            </div>
+                          )}
+                          {item.type === "outro" && (
+                            <p className="text-xs font-semibold text-[#FF6B9D] pt-1">{item.content}</p>
+                          )}
+                        </motion.div>
+                      ))}
+                      
+                      {/* Typing cursor while revealing */}
+                      {!prefersReducedMotion && revealedLines < lisaResponse.length && (
+                        <motion.span
+                          className="inline-block w-1 h-3 bg-[#FF6B9D] rounded-sm"
+                          animate={{ opacity: [1, 0] }}
+                          transition={{ duration: 0.5, repeat: Infinity }}
+                        />
+                      )}
                     </div>
                   </div>
                 </motion.div>
