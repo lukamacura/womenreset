@@ -19,7 +19,7 @@ habit_strategy:
   example: "Daily foundation: Wake same time daily (circadian immune regulation), 2-minute morning breathing practice (vagal tone), anti-inflammatory breakfast within 1 hour (stable blood sugar reduces inflammatory cytokines). Weekly: 3-4 resistance training sessions (reduces systemic inflammation), omega-3 rich meals 4x (salmon, walnuts, flaxseed). Monthly: Track correlation between sleep quality/stress levels and symptom severity—patterns reveal your immune triggers."
   habit_tip: "📊 Keep a simple symptom-trigger log: Rate daily inflammation symptoms (joint pain, fatigue, brain fog) 1-10, note sleep hours, stress events, food choices. After 2-4 weeks, patterns emerge showing which lifestyle factors most impact YOUR immune balance."
 
-follow-up question: "What would you like to explore next: solutions—gentle lifestyle supports that calm immune overactivation or symptoms & tracking—how to spot patterns and triggers behind flare-ups?"
+follow_up_question: "What would you like to explore next: solutions—gentle lifestyle supports that calm immune overactivation or symptoms & tracking—how to spot patterns and triggers behind flare-ups?"
 follow_up_links: 
   -persona: "menopause"
   topic: "Immune Function & Autoimmunity"

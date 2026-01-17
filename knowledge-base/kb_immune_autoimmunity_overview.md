@@ -20,7 +20,7 @@ habit_strategy:
   habit_tip: "🌙 Your immune system thrives on boring consistency. The most immune-stable people have the most predictable routines—not because they're rigid, but because predictability = safety = reduced inflammation."
 
 
-follow-up question: "What would you like to explore next: solutions—gentle lifestyle supports that calm immune overactivation or symptoms & tracking—how to spot patterns and triggers behind flare-ups?"
+follow_up_question: "What would you like to explore next: solutions—gentle lifestyle supports that calm immune overactivation or symptoms & tracking—how to spot patterns and triggers behind flare-ups?"
 follow_up_links: 
   -persona: "menopause"
   topic: "Immune Function & Autoimmunity"

@@ -20,7 +20,7 @@ import PersonalizedGreeting from "@/components/symptom-tracker/PersonalizedGreet
 import EmptyState from "@/components/symptom-tracker/EmptyState";
 import HealthSummaryButton from "@/components/symptom-tracker/HealthSummaryButton";
 import DailyMoodSelector from "@/components/symptom-tracker/DailyMoodSelector";
-import WhatLisaNoticed from "@/components/symptom-tracker/WhatLisaNoticed";
+import WeeklyInsights from "@/components/insights/WeeklyInsights";
 import GoodDayCard from "@/components/symptom-tracker/GoodDayCard";
 import DeleteConfirmationDialog from "@/components/DeleteConfirmationDialog";
 import TriggerPromptModal from "@/components/symptom-tracker/TriggerPromptModal";
@@ -866,9 +866,9 @@ export default function SymptomsPage() {
           </AnimatedSection>
         )}
 
-        {/* What Lisa Noticed */}
+        {/* Weekly Insights */}
         <AnimatedSection delay={0}>
-          <WhatLisaNoticed />
+          <WeeklyInsights />
         </AnimatedSection>
 
         {/* Recent Logs */}

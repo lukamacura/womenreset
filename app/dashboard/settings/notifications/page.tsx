@@ -6,6 +6,9 @@ import { useRouter } from "next/navigation";
 interface NotificationPreferences {
   notification_enabled: boolean;
   reminder_time: string; // Format: "HH:mm" (e.g., "09:00")
+  weekly_insights_enabled: boolean;
+  weekly_insights_day: "sunday" | "monday";
+  weekly_insights_time: string; // Format: "HH:mm" (e.g., "20:00")
 }
 
 // Time options for the dropdown (6 AM to 8:59 AM UTC)
@@ -24,6 +27,9 @@ export default function NotificationSettingsPage() {
   const [preferences, setPreferences] = useState<NotificationPreferences>({
     notification_enabled: true,
     reminder_time: "08:00", // Default: 8:00 AM
+    weekly_insights_enabled: true,
+    weekly_insights_day: "sunday",
+    weekly_insights_time: "20:00", // Default: 8:00 PM
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -44,6 +50,9 @@ export default function NotificationSettingsPage() {
         setPreferences({
           notification_enabled: data.notification_enabled ?? true,
           reminder_time: data.reminder_time || "08:00",
+          weekly_insights_enabled: data.weekly_insights_enabled ?? true,
+          weekly_insights_day: data.weekly_insights_day || "sunday",
+          weekly_insights_time: data.weekly_insights_time || "20:00",
         });
       }
     } catch (err) {
@@ -93,6 +102,27 @@ export default function NotificationSettingsPage() {
     setPreferences((prev) => ({
       ...prev,
       reminder_time: value,
+    }));
+  };
+
+  const handleWeeklyInsightsToggle = () => {
+    setPreferences((prev) => ({
+      ...prev,
+      weekly_insights_enabled: !prev.weekly_insights_enabled,
+    }));
+  };
+
+  const handleWeeklyInsightsDayChange = (value: "sunday" | "monday") => {
+    setPreferences((prev) => ({
+      ...prev,
+      weekly_insights_day: value,
+    }));
+  };
+
+  const handleWeeklyInsightsTimeChange = (value: string) => {
+    setPreferences((prev) => ({
+      ...prev,
+      weekly_insights_time: value,
     }));
   };
 
@@ -170,6 +200,60 @@ export default function NotificationSettingsPage() {
           )}
         </div>
 
+        {/* Weekly Insights */}
+        <div className="border-t border-[#E8E0DB] pt-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex-1">
+              <h3 className="text-xl font-semibold text-[#3D3D3D] mb-1">Weekly Insights</h3>
+              <p className="text-[#6B6B6B] text-base">
+                Get a summary of your week&apos;s symptom patterns
+              </p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer shrink-0 ml-4">
+              <input
+                type="checkbox"
+                checked={preferences.weekly_insights_enabled}
+                onChange={handleWeeklyInsightsToggle}
+                className="sr-only peer"
+              />
+              <div className="w-14 h-7 bg-[#E8E0DB] peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[#ff74b1] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-[#ff74b1]"></div>
+            </label>
+          </div>
+          
+          {preferences.weekly_insights_enabled && (
+            <div className="mt-4 space-y-4">
+              <div>
+                <label className="block text-[#6B6B6B] text-base mb-2 font-medium">
+                  Send on:
+                </label>
+                <select
+                  value={preferences.weekly_insights_day}
+                  onChange={(e) => handleWeeklyInsightsDayChange(e.target.value as "sunday" | "monday")}
+                  className="px-4 py-2 rounded-xl border border-[#E8E0DB] text-base focus:outline-none focus:ring-2 focus:ring-[#ff74b1] cursor-pointer w-full max-w-xs"
+                >
+                  <option value="sunday">Sunday</option>
+                  <option value="monday">Monday</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-[#6B6B6B] text-base mb-2 font-medium">
+                  At:
+                </label>
+                <input
+                  type="time"
+                  value={preferences.weekly_insights_time}
+                  onChange={(e) => handleWeeklyInsightsTimeChange(e.target.value)}
+                  className="px-4 py-2 rounded-xl border border-[#E8E0DB] text-base focus:outline-none focus:ring-2 focus:ring-[#ff74b1] w-full max-w-xs"
+                />
+                <p className="text-[#6B6B6B] text-sm mt-1 italic">
+                  Default: 8:00 PM
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Divider */}
         <div className="border-t border-[#E8E0DB] pt-6">
           <h4 className="text-lg font-semibold text-[#3D3D3D] mb-3">How notifications work</h4>
@@ -180,11 +264,11 @@ export default function NotificationSettingsPage() {
             </li>
             <li className="flex items-start gap-2">
               <span className="text-[#ff74b1] mt-1">•</span>
-              <span>Important app updates</span>
+              <span>Weekly insights summary of your patterns</span>
             </li>
             <li className="flex items-start gap-2">
               <span className="text-[#ff74b1] mt-1">•</span>
-              <span>Insights about your health patterns</span>
+              <span>Important app updates</span>
             </li>
           </ul>
         </div>

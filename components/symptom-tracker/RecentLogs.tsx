@@ -37,13 +37,21 @@ function generateDailySummary(logsForDay: SymptomLog[]): string | null {
 
 export default function RecentLogs({ logs, loading, onLogClick, onDelete }: RecentLogsProps) {
 
+  // Helper to get local date key (YYYY-MM-DD) without timezone issues
+  const getLocalDateKey = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   // Group logs by date and generate summaries
   const logsWithSummaries = useMemo(() => {
-    // Group logs by date (YYYY-MM-DD)
+    // Group logs by LOCAL date (not UTC) to avoid timezone issues
     const grouped: Record<string, SymptomLog[]> = {};
     logs.slice(0, 10).forEach((log) => {
       const logDate = new Date(log.logged_at);
-      const dateKey = logDate.toISOString().split('T')[0];
+      const dateKey = getLocalDateKey(logDate);
       if (!grouped[dateKey]) {
         grouped[dateKey] = [];
       }

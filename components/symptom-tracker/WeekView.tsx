@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { ChevronDown, ChevronUp, Trash2, CircleDot } from "lucide-react";
 import type { SymptomLog } from "@/lib/symptom-tracker-constants";
 import { SEVERITY_LABELS } from "@/lib/symptom-tracker-constants";
@@ -23,15 +23,36 @@ interface DayData {
   hasPeriod: boolean;
 }
 
+// Helper to get local date key (YYYY-MM-DD) without timezone issues
+function getLocalDateKey(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export default function WeekView({ logs, onLogClick, onDelete }: WeekViewProps) {
   const [expandedDay, setExpandedDay] = useState<string | null>(null);
+  const [, forceUpdate] = useState(0);
+  
+  // Listen for symptom log updates to force re-render
+  useEffect(() => {
+    const handleUpdate = () => {
+      forceUpdate(prev => prev + 1);
+    };
+    
+    window.addEventListener('symptom-log-updated', handleUpdate);
+    return () => {
+      window.removeEventListener('symptom-log-updated', handleUpdate);
+    };
+  }, []);
 
   // Process logs for last 7 days
   const weekData = useMemo(() => {
-    const today = new Date();
-    today.setHours(23, 59, 59, 999);
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
     
-    const sevenDaysAgo = new Date();
+    const sevenDaysAgo = new Date(today);
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6); // Include today, so 6 days ago
     sevenDaysAgo.setHours(0, 0, 0, 0);
 
@@ -41,11 +62,11 @@ export default function WeekView({ logs, onLogClick, onDelete }: WeekViewProps) 
       return logDate >= sevenDaysAgo && logDate <= today;
     });
 
-    // Group by date
+    // Group by LOCAL date (not UTC) to avoid timezone issues
     const grouped: Record<string, SymptomLog[]> = {};
     recentLogs.forEach((log) => {
       const logDate = new Date(log.logged_at);
-      const dateKey = logDate.toISOString().split('T')[0];
+      const dateKey = getLocalDateKey(logDate);
       if (!grouped[dateKey]) {
         grouped[dateKey] = [];
       }
@@ -53,12 +74,12 @@ export default function WeekView({ logs, onLogClick, onDelete }: WeekViewProps) 
     });
 
     // Create day data for each of the last 7 days
-    const days: DayData[] = [];
+    const daysData: DayData[] = [];
     for (let i = 6; i >= 0; i--) {
       const date = new Date(today);
       date.setDate(date.getDate() - i);
       date.setHours(0, 0, 0, 0);
-      const dateKey = date.toISOString().split('T')[0];
+      const dateKey = getLocalDateKey(date);
       const dayLogs = grouped[dateKey] || [];
       
       const worstSeverity = dayLogs.length > 0
@@ -67,7 +88,7 @@ export default function WeekView({ logs, onLogClick, onDelete }: WeekViewProps) 
 
       const hasPeriod = dayLogs.some(log => log.symptoms?.name === 'Period');
 
-      days.push({
+      daysData.push({
         date,
         dateKey,
         logs: dayLogs.sort((a, b) => new Date(b.logged_at).getTime() - new Date(a.logged_at).getTime()),
@@ -77,7 +98,7 @@ export default function WeekView({ logs, onLogClick, onDelete }: WeekViewProps) 
       });
     }
 
-    return days;
+    return daysData;
   }, [logs]);
 
   const getSeverityColor = (severity: number | null): string => {
@@ -101,7 +122,8 @@ export default function WeekView({ logs, onLogClick, onDelete }: WeekViewProps) 
       {/* 7-day grid */}
       <div className="grid grid-cols-7 gap-2">
         {weekData.map((day) => {
-          const isToday = day.dateKey === new Date().toISOString().split('T')[0];
+          const todayKey = getLocalDateKey(new Date());
+          const isToday = day.dateKey === todayKey;
           const isExpanded = expandedDay === day.dateKey;
 
           return (
@@ -112,6 +134,7 @@ export default function WeekView({ logs, onLogClick, onDelete }: WeekViewProps) 
                   ${isToday ? 'ring-2 ring-primary ring-opacity-50' : ''}
                   ${isExpanded ? 'bg-card/60' : ''}`}
                 type="button"
+                aria-label={`${getDayName(day.date)} ${day.date.getDate()}, ${day.logCount} logs`}
               >
                 {/* Day name */}
                 <div className="text-xs text-muted-foreground mb-1 text-center font-medium">

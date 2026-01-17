@@ -41,26 +41,61 @@ function formatSeverity(severity: number): string {
   return "Severe";
 }
 
-// Calculate days tracked
+// Calculate days tracked - only counts logs within the date range
 function calculateDaysTracked(symptomLogs: any[], startDate: Date, endDate: Date): { daysTracked: number; totalDays: number; percentage: number } {
+  // Normalize dates for comparison (set to start/end of day)
+  const rangeStart = new Date(startDate);
+  rangeStart.setHours(0, 0, 0, 0);
+  const rangeEnd = new Date(endDate);
+  rangeEnd.setHours(23, 59, 59, 999);
+  
+  // Only count logs that fall within the date range
+  const logsInRange = symptomLogs.filter(log => {
+    const logDate = new Date(log.logged_at);
+    return logDate >= rangeStart && logDate <= rangeEnd;
+  });
+  
+  // Count unique dates (using local date string to avoid timezone issues)
   const loggedDates = new Set(
-    symptomLogs.map(log => new Date(log.logged_at).toDateString())
+    logsInRange.map(log => {
+      const d = new Date(log.logged_at);
+      return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+    })
   );
   const daysTracked = loggedDates.size;
   
-  const daysDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-  const percentage = Math.round((daysTracked / daysDiff) * 100);
+  // Calculate total days in range
+  const daysDiff = Math.ceil((rangeEnd.getTime() - rangeStart.getTime()) / (1000 * 60 * 60 * 24));
+  const totalDays = Math.max(1, daysDiff); // At least 1 day
   
-  return { daysTracked, totalDays: daysDiff, percentage };
+  const percentage = Math.min(100, Math.round((daysTracked / totalDays) * 100));
+  
+  return { daysTracked, totalDays, percentage };
 }
 
-// Count good days
-function countGoodDays(symptomLogs: any[]): number {
-  const goodDayLogs = symptomLogs.filter(log => 
-    log.symptom_name === "Good Day"
-  );
+// Count good days - with date range filtering
+function countGoodDays(symptomLogs: any[], startDate?: Date, endDate?: Date): number {
+  let logsToCount = symptomLogs.filter(log => log.symptom_name === "Good Day");
+  
+  // Filter by date range if provided
+  if (startDate && endDate) {
+    const rangeStart = new Date(startDate);
+    rangeStart.setHours(0, 0, 0, 0);
+    const rangeEnd = new Date(endDate);
+    rangeEnd.setHours(23, 59, 59, 999);
+    
+    logsToCount = logsToCount.filter(log => {
+      const logDate = new Date(log.logged_at);
+      return logDate >= rangeStart && logDate <= rangeEnd;
+    });
+  }
+  
+  // Count unique dates (using local date to avoid timezone issues)
   const goodDayDates = new Set(
-    goodDayLogs.map(log => new Date(log.logged_at).toDateString())
+    logsToCount.map(log => {
+      const d = new Date(log.logged_at);
+      return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+    })
   );
   return goodDayDates.size;
 }
@@ -210,9 +245,16 @@ export async function GET(req: NextRequest) {
     }
 
     const { searchParams } = new URL(req.url);
-    const days = parseInt(searchParams.get("days") || "30", 10);
     const startDateParam = searchParams.get("startDate");
     const endDateParam = searchParams.get("endDate");
+    
+    // Calculate days to fetch based on date range or default
+    let days = parseInt(searchParams.get("days") || "30", 10);
+    if (startDateParam && endDateParam) {
+      const start = new Date(startDateParam);
+      const end = new Date(endDateParam);
+      days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    }
 
     // Fetch and analyze tracker data
     const trackerData = await fetchTrackerData(user.id, days);
@@ -270,7 +312,7 @@ export async function GET(req: NextRequest) {
       reportStartDate,
       reportEndDate
     );
-    const goodDays = countGoodDays(trackerData.symptomLogs);
+    const goodDays = countGoodDays(trackerData.symptomLogs, reportStartDate, reportEndDate);
     
     // Get most common symptoms (excluding Good Day)
     const mostCommonSymptoms = symptomStatsWithoutGoodDay
@@ -324,7 +366,11 @@ export async function GET(req: NextRequest) {
         daysTracked: daysTracked.daysTracked,
         totalDays: daysTracked.totalDays,
         trackingPercentage: daysTracked.percentage,
-        totalSymptoms: trackerData.symptomLogs.filter(log => log.symptom_name !== "Good Day").length,
+        totalSymptoms: trackerData.symptomLogs.filter(log => {
+          if (log.symptom_name === "Good Day") return false;
+          const logDate = new Date(log.logged_at);
+          return logDate >= reportStartDate && logDate <= reportEndDate;
+        }).length,
         goodDays,
         mostCommonSymptoms,
         typicalSeverity: parseInt(typicalSeverity.toString()),
