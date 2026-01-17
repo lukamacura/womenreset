@@ -55,10 +55,10 @@ const Navbar: React.FC<NavbarProps> = ({ isAuthenticated }) => {
                 Home
               </Link>
               <Link
-                href="/about"
+                href="/#how-it-works"
                 className="transition-colors duration-200 text-white!  hover:text-primary!"
               >
-                About
+                How it Works
               </Link>
               <Link
                 href="/#pricing"
@@ -67,10 +67,10 @@ const Navbar: React.FC<NavbarProps> = ({ isAuthenticated }) => {
                 Pricing
               </Link>
               <Link
-                href="/community"
+                href="/#faq"
                 className="transition-colors duration-200 text-white!  hover:text-primary!"
               >
-                Community
+                FAQ
               </Link>
             </div>
 
@@ -137,11 +137,11 @@ const Navbar: React.FC<NavbarProps> = ({ isAuthenticated }) => {
               Home
             </Link>
             <Link 
-              href="/about" 
+              href="/#how-it-works" 
               className="px-4 py-3 rounded-lg text-white! text-center hover:bg-white/10 transition-colors text-md font-medium"
               onClick={() => setMobileMenuOpen(false)}
             >
-              About
+              How it Works
             </Link>
             <Link 
               href="/#pricing" 
@@ -151,11 +151,11 @@ const Navbar: React.FC<NavbarProps> = ({ isAuthenticated }) => {
               Pricing
             </Link>
             <Link 
-              href="/community" 
+              href="/#faq" 
               className="px-4 py-3 rounded-lg text-white! text-center hover:bg-white/10 transition-colors text-md font-medium"
               onClick={() => setMobileMenuOpen(false)}
             >
-              Community
+              FAQ
             </Link>
           </div>
 

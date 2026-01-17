@@ -1,13 +1,48 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Check, Sparkles, Zap, Crown, Star, Lock } from "lucide-react"
+import { motion, useInView, useReducedMotion } from "framer-motion"
+
+function HighlightedText({
+  text,
+  isInView,
+  prefersReducedMotion,
+}: {
+  text: string
+  isInView: boolean
+  prefersReducedMotion: boolean | null
+}) {
+  const [shouldHighlight, setShouldHighlight] = useState(false)
+
+  useEffect(() => {
+    if (!isInView || prefersReducedMotion) return
+    const timer = setTimeout(() => setShouldHighlight(true), 500)
+    return () => clearTimeout(timer)
+  }, [isInView, prefersReducedMotion])
+
+  return (
+    <span className="relative inline-block">
+      <span className="relative z-10">{text}</span>
+      <motion.span
+        className="absolute inset-0 bg-yellow-400/40 rounded pointer-events-none"
+        initial={{ scaleX: 0, transformOrigin: "left" }}
+        animate={shouldHighlight ? { scaleX: 1 } : { scaleX: 0 }}
+        transition={{ duration: 1.2, ease: [0.4, 0, 0.2, 1] }}
+        style={{ zIndex: 0 }}
+      />
+    </span>
+  )
+}
 
 export default function LandingPricing() {
   const [hoveredPlan, setHoveredPlan] = useState<"monthly" | "annual" | null>(null)
+  const prefersReducedMotion = useReducedMotion()
+  const sectionRef = useRef(null)
+  const isInView = useInView(sectionRef, { once: true, amount: 0.3 })
 
   // Inject animation styles on mount (client-side only to prevent hydration issues)
   useEffect(() => {
@@ -54,11 +89,16 @@ export default function LandingPricing() {
   }, []);
 
   return (
-    <section className="py-16 px-4" id="pricing">
+    <section ref={sectionRef} className="py-16 px-4" id="pricing">
       <div className="max-w-5xl mx-auto">
-        <div className="text-center mb-8">
+        <motion.div 
+          className="text-center mb-8"
+          initial={{ opacity: 0, y: 20 }}
+          animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+        >
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 text-foreground">
-            Start free. No credit card needed.
+            <HighlightedText text="Start free" isInView={isInView} prefersReducedMotion={prefersReducedMotion} />. No credit card needed.
           </h2>
           <p className="text-xl sm:text-2xl text-center text-muted-foreground mb-4">
             <strong>3-day full access trial.</strong> See if this helps you.
@@ -69,7 +109,7 @@ export default function LandingPricing() {
           >
             Reviewed by menopause specialists
           </Badge>
-        </div>
+        </motion.div>
 
         {/* Testimonial - Above pricing cards */}
         <div 

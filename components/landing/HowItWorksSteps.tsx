@@ -66,6 +66,7 @@ export default function HowItWorksSteps() {
   return (
     <section
       ref={ref}
+      id="how-it-works"
       className="relative py-16 sm:py-20 px-4 overflow-hidden"
       style={{
         background: "linear-gradient(135deg, #F5E6FF 0%, #E6D5FF 100%)",

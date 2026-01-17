@@ -1,6 +1,43 @@
 "use client"
 
+import { useState, useEffect, useRef } from "react"
+import { motion, useInView, useReducedMotion } from "framer-motion"
+
+function HighlightedText({
+  text,
+  isInView,
+  prefersReducedMotion,
+}: {
+  text: string
+  isInView: boolean
+  prefersReducedMotion: boolean | null
+}) {
+  const [shouldHighlight, setShouldHighlight] = useState(false)
+
+  useEffect(() => {
+    if (!isInView || prefersReducedMotion) return
+    const timer = setTimeout(() => setShouldHighlight(true), 500)
+    return () => clearTimeout(timer)
+  }, [isInView, prefersReducedMotion])
+
+  return (
+    <span className="relative inline-block">
+      <span className="relative z-10">{text}</span>
+      <motion.span
+        className="absolute inset-0 bg-yellow-400/40 rounded pointer-events-none"
+        initial={{ scaleX: 0, transformOrigin: "left" }}
+        animate={shouldHighlight ? { scaleX: 1 } : { scaleX: 0 }}
+        transition={{ duration: 1.2, ease: [0.4, 0, 0.2, 1] }}
+        style={{ zIndex: 0 }}
+      />
+    </span>
+  )
+}
+
 export default function LandingSocialProof() {
+  const prefersReducedMotion = useReducedMotion()
+  const sectionRef = useRef(null)
+  const isInView = useInView(sectionRef, { once: true, amount: 0.3 })
   const testimonials = [
     {
       quote: "I finally have all my symptoms organized in one place. When I see my doctor, I have real data to show her instead of trying to remember everything from the last three months.",
@@ -23,16 +60,21 @@ export default function LandingSocialProof() {
   ]
 
   return (
-    <section className="py-16 px-4">
+    <section ref={sectionRef} className="py-16 px-4">
       <div className="max-w-6xl mx-auto">
-        <div className="text-center mb-12">
+        <motion.div 
+          className="text-center mb-12"
+          initial={{ opacity: 0, y: 20 }}
+          animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+        >
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-6 text-foreground">
-            Women are taking control of menopause
+            Women are <HighlightedText text="taking control" isInView={isInView} prefersReducedMotion={prefersReducedMotion} /> of menopause
           </h2>
           <p className="text-lg sm:text-xl text-muted-foreground">
             Join 10,000+ women who track symptoms, get answers, and feel informed.
           </p>
-        </div>
+        </motion.div>
 
         <div className="grid md:grid-cols-3 gap-8 mb-12">
           {testimonials.map((testimonial, index) => (
