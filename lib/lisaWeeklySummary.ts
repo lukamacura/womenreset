@@ -21,7 +21,9 @@ export async function generateWeeklySummary(
   const summary = analyzeTrackerData(
     trackerData.symptomLogs,
     trackerData.nutrition,
-    trackerData.fitness
+    trackerData.fitness,
+    trackerData.hydration,
+    trackerData.dailyMood
   );
 
   if (trackerData.symptomLogs.length === 0) {

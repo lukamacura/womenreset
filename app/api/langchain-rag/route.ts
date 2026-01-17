@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from "next/server";
 import { ChatOpenAI } from "@langchain/openai";
 import { HumanMessage, AIMessage, SystemMessage, ToolMessage, BaseMessage } from "@langchain/core/messages";
@@ -277,7 +278,8 @@ async function generatePersonalizedGreeting(user_id: string): Promise<string> {
       trackerData.symptomLogs,
       trackerData.nutrition,
       trackerData.fitness,
-      trackerData.hydration
+      trackerData.hydration,
+      trackerData.dailyMood
     );
 
     // Get user's name
@@ -366,7 +368,6 @@ async function generatePersonalizedGreeting(user_id: string): Promise<string> {
       } else if (topUnseen.type === 'hydration' && topUnseen.hydrationLevel !== undefined) {
         return `Hey ${userName}! Before we chat — ${topUnseen.text}\n\nWant me to explain why hydration matters for your symptoms?`;
       } else if (topUnseen.type === 'food-progress' && topUnseen.foodTag) {
-        const foodLabel = topUnseen.foodTag.replace(/_/g, ' ');
         return `Hey ${userName}! Before we chat — ${topUnseen.text}\n\nWant to talk about how to keep this momentum going?`;
       } else if (topUnseen.type === 'meal-timing') {
         return `Hey ${userName}! Before we chat — ${topUnseen.text}\n\nWant me to explain why this matters?`;
@@ -570,7 +571,8 @@ export async function POST(req: NextRequest) {
       trackerData.symptomLogs,
       trackerData.nutrition,
       trackerData.fitness,
-      trackerData.hydration
+      trackerData.hydration,
+      trackerData.dailyMood
     );
     let trackerContext = formatTrackerSummary(trackerSummary);
     
@@ -811,6 +813,24 @@ export async function POST(req: NextRequest) {
     
     const systemParts: string[] = [personaSystemPrompt];
 
+    // Add current date context so Lisa knows what "today" is
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('en-US', { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+    const timeStr = now.toLocaleTimeString('en-US', { 
+      hour: 'numeric', 
+      minute: '2-digit',
+      hour12: true 
+    });
+    systemParts.push(`\n=== CURRENT DATE & TIME ===
+Today is ${dateStr}. The current time is ${timeStr}.
+Use this to determine what "today", "yesterday", "this week" means when referencing user data.
+=== END DATE & TIME ===`);
+
     // Add KB context for hybrid mode
     if (orchestrationResult.retrievalMode === "hybrid" && orchestrationResult.kbContext) {
       systemParts.push(`\n\n=== KNOWLEDGE BASE CONTEXT ===
@@ -910,11 +930,8 @@ IMPORTANT: The user is engaging in casual conversation, not asking for informati
           notes: z.string().optional().describe("Optional additional notes about the symptom"),
           date_reference: z.string().optional().describe("Date/time reference from user's message (e.g., 'yesterday', '2 days ago', 'this morning', 'last night'). Use the exact phrase from the user's message if present, otherwise omit."),
         }),
-        func: async ({ name, severity, notes, date_reference }) => {
+        func: async ({ name, severity, notes }) => {
           try {
-            const loggedAt = date_reference
-              ? parseDateTimeReference(date_reference, new Date())
-              : new Date().toISOString();
 
             // Map severity text to number (1=mild, 2=moderate, 3=severe)
             const severityMap: Record<string, number> = {
@@ -1157,7 +1174,7 @@ IMPORTANT: The user is engaging in casual conversation, not asking for informati
                     const tool = tools.find((t) => t.name === toolCall.name);
                     if (tool && toolCall.id) {
                       try {
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                         
                         const result = await (tool as any).invoke(toolCall.args);
 
                         // Emit tool_result event
@@ -1305,7 +1322,7 @@ IMPORTANT: The user is engaging in casual conversation, not asking for informati
             const tool = tools.find((t) => t.name === toolCall.name);
             if (tool && toolCall.id) {
               try {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                 
                 const result = await (tool as any).invoke(toolCall.args);
                 return new ToolMessage({
                   content: result,

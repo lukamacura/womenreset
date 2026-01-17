@@ -261,7 +261,9 @@ export async function GET(req: NextRequest) {
     const summary = analyzeTrackerData(
       trackerData.symptomLogs,
       trackerData.nutrition,
-      trackerData.fitness
+      trackerData.fitness,
+      trackerData.hydration,
+      trackerData.dailyMood
     );
 
     // Get user profile for name

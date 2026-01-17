@@ -51,7 +51,8 @@ export async function GET(req: NextRequest) {
       trackerData.symptomLogs,
       trackerData.nutrition,
       trackerData.fitness,
-      trackerData.hydration
+      trackerData.hydration,
+      trackerData.dailyMood
     );
 
     // Filter insights to only nutrition-related ones

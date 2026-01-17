@@ -42,6 +42,15 @@ interface Fitness {
   performed_at: string;
 }
 
+interface DailyMood {
+  id: string;
+  user_id: string;
+  date: string;
+  mood: number; // 1-4 scale: 1=rough, 2=meh, 3=good, 4=great
+  created_at: string;
+  updated_at: string;
+}
+
 export interface PlainLanguageInsight {
   text: string;
   type: 'progress' | 'pattern' | 'correlation' | 'time-of-day' | 'trigger' | 'food-correlation' | 'hydration' | 'food-progress' | 'meal-timing';
@@ -85,6 +94,13 @@ export interface TrackerSummary {
     avgDuration: number;
     recent: Fitness[];
   };
+  mood: {
+    total: number;
+    weeklyAverage: number;
+    trend: string;
+    distribution: Record<string, number>; // Count by mood level (1-4)
+    recentDays: DailyMood[];
+  };
   patterns: {
     correlations: string[];
     insights: string[];
@@ -101,12 +117,14 @@ export async function fetchTrackerData(
   nutrition: Nutrition[];
   fitness: Fitness[];
   hydration: HydrationLog[];
+  dailyMood: DailyMood[];
 }> {
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - days);
   const cutoffISO = cutoffDate.toISOString();
+  const cutoffDateOnly = cutoffDate.toISOString().split('T')[0]; // YYYY-MM-DD for date column
 
-  const [symptomLogsResult, nutritionResult, fitnessResult, hydrationResult] = await Promise.all([
+  const [symptomLogsResult, nutritionResult, fitnessResult, hydrationResult, dailyMoodResult] = await Promise.all([
     supabaseClient
       .from("symptom_logs")
       .select(`
@@ -134,6 +152,12 @@ export async function fetchTrackerData(
       .eq("user_id", userId)
       .gte("logged_at", cutoffISO)
       .order("logged_at", { ascending: false }),
+    supabaseClient
+      .from("daily_mood")
+      .select("*")
+      .eq("user_id", userId)
+      .gte("date", cutoffDateOnly)
+      .order("date", { ascending: false }),
   ]);
 
   // Transform symptom logs to include name and icon
@@ -154,6 +178,7 @@ export async function fetchTrackerData(
     nutrition,
     fitness: fitnessResult.data || [],
     hydration: hydrationResult.data || [],
+    dailyMood: dailyMoodResult.data || [],
   };
 }
 
@@ -610,7 +635,8 @@ export function analyzeTrackerData(
   symptomLogs: SymptomLogWithName[],
   nutrition: Nutrition[],
   fitness: Fitness[],
-  hydration: HydrationLog[] = []
+  hydration: HydrationLog[] = [],
+  dailyMood: DailyMood[] = []
 ): TrackerSummary {
   // Symptoms analysis
   const symptomByName: Record<string, { severities: number[]; dates: Date[] }> = {};
@@ -734,6 +760,40 @@ export function analyzeTrackerData(
     avgWorkoutsPerWeek = weeks > 0 ? Math.round((fitness.length / weeks) * 10) / 10 : fitness.length;
   }
 
+  // Mood analysis
+  const moodDistribution: Record<string, number> = { '1': 0, '2': 0, '3': 0, '4': 0 };
+  let totalMoodScore = 0;
+  
+  dailyMood.forEach((m) => {
+    moodDistribution[String(m.mood)] = (moodDistribution[String(m.mood)] || 0) + 1;
+    totalMoodScore += m.mood;
+  });
+
+  // Calculate weekly mood average
+  const weekAgoMood = new Date();
+  weekAgoMood.setDate(weekAgoMood.getDate() - 7);
+  const weekMood = dailyMood.filter((m) => new Date(m.date) >= weekAgoMood);
+  const weeklyMoodAverage = weekMood.length > 0 
+    ? Math.round((weekMood.reduce((sum, m) => sum + m.mood, 0) / weekMood.length) * 10) / 10 
+    : 0;
+
+  // Calculate mood trend (comparing first half vs second half)
+  let moodTrend = "stable";
+  if (dailyMood.length >= 4) {
+    const sortedMood = [...dailyMood].sort((a, b) => 
+      new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+    const mid = Math.floor(sortedMood.length / 2);
+    const firstHalf = sortedMood.slice(0, mid);
+    const secondHalf = sortedMood.slice(mid);
+    const firstAvg = firstHalf.reduce((a, b) => a + b.mood, 0) / firstHalf.length;
+    const secondAvg = secondHalf.reduce((a, b) => a + b.mood, 0) / secondHalf.length;
+    const change = ((secondAvg - firstAvg) / firstAvg) * 100;
+    
+    if (change > 10) moodTrend = "improving";
+    else if (change < -10) moodTrend = "declining";
+  }
+
   // Pattern detection and correlations
   const correlations: string[] = [];
   const insights: string[] = [];
@@ -822,6 +882,13 @@ export function analyzeTrackerData(
       avgDuration,
       recent: fitness.slice(0, 5),
     },
+    mood: {
+      total: dailyMood.length,
+      weeklyAverage: weeklyMoodAverage,
+      trend: moodTrend,
+      distribution: moodDistribution,
+      recentDays: dailyMood.slice(0, 7),
+    },
     patterns: {
       correlations,
       insights,
@@ -837,6 +904,8 @@ export function formatTrackerSummary(summary: TrackerSummary): string {
   parts.push("=== USER TRACKER DATA (Last 30 days) ===");
 
   // Symptoms
+  const todayDateStr = new Date().toISOString().split('T')[0];
+  
   parts.push("\nSYMPTOMS:");
   if (summary.symptoms.total === 0) {
     parts.push("- No symptoms logged");
@@ -850,6 +919,23 @@ export function formatTrackerSummary(summary: TrackerSummary): string {
       Object.entries(summary.symptoms.byName).forEach(([name, stats]) => {
         parts.push(`  • ${name}: ${stats.count} occurrences, avg severity ${stats.avgSeverity}/3, trend: ${stats.trend}`);
       });
+    }
+    
+    // Show TODAY's symptoms specifically
+    const todaySymptoms = summary.symptoms.recent.filter(log => {
+      const logDate = new Date(log.logged_at).toISOString().split('T')[0];
+      return logDate === todayDateStr;
+    });
+    
+    if (todaySymptoms.length > 0) {
+      const severityLabels: Record<number, string> = { 1: 'mild', 2: 'moderate', 3: 'severe' };
+      parts.push("- TODAY's symptom logs:");
+      todaySymptoms.forEach(log => {
+        const time = new Date(log.logged_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+        parts.push(`  • ${time}: ${log.symptom_name || 'Unknown'} (${severityLabels[log.severity] || log.severity})`);
+      });
+    } else {
+      parts.push("- TODAY's symptom logs: None yet");
     }
   }
 
@@ -926,6 +1012,52 @@ export function formatTrackerSummary(summary: TrackerSummary): string {
       Object.entries(summary.fitness.byType).forEach(([type, count]) => {
         parts.push(`  • ${type}: ${count} workouts`);
       });
+    }
+  }
+
+  // Mood (Daily Check-in)
+  parts.push("\nDAILY MOOD:");
+  if (summary.mood.total === 0) {
+    parts.push("- No mood data logged");
+  } else {
+    const moodLabels: Record<string, string> = {
+      '1': 'Rough day',
+      '2': 'Meh',
+      '3': 'Good',
+      '4': 'Great day'
+    };
+    parts.push(`- Days logged: ${summary.mood.total}`);
+    parts.push(`- Weekly average: ${summary.mood.weeklyAverage}/4`);
+    parts.push(`- Mood trend: ${summary.mood.trend}`);
+    
+    // Show distribution
+    const distribution = Object.entries(summary.mood.distribution)
+      .filter(([_, count]) => count > 0)
+      .map(([mood, count]) => `${moodLabels[mood]}: ${count} days`)
+      .join(', ');
+    if (distribution) {
+      parts.push(`- Distribution: ${distribution}`);
+    }
+    
+    // Show recent mood entries (last 7 days)
+    if (summary.mood.recentDays.length > 0) {
+      const todayStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+      parts.push("- Recent mood (last 7 days):");
+      summary.mood.recentDays.slice(0, 7).forEach((m) => {
+        const moodDateStr = new Date(m.date).toISOString().split('T')[0];
+        const isToday = moodDateStr === todayStr;
+        const dateStr = new Date(m.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+        const todayLabel = isToday ? ' (TODAY)' : '';
+        parts.push(`  • ${dateStr}${todayLabel}: ${moodLabels[String(m.mood)] || m.mood}`);
+      });
+      
+      // Check if today has a mood entry
+      const hasTodayMood = summary.mood.recentDays.some(m => 
+        new Date(m.date).toISOString().split('T')[0] === todayStr
+      );
+      if (!hasTodayMood) {
+        parts.push("  • NOTE: No mood logged for today yet");
+      }
     }
   }
 
