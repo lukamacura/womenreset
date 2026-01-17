@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
     // Get all users with weekly insights enabled
     const { data: users, error: usersError } = await supabaseAdmin
       .from("user_preferences")
-      .select("user_id, weekly_insights_enabled, weekly_insights_day, weekly_insights_time")
+      .select("user_id")
       .eq("weekly_insights_enabled", true);
 
     if (usersError) {
@@ -37,37 +37,13 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ message: "No users with weekly insights enabled" });
     }
 
-    const now = new Date();
-    const currentDay = now.getDay(); // 0 = Sunday, 1 = Monday
-    const currentHour = now.getHours();
-    const currentMinute = now.getMinutes();
-    const currentTime = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
-
     let processed = 0;
     let notificationsSent = 0;
 
     for (const userPref of users) {
       try {
-        // Check if it's the right day and time for this user
-        const preferredDay = userPref.weekly_insights_day === 'sunday' ? 0 : 1;
-        const preferredTime = userPref.weekly_insights_time || '20:00';
-        
-        // Only process if it's the right day
-        if (currentDay !== preferredDay) {
-          continue;
-        }
-
-        // Check if it's the right time (within 1 hour window)
-        const [prefHour, prefMin] = preferredTime.split(':').map(Number);
-        const prefTimeMinutes = prefHour * 60 + prefMin;
-        const currentTimeMinutes = currentHour * 60 + currentMinute;
-        
-        // Allow 1 hour window (e.g., if scheduled for 20:00, run between 20:00-20:59)
-        if (currentTimeMinutes < prefTimeMinutes || currentTimeMinutes >= prefTimeMinutes + 60) {
-          continue;
-        }
-
         // Check if insights already generated and sent for this week
+        // (No day/time filtering - runs once weekly for all users)
         const { data: existingInsights } = await supabaseAdmin
           .from("weekly_insights")
           .select("id, sent_as_notification")
