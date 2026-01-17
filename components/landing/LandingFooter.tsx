@@ -29,13 +29,23 @@ export default function LandingFooter() {
             <h3 className="font-semibold mb-4 text-foreground">Company</h3>
             <ul className="space-y-2">
               <li>
-                <Link href="/about" className="text-muted-foreground hover:text-foreground transition-colors">
-                  About
+                <Link href="/" className="text-muted-foreground hover:text-foreground transition-colors">
+                  Home
                 </Link>
               </li>
               <li>
-                <Link href="#pricing" className="text-muted-foreground hover:text-foreground transition-colors">
+                <Link href="/#how-it-works" className="text-muted-foreground hover:text-foreground transition-colors">
+                  How it Works
+                </Link>
+              </li>
+              <li>
+                <Link href="/#pricing" className="text-muted-foreground hover:text-foreground transition-colors">
                   Pricing
+                </Link>
+              </li>
+              <li>
+                <Link href="/#faq" className="text-muted-foreground hover:text-foreground transition-colors">
+                  FAQ
                 </Link>
               </li>
             </ul>
@@ -61,9 +71,9 @@ export default function LandingFooter() {
             <h3 className="font-semibold mb-4 text-foreground">Support</h3>
             <ul className="space-y-2">
               <li>
-                <Link href="/contact" className="text-muted-foreground hover:text-foreground transition-colors">
-                  Contact
-                </Link>
+                <a href="mailto:menolisainfo@gmail.com" className="text-muted-foreground hover:text-foreground transition-colors">
+                  menolisainfo@gmail.com
+                </a>
               </li>
             </ul>
           </div>
