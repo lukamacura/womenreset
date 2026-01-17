@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabaseClient";
-import { getRedirectBaseUrl, AUTH_CALLBACK_PATH } from "@/lib/constants";
+import { getRedirectBaseUrl, AUTH_CALLBACK_PATH, getRedirectUrlWithIntent } from "@/lib/constants";
 import { detectBrowser, hasBrowserMismatchIssue } from "@/lib/browserUtils";
 import {
   Flame,
@@ -546,8 +546,8 @@ export default function RegisterPage() {
       console.log("Account created and quiz data saved:", createAccountResult);
 
       // Step 2: Send magic link for email verification
-      // Use simple redirect - account already exists, just need to verify email
-      const redirectTo = `${getRedirectBaseUrl()}${AUTH_CALLBACK_PATH}`;
+      // Use Intent-aware redirect URL for Android devices (helps with Samsung Internet issue)
+      const redirectTo = getRedirectUrlWithIntent(getRedirectBaseUrl(), AUTH_CALLBACK_PATH);
       
       console.log("Sending magic link for email verification...");
       const { error: signInError, data } = await supabase.auth.signInWithOtp({
@@ -1447,10 +1447,16 @@ export default function RegisterPage() {
               <div className="flex items-start gap-3">
                 <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
                 <div className="flex-1">
-                  <p className="font-semibold mb-1">Important: Browser Compatibility</p>
-                  <p className="text-xs">
-                    You&apos;re using Samsung Internet. For the best experience, please open the email link in the same browser where you registered (likely Chrome). If the link opens in Samsung Internet, copy it and paste it into Chrome instead.
+                  <p className="font-semibold mb-1">Important: Open Link in Chrome</p>
+                  <p className="text-xs mb-2">
+                    When you receive the email, long-press the link and select &quot;Open in Chrome&quot; or copy the link and paste it into Chrome. This ensures your registration works correctly.
                   </p>
+                  <p className="text-xs font-semibold mt-2">Quick Steps:</p>
+                  <ol className="text-xs list-decimal list-inside space-y-1 mt-1">
+                    <li>Long-press the magic link in your email</li>
+                    <li>Select &quot;Open in Chrome&quot; or &quot;Copy link&quot;</li>
+                    <li>If copied, paste into Chrome&apos;s address bar</li>
+                  </ol>
                 </div>
               </div>
             </div>

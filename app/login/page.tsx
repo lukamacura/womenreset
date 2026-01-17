@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import { getRedirectBaseUrl, AUTH_CALLBACK_PATH } from "@/lib/constants";
+import { getRedirectBaseUrl, AUTH_CALLBACK_PATH, getRedirectUrlWithIntent } from "@/lib/constants";
 import { detectBrowser, hasBrowserMismatchIssue, getBrowserMismatchMessage } from "@/lib/browserUtils";
 import { Mail, CheckCircle2, AlertCircle } from "lucide-react";
 
@@ -103,8 +103,12 @@ function LoginForm() {
         return;
       }
 
-      // Use the current origin for redirects (localhost in dev, production URL in prod)
-      const redirectTo = `${getRedirectBaseUrl()}${AUTH_CALLBACK_PATH}?next=${encodeURIComponent(redirectTarget)}`;
+      // Use Intent-aware redirect URL for Android devices (helps with Samsung Internet issue)
+      const redirectTo = getRedirectUrlWithIntent(
+        getRedirectBaseUrl(), 
+        AUTH_CALLBACK_PATH,
+        `next=${encodeURIComponent(redirectTarget)}`
+      );
       
       // Debug logging
       console.log("Login attempt:", { email, redirectTo, userExists });
@@ -267,10 +271,16 @@ function LoginForm() {
                 <div className="flex items-start gap-3">
                   <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
                   <div className="flex-1">
-                    <p className="font-semibold mb-1">Important: Browser Compatibility</p>
-                    <p className="text-xs">
-                      You&apos;re using Samsung Internet. For the best experience, please open the email link in the same browser where you registered (likely Chrome). If the link opens in Samsung Internet, copy it and paste it into Chrome instead.
+                    <p className="font-semibold mb-1">Important: Open Link in Chrome</p>
+                    <p className="text-xs mb-2">
+                      When you receive the email, long-press the link and select &quot;Open in Chrome&quot; or copy the link and paste it into Chrome. This ensures your login works correctly.
                     </p>
+                    <p className="text-xs font-semibold mt-2">Quick Steps:</p>
+                    <ol className="text-xs list-decimal list-inside space-y-1 mt-1">
+                      <li>Long-press the magic link in your email</li>
+                      <li>Select &quot;Open in Chrome&quot; or &quot;Copy link&quot;</li>
+                      <li>If copied, paste into Chrome&apos;s address bar</li>
+                    </ol>
                   </div>
                 </div>
               </div>
