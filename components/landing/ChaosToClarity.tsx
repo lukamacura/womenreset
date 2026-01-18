@@ -180,7 +180,7 @@ export default function ChaosToClarity() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 10 }}
               transition={{ duration: 0.3 }}
-              className={`absolute top-0 left-1/2 -translate-x-1/2 text-sm sm:text-base font-medium ${phaseLabel.color}`}
+              className={`absolute top-0 left-1/2 -translate-x-1/2 text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-center ${phaseLabel.color}`}
             >
               {phaseLabel.text}
             </motion.div>

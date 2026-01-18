@@ -60,25 +60,44 @@ export default function PersonalizedGreeting() {
     return streak;
   }, [preferences, logs]);
 
-  // Build greeting text based on time of day
+  // Build greeting text - friendly and casual, like a friend
   const greetingText = useMemo(() => {
     if (!displayName) {
-      return isNightTime ? "Can't sleep?" : "How are you starting your day?";
+      // No name available - use casual friendly greetings
+      const casualGreetings = [
+        "Hey there! How are you doing?",
+        "Hi! What's going on?",
+        "Hey! How can I help?",
+        "Hi! What's on your mind?",
+        "Hey! How are you feeling?",
+      ];
+      return casualGreetings[Math.floor(Math.random() * casualGreetings.length)];
     }
     
+    // With name - use friendly, casual greetings
+    const friendlyGreetings = [
+      `Hey ${displayName}! How are you doing?`,
+      `Hi ${displayName}! What's going on?`,
+      `Hey ${displayName}! How can I help?`,
+      `Hi there, ${displayName}! What's on your mind?`,
+      `Hey ${displayName}! How are you feeling?`,
+      `Hi ${displayName}! What's up?`,
+      `Hey ${displayName}! Good to see you. What's happening?`,
+      `Hi ${displayName}! I'm here - what's going on?`,
+    ];
+    
+    // Special handling for night time
     if (isNightTime) {
-      return `Hi ${displayName}. Can't sleep?`;
+      const nightGreetings = [
+        `Hey ${displayName}. Can't sleep?`,
+        `Hi ${displayName}. Still up?`,
+        `Hey ${displayName}. What's keeping you up?`,
+      ];
+      return nightGreetings[Math.floor(Math.random() * nightGreetings.length)];
     }
     
-    const hour = new Date().getHours();
-    if (hour >= 6 && hour < 12) {
-      return `Good morning, ${displayName}. How are you starting your day?`;
-    }
-    if (hour >= 12 && hour < 18) {
-      return `Good afternoon, ${displayName}. How's your day going?`;
-    }
-    // Evening
-    return `Good evening, ${displayName}. How was today?`;
+    // Random friendly greeting for any time of day
+    return friendlyGreetings[Math.floor(Math.random() * friendlyGreetings.length)];
   }, [displayName, isNightTime]);
 
   // Letter animation state (must be before early returns)

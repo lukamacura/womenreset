@@ -11,6 +11,7 @@ import LandingFinalCTA from "@/components/landing/LandingFinalCTA";
 import LandingFooter from "@/components/landing/LandingFooter";
 import HomeSwipeButton from "@/components/HomeSwipeButton";
 import ChaosToClarity from "@/components/landing/ChaosToClarity";
+import QuestionStorm from "@/components/landing/QuestionStorm";
 import HowItWorksSteps from "@/components/landing/HowItWorksSteps";
 import FeatureTheater from "@/components/landing/FeatureTheater";
 
@@ -328,6 +329,7 @@ export default function Home() {
       <div className="relative z-10">
         <LandingHero />
         <ChaosToClarity />
+        <QuestionStorm />
         <LandingProblem />
         <HowItWorksSteps />
         <FeatureTheater />

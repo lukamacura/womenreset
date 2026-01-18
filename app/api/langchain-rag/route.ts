@@ -415,15 +415,34 @@ async function generatePersonalizedGreeting(user_id: string): Promise<string> {
       return `Hey ${userName}. I saw you logged ${symptomName} ${timeAgo}. How are you feeling now?\n\nAnything on your mind?`;
     }
 
-    // Fallback if no logs at all
-    const timeGreeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
-    return `${timeGreeting}${userName ? `, ${userName}` : ''}! I'm **Lisa** 🌸\n\nHow can I support you today?`;
+    // Fallback if no logs at all - use random welcome message
+    const welcomeMessages = [
+      `Hi there${userName ? `, ${userName}` : ''}! How are you doing today?`,
+      `Hey${userName ? `, ${userName}` : ''}! What can I help you with?`,
+      `Hey${userName ? `, ${userName}` : ''}! What's going on?`,
+      `Hi${userName ? `, ${userName}` : ''}! What would you like to talk about today?`,
+      `Hey there${userName ? `, ${userName}` : ''}! What do you need today?`,
+      `Hi${userName ? `, ${userName}` : ''}! How can I help?`,
+      `Hey${userName ? `, ${userName}` : ''}! Good to hear from you. What's up?`,
+      `Hello${userName ? `, ${userName}` : ''}! I'm here - what's on your mind?`,
+    ];
+    const randomMessage = welcomeMessages[Math.floor(Math.random() * welcomeMessages.length)];
+    return randomMessage;
   } catch (error) {
     console.error("Error generating personalized greeting:", error);
-    // Fallback greeting
-    const hour = new Date().getHours();
-    const timeGreeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
-    return `${timeGreeting}! I'm **Lisa** 🌸\n\nHow can I help you today?`;
+    // Fallback greeting - use random welcome message
+    const welcomeMessages = [
+      "Hi there! How are you doing today?",
+      "Hey! What can I help you with?",
+      "Hey! What's going on?",
+      "Hi! What would you like to talk about today?",
+      "Hey there! What do you need today?",
+      "Hi! How can I help?",
+      "Hey! Good to hear from you. What's up?",
+      "Hello! I'm here - what's on your mind?",
+    ];
+    const randomMessage = welcomeMessages[Math.floor(Math.random() * welcomeMessages.length)];
+    return randomMessage;
   }
 }
 
