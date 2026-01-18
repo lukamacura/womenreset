@@ -384,28 +384,50 @@ function extractYAMLContent(section: string): { content: string; contentSections
     }
   }
   
-  // Extract habit_strategy - content only, no labels like "Principle:", "Explanation:"
+  // Extract habit_strategy - handles both pipe format (|) for multi-line markdown and structured fields
   // Improved regex: captures until next field or end of section
-  const habitStrategyMatch = section.match(/^habit_strategy:\s*\n([\s\S]*?)(?=^(?:[a-z_]+:|---$|\Z))/m);
+  const habitStrategyMatch = section.match(/^habit_strategy:\s*(?:\|\s*\n)?([\s\S]*?)(?=^(?:[a-z_]+:|---$|\Z))/m);
   if (habitStrategyMatch) {
-    const strategy = habitStrategyMatch[1].trim();
-    // Extract the principle, explanation, example, and habit_tip WITHOUT labels
-    const strategyParts: string[] = [];
-    const principleMatch = strategy.match(/^\s*principle:\s*["']?([^"'\n]+)["']?/m);
-    const explanationMatch = strategy.match(/^\s*explanation:\s*["']?([^"'\n]+)["']?/m);
-    const exampleMatch = strategy.match(/^\s*example:\s*["']?([^"'\n]+)["']?/m);
-    const tipMatch = strategy.match(/^\s*habit_tip:\s*["']?([^"'\n]+)["']?/m);
+    let strategy = habitStrategyMatch[1].trim();
     
-    // Add content without labels
-    if (principleMatch) strategyParts.push(principleMatch[1].trim());
-    if (explanationMatch) strategyParts.push(explanationMatch[1].trim());
-    if (exampleMatch) strategyParts.push(exampleMatch[1].trim());
-    if (tipMatch) strategyParts.push(tipMatch[1].trim());
+    // Handle pipe format: remove leading indentation (2 spaces per line) that YAML adds
+    if (strategy.includes('\n')) {
+      const lines = strategy.split('\n');
+      // Remove common leading whitespace (YAML pipe format indentation)
+      const minIndent = Math.min(...lines.filter(l => l.trim()).map(l => l.match(/^(\s*)/)?.[1]?.length || 0));
+      if (minIndent > 0) {
+        strategy = lines.map(line => line.slice(Math.min(minIndent, line.length))).join('\n');
+      }
+    }
     
-    if (strategyParts.length > 0) {
+    // Remove surrounding quotes if present
+    strategy = strategy.replace(/^["']|["']$/g, '').trim();
+    
+    // Check if it's structured format (has field names) or free-form markdown
+    const hasStructuredFields = /^\s*(?:principle|explanation|example|habit_tip):/m.test(strategy);
+    
+    if (hasStructuredFields) {
+      // Legacy structured format: extract fields
+      const strategyParts: string[] = [];
+      const principleMatch = strategy.match(/^\s*principle:\s*["']?([^"'\n]+)["']?/m);
+      const explanationMatch = strategy.match(/^\s*explanation:\s*["']?([^"'\n]+)["']?/m);
+      const exampleMatch = strategy.match(/^\s*example:\s*["']?([^"'\n]+)["']?/m);
+      const tipMatch = strategy.match(/^\s*habit_tip:\s*["']?([^"'\n]+)["']?/m);
+      
+      if (principleMatch) strategyParts.push(principleMatch[1].trim());
+      if (explanationMatch) strategyParts.push(explanationMatch[1].trim());
+      if (exampleMatch) strategyParts.push(exampleMatch[1].trim());
+      if (tipMatch) strategyParts.push(tipMatch[1].trim());
+      
+      if (strategyParts.length > 0) {
+        contentSections.has_habit_strategy = true;
+        contentParts.push(`### **Habit Strategy**\n${strategyParts.join('\n')}`);
+      }
+    } else if (strategy.length > 0) {
+      // Free-form markdown format (pipe format) - preserve as-is
       contentSections.has_habit_strategy = true;
-      // Add markdown header so formatter can parse it
-      contentParts.push(`### **Habit Strategy**\n${strategyParts.join('\n')}`);
+      // Preserve all markdown formatting (bold, emojis, line breaks, etc.)
+      contentParts.push(`### **Habit Strategy**\n${strategy}`);
     }
   }
   

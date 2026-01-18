@@ -254,57 +254,41 @@ export function formatKBEntryForDisplay(entry: KBEntry, includeFollowUp: boolean
   if (habitMatch) {
     const habitText = habitMatch[1].trim();
     if (habitText) {
-      // The ingestion script stores habit_strategy as values only (without field names)
-      // Order is: principle, explanation, example, habit_tip (one per line)
-      // Format them nicely with block quotes and bolds
       const formattedHabitStrategy: string[] = [];
       
-      // Split by lines and filter out empty lines
-      const lines = habitText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-      
-      // Try to parse as structured fields (principle:, explanation:, etc.)
-      let hasStructuredFields = false;
-      const extractField = (text: string, fieldName: string): string | null => {
-        // Try to match field: "quoted value" or field: unquoted value
-        const quotedMatch = text.match(new RegExp(`\\b${fieldName}:\\s*["']([^"']+)["']`, 'i'));
-        if (quotedMatch) {
-          hasStructuredFields = true;
-          return quotedMatch[1].trim();
-        }
-        // Try unquoted value (until end of line or next field marker)
-        const unquotedMatch = text.match(new RegExp(`\\b${fieldName}:\\s*([^\\n]+?)(?=\\n\\s*(?:principle|explanation|example|habit_tip|###|$))`, 'i'));
-        if (unquotedMatch) {
-          hasStructuredFields = true;
-          return unquotedMatch[1].trim();
-        }
-        return null;
-      };
-      
-      // First try structured format (with field names)
-      const principle = extractField(habitText, 'principle');
-      const explanation = extractField(habitText, 'explanation');
-      const example = extractField(habitText, 'example');
-      const habitTip = extractField(habitText, 'habit_tip');
+      // Check if it's structured format (has field names like "principle:", "explanation:", etc.)
+      const hasStructuredFields = /^\s*(?:principle|explanation|example|habit_tip):/m.test(habitText);
       
       if (hasStructuredFields) {
-        // Format with field names
+        // Legacy structured format: extract fields and format with labels
+        const extractField = (text: string, fieldName: string): string | null => {
+          const quotedMatch = text.match(new RegExp(`\\b${fieldName}:\\s*["']([^"']+)["']`, 'i'));
+          if (quotedMatch) return quotedMatch[1].trim();
+          const unquotedMatch = text.match(new RegExp(`\\b${fieldName}:\\s*([^\\n]+?)(?=\\n\\s*(?:principle|explanation|example|habit_tip|###|$))`, 'i'));
+          if (unquotedMatch) return unquotedMatch[1].trim();
+          return null;
+        };
+        
+        const principle = extractField(habitText, 'principle');
+        const explanation = extractField(habitText, 'explanation');
+        const example = extractField(habitText, 'example');
+        const habitTip = extractField(habitText, 'habit_tip');
+        
         if (principle) formattedHabitStrategy.push(`> **Principle:** ${principle}`);
         if (explanation) formattedHabitStrategy.push(`> **Explanation:** ${explanation}`);
         if (example) formattedHabitStrategy.push(`> **Example:** ${example}`);
         if (habitTip) formattedHabitStrategy.push(`> **Habit Tip:** ${habitTip}`);
-      } else if (lines.length >= 4) {
-        // Assume order: principle, explanation, example, habit_tip (as stored by ingestion script)
-        formattedHabitStrategy.push(`> **Principle:** ${lines[0]}`);
-        formattedHabitStrategy.push(`> **Explanation:** ${lines[1]}`);
-        formattedHabitStrategy.push(`> **Example:** ${lines[2]}`);
-        formattedHabitStrategy.push(`> **Habit Tip:** ${lines[3]}`);
       } else {
-        // Fallback: format each line as a blockquote with bold label
-        lines.forEach((line, index) => {
-          const labels = ['Principle', 'Explanation', 'Example', 'Habit Tip'];
-          const label = labels[index] || 'Tip';
-          formattedHabitStrategy.push(`> **${label}:** ${line}`);
-        });
+        // Free-form markdown format (pipe format) - output as single clean blockquote
+        // Filter out empty lines and create one continuous blockquote
+        const lines = habitText.split('\n')
+          .map(l => l.trim())
+          .filter(l => l.length > 0);
+        
+        // All content in one blockquote block - no separators between paragraphs
+        for (const line of lines) {
+          formattedHabitStrategy.push(`> ${line}`);
+        }
       }
       
       sections.habitStrategy = formattedHabitStrategy;
@@ -382,10 +366,13 @@ export function formatKBEntryForDisplay(entry: KBEntry, includeFollowUp: boolean
     parts.push('\n\n---\n\n');
   }
 
-  // Habit Strategy section
+  // Habit Strategy section (no divider after - it's the last content section before follow-up)
   if (sections.habitStrategy.length > 0) {
     parts.push(sections.habitStrategy.join('\n'));
-    parts.push('\n\n---\n\n');
+    // Add spacing before follow-up if it exists
+    if (includeFollowUp && sections.followUp.length > 0) {
+      parts.push('\n\n');
+    }
   }
 
   // Follow-Up Question section (only include if includeFollowUp is true)
@@ -410,6 +397,12 @@ export function formatKBEntryForDisplay(entry: KBEntry, includeFollowUp: boolean
   result = result.replace(/\s*---\s*/g, '\n\n---\n\n');
 
   // Then clean up any excessive newlines (more than 2)
+  result = result.replace(/\n{3,}/g, '\n\n');
+
+  // Remove stray blockquote markers (> or >> etc. on their own lines)
+  result = result.replace(/^\s*>+\s*$/gm, '');
+  
+  // Clean up any resulting double empty lines
   result = result.replace(/\n{3,}/g, '\n\n');
 
   // Final trim
