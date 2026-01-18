@@ -20,9 +20,6 @@ export async function generateWeeklySummary(
   const trackerData = await fetchTrackerData(userId, 7); // Last 7 days
   const summary = analyzeTrackerData(
     trackerData.symptomLogs,
-    trackerData.nutrition,
-    trackerData.fitness,
-    trackerData.hydration,
     trackerData.dailyMood
   );
 

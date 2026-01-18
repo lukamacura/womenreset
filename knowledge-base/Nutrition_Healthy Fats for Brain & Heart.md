@@ -25,7 +25,7 @@ habit_strategy: |
 motivation_nudge: "💜 Healthy fats don’t make you soft — they make you strong, focused, and radiant."
 
 follow_up_question: "Would you like to explore how healthy fats support your body by looking at heart-health causes and early prevention — or how menopause-related fat needs connect to brain aging and dementia risk?"
-follow-up links: 
+follow_up_links:
   -persona: "menopause"
   topic: "Cardiovascular Health in Menopause"
   subtopic: "Causes, Mechanisms & Early Prevention"

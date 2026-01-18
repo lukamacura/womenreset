@@ -25,7 +25,7 @@ habit_strategy: |
 motivation_nudge: "🌸 Small shifts can make a big difference — your body will thank you with calmer nights and steadier energy."
 
 follow_up_question: "Would you like to explore how fiber and phytoestrogens can support you — or how soothing your digestion might help your hormones feel more balanced in menopause?"
-follow-up links: 
+follow_up_links:
   -persona: "nutrition"
   topic: "Nutrition in Menopause"
   subtopic: "Fiber & Phytoestrogens"

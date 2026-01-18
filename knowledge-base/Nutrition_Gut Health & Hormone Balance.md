@@ -27,7 +27,7 @@ habit_strategy: |
 motivation_nudge: "🌿 A happy gut is the quiet engine behind steady hormones, mood, and energy."
 
 follow_up_question: "Would you like to explore how fiber and phytoestrogens can support your hormones and make you feel more balanced in menopause?"
-follow-up links:
+follow_up_links:
   -persona: "nutrition"
   topic: "Nutrition in Menopause"
   subtopic: "Fiber & Phytoestrogens"

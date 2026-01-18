@@ -4,12 +4,14 @@ topic: "Sleep Disturbances in Menopause"
 subtopic: "Solutions – Non-Sleep Deep Rest (NSDR)"
 
 content_text: |
-  Sometimes sleep doesn’t come — and that’s okay 💜. NSDR (Non-Sleep Deep Rest) is your bridge between wakefulness and sleep, helping your body learn how to rest again.
-  
-  This gentle practice guides you into deep relaxation through slow breathing and body awareness. It calms your nervous system, lowers cortisol, and signals your brain that it’s safe to drift. Studies show even a 10–20 minute session can restore focus, improve emotional balance, and prepare your body for real sleep 🌙.
-  
-  You can use NSDR anytime: before bed, during a 3 a.m. wake-up, or midday for a recharge. The more you practice, the faster your body learns to find rest naturally — even when sleep feels out of reach.
+ 
+ Sometimes sleep doesn't come — and that's okay 💜. NSDR (Non-Sleep Deep Rest) is your bridge between wakefulness and sleep, teaching your body how to find rest again.
 
+ This gentle practice—similar to yoga nidra—guides you into deep relaxation through slow breathing and body awareness. It calms your nervous system, lowers stress hormones, and signals safety to your brain. Studies show even 10–20 minutes can restore focus, improve emotional balance, and prepare you for real sleep 🌙.
+
+ You can use NSDR anytime: before bed, during a 3 a.m. wake-up, or midday for a recharge. The more you practice, the faster your body learns to find rest naturally—even when sleep feels impossible.
+  
+ 
 action_tips:
   - "🎧 **Find a guided NSDR audio** (YouTube)."
   - "🕯️ **Lie down comfortably** with eyes closed, arms relaxed, and no pressure to sleep."
@@ -19,12 +21,13 @@ action_tips:
 
 motivation_nudge: "🌸 Deep rest is a skill — not a luxury. Each session trains your body to feel safe enough to sleep again."
 
-follow_up_question: "Would you like to learn how exercise can help with your sleep in menopause?"
+follow_up_question: "Would you like to know how exercise helps you sleep better in menopause?"
 follow_up_links:
   -persona: "menopause"
   topic: "Sleep Disturbances in Menopause"
   subtopic: "Solutions – Exercise & Relaxation for Sleep"
-  label: "learn about exercise for sleep"
+  label: "When is the best time to exercise for sleep?"
+
 
 intent_patterns:
   - "What is NSDR?"
@@ -65,12 +68,6 @@ intent_patterns:
   - "What's the technique?"
   - "Do I need a guide?"
   - "Can I do NSDR alone?"
-  - "NSDR instructions"
-  - "Teaching myself NSDR"
-  - "Where to find NSDR audio?"
-  - "Best NSDR guided sessions?"
-  - "NSDR YouTube recommendations?"
-  - "Free NSDR resources?"
   - "When should I do NSDR?"
   - "NSDR before bed or during night?"
   - "Can I do NSDR middle of night?"
@@ -88,68 +85,45 @@ intent_patterns:
   - "Quick NSDR possible?"
 
 keywords:
-  CRITICAL:
-    - "NSDR non-sleep deep rest"
-    - "what is NSDR"
-    - "NSDR for sleep"
-    - "yoga nidra sleep"
-    - "NSDR insomnia"
-    - "NSDR 3am waking"
-  PRIMARY:
-    - "non-sleep deep rest explained"
-    - "NSDR technique menopause"
-    - "NSDR guided audio"
-    - "NSDR vs meditation"
-    - "NSDR vs yoga nidra"
-    - "NSDR benefits sleep"
-    - "NSDR for insomnia"
-    - "NSDR cortisol reduction"
-    - "NSDR nervous system reset"
-    - "NSDR 3 a.m. waking"
-    - "NSDR sleep anxiety"
-    - "NSDR racing mind"
-    - "NSDR fall back asleep"
-    - "NSDR middle of night"
-    - "NSDR before bed"
-    - "yoga nidra menopause"
-    - "yoga nidra guided"
-    - "deep relaxation practice"
-  SECONDARY:
-    - "parasympathetic activation NSDR"
-    - "autonomic balance NSDR"
-    - "vagal tone NSDR"
-    - "rest-and-digest activation"
-    - "sympathetic downregulation"
-    - "cortisol lowering NSDR"
-    - "HPA axis calming"
-    - "theta brainwave state"
-    - "hypnagogic state practice"
-    - "liminal consciousness"
-    - "conscious relaxation"
-    - "awake yet deeply rested"
-    - "restorative rest practice"
-    - "intentional relaxation"
-    - "body scan NSDR"
-    - "progressive muscle relaxation"
-    - "systematic relaxation"
-    - "autogenic training"
-    - "self-hypnosis relaxation"
-    - "guided imagery rest"
-    - "visualization relaxation"
-    - "breath-focused NSDR"
-    - "sensation awareness NSDR"
-    - "body awareness practice"
-    - "somatic relaxation"
-    - "anchoring attention body"
-    - "when to do NSDR"
-    - "NSDR middle of night"
-    - "NSDR 3am practice"
-    - "NSDR before sleep"
-    - "NSDR during insomnia"
-    - "daytime NSDR"
-    - "midday NSDR reset"
-    - "evening NSDR routine"
-    - "NSDR anytime practice"
-    - "NSDR scheduling"
-    - "optimal NSDR timing"
+  - "what is NSDR"
+  - "NSDR for sleep menopause"
+  - "NSDR insomnia help"
+  - "NSDR 3am waking"
+  - "yoga nidra sleep"
+  - "non-sleep deep rest explained"
+  - "NSDR guided audio"
+  - "NSDR vs meditation"
+  - "NSDR vs yoga nidra"
+  - "NSDR benefits sleep"
+  - "NSDR nervous system calm"
+  - "NSDR cortisol reduction"
+  - "NSDR sleep anxiety"
+  - "NSDR racing mind"
+  - "NSDR fall back asleep"
+  - "NSDR middle of night"
+  - "NSDR before bed"
+  - "NSDR menopause benefits"
+  - "yoga nidra menopause"
+  - "yoga nidra guided audio"
+  - "body scan relaxation"
+  - "deep relaxation practice"
+  - "guided relaxation sleep"
+  - "restorative rest practice"
+  - "intentional relaxation technique"
+  - "conscious relaxation practice"
+  - "when to do NSDR"
+  - "NSDR timing optimal"
+  - "daytime NSDR"
+  - "evening NSDR routine"
+  - "NSDR anytime practice"
+  - "how long NSDR session"
+  - "10 minute NSDR"
+  - "20 minute NSDR"
+  - "NSDR duration optimal"
+  - "NSDR YouTube free"
+  - "NSDR apps recommendations"
+  - "Huberman NSDR protocol"
+  - "best NSDR guided sessions"
+  - "NSDR vs napping"
+  - "fall asleep during NSDR"
 ---

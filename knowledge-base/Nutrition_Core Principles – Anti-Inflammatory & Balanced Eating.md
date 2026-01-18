@@ -26,7 +26,7 @@ habit_strategy: |
 motivation_nudge: "💜 Every balanced, colorful meal is a step toward steadier energy and hormone harmony."
 
 follow_up_question: "Would you like to explore which foods to avoid or limit, learn how to choose smart carbs for steady blood sugar, or understand healthy fats for better support?"
-follow-up links:
+follow_up_links:
   -persona: "nutrition"
   topic: "Nutrition in Menopause"
   subtopic: "Foods to Avoid & Limit"

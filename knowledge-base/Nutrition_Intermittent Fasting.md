@@ -25,7 +25,7 @@ habit_strategy: |
 motivation_nudge: "💜 Fasting is a flexible tool — even a gentle 12-hour reset can steady hormones and metabolism."
 
 follow_up_question: "Would you like to explore mindful & emotional eating — like how to handle cravings, stress-snacking, and “I know what to do, but I can’t do it” moments with more ease?"
-follow-up links:
+follow_up_links:
   -persona: "nutrition"
   topic: "Nutrition in Menopause"
   subtopic: "Mindful & Emotional Eating"

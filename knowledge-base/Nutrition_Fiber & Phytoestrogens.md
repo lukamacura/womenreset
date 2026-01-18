@@ -25,7 +25,7 @@ habit_strategy: |
 motivation_nudge: "💜 Every plant-based bite helps your gut, hormones, and mood find their rhythm again."
 
 follow_up_question: "Would you like to explore which foods to avoid or limit, or learn how to choose smart carbs for steady blood sugar?"
-follow-up links:
+follow_up_links:
   -persona: "nutrition"
   topic: "Nutrition in Menopause"
   subtopic: "Foods to Avoid & Limit"

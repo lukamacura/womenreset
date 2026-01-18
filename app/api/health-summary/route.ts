@@ -260,9 +260,6 @@ export async function GET(req: NextRequest) {
     const trackerData = await fetchTrackerData(user.id, days);
     const summary = analyzeTrackerData(
       trackerData.symptomLogs,
-      trackerData.nutrition,
-      trackerData.fitness,
-      trackerData.hydration,
       trackerData.dailyMood
     );
 

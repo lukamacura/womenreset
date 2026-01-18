@@ -26,7 +26,7 @@ habit_strategy: |
 motivation_nudge: "🌸 Think of protein as your midlife armor — it protects your strength, confidence, and vitality."
 
 follow_up_question: "Would you like to explore easy high-protein meal ideas, learn what menopause-friendly plate looks like?"
-follow-up links:
+follow_up_links:
   -persona: "nutrition"
   topic: "Nutrition in Menopause"
   subtopic: "Macronutrient Balance & Meal Timing"

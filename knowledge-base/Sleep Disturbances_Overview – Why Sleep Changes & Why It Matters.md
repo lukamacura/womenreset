@@ -1,3 +1,4 @@
+---
 persona: "menopause"
 topic: "Sleep Disturbances in Menopause"
 subtopic: "Overview – Why Sleep Changes & Why It Matters"
@@ -5,23 +6,24 @@ subtopic: "Overview – Why Sleep Changes & Why It Matters"
 content_text: |
   Many women notice their once-steady sleep becomes unpredictable.
   
-  As estrogen and progesterone fall, your brain’s sleep center grows more sensitive to stress, light, and temperature. Melatonin production drops while cortisol often stays higher for longer, making it easier to wake at 3 a.m. or feel alert right when you want to rest.
+  As estrogen and progesterone fall, your body's temperature regulation becomes erratic, and the chemical signals that deepen sleep weaken. Melatonin production drops while cortisol often stays elevated, making it easier to wake at 3 a.m. or feel alert right when you want to rest. And because estrogen helps keep blood sugar stable, its decline can trigger nighttime insulin spikes followed by crashes—waking you with a racing heart or that wired-but-tired feeling.
   
-  This isn’t a sign your body is broken — it’s recalibrating. Poor sleep ripples through everything: mood, metabolism, energy, and even hormone balance. But the encouraging truth is that *sleep can be retrained*. With light, rhythm, and calm routines, you can teach your body to rest again one layer at a time 🌙.
+  This isn’t a sign your body is broken — it’s recalibrating. Poor sleep ripples through everything: mood, metabolism, energy, and even hormone balance. But the encouraging truth is that *sleep can be restored*. With steady light exposure, balanced evening meals, and calm routines, you can guide your body back to rest, one layer at a time 🌙.
 
 action_tips:
   - "💡 Track patterns: Note what happens before and during restless nights — hormones and habits leave clues."
   - "🌅 Get morning sunlight: Ten minutes of daylight resets your internal clock and steadies cortisol."
+  - "🍽️ Stabilize evening blood sugar: Eat a protein-rich dinner with healthy fats, limit refined carbs at night, and try a small protein/fat snack before bed (like nuts or cheese) to prevent 3 a.m. wake-ups."
   - "💧 Balance basics: Hydration, steady meals, and gentle movement all support your nervous system and sleep quality."
 
 motivation_nudge: "🌸 Your body isn’t failing — it’s learning a new rhythm. With awareness and consistency, deep rest returns."
 
 follow_up_question: "Would you like your *Sleep Recovery Roadmap* 💤 — a gentle, step-by-step guide to rebuild deep rest through rhythm and routine?"
 follow_up_links:
-- persona: "menopause"
-  topic: "Sleep Disturbances in Menopause"
-  subtopic: "Sleep Recovery Roadmap – Step-by-Step Plan"
-  label: Sleep Recovery Roadmap – Step-by-Step Plan
+    -persona: "menopause"  
+    topic: "Sleep Disturbances in Menopause"  
+    subtopic: "Sleep Recovery Roadmap – Step-by-Step Plan"
+    label: "Sleep Recovery Roadmap – Step-by-Step Plan"
 
 intent_patterns:
   - "Why do I wake up every night?"
@@ -67,13 +69,10 @@ intent_patterns:
   - "What's the connection between hormones and sleep?"
   - "Can hormone changes cause sleep problems?"
   - "How do estrogen and progesterone affect sleep?"
-  - "Is this normal for menopause?"
   - "Should I be worried about my sleep?"
   - "Is poor sleep just part of menopause?"
-  - "Do I just have to accept this?"
   - "Is everyone else sleeping badly too?"
   - "Am I the only one with terrible sleep?"
-  - "Is something wrong with me?"
   - "Why don't I feel rested anymore?"
   - "Why do I wake up tired?"
   - "Why isn't sleep refreshing anymore?"
@@ -98,96 +97,102 @@ intent_patterns:
   - "I just want to sleep normally again"
   - "I'm exhausted but can't sleep"
   - "Why does bad sleep make everything worse?"
-  - "Can lack of sleep cause weight gain?"
-  - "Is insomnia making my hot flashes worse?"
-  - "Does poor sleep affect my hormones?"
-  - "Why do I feel terrible when I don't sleep?"
-  - "Can sleep problems cause other symptoms?"
-  - "Is sleep affecting my mood?"
-
+  
 keywords:
-  CRITICAL:
-    - "wake up at night"
-    - "can't sleep menopause"
-    - "can't fall asleep"
-    - "insomnia menopause"
-    - "can't stay asleep"
-    - "sleep problems menopause"
-  PRIMARY:
-    - "menopause insomnia causes"
-    - "perimenopause sleep problems"
-    - "why sleep changes menopause"
-    - "hormones and sleep connection"
-    - "estrogen progesterone sleep"
-    - "melatonin decline menopause"
-    - "sleep disruption perimenopause"
-    - "insomnia suddenly started"
-    - "used to sleep well now can't"
-    - "sleep changed overnight"
-    - "middle-of-night awakening"
-    - "nocturnal awakening menopause"
-    - "sleep maintenance insomnia"
-    - "sleep onset insomnia"
-    - "early morning waking"
-    - "circadian rhythm disruption"
-    - "cortisol spike night"
-  SECONDARY:
-    - "sleep architecture changes menopause"
-    - "brain sleep center sensitivity"
-    - "sleep fragmentation perimenopause"
-    - "non-restorative sleep"
-    - "light sleep menopause"
-    - "deep sleep loss"
-    - "REM sleep disruption"
-    - "sleep quality decline"
-    - "sleep efficiency menopause"
-    - "sleep latency increase"
-    - "sleep consolidation problems"
-    - "frequent night waking"
-    - "multiple awakenings"
-    - "restless sleep menopause"
-    - "broken sleep pattern"
-    - "unpredictable sleep menopause"
-    - "sleep pattern changes"
-  SCIENTIFIC/MECHANISM:
-    - "estrogen withdrawal insomnia"
-    - "progesterone sedative effect loss"
-    - "GABA receptor sensitivity"
-    - "hypothalamic-pituitary axis sleep"
-    - "melatonin production decrease"
-    - "cortisol dysregulation sleep"
-    - "thermoregulation sleep disruption"
-    - "sympathetic nervous system activation"
-    - "sleep-wake cycle instability"
-    - "circadian phase shift"
-    - "adenosine signaling menopause"
-  SYMPTOM-RELATED:
-    - "heart racing at night"
-    - "anxiety at night menopause"
-    - "racing thoughts bedtime"
-    - "wired and tired menopause"
-    - "restless legs sleep"
-    - "body discomfort night"
-  EMOTIONAL/EXPERIENCE:
-    - "sleep suddenly terrible"
-    - "sleep completely different"
-    - "never had sleep problems before"
-    - "used to sleep great"
-    - "sleep got worse overnight"
-    - "sleep falling apart"
-    - "exhausted but can't sleep"
-    - "tired but wired"
-    - "desperate for sleep"
-    - "going crazy no sleep"
-    - "can't function no sleep"
-    - "sleep anxiety menopause"
-  QUESTION/CONCERN:
-    - "is this normal menopause"
-    - "is insomnia permanent menopause"
-    - "will sleep return normal"
-    - "temporary vs permanent sleep"
-    - "how long insomnia last"
-    - "can menopause sleep be fixed"
-    - "sleep recovery possible"
-    - "reversible sleep problems"
+  - "wake up at night"
+  - "can't sleep menopause"
+  - "can't fall asleep"
+  - "insomnia menopause"
+  - "can't stay asleep"
+  - "sleep problems menopause"
+  - "menopause insomnia causes"
+  - "perimenopause sleep problems"
+  - "why sleep changes menopause"
+  - "hormones and sleep connection"
+  - "estrogen progesterone sleep"
+  - "melatonin decline menopause"
+  - "sleep disruption perimenopause"
+  - "insomnia suddenly started"
+  - "used to sleep well now can't"
+  - "sleep changed overnight"
+  - "middle-of-night awakening"
+  - "nocturnal awakening menopause"
+  - "sleep maintenance insomnia"
+  - "sleep onset insomnia"
+  - "early morning waking"
+  - "circadian rhythm disruption"
+  - "cortisol spike night"
+  - "sleep architecture changes menopause"
+  - "brain sleep center sensitivity"
+  - "sleep fragmentation perimenopause"
+  - "non-restorative sleep"
+  - "light sleep menopause"
+  - "deep sleep loss"
+  - "REM sleep disruption"
+  - "sleep quality decline"
+  - "sleep efficiency menopause"
+  - "sleep latency increase"
+  - "sleep consolidation problems"
+  - "frequent night waking"
+  - "multiple awakenings"
+  - "restless sleep menopause"
+  - "broken sleep pattern"
+  - "unpredictable sleep menopause"
+  - "sleep pattern changes"
+  - "heart racing at night"
+  - "anxiety at night menopause"
+  - "racing thoughts bedtime"
+  - "wired and tired menopause"
+  - "restless legs sleep"
+  - "body discomfort night"
+  - "sleep suddenly terrible"
+  - "sleep completely different"
+  - "never had sleep problems before"
+  - "used to sleep great"
+  - "sleep got worse overnight"
+  - "sleep falling apart"
+  - "exhausted but can't sleep"
+  - "tired but wired"
+  - "desperate for sleep"
+  - "going crazy no sleep"
+  - "can't function no sleep"
+  - "sleep anxiety menopause"
+  - "is insomnia permanent menopause"
+  - "will sleep return normal"
+  - "temporary vs permanent sleep"
+  - "how long insomnia last"
+  - "can menopause sleep be fixed"
+  - "sleep recovery possible"
+  - "reversible sleep problems"
+  - "estrogen withdrawal insomnia"
+  - "progesterone sedative effect loss"
+  - "GABA receptor sensitivity"
+  - "hypothalamic-pituitary axis sleep"
+  - "melatonin production decrease"
+  - "cortisol dysregulation sleep"
+  - "thermoregulation sleep disruption"
+  - "sympathetic nervous system activation"
+  - "sleep-wake cycle instability"
+  - "circadian phase shift"
+  - "adenosine signaling menopause"
 ---
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

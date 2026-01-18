@@ -26,7 +26,7 @@ habit_strategy: |
 motivation_nudge: "🌸 Balanced plates beat strict diets — your body thrives on rhythm, not restriction."
 
 follow_up_question: "Would you like to explore protein needs for muscle protection, learn how to choose smart carbs for steady blood sugar, or understand healthy fats for brain and heart support?"
-follow-up links:
+follow_up_links:
   -persona: "nutrition"
   topic: "Nutrition in Menopause"
   subtopic: "Protein Needs & Muscle Protection"

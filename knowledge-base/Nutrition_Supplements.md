@@ -26,7 +26,7 @@ habit_strategy: |
 motivation_nudge: "🌸 Supplements aren’t about perfection — they’re gentle helpers that fill gaps when food falls short."
 
 follow_up_question: "Would you like to learn what a menopause-friendly plate looks like, or if you need creatine to help with muscle, bones, or brain fog?"
-follow-up links: 
+follow_up_links:
   -persona: "nutrition"
   topic: "Nutrition in Menopause"
   subtopic: "Macronutrient Balance & Meal Timing"

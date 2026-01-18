@@ -4,11 +4,11 @@ topic: "Sleep Disturbances in Menopause"
 subtopic: "Solutions – Treatment Options (HRT, CBT-I, Non-Hormonal)"
 
 content_text: |
-  You’ve done the right things — light, calm, nutrition — but if sleep still feels fragile, you’re not alone 🌙.
-  
-  Hormone changes can alter your brain’s sleep architecture, so lifestyle tools sometimes need medical or therapeutic support. **HRT (hormone therapy)** can restore estrogen and progesterone balance, improving temperature regulation and deep sleep cycles. **CBT-I** retrains your brain’s relationship with rest — especially helpful for anxiety-driven insomnia.
-  
-  If you prefer non-hormonal paths, gentle aids such as magnesium, L-theanine, tart cherry, or valerian can calm your nervous system. What matters most is a *personalized plan* — blending medical precision with daily rhythms 💜.
+  Hormone changes can alter your brain's sleep architecture, and sometimes lifestyle tools need medical or therapeutic support. You have options:
+
+  **HRT (hormone therapy)** can restore estrogen and progesterone balance, improving temperature regulation and deep sleep. **CBT-I (Cognitive Behavioral Therapy for Insomnia)** retrains your brain's relationship with rest—especially helpful when anxiety keeps you awake. **Gentle supplements** like magnesium or L-theanine can calm your nervous system without prescription.
+
+  What matters most is a *personalized approach*—finding the right combination of medical support and daily habits 💜.
 
 action_tips:
   - "💊 **Ask your doctor** about HRT or prescription medication if insomnia or hot flashes persist."
@@ -19,39 +19,39 @@ action_tips:
 
 motivation_nudge: "💖 Getting help isn’t giving up — it’s giving your body the balance it’s been asking for."
 
-follow_up_question: "Would you like me to walk you through 3 a.m. Calm Reset Technique"
+follow_up_question: "Would you like to understand why the stress-sleep cycle happens and how to prevent it?"
 follow_up_links:
   -persona: "menopause"
-  topic: "Sleep Disturbances in Menopause"
-  subtopic: "3 a.m. Calm Reset Technique (Night Waking Support)"
-  label: learn night waking support"
+  topic: "Stress in Menopause"
+  subtopic: "Understanding & Breaking the Stress–Sleep Cycle"
+  label: "understand why the stress-sleep cycle happens and how to prevent it"
 
 intent_patterns:
-  - "When should I talk to my doctor about my sleep problems?"
-  - "Can HRT help with insomnia and night sweats?"
-  - "What is CBT-I and does it work for menopause insomnia?"
-  - "Are sleeping pills safe for menopause?"
-  - "What are non-hormonal options for severe insomnia?"
-  - "Does hormone therapy improve sleep quality?"
+  # When to seek help - decision points
+  - "When should I talk to my doctor about sleep?"
+  - "How do I know if I need medical help for sleep?"
+  - "Is my insomnia bad enough for treatment?"
+  - "Tried everything nothing works for sleep"
+  - "When is insomnia serious enough for doctor?"
   - "What if lifestyle changes haven't fixed my sleep?"
-  - "Can I take prescription sleep medication long-term?"
-  - "What's the safest treatment for persistent night sweats?"
-  - "Should I try HRT or CBT-I first?"
-  - "Can I combine HRT with other sleep treatments?"
-  - "When is insomnia serious enough for medical help?"
+  
+  # HRT - general understanding
+  - "Does hormone therapy improve sleep?"
+  - "HRT for night sweats and sleep problems"
+  - "Will HRT stop my night waking?"
 
 keywords:
-  Everyday Language:
-    - "HRT for insomnia menopause"
-    - "hormone therapy improves sleep"
-    - "CBT-I menopause insomnia"
-    - "cognitive behavioral therapy insomnia"
-    - "non-hormonal insomnia treatment"
-    - "when to see doctor sleep menopause"
-    - "severe insomnia medical help"
-    - "HRT night sweats sleep"
-    - "combine HRT with sleep therapy"
-    - "refractory insomnia menopause"
-    - "treatment for insomnia [general]"
+  - "HRT for insomnia menopause"
+  - "tried everything sleep still bad"
+  - "hormone therapy improves sleep"
+  - "CBT-I menopause insomnia"
+  - "cognitive behavioral therapy insomnia"
+  - "non-hormonal insomnia treatment"
+  - "when to see doctor sleep menopause"
+  - "severe insomnia medical help"
+  - "HRT night sweats sleep"
+  - "combine HRT with sleep therapy"
+  - "refractory insomnia menopause"
+  - "treatment for insomnia"
 ---
 

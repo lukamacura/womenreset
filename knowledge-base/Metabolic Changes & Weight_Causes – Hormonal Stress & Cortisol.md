@@ -27,7 +27,6 @@ follow_up_links:
   label: "How can I calm my body and mind?"
 
 intent_patterns:
-  # Direct Stress-Weight Connection
   - "why does stress make me gain weight around my middle"
   - "why am I gaining weight when stressed"
   - "can stress affect my metabolism"
@@ -35,8 +34,13 @@ intent_patterns:
   - "can stress stop me from losing weight"
   - "why does stress make everything harder"
   - "is stress sabotaging my weight loss"
-  
-  # Cortisol-Specific
+  - "Is stress making me gain weight?"
+  - "Why am I gaining weight when I'm stressed?"
+  - "Does stress cause weight gain in menopause?"
+  - "Can stress make you gain weight even when eating healthy?"
+  - "Why does stress make me fat?"
+  - "Does being stressed make you hold onto fat?"
+  - "Is stress why I can't lose weight?"
   - "does cortisol cause weight gain"
   - "what does cortisol do to my body"
   - "how does the stress hormone work"
@@ -44,43 +48,34 @@ intent_patterns:
   - "does high cortisol make you fat"
   - "can cortisol prevent weight loss"
   - "can cortisol make me hold onto weight even with healthy eating"
-  
-  # Anxiety & Overwhelm
+  - "Does cortisol cause belly fat?"
+  - "Why does stress cause belly fat?"
+  - "Is cortisol making me gain weight around my stomach?"
+  - "Does high cortisol make you fat?"
+  - "Why does cortisol go straight to my belly?"
   - "can anxiety or overwhelm actually cause belly fat"
   - "is stress belly a real thing in menopause"
   - "why does my body store fat when I'm anxious or busy"
   - "does being overwhelmed affect my weight"
   - "can too much on my plate cause weight gain"
   - "why does juggling everything make me heavier"
-  
-  # Life Stress
   - "I'm so stressed and the weight won't budge"
   - "why do I gain when life is chaotic"
   - "how does chronic stress block fat loss in midlife"
   - "why do I gain weight when I'm doing everything right but feeling stressed"
   - "why do stressful periods trigger weight gain for me"
-  
-  # Body Response
-  - "why does my body think I'm in danger"
   - "why won't my body let go of fat when stressed"
   - "does stress make my body hold onto everything"
   - "why does my body store when I'm anxious"
-  - "is my body in survival mode"
-  
-  # Stress in Menopause Context
-  - "why is stress worse for weight in menopause"
-  - "does menopause make stress affect weight more"
-  - "why does stress hit harder now"
-  - "is stress different in menopause"
-  
-  # Burnout & Depletion
+  - "Can stress prevent weight loss even when I'm doing everything right?"
+  - "Why won't the weight budge when I'm stressed?"
+  - "Is stress sabotaging my weight loss?"
   - "I'm exhausted and gaining weight"
   - "does burnout cause weight gain"
   - "can feeling run down make me heavier"
   - "why do I gain when I'm depleted"
 
 keywords:
-  # Core Stress Concepts
   - "stress belly menopause"
   - "stress-induced weight gain"
   - "stress weight gain menopause"
@@ -89,8 +84,58 @@ keywords:
   - "stress blocks fat loss"
   - "stressed can't lose weight"
   - "stress sabotages weight loss"
-  
-  # Cortisol-Specific
+  - "stress causes weight gain"
+  - "stress weight gain menopause"
+  - "stress makes you gain weight"
+  - "weight gain from stress"
+  - "stress prevents weight loss"
+  - "stress blocks weight loss"
+  - "cortisol weight gain"
+  - "cortisol belly fat"
+  - "cortisol causes weight gain"
+  - "stress belly menopause"
+  - "stress belly fat"
+  - "cortisol makes you fat"
+  - "high cortisol weight gain"
+  - "stress hormone weight gain"
+  - "anxiety causes weight gain"
+  - "stress storing fat"
+  - "cortisol fat storage"
+  - "stress holds onto fat"
+  - "cortisol prevents fat loss"
+  - "stress sabotages weight loss"
+  - "is stress making me fat"
+  - "why does stress make me gain weight"
+  - "I'm stressed and gaining weight"
+  - "I gain weight when stressed"
+  - "stress is making me fatter"
+  - "why am I fat from stress"
+  - "stressed can't lose weight"
+  - "too stressed to lose weight"
+  - "stress won't let me lose"
+  - "my stress is keeping weight on"
+  - "cortisol is making me fat"
+  - "stress hormone making me gain"
+  - "does being stressed make you gain"
+  - "stress belly won't go away"
+  - "cortisol belly menopause"
+  - "I have a stress belly"
+  - "my belly is from stress"
+  - "stress goes straight to my stomach"
+  - "why does stress hit my belly"
+  - "anxious and gaining weight"
+  - "anxiety making me fat"
+  - "overwhelmed and getting fatter"
+  - "stress holding onto my weight"
+  - "my body won't let go when stressed"
+  - "body storing fat from stress"
+  - "stress keeping fat on"
+  - "cortisol won't let me lose"
+  - "I'm in stress mode gaining"
+  - "burned out and gaining"
+  - "exhausted and getting fatter"
+  - "doing everything right but stressed and gaining"
+  - "eating well but stressed gaining weight"
   - "cortisol elevation perimenopause"
   - "cortisol and belly fat"
   - "cortisol weight gain menopause"
@@ -102,7 +147,14 @@ keywords:
   - "elevated cortisol weight"
   - "cortisol abdominal fat"
   
-  # Life Stress & Overwhelm
+  - "stress slows metabolism"
+  - "cortisol slows metabolism"
+  - "stress affects metabolism"
+  - "stress metabolic impact"
+  - "chronic stress metabolism"
+  - "cortisol metabolic dysfunction"
+  - "stress hormone metabolism"
+  - "stress changes metabolism"
   - "anxiety belly fat"
   - "overwhelm weight gain"
   - "overwhelmed weight gain menopause"
@@ -112,8 +164,6 @@ keywords:
   - "life stress fat storage"
   - "chronic anxiety weight"
   - "anxious weight gain menopause"
-  
-  # Fat Storage Mechanism
   - "chronic stress fat storage"
   - "fight-or-flight metabolism"
   - "stress fat storage belly"
@@ -121,17 +171,5 @@ keywords:
   - "anxiety causes belly fat"
   - "stress signals fat storage"
   
-  # Body States
-  - "survival mode weight gain"
-  - "body holds fat stress"
-  - "threat response weight"
-  - "safety mode metabolism"
-  - "burnout weight gain menopause"
-  - "exhaustion weight gain"
-  - "depleted weight gain"
   
-  # Menopause-Stress Interaction
-  - "stress worse menopause weight"
-  - "menopause amplifies stress weight"
-  - "stress hits harder menopause"
 ---

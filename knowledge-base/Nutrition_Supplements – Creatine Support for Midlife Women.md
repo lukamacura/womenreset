@@ -17,8 +17,8 @@ action_tips:
 
 motivation_nudge: "💜 Creatine isn’t just for athletes — it’s a quiet powerhouse for midlife strength, bones, and focus."
 
-follow_up_question: "Would you like to explore how important other supplements are, or learn more about benfits of strength training?"
-follow-up links:
+follow_up_question: "Would you like to explore how important other supplements are, or learn more about benefits of strength training?"
+follow_up_links:
   -persona: "nutrition"
   topic: "Nutrition in Menopause"
   subtopic: "Which supplements do I need?"

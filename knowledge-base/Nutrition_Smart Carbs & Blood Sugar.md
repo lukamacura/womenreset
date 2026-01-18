@@ -25,7 +25,7 @@ habit_strategy: |
 motivation_nudge: "🌸 Smart carbs are your steady fuel — they power your brain, mood, and metabolism."
 
 follow_up_question: "Would you like to explore how menopause can affect insulin and blood sugar—and how that can drive metabolic changes and weight gain through insulin resistance?"
-follow-up links: 
+follow_up_links:
   -persona: "menopause"
   topic: "Metabolic Changes & Weight Gain"
   subtopic: "Causes – Insulin Resistance"

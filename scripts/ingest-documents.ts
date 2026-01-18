@@ -787,20 +787,30 @@ function parseMarkdownIntentPatterns(section: string): string[] {
  */
 function parseYAMLKeywords(section: string): string[] {
   const keywords: string[] = [];
-  // Improved regex: captures until next field, section separator, or end of section
-  const keywordsMatch = section.match(/^keywords:\s*\n([\s\S]*?)(?=^(?:[a-z_]+:|---$|\Z))/m);
+  
+  // Try to match keywords section with a clear ending (another field or ---)
+  let keywordsMatch = section.match(/^keywords:\s*\n([\s\S]*?)(?=\n[a-z_]+:|\n---)/m);
+  
+  // If no match, try matching keywords to end of section (when keywords is last)
+  if (!keywordsMatch) {
+    keywordsMatch = section.match(/^keywords:\s*\n([\s\S]*)$/m);
+  }
   
   if (!keywordsMatch) {
     return keywords;
   }
   
-  const keywordsText = keywordsMatch[1];
+  const keywordsText = keywordsMatch[1].trim();
+  if (!keywordsText) {
+    return keywords;
+  }
+  
   const lines = keywordsText.split('\n');
   
   for (const line of lines) {
     const trimmed = line.trim();
-    // Skip subcategory headers (like "Exercise Physiology:" or **Scientific & Hormonal**)
-    if (trimmed.match(/^\*\*/) || trimmed.match(/^[A-Z][a-zA-Z\s&]+:\s*$/)) {
+    // Skip empty lines
+    if (!trimmed) {
       continue;
     }
     // Match bullet points (- or •)
@@ -826,13 +836,13 @@ function parseMarkdownKeywords(section: string): string[] {
     return keywords;
   }
   
-  const keywordsText = keywordsMatch[1];
+  const keywordsText = keywordsMatch[1].trim();
   const lines = keywordsText.split('\n');
   
   for (const line of lines) {
     const trimmed = line.trim();
-    // Skip subcategory headers (like **Scientific & Hormonal** or "Exercise Physiology:")
-    if (trimmed.match(/^\*\*/) || trimmed.match(/^[A-Z][a-zA-Z\s&]+:\s*$/)) {
+    // Skip empty lines
+    if (!trimmed) {
       continue;
     }
     // Match bullet points (- or •)
