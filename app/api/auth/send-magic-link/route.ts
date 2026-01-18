@@ -93,13 +93,22 @@ export async function POST(request: NextRequest) {
 
       // Create user_trials entry
       if (newUserData.user) {
-        const nowIso = new Date().toISOString();
-        await supabaseAdmin.from("user_trials").insert({
-          user_id: newUserData.user.id,
-          trial_start: nowIso,
-          trial_days: 3,
-          account_status: "trial",
-        }).catch((e) => console.warn("Trial creation error (may already exist):", e));
+        try {
+          const nowIso = new Date().toISOString();
+          const { error: trialError } = await supabaseAdmin.from("user_trials").insert({
+            user_id: newUserData.user.id,
+            trial_start: nowIso,
+            trial_days: 3,
+            account_status: "trial",
+          });
+          
+          if (trialError) {
+            // Trial may already exist, which is fine
+            console.warn("Trial creation error (may already exist):", trialError);
+          }
+        } catch (e) {
+          console.warn("Trial creation error:", e);
+        }
       }
 
       console.log("User account created:", newUserData.user?.id);
