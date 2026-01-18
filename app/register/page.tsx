@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabaseClient";
-import { getRedirectBaseUrl, AUTH_CALLBACK_PATH, getRedirectUrlWithIntent } from "@/lib/constants";
 import { detectBrowser, hasBrowserMismatchIssue } from "@/lib/browserUtils";
 import {
   Flame,
@@ -466,28 +465,6 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      // First, check if user already exists
-      try {
-        const checkResponse = await fetch("/api/auth/check-user", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email }),
-        });
-        
-        if (checkResponse.ok) {
-          const checkData = await checkResponse.json();
-          if (checkData.exists === true) {
-            // User already has an account - show login prompt
-            setUserExists(true);
-            setLoading(false);
-            return;
-          }
-        }
-      } catch (checkError) {
-        console.warn("Could not check user existence, proceeding:", checkError);
-        // Continue with registration if check fails
-      }
-
       // Prepare quiz answers
       const quizAnswers = {
         top_problems: topProblems,
@@ -504,149 +481,65 @@ export default function RegisterPage() {
       console.log("Email:", email);
       console.log("Quiz answers:", quizAnswers);
 
-      // Step 1: Create account and save quiz data immediately via API
-      console.log("Creating account and saving quiz data...");
-      const createAccountResponse = await fetch("/api/register/create-account", {
+      // Use our server-side magic link endpoint
+      // This bypasses PKCE and works across different browsers (Samsung Internet, Chrome, etc.)
+      console.log("Sending magic link for registration...");
+      
+      const response = await fetch("/api/auth/send-magic-link", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email,
-          quizAnswers,
+          redirectTo: "/dashboard",
+          isRegistration: true, // This is registration, not login
+          quizAnswers, // Include quiz answers to be saved when user verifies
         }),
       });
 
-      let createAccountResult;
-      try {
-        createAccountResult = await createAccountResponse.json();
-      } catch (jsonError) {
-        console.error("Failed to parse response JSON:", jsonError);
-        const textResponse = await createAccountResponse.text();
-        console.error("Response text:", textResponse);
-        setError(`Failed to create account. Server error: ${textResponse || "Unknown error"}`);
-        setLoading(false);
-        return;
-      }
+      const data = await response.json();
 
-      if (!createAccountResponse.ok) {
-        console.error("Account creation failed:", {
-          status: createAccountResponse.status,
-          statusText: createAccountResponse.statusText,
-          result: createAccountResult,
-        });
-        const errorMessage = createAccountResult?.error 
-          ? `${createAccountResult.error}${createAccountResult.details ? `: ${createAccountResult.details}` : ""}`
-          : `Failed to create account (${createAccountResponse.status}). Please try again.`;
-        setError(errorMessage);
-        setLoading(false);
-        return;
-      }
+      if (!response.ok) {
+        console.error("Magic link error:", { status: response.status, data });
 
-      console.log("Account created and quiz data saved:", createAccountResult);
+        // Check if user already exists
+        if (response.status === 409 || data.userExists) {
+          setUserExists(true);
+          setLoading(false);
+          return;
+        }
 
-      // Step 2: Send magic link for email verification
-      // Use Intent-aware redirect URL for Android devices (helps with Samsung Internet issue)
-      const redirectTo = getRedirectUrlWithIntent(getRedirectBaseUrl(), AUTH_CALLBACK_PATH);
-      
-      console.log("Sending magic link for email verification...");
-      const { error: signInError, data } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          emailRedirectTo: redirectTo,
-          shouldCreateUser: false, // Account already created, don't create again
-        },
-      });
+        let friendly = data.error || "An error occurred. Please try again.";
 
-      if (signInError) {
-        // Log the full error for debugging
-        console.error("Magic link error:", {
-          message: signInError.message,
-          status: signInError.status,
-          name: signInError.name,
-          fullError: signInError,
-        });
+        // Handle specific error cases based on status code
+        if (response.status === 429) {
+          friendly = data.error || "Too many attempts. Please wait a moment and try again.";
+        } else if (response.status === 400) {
+          if (data.error?.toLowerCase().includes("email")) {
+            friendly = data.error || "That email address is invalid. Please check and try again.";
+          }
+        } else if (response.status >= 500) {
+          friendly = "Email service is temporarily unavailable. Please try again later.";
+        }
 
-        let friendly = "Account created and quiz data saved, but failed to send magic link. Please try logging in.";
-        
-        // Check for specific error types
-        const errorMsg = signInError.message.toLowerCase();
-        
-        // Email validation errors
-        if (
-          errorMsg.includes("invalid email") ||
-          errorMsg.includes("email format") ||
-          errorMsg === "invalid email address" ||
-          errorMsg.includes("email is not valid")
-        ) {
-          friendly = "That email address is invalid. Please check and try again.";
-        }
-        // Redirect URL errors
-        else if (
-          errorMsg.includes("redirect") ||
-          errorMsg.includes("redirect_to") ||
-          errorMsg.includes("redirect url") ||
-          errorMsg.includes("url configuration")
-        ) {
-          friendly = "Account created! Redirect URL not configured. Please contact support.";
-        }
-        // Rate limiting errors
-        else if (
-          /rate/i.test(signInError.message) || 
-          /too many/i.test(signInError.message) ||
-          signInError.message.includes("security purposes") ||
-          signInError.message.includes("only request this after") ||
-          /48 seconds/i.test(signInError.message) ||
-          /60 seconds/i.test(signInError.message)
-        ) {
-          friendly = signInError.message.includes("48 seconds") || 
-                     signInError.message.includes("60 seconds") || 
-                     signInError.message.includes("security purposes")
-            ? `Account created! ${signInError.message}`
-            : "Account created! Too many attempts - please wait a moment and try logging in.";
-        }
-        // Email provider/SMTP errors
-        else if (
-          errorMsg.includes("email provider") ||
-          errorMsg.includes("email not enabled") ||
-          errorMsg.includes("smtp") ||
-          errorMsg.includes("mail") ||
-          errorMsg.includes("sending email") ||
-          errorMsg.includes("email service") ||
-          errorMsg.includes("email delivery")
-        ) {
-          friendly = "Account created! Email service issue - please try logging in from the login page.";
-        }
-        // Network/connection errors
-        else if (
-          errorMsg.includes("network") ||
-          errorMsg.includes("fetch") ||
-          errorMsg.includes("connection")
-        ) {
-          friendly = "Account created! Network error - please try logging in from the login page.";
-        }
-        // Show the actual error message for other cases
-        else if (signInError.message) {
-          friendly = `Account created! ${signInError.message}`;
-        }
-        
-        // Account is created, so show a warning but still allow them to proceed
-        console.warn("Magic link failed but account exists:", friendly);
         setError(friendly);
-        // Still show success since account is created - they can request a new link
-        setPhase("email-sent");
         setLoading(false);
         return;
       }
 
-      // Success - account created, quiz saved, magic link sent
+      // Success - magic link sent with quiz data
       console.log("=== REGISTRATION COMPLETE ===");
       console.log("Magic link sent successfully:", data);
       setPhase("email-sent");
       setLoading(false);
     } catch (e) {
       console.error("Unexpected error during registration:", e);
-      setError(e instanceof Error ? e.message : "An error occurred. Please try again.");
+      
+      // Check if it's a network error
+      if (e instanceof TypeError && e.message.includes("fetch")) {
+        setError("Network error. Please check your connection and try again.");
+      } else {
+        setError(e instanceof Error ? e.message : "An error occurred. Please try again.");
+      }
       setLoading(false);
     }
   };

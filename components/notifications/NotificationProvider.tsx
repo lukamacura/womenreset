@@ -158,6 +158,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   // Fetch notifications from API on mount for toast display
   // Note: Notification center fetches its own notifications separately
   useEffect(() => {
+    let isMounted = true;
+    
     const fetchNotifications = async () => {
       try {
         setLoading(true);
@@ -167,12 +169,24 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           cache: "no-store",
         });
 
+        if (!isMounted) return;
+
         if (!response.ok) {
-          console.error("Failed to fetch notifications");
+          // Handle 401 (unauthorized) gracefully - user might not be logged in yet
+          if (response.status === 401) {
+            // User not authenticated, skip notification fetch silently
+            setLoading(false);
+            return;
+          }
+          // For other errors, log but don't throw
+          console.warn("Failed to fetch notifications:", response.status);
+          setLoading(false);
           return;
         }
 
         const { data } = await response.json();
+        if (!isMounted) return;
+        
         if (data && Array.isArray(data)) {
           // Filter out dismissed and limit to max toast notifications
           const clientNotifications = data
@@ -193,13 +207,29 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           });
         }
       } catch (error) {
-        console.error("Error fetching notifications:", error);
+        // Handle network errors gracefully - user may not be authenticated yet
+        if (isMounted) {
+          // Only log if it's not a typical auth-related network issue
+          if (!(error instanceof TypeError)) {
+            console.warn("Error fetching notifications:", error);
+          }
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
-    fetchNotifications();
+    // Small delay to ensure auth cookies are set after login redirect
+    const timer = setTimeout(() => {
+      fetchNotifications();
+    }, 300);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
   }, []);
 
   // Load seen notifications from sessionStorage on mount (for backward compatibility)

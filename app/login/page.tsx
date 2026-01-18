@@ -4,8 +4,6 @@
 import { useEffect, useMemo, useState, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { supabase } from "@/lib/supabaseClient";
-import { getRedirectBaseUrl, AUTH_CALLBACK_PATH, getRedirectUrlWithIntent } from "@/lib/constants";
 import { detectBrowser, hasBrowserMismatchIssue, getBrowserMismatchMessage } from "@/lib/browserUtils";
 import { Mail, CheckCircle2, AlertCircle } from "lucide-react";
 
@@ -77,151 +75,46 @@ function LoginForm() {
     setLoading(true);
 
     try {
-      // First, check if user exists to prevent auto-creation during login
-      let userExists: boolean | null = null;
-      try {
-        const checkResponse = await fetch("/api/auth/check-user", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email }),
-        });
-        
-        if (checkResponse.ok) {
-          const checkData = await checkResponse.json();
-          userExists = checkData.exists;
-        }
-      } catch (checkError) {
-        console.warn("Could not check user existence, proceeding with login attempt:", checkError);
-        // Continue with login attempt if check fails (fail open)
-      }
+      // Use our server-side magic link endpoint
+      // This bypasses PKCE and works across different browsers (Samsung Internet, Chrome, etc.)
+      console.log("Login attempt:", { email, redirectTarget });
 
-      // If user doesn't exist, show error before attempting login
-      if (userExists === false) {
-        setErr("You don't have an account with this email. Please register to create an account.");
-        setErrorType('user_not_found');
-        setLoading(false);
-        return;
-      }
-
-      // Use Intent-aware redirect URL for Android devices (helps with Samsung Internet issue)
-      const redirectTo = getRedirectUrlWithIntent(
-        getRedirectBaseUrl(), 
-        AUTH_CALLBACK_PATH,
-        `next=${encodeURIComponent(redirectTarget)}`
-      );
-      
-      // Debug logging
-      console.log("Login attempt:", { email, redirectTo, userExists });
-
-      const { error, data } = await supabase.auth.signInWithOtp({
-        email,
-        options: { 
-          emailRedirectTo: redirectTo,
-          // Note: Even if user exists check passes, Supabase might still auto-create
-          // if "Enable email sign ups" is enabled. We handle this in error checking below.
-        },
+      const response = await fetch("/api/auth/send-magic-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          redirectTo: redirectTarget,
+          isRegistration: false, // This is login, not registration
+        }),
       });
 
-      if (error) {
-        // Log the full error for debugging
-        console.error("Supabase auth error:", {
-          message: error.message,
-          status: error.status,
-          name: error.name,
-          fullError: error,
-        });
+      const data = await response.json();
 
-        let friendly = "An error occurred. Please try again.";
+      if (!response.ok) {
+        console.error("Magic link error:", { status: response.status, data });
+
+        let friendly = data.error || "An error occurred. Please try again.";
         let errorCategory: typeof errorType = 'unknown';
-        
-        // Check for specific error types
-        const errorMsg = error.message.toLowerCase();
-        const errorStatus = error.status;
-        
-        // CRITICAL: Check if user doesn't exist (prevent auto-creation)
-        // Supabase may return different error messages depending on configuration
-        if (
-          errorMsg.includes("user not found") ||
-          errorMsg.includes("email not found") ||
-          errorMsg.includes("user does not exist") ||
-          errorMsg.includes("no user found") ||
-          errorMsg.includes("user_not_found") ||
-          (errorStatus === 400 && (
-            errorMsg.includes("invalid login credentials") ||
-            errorMsg.includes("invalid credentials") ||
-            (errorMsg.includes("email") && errorMsg.includes("not") && errorMsg.includes("registered"))
-          ))
-        ) {
-          friendly = "You don't have an account with this email. Please register to create an account.";
+
+        // Handle specific error cases based on status code
+        if (response.status === 404) {
+          friendly = data.error || "You don't have an account with this email. Please register to create an account.";
           errorCategory = 'user_not_found';
-        }
-        // Email validation errors
-        else if (
-          errorMsg.includes("invalid email") ||
-          errorMsg.includes("email format") ||
-          errorMsg === "invalid email address" ||
-          errorMsg.includes("email is not valid") ||
-          (errorStatus === 400 && errorMsg.includes("email"))
-        ) {
-          friendly = "That email address is invalid. Please check and try again.";
-          errorCategory = 'invalid_email';
-        }
-        // Redirect URL errors
-        else if (
-          errorMsg.includes("redirect") ||
-          errorMsg.includes("redirect_to") ||
-          errorMsg.includes("redirect url") ||
-          errorMsg.includes("url configuration")
-        ) {
-          friendly = "Redirect URL not configured. Please contact support.";
-          errorCategory = 'redirect';
-        }
-        // Rate limiting errors
-        else if (
-          /rate/i.test(error.message) || 
-          /too many/i.test(error.message) ||
-          error.message.includes("security purposes") ||
-          error.message.includes("only request this after") ||
-          /48 seconds/i.test(error.message) ||
-          /60 seconds/i.test(error.message) ||
-          errorStatus === 429
-        ) {
-          friendly = error.message.includes("48 seconds") || 
-                     error.message.includes("60 seconds") || 
-                     error.message.includes("security purposes")
-            ? error.message
-            : "Too many attempts — please wait a moment and try again.";
+        } else if (response.status === 429) {
+          friendly = data.error || "Too many attempts. Please wait a moment and try again.";
           errorCategory = 'rate_limit';
-        }
-        // Email provider/SMTP errors
-        else if (
-          errorMsg.includes("email provider") ||
-          errorMsg.includes("email not enabled") ||
-          errorMsg.includes("smtp") ||
-          (errorMsg.includes("mail") && errorMsg.includes("service")) ||
-          errorMsg.includes("sending email") ||
-          errorMsg.includes("email service") ||
-          errorMsg.includes("email delivery")
-        ) {
-          friendly = "Email service is temporarily unavailable. Please try again later or contact support.";
+        } else if (response.status === 400) {
+          // Check for email validation errors
+          if (data.error?.toLowerCase().includes("email")) {
+            friendly = data.error || "That email address is invalid. Please check and try again.";
+            errorCategory = 'invalid_email';
+          }
+        } else if (response.status >= 500) {
+          friendly = "Email service is temporarily unavailable. Please try again later.";
           errorCategory = 'email_service';
         }
-        // Network/connection errors
-        else if (
-          errorMsg.includes("network") ||
-          errorMsg.includes("fetch") ||
-          errorMsg.includes("connection") ||
-          errorMsg.includes("failed to fetch")
-        ) {
-          friendly = "Network error. Please check your connection and try again.";
-          errorCategory = 'network';
-        }
-        // Show the actual error message for other cases
-        else if (error.message) {
-          friendly = error.message;
-          errorCategory = 'unknown';
-        }
-        
+
         setErr(friendly);
         setErrorType(errorCategory);
         setLoading(false);
@@ -235,9 +128,16 @@ function LoginForm() {
       setLoading(false);
     } catch (e) {
       console.error("Unexpected error during login:", e);
-      const errorMessage = e instanceof Error ? e.message : "An unexpected error occurred. Please try again.";
-      setErr(errorMessage);
-      setErrorType('unknown');
+      
+      // Check if it's a network error
+      if (e instanceof TypeError && e.message.includes("fetch")) {
+        setErr("Network error. Please check your connection and try again.");
+        setErrorType('network');
+      } else {
+        const errorMessage = e instanceof Error ? e.message : "An unexpected error occurred. Please try again.";
+        setErr(errorMessage);
+        setErrorType('unknown');
+      }
       setLoading(false);
     }
   }
