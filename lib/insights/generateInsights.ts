@@ -159,34 +159,39 @@ export function generateWeeklyInsights(
 }
 
 /**
- * Get week boundaries (Sunday to Saturday)
+ * Get week boundaries (rolling 7 days: today - 6 days to today)
+ * This matches the Journal view which shows the last 7 days
  */
 export function getWeekBoundaries(date: Date = new Date()): { weekStart: Date; weekEnd: Date } {
   const d = new Date(date);
-  const day = d.getDay();
-  const diff = d.getDate() - day; // Sunday is 0
   
-  const weekStart = new Date(d.setDate(diff));
-  weekStart.setHours(0, 0, 0, 0);
-  
-  const weekEnd = new Date(weekStart);
-  weekEnd.setDate(weekEnd.getDate() + 6);
+  // End of week is today (end of day)
+  const weekEnd = new Date(d);
   weekEnd.setHours(23, 59, 59, 999);
+  
+  // Start of week is 6 days ago (start of day) - gives us 7 days total
+  const weekStart = new Date(d);
+  weekStart.setDate(weekStart.getDate() - 6);
+  weekStart.setHours(0, 0, 0, 0);
   
   return { weekStart, weekEnd };
 }
 
 /**
- * Get previous week boundaries
+ * Get previous week boundaries (7 days before current week)
  */
 export function getPreviousWeekBoundaries(date: Date = new Date()): { weekStart: Date; weekEnd: Date } {
-  const { weekStart } = getWeekBoundaries(date);
-  const prevWeekStart = new Date(weekStart);
-  prevWeekStart.setDate(prevWeekStart.getDate() - 7);
+  const { weekStart: currentWeekStart } = getWeekBoundaries(date);
   
-  const prevWeekEnd = new Date(prevWeekStart);
-  prevWeekEnd.setDate(prevWeekEnd.getDate() + 6);
+  // Previous week ends the day before current week starts
+  const prevWeekEnd = new Date(currentWeekStart);
+  prevWeekEnd.setDate(prevWeekEnd.getDate() - 1);
   prevWeekEnd.setHours(23, 59, 59, 999);
+  
+  // Previous week starts 6 days before that (7 days total)
+  const prevWeekStart = new Date(prevWeekEnd);
+  prevWeekStart.setDate(prevWeekStart.getDate() - 6);
+  prevWeekStart.setHours(0, 0, 0, 0);
   
   return { weekStart: prevWeekStart, weekEnd: prevWeekEnd };
 }
