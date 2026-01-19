@@ -20,22 +20,27 @@ import {
 interface LoadingMessage {
   text: string;
   icon: typeof Coffee;
-  color: string;
 }
 
+// Warm amber color palette for consistent, cozy feel
+const WARM_COLORS = {
+  amber: "#D97706",     // Amber-600 - icons & dots
+  warmBrown: "#92400E", // Amber-800 - text
+};
+
 const LOADING_MESSAGES: LoadingMessage[] = [
-  { text: "Taking a mindful moment...", icon: Heart, color: "#EC4899" },
-  { text: "Gathering some wisdom for you...", icon: BookOpen, color: "#8B6F47" },
-  { text: "Brewing up thoughtful insights...", icon: Coffee, color: "#8B6F47" },
-  { text: "Let me sit with this for a moment...", icon: Moon, color: "#6B7280" },
-  { text: "Connecting the dots...", icon: Sparkles, color: "#A855F7" },
-  { text: "Finding the perfect words...", icon: Feather, color: "#10B981" },
-  { text: "Crafting a thoughtful response...", icon: Lightbulb, color: "#F59E0B" },
-  { text: "Reflecting on your question...", icon: Brain, color: "#6366F1" },
-  { text: "Nurturing this conversation...", icon: Flower2, color: "#EC4899" },
-  { text: "Bringing clarity to light...", icon: Sun, color: "#F59E0B" },
-  { text: "Weaving insights together...", icon: Star, color: "#A855F7" },
-  { text: "Growing understanding...", icon: Leaf, color: "#10B981" },
+  { text: "Taking a mindful moment...", icon: Heart },
+  { text: "Gathering wisdom for you...", icon: BookOpen },
+  { text: "Brewing thoughtful insights...", icon: Coffee },
+  { text: "Sitting with this a moment...", icon: Moon },
+  { text: "Connecting the dots...", icon: Sparkles },
+  { text: "Finding the perfect words...", icon: Feather },
+  { text: "Crafting a response...", icon: Lightbulb },
+  { text: "Reflecting on your question...", icon: Brain },
+  { text: "Nurturing this thought...", icon: Flower2 },
+  { text: "Bringing clarity to light...", icon: Sun },
+  { text: "Weaving insights together...", icon: Star },
+  { text: "Growing understanding...", icon: Leaf },
 ];
 
 interface CoffeeLoadingProps {
@@ -90,98 +95,113 @@ export default function CoffeeLoading({ className = "" }: CoffeeLoadingProps) {
     <motion.div 
       className={`flex items-center gap-3 ${className}`} 
       style={{ 
-        padding: '0.75rem 0',
+        padding: '0.5rem 0',
+        width: '280px', // Fixed width for consistent layout
+        minWidth: '280px',
       }}
-      initial={{ opacity: 0, y: 4 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
       transition={{ duration: 0.3, ease: "easeOut" }}
     >
-      {/* Dynamic Icon with Smooth Animation */}
+      {/* Pulsing Icon */}
       <motion.div
-        key={currentMessage.text}
-        initial={{ scale: 0.8, opacity: 0, rotate: -10 }}
-        animate={{ scale: 1, opacity: 1, rotate: 0 }}
-        exit={{ scale: 0.8, opacity: 0, rotate: 10 }}
-        transition={{
-          duration: 0.5,
-          ease: [0.34, 1.56, 0.64, 1], // Elastic ease for smooth bounce
-        }}
         style={{
-          filter: `drop-shadow(0 2px 6px ${currentMessage.color}20)`,
+          filter: `drop-shadow(0 2px 6px ${WARM_COLORS.amber}40)`,
+          flexShrink: 0,
         }}
       >
         <motion.div
           animate={{
-            scale: [1, 1.05, 1],
-            rotate: [0, 2, -2, 0],
+            scale: [1, 1.1, 1],
+            opacity: [0.8, 1, 0.8],
           }}
           transition={{
-            duration: 2.5,
+            duration: 1.5,
             repeat: Infinity,
             ease: "easeInOut",
           }}
         >
-          <IconComponent 
-            className="h-5 w-5 sm:h-6 sm:w-6" 
-            style={{ 
-              color: currentMessage.color,
-              strokeWidth: 2.5,
-            }} 
-          />
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentMessage.text}
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              transition={{ duration: 0.25, ease: "easeOut" }}
+            >
+              <IconComponent 
+                className="h-5 w-5" 
+                style={{ 
+                  color: WARM_COLORS.amber,
+                  strokeWidth: 2.5,
+                }} 
+              />
+            </motion.div>
+          </AnimatePresence>
         </motion.div>
       </motion.div>
 
-      {/* Rotating Message with Smooth Fade Transition */}
-      <div className="flex items-center gap-2 min-w-0">
+      {/* Fixed-width Text Container */}
+      <div 
+        className="flex-1 overflow-hidden"
+        style={{ 
+          height: '20px',
+          position: 'relative',
+        }}
+      >
         <AnimatePresence mode="wait">
           <motion.span
             key={currentMessage.text}
-            initial={{ opacity: 0, x: -8, filter: "blur(4px)" }}
-            animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
-            exit={{ opacity: 0, x: 8, filter: "blur(4px)" }}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
             transition={{ 
-              duration: 0.5,
+              duration: 0.3,
               ease: [0.4, 0, 0.2, 1],
             }}
             style={{
+              position: 'absolute',
+              left: 0,
+              top: 0,
               fontFamily: 'system-ui, -apple-system, "Segoe UI", sans-serif',
-              fontSize: '0.9375rem',
-              color: currentMessage.color,
+              fontSize: '0.875rem',
+              color: WARM_COLORS.warmBrown,
               fontWeight: 500,
               letterSpacing: '0.01em',
               whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              width: '100%',
             }}
           >
             {currentMessage.text}
           </motion.span>
         </AnimatePresence>
+      </div>
 
-        {/* Typing Dots Indicator - Smooth Pulse */}
-        <div className="flex items-center gap-1" style={{ paddingTop: '2px', flexShrink: 0 }}>
-          {[0, 1, 2].map((i) => (
-            <motion.div
-              key={i}
-              animate={{
-                opacity: [0.3, 1, 0.3],
-                y: [0, -3, 0],
-                scale: [1, 1.2, 1],
-              }}
-              transition={{
-                duration: 1.2,
-                delay: i * 0.15,
-                repeat: Infinity,
-                ease: [0.4, 0, 0.6, 1],
-              }}
-              style={{
-                width: '4px',
-                height: '4px',
-                borderRadius: '50%',
-                backgroundColor: currentMessage.color,
-                opacity: 0.6,
-              }}
-            />
-          ))}
-        </div>
+      {/* Typing Dots - Smooth Wave */}
+      <div className="flex items-center gap-1" style={{ flexShrink: 0 }}>
+        {[0, 1, 2].map((i) => (
+          <motion.div
+            key={i}
+            animate={{
+              opacity: [0.3, 1, 0.3],
+              scale: [0.8, 1.2, 0.8],
+            }}
+            transition={{
+              duration: 0.8,
+              delay: i * 0.1,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+            style={{
+              width: '4px',
+              height: '4px',
+              borderRadius: '50%',
+              backgroundColor: WARM_COLORS.amber,
+            }}
+          />
+        ))}
       </div>
     </motion.div>
   );

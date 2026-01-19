@@ -408,20 +408,20 @@ function extractYAMLContent(section: string): { content: string; contentSections
     
     if (hasStructuredFields) {
       // Legacy structured format: extract fields
-      const strategyParts: string[] = [];
-      const principleMatch = strategy.match(/^\s*principle:\s*["']?([^"'\n]+)["']?/m);
-      const explanationMatch = strategy.match(/^\s*explanation:\s*["']?([^"'\n]+)["']?/m);
-      const exampleMatch = strategy.match(/^\s*example:\s*["']?([^"'\n]+)["']?/m);
-      const tipMatch = strategy.match(/^\s*habit_tip:\s*["']?([^"'\n]+)["']?/m);
-      
-      if (principleMatch) strategyParts.push(principleMatch[1].trim());
-      if (explanationMatch) strategyParts.push(explanationMatch[1].trim());
-      if (exampleMatch) strategyParts.push(exampleMatch[1].trim());
-      if (tipMatch) strategyParts.push(tipMatch[1].trim());
-      
-      if (strategyParts.length > 0) {
-        contentSections.has_habit_strategy = true;
-        contentParts.push(`### **Habit Strategy**\n${strategyParts.join('\n')}`);
+    const strategyParts: string[] = [];
+    const principleMatch = strategy.match(/^\s*principle:\s*["']?([^"'\n]+)["']?/m);
+    const explanationMatch = strategy.match(/^\s*explanation:\s*["']?([^"'\n]+)["']?/m);
+    const exampleMatch = strategy.match(/^\s*example:\s*["']?([^"'\n]+)["']?/m);
+    const tipMatch = strategy.match(/^\s*habit_tip:\s*["']?([^"'\n]+)["']?/m);
+    
+    if (principleMatch) strategyParts.push(principleMatch[1].trim());
+    if (explanationMatch) strategyParts.push(explanationMatch[1].trim());
+    if (exampleMatch) strategyParts.push(exampleMatch[1].trim());
+    if (tipMatch) strategyParts.push(tipMatch[1].trim());
+    
+    if (strategyParts.length > 0) {
+      contentSections.has_habit_strategy = true;
+      contentParts.push(`### **Habit Strategy**\n${strategyParts.join('\n')}`);
       }
     } else if (strategy.length > 0) {
       // Free-form markdown format (pipe format) - preserve as-is

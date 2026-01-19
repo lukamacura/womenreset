@@ -341,7 +341,7 @@ export default function QuestionStorm() {
             <span className="relative inline-block">
               <span className="relative z-10">full of questions</span>
               <motion.span
-                className="absolute inset-0 bg-yellow-400/50 rounded pointer-events-none"
+                className="absolute inset-0 bg-yellow-400/40 rounded pointer-events-none"
                 initial={{ scaleX: 0, transformOrigin: "left" }}
                 animate={shouldAnimateHeading && !prefersReducedMotion ? { scaleX: 1 } : { scaleX: 0 }}
                 transition={{

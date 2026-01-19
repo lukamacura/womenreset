@@ -493,42 +493,96 @@ function renderMarkdownText(text: string) {
         }
 
         if (block.type === 'blockquote') {
+          // Check if this is a habit_strategy or motivation_nudge blockquote
+          const isHabitStrategy = block.content.includes('[HABIT_STRATEGY]');
+          const isMotivationNudge = block.content.includes('[MOTIVATION_NUDGE]');
+          
+          // Blue blur theme colors for habit_strategy
+          const blueTheme = {
+            border: '#3B82F6',      // Blue-500
+            bgStart: '#DBEAFE',     // Blue-100
+            bgEnd: '#BFDBFE',       // Blue-200
+            shadow: 'rgba(59, 130, 246, 0.15)',
+            quote: '#93C5FD',       // Blue-300
+            text: '#1E40AF',        // Blue-800
+          };
+          
+          // Pink blur theme colors for motivation_nudge
+          const pinkBlurTheme = {
+            border: THEME.pink[500],      // Pink-500
+            bgStart: THEME.pink[100],     // Pink-100
+            bgEnd: THEME.pink[200],       // Pink-200
+            shadow: 'rgba(236, 72, 153, 0.15)',
+            quote: THEME.pink[300],        // Pink-300
+            text: THEME.pink[700],         // Pink-700
+          };
+          
+          // Pink theme for regular blockquotes
+          const pinkTheme = {
+            border: THEME.pink[400],
+            bgStart: THEME.pink[50],
+            bgEnd: THEME.pink[100],
+            shadow: 'rgba(236, 72, 153, 0.1)',
+            quote: THEME.pink[300],
+            text: THEME.text[800],
+          };
+          
+          const theme = isHabitStrategy ? blueTheme : (isMotivationNudge ? pinkBlurTheme : pinkTheme);
+          const hasBlurTheme = isHabitStrategy || isMotivationNudge;
+          
+          // Remove the markers from content if present
+          let cleanContent = block.content.replace(/\[HABIT_STRATEGY\]\s*/g, '');
+          cleanContent = cleanContent.replace(/\[MOTIVATION_NUDGE\]\s*/g, '');
+          
           return (
             <blockquote
               key={`blockquote-${blockIdx}`}
               style={{
-                borderLeft: `4px solid ${THEME.pink[400]}`,
+                borderLeft: `4px solid ${theme.border}`,
                 margin: '1.5rem 0',
                 padding: '1.25rem 1.5rem',
-                fontStyle: 'italic',
-                color: THEME.text[800],
-                background: `linear-gradient(to right, ${THEME.pink[50]}, ${THEME.pink[100]})`,
+                fontStyle: hasBlurTheme ? 'normal' : 'italic',
+                color: theme.text,
+                background: hasBlurTheme 
+                  ? `linear-gradient(135deg, ${theme.bgStart} 0%, ${theme.bgEnd} 100%)`
+                  : `linear-gradient(to right, ${theme.bgStart}, ${theme.bgEnd})`,
                 borderRadius: '0.75rem',
-                boxShadow: `0 2px 8px rgba(236, 72, 153, 0.1)`,
+                boxShadow: hasBlurTheme
+                  ? isHabitStrategy
+                    ? `0 4px 16px ${theme.shadow}, 0 0 0 1px rgba(59, 130, 246, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.5)`
+                    : `0 4px 16px ${theme.shadow}, 0 0 0 1px rgba(236, 72, 153, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.5)`
+                  : `0 2px 8px ${theme.shadow}`,
                 position: 'relative',
                 fontSize: '1.125rem',
                 lineHeight: '1.6',
+                backdropFilter: hasBlurTheme ? 'blur(8px)' : 'none',
               }}
             >
-              <div
-                style={{
-                  position: 'absolute',
-                  top: '1rem',
-                  left: '1.5rem',
-                  fontSize: '2rem',
-                  color: THEME.pink[300],
-                  opacity: 0.5,
-                  fontFamily: 'Georgia, serif',
-                }}
-              >
-                &ldquo;
-              </div>
-              <div style={{ paddingLeft: '1.5rem' }}>
-                {block.content.split('\n').map((line, lineIdx) => (
-                  <div key={lineIdx} style={{ marginBottom: lineIdx < block.content.split('\n').length - 1 ? '0.5rem' : '0' }}>
-                    {renderInlineMarkdown(line)}
-                  </div>
-                ))}
+              {!hasBlurTheme && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '1rem',
+                    left: '1.5rem',
+                    fontSize: '2rem',
+                    color: theme.quote,
+                    opacity: 0.5,
+                    fontFamily: 'Georgia, serif',
+                  }}
+                >
+                  &ldquo;
+                </div>
+              )}
+              <div style={{ paddingLeft: hasBlurTheme ? '0' : '1.5rem' }}>
+                {cleanContent.split('\n').map((line, lineIdx) => {
+                  const trimmedLine = line.trim();
+                  if (!trimmedLine) return null;
+                  return (
+                    <div key={lineIdx} style={{ marginBottom: lineIdx < cleanContent.split('\n').length - 1 ? '0.5rem' : '0' }}>
+                      {renderInlineMarkdown(trimmedLine)}
+                    </div>
+                  );
+                })}
               </div>
             </blockquote>
           );
@@ -2300,21 +2354,9 @@ function ChatPageInner() {
                             }
                             : {
                               color: THEME.text[900],
-                              backgroundColor: '#FFFBF8', // Warm cream/white
-                              boxShadow: "0 4px 20px rgba(236, 72, 153, 0.25), 0 0 0 1px rgba(139, 111, 71, 0.05)",
+                              backgroundColor: '#FEF3C7', // Warmer yellow (amber-100)
+                              boxShadow: "0 4px 20px rgba(251, 191, 36, 0.3), 0 0 0 1px rgba(251, 191, 36, 0.12)",
                             })
-                        }}
-                        animate={isStreamingMsg && !streamingContent ? {
-                          boxShadow: [
-                            "0 4px 20px rgba(236, 72, 153, 0.25), 0 0 0 1px rgba(139, 111, 71, 0.05), 0 0 15px rgba(139, 111, 71, 0.08)",
-                            "0 4px 24px rgba(236, 72, 153, 0.3), 0 0 0 1px rgba(139, 111, 71, 0.08), 0 0 25px rgba(139, 111, 71, 0.12)",
-                            "0 4px 20px rgba(236, 72, 153, 0.25), 0 0 0 1px rgba(139, 111, 71, 0.05), 0 0 15px rgba(139, 111, 71, 0.08)",
-                          ],
-                        } : {}}
-                        transition={{
-                          duration: 3,
-                          repeat: Infinity,
-                          ease: "easeInOut",
                         }}
                       >
                         {isStreamingMsg ? (
@@ -2334,7 +2376,7 @@ function ChatPageInner() {
                                 <span
                                   className="inline-block w-0.5 h-5 ml-1 mb-0.5 align-middle rounded-sm streaming-cursor"
                                   style={{
-                                    backgroundColor: THEME.pink[500],
+                                    backgroundColor: '#D97706', // Amber-600 to match warm yellow theme
                                     transition: 'opacity 0.2s ease-in-out',
                                   }}
                                 />
@@ -2345,55 +2387,47 @@ function ChatPageInner() {
                           </div>
                         ) : (
                           <>
-                            {m.isGreeting ? (
-                              <div className="text-xl sm:text-2xl font-bold" style={{ color: THEME.pink[600], lineHeight: '1.4' }}>
-                                {m.content}
-                              </div>
-                            ) : (
-                              <>
-                                <div className="wrap-break-words" style={{
-                                  fontSize: '1rem',
-                                  lineHeight: '1.4',
-                                  color: THEME.text[900],
-                                  fontWeight: 500,
-                                  letterSpacing: '0.01em',
-                                  textShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
-                                  WebkitFontSmoothing: 'antialiased',
-                                  MozOsxFontSmoothing: 'grayscale',
-                                }}>
-                                  {renderMarkdownText(m.content)}
+                            <div className="wrap-break-words" style={{
+                              fontSize: '1rem',
+                              lineHeight: '1.4',
+                              color: THEME.text[900],
+                              fontWeight: 500,
+                              letterSpacing: '0.01em',
+                              textShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+                              WebkitFontSmoothing: 'antialiased',
+                              MozOsxFontSmoothing: 'grayscale',
+                            }}>
+                              {renderMarkdownText(m.content)}
+                            </div>
+                            {/* Follow-up links */}
+                            {!isUser && m.follow_up_links && m.follow_up_links.length > 0 && (
+                              <div className="mt-4 pt-4 border-t" style={{ borderColor: THEME.pink[200] }}>
+                                <div className="text-sm font-medium mb-2" style={{ color: THEME.text[700] }}>
+                                  Related topics:
                                 </div>
-                                {/* Follow-up links */}
-                                {!isUser && m.follow_up_links && m.follow_up_links.length > 0 && (
-                                  <div className="mt-4 pt-4 border-t" style={{ borderColor: THEME.pink[200] }}>
-                                    <div className="text-sm font-medium mb-2" style={{ color: THEME.text[700] }}>
-                                      Related topics:
-                                    </div>
-                                    <div className="flex flex-wrap gap-2">
-                                      {m.follow_up_links.map((link, linkIdx) => (
-                                        <button
-                                          key={linkIdx}
-                                          onClick={async () => {
-                                            if (loading) return;
-                                            const id = activeId ?? await newChat();
-                                            // Use subtopic for matching (stable identifier), label is only for display
-                                            void sendToAPI(link.subtopic, id);
-                                          }}
-                                          className="px-4 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer hover:scale-105 active:scale-95"
-                                          style={{
-                                            backgroundColor: THEME.pink[100],
-                                            color: THEME.pink[700],
-                                            border: `1px solid ${THEME.pink[300]}`,
-                                          }}
-                                        >
-                                          <LinkIcon className="inline h-3 w-3 mr-1.5" />
-                                          {link.label}
-                                        </button>
-                                      ))}
-                                    </div>
-                                  </div>
-                                )}
-                              </>
+                                <div className="flex flex-wrap gap-2">
+                                  {m.follow_up_links.map((link, linkIdx) => (
+                                    <button
+                                      key={linkIdx}
+                                      onClick={async () => {
+                                        if (loading) return;
+                                        const id = activeId ?? await newChat();
+                                        // Use subtopic for matching (stable identifier), label is only for display
+                                        void sendToAPI(link.subtopic, id);
+                                      }}
+                                      className="px-4 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer hover:scale-105 active:scale-95"
+                                      style={{
+                                        backgroundColor: THEME.pink[100],
+                                        color: THEME.pink[700],
+                                        border: `1px solid ${THEME.pink[300]}`,
+                                      }}
+                                    >
+                                      <LinkIcon className="inline h-3 w-3 mr-1.5" />
+                                      {link.label}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
                             )}
                           </>
                         )}
@@ -2404,15 +2438,15 @@ function ChatPageInner() {
                 {/* Show loading component when loading but not yet streaming (fallback for edge cases) */}
                 {loading && !isStreaming && (
                   <div className="flex items-start gap-2 sm:gap-3">
-                    <div
+                    <motion.div
                       className="rounded-2xl px-4 py-3 text-base leading-relaxed sm:px-5 sm:py-4 sm:text-lg shadow-lg max-w-full sm:max-w-[80%]"
                       style={{
-                        backgroundColor: '#fff',
-                        boxShadow: "0 4px 16px rgba(236, 72, 153, 0.4)",
+                        backgroundColor: '#FEF3C7',
+                        boxShadow: "0 4px 20px rgba(251, 191, 36, 0.3), 0 0 0 1px rgba(251, 191, 36, 0.12)",
                       }}
                     >
                       <CoffeeLoading />
-                    </div>
+                    </motion.div>
                   </div>
                 )}
                 <div ref={bottomRef} style={{ height: '1px', marginTop: '1rem' }} />

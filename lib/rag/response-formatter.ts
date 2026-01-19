@@ -274,6 +274,8 @@ export function formatKBEntryForDisplay(entry: KBEntry, includeFollowUp: boolean
         const example = extractField(habitText, 'example');
         const habitTip = extractField(habitText, 'habit_tip');
         
+        // Add special marker for blue blur theme styling
+        formattedHabitStrategy.push('> [HABIT_STRATEGY]');
         if (principle) formattedHabitStrategy.push(`> **Principle:** ${principle}`);
         if (explanation) formattedHabitStrategy.push(`> **Explanation:** ${explanation}`);
         if (example) formattedHabitStrategy.push(`> **Example:** ${example}`);
@@ -281,11 +283,14 @@ export function formatKBEntryForDisplay(entry: KBEntry, includeFollowUp: boolean
       } else {
         // Free-form markdown format (pipe format) - output as single clean blockquote
         // Filter out empty lines and create one continuous blockquote
+        // Add special marker for blue blur theme styling
         const lines = habitText.split('\n')
           .map(l => l.trim())
           .filter(l => l.length > 0);
         
         // All content in one blockquote block - no separators between paragraphs
+        // Add [HABIT_STRATEGY] marker at the start to identify for special styling
+        formattedHabitStrategy.push('> [HABIT_STRATEGY]');
         for (const line of lines) {
           formattedHabitStrategy.push(`> ${line}`);
         }
@@ -355,13 +360,17 @@ export function formatKBEntryForDisplay(entry: KBEntry, includeFollowUp: boolean
     parts.push('\n\n---\n\n');
   }
 
-  // Motivation section - format as blockquote
+  // Motivation section - format as blockquote with special marker for pink blur theme
   if (sections.motivation.length > 0) {
-    const blockquoteLines = sections.motivation.map(line => {
+    const blockquoteLines: string[] = [];
+    // Add special marker for pink blur theme styling
+    blockquoteLines.push('> [MOTIVATION_NUDGE]');
+    sections.motivation.forEach(line => {
       const trimmed = line.trim();
-      if (!trimmed) return '';
-      return `> ${trimmed}`;
-    }).filter(line => line.length > 0);
+      if (trimmed) {
+        blockquoteLines.push(`> ${trimmed}`);
+      }
+    });
     parts.push(blockquoteLines.join('\n'));
     parts.push('\n\n---\n\n');
   }

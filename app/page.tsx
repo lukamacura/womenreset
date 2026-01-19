@@ -328,8 +328,8 @@ export default function Home() {
 
       <div className="relative z-10">
         <LandingHero />
-        <ChaosToClarity />
         <QuestionStorm />
+        <ChaosToClarity />
         <LandingProblem />
         <HowItWorksSteps />
         <FeatureTheater />
