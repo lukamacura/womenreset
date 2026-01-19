@@ -6,13 +6,16 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import type { User } from "@supabase/supabase-js";
 import { Activity, ArrowRight, MessageSquare } from "lucide-react";
-import type { SymptomLog } from "@/lib/symptom-tracker-constants";
+import type { SymptomLog, Symptom } from "@/lib/symptom-tracker-constants";
 import { useSymptomLogs } from "@/hooks/useSymptomLogs";
 import DeleteConfirmationDialog from "@/components/DeleteConfirmationDialog";
 import RecentLogs from "@/components/symptom-tracker/RecentLogs";
 import { TrialCard, getTrialState, type TrialState } from "@/components/TrialCard";
 import { Skeleton } from "@/components/ui/AnimatedComponents";
 import { useTrialStatus } from "@/lib/useTrialStatus";
+import LogSymptomModal from "@/components/symptom-tracker/LogSymptomModal";
+import { useSymptoms } from "@/hooks/useSymptoms";
+import type { LogSymptomData } from "@/lib/symptom-tracker-constants";
 
 // Prevent static prerendering (safe)
 export const dynamic = "force-dynamic";
@@ -170,6 +173,7 @@ export default function DashboardPage() {
   const [now, setNow] = useState<Date>(new Date());
   const lastNotifiedStateRef = useRef<TrialState | null>(null);
   const { logs: symptomLogs, loading: symptomLogsLoading, refetch: refetchSymptomLogs } = useSymptomLogs(30);
+  const { symptoms, refetch: refetchSymptoms } = useSymptoms();
 
   // Refetch symptom logs when user becomes available or auth state changes
   useEffect(() => {
@@ -214,6 +218,11 @@ export default function DashboardPage() {
     log: null,
     isLoading: false,
   });
+  
+  // Modal states for editing symptoms
+  const [selectedSymptom, setSelectedSymptom] = useState<Symptom | null>(null);
+  const [editingLog, setEditingLog] = useState<SymptomLog | null>(null);
+  const [isLogModalOpen, setIsLogModalOpen] = useState(false);
 
   // Fetch user trial info from user_trials table - Define BEFORE useEffects that use it
   const fetchUserTrial = useCallback(async (userId: string) => {
@@ -718,6 +727,79 @@ export default function DashboardPage() {
   // Event handlers
   // ---------------------------
   
+  // Handle log click from RecentLogs - open modal for editing
+  const handleLogClick = useCallback((log: SymptomLog) => {
+    // Find the symptom definition for this log
+    const symptom = symptoms.find((s) => s.id === log.symptom_id);
+    if (symptom) {
+      setSelectedSymptom(symptom);
+      setEditingLog(log);
+      setIsLogModalOpen(true);
+    }
+  }, [symptoms]);
+
+  // Handle save symptom log (create or update)
+  const handleSaveLog = useCallback(
+    async (data: LogSymptomData) => {
+      try {
+        const isEditing = !!data.logId;
+        const url = "/api/symptom-logs";
+        const method = isEditing ? "PUT" : "POST";
+        
+        const body: {
+          symptomId: string;
+          severity: number;
+          triggers: string[];
+          notes: string;
+          id?: string;
+          loggedAt?: string;
+        } = {
+          symptomId: data.symptomId,
+          severity: data.severity,
+          triggers: data.triggers,
+          notes: data.notes,
+        };
+
+        // Add log ID if editing
+        if (isEditing && data.logId) {
+          body.id = data.logId;
+        }
+
+        // Add loggedAt if provided
+        if (data.loggedAt) {
+          body.loggedAt = data.loggedAt;
+        }
+
+        const response = await fetch(url, {
+          method,
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(body),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          const errorMessage = errorData.error || `Failed to ${isEditing ? "update" : "save"} symptom log`;
+          throw new Error(errorMessage);
+        }
+
+        // Refetch logs and symptoms
+        await Promise.all([refetchSymptomLogs(), refetchSymptoms()]);
+        
+        // Dispatch custom event to notify components to refresh
+        window.dispatchEvent(new CustomEvent('symptom-log-updated'));
+        
+        // Close modal
+        setIsLogModalOpen(false);
+        setSelectedSymptom(null);
+        setEditingLog(null);
+      } catch (error) {
+        throw error;
+      }
+    },
+    [refetchSymptomLogs, refetchSymptoms]
+  );
 
   // Handle symptom log delete click
   const handleSymptomLogDeleteClick = useCallback((log: SymptomLog) => {
@@ -904,15 +986,28 @@ export default function DashboardPage() {
             <RecentSymptomsCard 
               logs={symptomLogs} 
               isLoading={symptomLogsLoading}
-              onLogClick={() => {
-                // Navigate to symptoms page where logs can be viewed and edited
-                router.push("/dashboard/symptoms");
-              }}
+              onLogClick={handleLogClick}
               onDelete={handleSymptomLogDeleteClick}
             />
           </div>
         )}
       </div>
+
+      {/* Log Symptom Modal */}
+      {selectedSymptom && (
+        <LogSymptomModal
+          symptom={selectedSymptom}
+          isOpen={isLogModalOpen}
+          onClose={() => {
+            setIsLogModalOpen(false);
+            setSelectedSymptom(null);
+            setEditingLog(null);
+          }}
+          onSave={handleSaveLog}
+          editingLog={editingLog}
+          allLogs={symptomLogs}
+        />
+      )}
 
       {/* Delete Confirmation Dialog */}
       <DeleteConfirmationDialog

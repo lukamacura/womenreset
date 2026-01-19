@@ -33,6 +33,8 @@ async function getAuthenticatedUser(req: NextRequest) {
 }
 
 // GET: Get notification preferences
+// Returns only the two toggle settings (notification_enabled and weekly_insights_enabled)
+// Note: reminder_time is ignored as notifications are sent at fixed times
 export async function GET(req: NextRequest) {
   try {
     const user = await getAuthenticatedUser(req);
@@ -64,7 +66,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Return defaults if no preferences found
+    // Return defaults if no data found
     if (!data) {
       return NextResponse.json({
         data: {
@@ -74,6 +76,7 @@ export async function GET(req: NextRequest) {
       });
     }
 
+    // Return only the two toggle settings
     return NextResponse.json({ 
       data: {
         notification_enabled: data.notification_enabled ?? true,
@@ -90,6 +93,8 @@ export async function GET(req: NextRequest) {
 }
 
 // PUT: Update notification preferences
+// Updates only the two toggle settings (notification_enabled and weekly_insights_enabled)
+// Note: reminder_time is ignored as notifications are sent at fixed times
 export async function PUT(req: NextRequest) {
   try {
     const user = await getAuthenticatedUser(req);
@@ -103,6 +108,7 @@ export async function PUT(req: NextRequest) {
     const supabaseAdmin = getSupabaseAdmin();
     const updateData: Record<string, boolean> = {};
 
+    // Only update the two toggle settings
     if (notification_enabled !== undefined) {
       updateData.notification_enabled = notification_enabled;
     }
@@ -110,7 +116,7 @@ export async function PUT(req: NextRequest) {
       updateData.weekly_insights_enabled = weekly_insights_enabled;
     }
 
-    // Ensure we have at least one field to update
+    // Validate that at least one field is being updated
     if (Object.keys(updateData).length === 0) {
       return NextResponse.json(
         { error: "No fields to update" },
@@ -118,6 +124,7 @@ export async function PUT(req: NextRequest) {
       );
     }
 
+    // Try to update existing preferences
     const { data, error: updateError } = await supabaseAdmin
       .from("user_preferences")
       .update(updateData)
@@ -127,7 +134,8 @@ export async function PUT(req: NextRequest) {
 
     if (updateError) {
       console.error("Supabase update error:", updateError);
-      // If no preferences exist, create them
+      
+      // If no preferences exist (PGRST116), create them
       if (updateError.code === 'PGRST116') {
         const { data: newData, error: insertError } = await supabaseAdmin
           .from("user_preferences")
@@ -135,12 +143,12 @@ export async function PUT(req: NextRequest) {
             user_id: user.id, 
             notification_enabled: notification_enabled ?? true,
             weekly_insights_enabled: weekly_insights_enabled ?? true,
-            ...updateData 
           }])
           .select("notification_enabled, weekly_insights_enabled")
           .single();
 
         if (insertError) {
+          console.error("Supabase insert error:", insertError);
           return NextResponse.json(
             { error: "Failed to create notification preferences" },
             { status: 500 }

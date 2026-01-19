@@ -4,13 +4,16 @@ import { checkTrialExpired } from "@/lib/checkTrialStatus";
 
 export const runtime = "nodejs";
 
-// This endpoint should be called by a cron job (Vercel Cron, Supabase Edge Function, etc.)
-// Schedule: Once per day at 9:00 AM UTC (due to Vercel Hobby plan limitations)
-// The endpoint checks all users whose reminder_time has passed today and sends reminders
+// This endpoint is called by Vercel Cron once per day at 9:00 AM UTC
+// It sends daily reminders to all users who:
+// - Have notifications enabled
+// - Haven't logged symptoms today
+// - Haven't received a reminder today already
+// - Have an active trial
 
 export async function GET(req: NextRequest) {
   try {
-    // Optional: Add a secret header to prevent unauthorized access
+    // Verify cron secret to prevent unauthorized access
     const authHeader = req.headers.get("authorization");
     const cronSecret = process.env.CRON_SECRET;
     
@@ -20,10 +23,8 @@ export async function GET(req: NextRequest) {
 
     const supabaseAdmin = getSupabaseAdmin();
     const now = new Date();
-    const currentHour = now.getHours();
-    const currentMinute = now.getMinutes();
     
-    // Get today's date in UTC (start of day)
+    // Get today's date range in UTC
     const today = new Date(now);
     today.setUTCHours(0, 0, 0, 0);
     const todayStart = today.toISOString();
@@ -31,10 +32,10 @@ export async function GET(req: NextRequest) {
     todayEnd.setUTCHours(23, 59, 59, 999);
     const todayEndStr = todayEnd.toISOString();
 
-    // Fetch users who have notifications enabled
-    const { data: allUsers, error: usersError } = await supabaseAdmin
+    // Fetch all users who have notifications enabled (no time filtering)
+    const { data: users, error: usersError } = await supabaseAdmin
       .from("user_preferences")
-      .select("user_id, reminder_time")
+      .select("user_id")
       .eq("notification_enabled", true);
 
     if (usersError) {
@@ -45,45 +46,22 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    if (!allUsers || allUsers.length === 0) {
-      return NextResponse.json({ 
-        message: "No users with notifications enabled",
-        count: 0 
-      });
-    }
-
-    // Filter users whose reminder_time has passed today
-    // Since cron runs once per day at 9 AM, we check all users whose reminder time
-    // was earlier today (before current time)
-    const currentTimeMinutes = currentHour * 60 + currentMinute;
-    
-    const users = allUsers.filter((userPref) => {
-      if (!userPref.reminder_time) return false;
-      // reminder_time might be "09:00:00" or "09:00", extract hour and minute
-      const timeStr = userPref.reminder_time.toString();
-      const parts = timeStr.split(":");
-      const reminderHour = parseInt(parts[0], 10);
-      const reminderMinute = parseInt(parts[1] || "0", 10);
-      const reminderTimeMinutes = reminderHour * 60 + reminderMinute;
-      
-      // Include users whose reminder time has passed today
-      return reminderTimeMinutes <= currentTimeMinutes;
-    });
-
     if (!users || users.length === 0) {
       return NextResponse.json({ 
-        message: "No users need reminders at this time",
-        count: 0 
+        message: "No users with notifications enabled",
+        count: 0,
+        timestamp: now.toISOString(),
       });
     }
 
     let notificationsCreated = 0;
+    let skipped = 0;
     let errors = 0;
 
-    // For each user, check if they've tracked symptoms today
+    // Process each user
     for (const userPref of users) {
       try {
-        // Check if user has tracked symptoms today
+        // Check if user has already logged symptoms today
         const { data: symptomLogs, error: logsError } = await supabaseAdmin
           .from("symptom_logs")
           .select("id")
@@ -98,18 +76,20 @@ export async function GET(req: NextRequest) {
           continue;
         }
 
-        // If user has already tracked symptoms today, skip
+        // Skip if user already logged symptoms today
         if (symptomLogs && symptomLogs.length > 0) {
+          skipped++;
           continue;
         }
 
-        // Check if trial is expired (don't send reminders to expired trials)
+        // Skip if trial is expired
         const isExpired = await checkTrialExpired(userPref.user_id);
         if (isExpired) {
+          skipped++;
           continue;
         }
 
-        // Check if we already sent a reminder today (prevent duplicates)
+        // Check if reminder already sent today (prevent duplicates)
         const { data: existingNotification } = await supabaseAdmin
           .from("notifications")
           .select("id")
@@ -122,11 +102,11 @@ export async function GET(req: NextRequest) {
           .maybeSingle();
 
         if (existingNotification) {
-          // Already sent today, skip
+          skipped++;
           continue;
         }
 
-        // Create notification
+        // Create reminder notification
         const { error: notificationError } = await supabaseAdmin
           .from("notifications")
           .insert([
@@ -166,8 +146,10 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: `Processed ${users.length} users`,
+      message: `Daily reminders processed`,
+      totalUsers: users.length,
       notificationsCreated,
+      skipped,
       errors,
       timestamp: now.toISOString(),
     });

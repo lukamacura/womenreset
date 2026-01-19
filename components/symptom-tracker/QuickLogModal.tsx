@@ -210,7 +210,7 @@ export default function QuickLogModal({
 
   const modalContent = (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 cursor-pointer"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 cursor-pointer"
       onClick={handleBackdropClick}
     >
       <div 
@@ -219,356 +219,361 @@ export default function QuickLogModal({
       />
       
       <div
-        className="relative bg-card backdrop-blur-lg rounded-2xl w-full max-w-xl mx-4 shadow-xl border border-border/30 cursor-default overflow-hidden"
+        className="relative bg-card backdrop-blur-lg rounded-t-3xl sm:rounded-2xl w-full sm:max-w-lg mx-auto shadow-xl border border-border/30 cursor-default overflow-hidden max-h-[95vh] sm:max-h-[90vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-          <div className="flex justify-between items-center p-6 pb-4 border-b border-border/30">
+        <div className="flex justify-between items-center p-4 sm:p-6 pb-3 sm:pb-4 border-b border-border/30 shrink-0">
           <div className="flex items-center gap-3">
-            <SymptomIcon className="h-6 w-6 text-card-foreground" />
-            <h2 className="text-xl font-semibold text-card-foreground">
+            <SymptomIcon className="h-7 w-7 sm:h-6 sm:w-6 text-card-foreground" />
+            <h2 className="text-xl sm:text-xl font-bold text-card-foreground">
               {symptom.name}
             </h2>
           </div>
           <button
             onClick={onClose}
-            className="text-muted-foreground hover:text-card-foreground transition-colors cursor-pointer"
+            className="text-muted-foreground hover:text-card-foreground transition-colors cursor-pointer p-2 -mr-2 min-w-[44px] min-h-[44px] flex items-center justify-center"
             type="button"
+            aria-label="Close modal"
           >
-            <X className="h-6 w-6" />
+            <X className="h-7 w-7 sm:h-6 sm:w-6" />
           </button>
         </div>
 
-        {/* Content */}
-        <div className="p-6">
-          {/* Step Indicator (only show when in details mode) */}
-          {currentStep > 1 && (
-            <div className="px-6 py-4 flex items-center justify-between border-b border-border/30 -mx-6 -mt-6 mb-6">
-              {steps.map((step, index) => (
-                <div key={step.number} className="flex items-center flex-1">
-                  <div className="flex flex-col items-center flex-1">
-                    <div
-                      className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold text-sm transition-all
+        {/* Content - Scrollable */}
+        <div className="flex-1 overflow-y-auto overscroll-contain">
+          <div className="p-4 sm:p-6">
+            {/* Step Indicator (only show when in details mode) */}
+            {currentStep > 1 && (
+              <div className="px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between border-b border-border/30 -mx-4 sm:-mx-6 -mt-4 sm:-mt-6 mb-5 sm:mb-6">
+                {steps.map((step, index) => (
+                  <div key={step.number} className="flex items-center flex-1">
+                    <div className="flex flex-col items-center flex-1">
+                      <div
+                        className={`w-10 h-10 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-bold text-base sm:text-sm transition-all
+                          ${
+                            currentStep === step.number
+                              ? "bg-primary text-primary-foreground shadow-lg scale-110"
+                              : currentStep > step.number
+                              ? "bg-green-500 text-white"
+                              : "bg-card/60 text-muted-foreground border-2 border-border/30"
+                          }`}
+                      >
+                        {currentStep > step.number ? <Check className="h-5 w-5 sm:h-4 sm:w-4" /> : step.number}
+                      </div>
+                      <span className="text-xs sm:text-xs mt-1 text-muted-foreground font-medium">{step.title}</span>
+                    </div>
+                    {index < steps.length - 1 && (
+                      <div
+                        className={`h-1 sm:h-0.5 flex-1 mx-1 sm:mx-2 transition-all rounded-full
+                          ${currentStep > step.number ? "bg-green-500" : "bg-border/30"}
+                        `}
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <AnimatePresence mode="wait">
+              {/* Step 1: Severity (always shown) */}
+              {currentStep === 1 && (
+                <motion.div
+                  key="step1"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <div className="mb-5 sm:mb-6">
+                    <label className="text-card-foreground text-xl sm:text-lg mb-5 sm:mb-4 block font-bold">
+                      How bad?
+                    </label>
+                    <div className="flex flex-col sm:flex-row gap-3 sm:gap-3 sm:justify-center">
+                      {[1, 2, 3].map((level) => {
+                        const severityInfo = SEVERITY_LABELS[level as keyof typeof SEVERITY_LABELS];
+                        const SeverityIconComponent = severityInfo.icon;
+                        const isSelected = severity === level;
+                        const borderColor = level === 1 
+                          ? 'border-green-500' 
+                          : level === 2 
+                          ? 'border-yellow-500' 
+                          : 'border-red-500';
+                        const bgColor = level === 1 
+                          ? 'bg-green-50/50' 
+                          : level === 2 
+                          ? 'bg-yellow-50/50' 
+                          : 'bg-red-50/50';
+                        const iconColor = level === 1 
+                          ? 'text-green-600' 
+                          : level === 2 
+                          ? 'text-yellow-600' 
+                          : 'text-red-600';
+                        
+                        return (
+                          <button
+                            key={level}
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSeverity(level);
+                            }}
+                            className={`flex flex-col sm:flex-col items-center gap-3 sm:gap-2 px-6 sm:px-5 py-5 sm:py-4 rounded-2xl sm:rounded-xl transition-all cursor-pointer border-2 min-h-[80px] sm:min-h-0
+                              ${
+                                isSelected
+                                  ? `${borderColor} ${bgColor} scale-[1.02] shadow-md`
+                                  : "border-border/30 bg-card/60 hover:bg-card/80 hover:border-border/40 active:scale-95"
+                              }`}
+                          >
+                            <SeverityIconComponent className={`h-9 w-9 sm:h-7 sm:w-7 ${iconColor}`} />
+                            <span className={`font-bold text-lg sm:text-sm ${isSelected ? 'text-card-foreground' : 'text-muted-foreground'}`}>
+                              {severityInfo.label}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Step 2: Time Selection */}
+              {currentStep === 2 && (
+                <motion.div
+                  key="step2"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <div className="mb-5 sm:mb-6">
+                    <label className="text-[#3D3D3D] text-xl sm:text-lg mb-5 sm:mb-4 block font-bold">
+                      When?
+                    </label>
+                    <div className="flex flex-col gap-3 sm:gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTimeSelection('now');
+                        setCustomTime("");
+                      }}
+                      className={`px-5 py-4 sm:px-4 sm:py-3 rounded-xl text-left transition-all cursor-pointer text-lg sm:text-base font-medium min-h-[56px] sm:min-h-0
                         ${
-                          currentStep === step.number
-                            ? "bg-primary text-primary-foreground shadow-lg scale-110"
-                            : currentStep > step.number
-                            ? "bg-green-500 text-white"
-                            : "bg-card/60 text-muted-foreground border border-border/30"
+                          timeSelection === 'now'
+                            ? "bg-[#ff74b1] text-white shadow-md active:scale-95"
+                            : "bg-card/60 text-card-foreground hover:bg-card/80 border-2 border-border/30 active:scale-95"
                         }`}
                     >
-                      {currentStep > step.number ? <Check className="h-4 w-4" /> : step.number}
-                    </div>
-                    <span className="text-xs mt-1 text-muted-foreground hidden sm:block">{step.title}</span>
+                      Just now {timeSelection === 'now' && '✓'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTimeSelection('earlier-today')}
+                      className={`px-5 py-4 sm:px-4 sm:py-3 rounded-xl text-left transition-all cursor-pointer text-lg sm:text-base font-medium min-h-[56px] sm:min-h-0
+                        ${
+                          timeSelection === 'earlier-today'
+                            ? "bg-[#ff74b1] text-white shadow-md active:scale-95"
+                            : "bg-card/60 text-card-foreground hover:bg-card/80 border-2 border-border/30 active:scale-95"
+                        }`}
+                    >
+                      Earlier today {timeSelection === 'earlier-today' && '✓'}
+                    </button>
+                    {timeSelection === 'earlier-today' && (
+                      <input
+                        type="time"
+                        value={customTime}
+                        onChange={(e) => setCustomTime(e.target.value)}
+                        onClick={(e) => e.stopPropagation()}
+                        className="ml-4 px-5 py-3 sm:px-4 sm:py-2 rounded-xl border-2 border-border/30 text-lg sm:text-base bg-card/60 backdrop-blur-md
+                                 focus:outline-none focus:ring-2 focus:ring-[#ff74b1] min-h-[48px] sm:min-h-0"
+                      />
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setTimeSelection('yesterday')}
+                      className={`px-5 py-4 sm:px-4 sm:py-3 rounded-xl text-left transition-all cursor-pointer text-lg sm:text-base font-medium min-h-[56px] sm:min-h-0
+                        ${
+                          timeSelection === 'yesterday'
+                            ? "bg-[#ff74b1] text-white shadow-md active:scale-95"
+                            : "bg-card/60 text-card-foreground hover:bg-card/80 border-2 border-border/30 active:scale-95"
+                        }`}
+                    >
+                      Yesterday {timeSelection === 'yesterday' && '✓'}
+                    </button>
+                    {timeSelection === 'yesterday' && (
+                      <input
+                        type="time"
+                        value={customTime}
+                        onChange={(e) => setCustomTime(e.target.value)}
+                        onClick={(e) => e.stopPropagation()}
+                        className="ml-4 px-5 py-3 sm:px-4 sm:py-2 rounded-xl border-2 border-border/30 text-lg sm:text-base bg-card/60 backdrop-blur-md
+                                 focus:outline-none focus:ring-2 focus:ring-[#ff74b1] min-h-[48px] sm:min-h-0"
+                      />
+                    )}
                   </div>
-                  {index < steps.length - 1 && (
-                    <div
-                      className={`h-0.5 flex-1 mx-2 transition-all
-                        ${currentStep > step.number ? "bg-green-500" : "bg-border/30"}
-                      `}
-                    />
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-
-          <AnimatePresence mode="wait">
-            {/* Step 1: Severity (always shown) */}
-            {currentStep === 1 && (
-              <motion.div
-                key="step1"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.2 }}
-              >
-                <div className="mb-6">
-                  <label className="text-card-foreground text-lg mb-4 block font-semibold">
-                    How bad?
-                  </label>
-            <div className="flex gap-3 justify-center">
-              {[1, 2, 3].map((level) => {
-                const severityInfo = SEVERITY_LABELS[level as keyof typeof SEVERITY_LABELS];
-                const SeverityIconComponent = severityInfo.icon;
-                const isSelected = severity === level;
-                const borderColor = level === 1 
-                  ? 'border-green-500' 
-                  : level === 2 
-                  ? 'border-yellow-500' 
-                  : 'border-red-500';
-                const bgColor = level === 1 
-                  ? 'bg-green-50/50' 
-                  : level === 2 
-                  ? 'bg-yellow-50/50' 
-                  : 'bg-red-50/50';
-                const iconColor = level === 1 
-                  ? 'text-green-600' 
-                  : level === 2 
-                  ? 'text-yellow-600' 
-                  : 'text-red-600';
-                
-                return (
-                  <button
-                    key={level}
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSeverity(level);
-                    }}
-                    className={`flex flex-col items-center gap-2 px-5 py-4 rounded-xl transition-all cursor-pointer border-2
-                      ${
-                        isSelected
-                          ? `${borderColor} ${bgColor} scale-[1.02] shadow-sm`
-                          : "border-border/30 bg-card/60 hover:bg-card/80 hover:border-border/40"
-                      }`}
-                  >
-                    <SeverityIconComponent className={`h-7 w-7 ${iconColor}`} />
-                    <span className={`font-medium text-sm ${isSelected ? 'text-card-foreground' : 'text-muted-foreground'}`}>
-                      {severityInfo.label}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
                 </div>
               </motion.div>
             )}
 
-          {/* Step 2: Time Selection */}
-          {currentStep === 2 && (
-            <motion.div
-              key="step2"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.2 }}
-            >
-              <div className="mb-6">
-                <label className="text-[#3D3D3D] text-lg mb-4 block font-semibold">
-                  When?
-                </label>
-                <div className="flex flex-col gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setTimeSelection('now');
-                      setCustomTime("");
-                    }}
-                    className={`px-4 py-3 rounded-xl text-left transition-all cursor-pointer text-base
-                      ${
-                        timeSelection === 'now'
-                          ? "bg-[#ff74b1] text-white shadow-md"
-                          : "bg-card/60 text-card-foreground hover:bg-card/80 border border-border/30"
-                      }`}
-                  >
-                    Just now {timeSelection === 'now' && '✓'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setTimeSelection('earlier-today')}
-                    className={`px-4 py-3 rounded-xl text-left transition-all cursor-pointer text-base
-                      ${
-                        timeSelection === 'earlier-today'
-                          ? "bg-[#ff74b1] text-white shadow-md"
-                          : "bg-card/60 text-card-foreground hover:bg-card/80 border border-border/30"
-                      }`}
-                  >
-                    Earlier today {timeSelection === 'earlier-today' && '✓'}
-                  </button>
-                  {timeSelection === 'earlier-today' && (
-                    <input
-                      type="time"
-                      value={customTime}
-                      onChange={(e) => setCustomTime(e.target.value)}
-                      onClick={(e) => e.stopPropagation()}
-                      className="ml-4 px-4 py-2 rounded-xl border border-border/30 text-base bg-card/60 backdrop-blur-md
-                               focus:outline-none focus:ring-2 focus:ring-[#ff74b1]"
-                    />
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => setTimeSelection('yesterday')}
-                    className={`px-4 py-3 rounded-xl text-left transition-all cursor-pointer text-base
-                      ${
-                        timeSelection === 'yesterday'
-                          ? "bg-[#ff74b1] text-white shadow-md"
-                          : "bg-card/60 text-card-foreground hover:bg-card/80 border border-border/30"
-                      }`}
-                  >
-                    Yesterday {timeSelection === 'yesterday' && '✓'}
-                  </button>
-                  {timeSelection === 'yesterday' && (
-                    <input
-                      type="time"
-                      value={customTime}
-                      onChange={(e) => setCustomTime(e.target.value)}
-                      onClick={(e) => e.stopPropagation()}
-                      className="ml-4 px-4 py-2 rounded-xl border border-border/30 text-base bg-card/60 backdrop-blur-md
-                               focus:outline-none focus:ring-2 focus:ring-[#ff74b1]"
-                    />
-                  )}
-                </div>
-              </div>
-            </motion.div>
-          )}
+              {/* Step 3: Triggers */}
+              {currentStep === 3 && (
+                <motion.div
+                  key="step3"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <div className="mb-5 sm:mb-6">
+                    <label className="text-[#3D3D3D] text-xl sm:text-lg mb-5 sm:mb-4 block font-bold">
+                      Triggers (optional):
+                    </label>
+                    
+                    {/* Suggested Triggers */}
+                    {suggestedTriggers.length > 0 && (
+                      <div className="mb-4">
+                        <p className="text-base sm:text-sm text-muted-foreground mb-3 sm:mb-2 font-medium">
+                          Suggested (based on your patterns):
+                        </p>
+                        <div className="flex flex-wrap gap-2.5 sm:gap-2">
+                          {suggestedTriggers.map((trigger) => (
+                            <button
+                              key={trigger}
+                              type="button"
+                              onClick={(e) => handleTriggerClick(trigger, e)}
+                              className={`px-5 py-3 sm:px-4 sm:py-2 rounded-full text-lg sm:text-base font-medium transition-all cursor-pointer min-h-[48px] sm:min-h-0
+                                ${
+                                  selectedTriggers.includes(trigger)
+                                    ? "bg-[#ff74b1] text-white shadow-md active:scale-95"
+                                    : "bg-card/60 text-card-foreground hover:bg-card/80 border-2 border-border/30 active:scale-95"
+                                }`}
+                            >
+                              {trigger}
+                              {selectedTriggers.includes(trigger) && " ✓"}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
-          {/* Step 3: Triggers */}
-          {currentStep === 3 && (
-            <motion.div
-              key="step3"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.2 }}
-            >
-              <div className="mb-6">
-                <label className="text-[#3D3D3D] text-lg mb-4 block font-semibold">
-                  Triggers (optional):
-                </label>
-                
-                {/* Suggested Triggers */}
-                {suggestedTriggers.length > 0 && (
-                  <div className="mb-3">
-                    <p className="text-sm text-muted-foreground mb-2">
-                      Suggested (based on your patterns):
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {suggestedTriggers.map((trigger) => (
+                    {/* Other Triggers */}
+                    {remainingTriggers.length > 0 && (
+                      <div className="mb-4">
+                        <p className="text-base sm:text-sm text-muted-foreground mb-3 sm:mb-2 font-medium">
+                          Other:
+                        </p>
+                        <div className="flex flex-wrap gap-2.5 sm:gap-2">
+                          {remainingTriggers.map((trigger) => (
+                            <button
+                              key={trigger}
+                              type="button"
+                              onClick={(e) => handleTriggerClick(trigger, e)}
+                              className={`px-5 py-3 sm:px-4 sm:py-2 rounded-full text-lg sm:text-base transition-all cursor-pointer min-h-[48px] sm:min-h-0
+                                ${
+                                  selectedTriggers.includes(trigger)
+                                    ? "bg-[#ff74b1] text-white shadow-md active:scale-95"
+                                    : "bg-card/60 text-card-foreground hover:bg-card/80 border-2 border-border/30 active:scale-95"
+                                }`}
+                            >
+                              {trigger}
+                              {selectedTriggers.includes(trigger) && " ✓"}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Custom Trigger */}
+                    <div className="mt-5 sm:mt-4">
+                      {!showCustomTriggerInput ? (
                         <button
-                          key={trigger}
                           type="button"
-                          onClick={(e) => handleTriggerClick(trigger, e)}
-                          className={`px-4 py-2 rounded-full text-base font-medium transition-all cursor-pointer
-                            ${
-                              selectedTriggers.includes(trigger)
-                                ? "bg-[#ff74b1] text-white shadow-md"
-                                : "bg-card/60 text-card-foreground hover:bg-card/80 border border-border/30"
-                            }`}
+                          onClick={() => setShowCustomTriggerInput(true)}
+                          className="px-5 py-3 sm:px-4 sm:py-2 rounded-full text-lg sm:text-base text-primary hover:text-primary/90 hover:bg-card/60 transition-colors cursor-pointer border-2 border-primary/50 bg-card/40 font-medium min-h-[48px] sm:min-h-0"
                         >
-                          {trigger}
-                          {selectedTriggers.includes(trigger) && " ✓"}
+                          + Custom
                         </button>
-                      ))}
+                      ) : (
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={customTrigger}
+                            onChange={(e) => setCustomTrigger(e.target.value)}
+                            onClick={(e) => e.stopPropagation()}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && customTrigger.trim()) {
+                                e.preventDefault();
+                                if (!selectedTriggers.includes(customTrigger.trim())) {
+                                  setSelectedTriggers([...selectedTriggers, customTrigger.trim()]);
+                                }
+                                setCustomTrigger("");
+                                setShowCustomTriggerInput(false);
+                              }
+                            }}
+                            placeholder="Enter custom trigger"
+                            className="flex-1 px-5 py-3 sm:px-4 sm:py-2 rounded-xl border-2 border-border/30 text-lg sm:text-base bg-card/60 backdrop-blur-md
+                                     focus:outline-none focus:ring-2 focus:ring-[#ff74b1] min-h-[48px] sm:min-h-0"
+                            autoFocus
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (customTrigger.trim() && !selectedTriggers.includes(customTrigger.trim())) {
+                                setSelectedTriggers([...selectedTriggers, customTrigger.trim()]);
+                              }
+                              setCustomTrigger("");
+                              setShowCustomTriggerInput(false);
+                            }}
+                            className="px-5 py-3 sm:px-4 sm:py-2 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-colors cursor-pointer text-lg sm:text-base font-medium min-h-[48px] sm:min-h-0"
+                          >
+                            Add
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
-                )}
+                </motion.div>
+              )}
 
-                {/* Other Triggers */}
-                {remainingTriggers.length > 0 && (
-                  <div className="mb-3">
-                    <p className="text-sm text-muted-foreground mb-2">
-                      Other:
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {remainingTriggers.map((trigger) => (
-                        <button
-                          key={trigger}
-                          type="button"
-                          onClick={(e) => handleTriggerClick(trigger, e)}
-                          className={`px-4 py-2 rounded-full text-base transition-all cursor-pointer
-                            ${
-                              selectedTriggers.includes(trigger)
-                                ? "bg-[#ff74b1] text-white shadow-md"
-                                : "bg-card/60 text-card-foreground hover:bg-card/80 border border-border/30"
-                            }`}
-                        >
-                          {trigger}
-                          {selectedTriggers.includes(trigger) && " ✓"}
-                        </button>
-                      ))}
-                    </div>
+              {/* Step 4: Notes */}
+              {currentStep === 4 && (
+                <motion.div
+                  key="step4"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <div className="mb-5 sm:mb-6">
+                    <label className="text-[#3D3D3D] text-xl sm:text-lg mb-5 sm:mb-4 block font-bold">
+                      Note (optional):
+                    </label>
+                    <textarea
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      onClick={(e) => e.stopPropagation()}
+                      placeholder="Was in a meeting when it hit..."
+                      rows={4}
+                      className="w-full bg-card/60 backdrop-blur-md text-card-foreground rounded-xl p-4 sm:p-4 text-lg sm:text-base 
+                               placeholder-muted-foreground
+                               focus:outline-none focus:ring-2 focus:ring-primary border-2 border-border/30 resize-none"
+                    />
                   </div>
-                )}
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-                {/* Custom Trigger */}
-                <div className="mt-4">
-                  {!showCustomTriggerInput ? (
-                    <button
-                      type="button"
-                      onClick={() => setShowCustomTriggerInput(true)}
-                      className="px-4 py-2 rounded-full text-base text-primary hover:text-primary/90 hover:bg-card/60 transition-colors cursor-pointer border border-primary/50 bg-card/40"
-                    >
-                      + Custom
-                    </button>
-                  ) : (
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={customTrigger}
-                        onChange={(e) => setCustomTrigger(e.target.value)}
-                        onClick={(e) => e.stopPropagation()}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && customTrigger.trim()) {
-                            e.preventDefault();
-                            if (!selectedTriggers.includes(customTrigger.trim())) {
-                              setSelectedTriggers([...selectedTriggers, customTrigger.trim()]);
-                            }
-                            setCustomTrigger("");
-                            setShowCustomTriggerInput(false);
-                          }
-                        }}
-                        placeholder="Enter custom trigger"
-                        className="flex-1 px-4 py-2 rounded-xl border border-border/30 text-base bg-card/60 backdrop-blur-md
-                                 focus:outline-none focus:ring-2 focus:ring-[#ff74b1]"
-                        autoFocus
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (customTrigger.trim() && !selectedTriggers.includes(customTrigger.trim())) {
-                            setSelectedTriggers([...selectedTriggers, customTrigger.trim()]);
-                          }
-                          setCustomTrigger("");
-                          setShowCustomTriggerInput(false);
-                        }}
-                          className="px-4 py-2 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-colors cursor-pointer text-base"
-                      >
-                        Add
-                      </button>
-                    </div>
-                  )}
-                </div>
+            {/* Error Message */}
+            {error && (
+              <div className="mb-4 rounded-lg border-2 border-primary/30 bg-primary/10 p-4 sm:p-3 text-base sm:text-sm text-primary font-medium">
+                {error}
               </div>
-            </motion.div>
-          )}
+            )}
+          </div>
+        </div>
 
-          {/* Step 4: Notes */}
-          {currentStep === 4 && (
-            <motion.div
-              key="step4"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.2 }}
-            >
-              <div className="mb-6">
-                <label className="text-[#3D3D3D] text-lg mb-4 block font-semibold">
-                  Note (optional):
-                </label>
-                <textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  onClick={(e) => e.stopPropagation()}
-                  placeholder="Was in a meeting when it hit..."
-                  rows={4}
-                  className="w-full bg-card/60 backdrop-blur-md text-card-foreground rounded-xl p-4 text-base 
-                           placeholder-muted-foreground
-                           focus:outline-none focus:ring-2 focus:ring-primary border border-border/30 resize-none"
-                />
-              </div>
-            </motion.div>
-          )}
-          </AnimatePresence>
-
-          {/* Error Message */}
-          {error && (
-            <div className="mb-4 rounded-lg border border-primary/30 bg-primary/10 p-3 text-sm text-primary">
-              {error}
-            </div>
-          )}
-
-          {/* Actions */}
+        {/* Actions - Fixed at bottom */}
+        <div className="p-4 sm:p-6 border-t border-border/30 shrink-0 bg-card/50">
           <div className="space-y-3">
             {currentStep === 1 ? (
               <>
@@ -576,8 +581,8 @@ export default function QuickLogModal({
                   onClick={handleSave}
                   disabled={isSubmitting}
                   className="w-full bg-[#ff74b1] hover:bg-primary-dark text-white 
-                           font-semibold py-4 rounded-xl transition-colors cursor-pointer
-                           disabled:opacity-50 disabled:cursor-not-allowed text-lg shadow-lg"
+                           font-bold py-4 sm:py-4 rounded-xl transition-colors cursor-pointer
+                           disabled:opacity-50 disabled:cursor-not-allowed text-xl sm:text-lg shadow-lg min-h-[56px] sm:min-h-0 active:scale-95"
                 >
                   {isSubmitting ? "Logging..." : "Log it"}
                 </button>
@@ -585,11 +590,11 @@ export default function QuickLogModal({
                 <button
                   onClick={() => setCurrentStep(2)}
                   className="w-full text-primary hover:text-primary/90 
-                           font-medium py-3 rounded-xl transition-colors cursor-pointer text-base
-                           bg-card/40 backdrop-blur-md border border-border/30 flex items-center justify-center gap-2"
+                           font-semibold py-3.5 sm:py-3 rounded-xl transition-colors cursor-pointer text-lg sm:text-base
+                           bg-card/40 backdrop-blur-md border-2 border-border/30 flex items-center justify-center gap-2 min-h-[52px] sm:min-h-0 active:scale-95"
                   type="button"
                 >
-                  <ChevronDown className="h-4 w-4" />
+                  <ChevronDown className="h-5 w-5 sm:h-4 sm:w-4" />
                   + Add details
                 </button>
               </>
@@ -598,31 +603,31 @@ export default function QuickLogModal({
                 <div className="flex gap-3">
                   <button
                     onClick={handlePrevious}
-                    className="flex-1 bg-card/40 backdrop-blur-md border border-border/30 text-muted-foreground 
-                             hover:text-card-foreground font-medium py-3 rounded-xl transition-colors cursor-pointer 
-                             flex items-center justify-center gap-2"
+                    className="flex-1 bg-card/40 backdrop-blur-md border-2 border-border/30 text-muted-foreground 
+                             hover:text-card-foreground font-semibold py-3.5 sm:py-3 rounded-xl transition-colors cursor-pointer 
+                             flex items-center justify-center gap-2 text-lg sm:text-base min-h-[52px] sm:min-h-0 active:scale-95"
                     type="button"
                   >
-                    <ChevronLeft className="h-4 w-4" />
+                    <ChevronLeft className="h-5 w-5 sm:h-4 sm:w-4" />
                     Back
                   </button>
                   {currentStep < 4 && (
                     <button
                       onClick={handleNext}
-                      className="flex-1 bg-card/40 backdrop-blur-md border border-border/30 text-primary 
-                               hover:text-primary-dark font-semibold py-3 rounded-xl transition-colors cursor-pointer
-                               flex items-center justify-center gap-2"
+                      className="flex-1 bg-card/40 backdrop-blur-md border-2 border-border/30 text-primary 
+                               hover:text-primary-dark font-bold py-3.5 sm:py-3 rounded-xl transition-colors cursor-pointer
+                               flex items-center justify-center gap-2 text-lg sm:text-base min-h-[52px] sm:min-h-0 active:scale-95"
                       type="button"
                     >
                       Next
-                      <ChevronRight className="h-4 w-4" />
+                      <ChevronRight className="h-5 w-5 sm:h-4 sm:w-4" />
                     </button>
                   )}
                   <button
                     onClick={handleSave}
                     disabled={isSubmitting}
                     className={`${currentStep < 4 ? 'flex-1' : 'flex-1'} bg-primary hover:bg-primary/90 text-primary-foreground 
-                             font-semibold py-3 rounded-xl transition-colors cursor-pointer
+                             font-bold py-3.5 sm:py-3 rounded-xl transition-colors cursor-pointer text-lg sm:text-base min-h-[52px] sm:min-h-0 active:scale-95
                              disabled:opacity-50 disabled:cursor-not-allowed`}
                   >
                     {isSubmitting ? "Logging..." : "Log it"}
