@@ -102,7 +102,7 @@ export default function HowItWorksSteps() {
 
         {/* Phone Frame Container */}
         <div className="flex justify-center my-6 sm:my-10">
-          <div className="relative w-full max-w-[280px] sm:max-w-[300px]">
+          <div className="relative w-full max-w-[240px] sm:max-w-[260px]">
             <AnimatePresence mode="wait">
               {currentStep === 1 && (
                 <SymptomTrackingPhone
@@ -253,8 +253,10 @@ function PhoneFrame({ children }: { children: React.ReactNode }) {
       }}
     >
       <div className="absolute top-3 left-1/2 -translate-x-1/2 w-20 h-5 bg-gray-900 rounded-full z-10" />
-      <div className="w-full h-full rounded-[2.25rem] bg-white overflow-hidden">
-        <div className="w-full h-full pt-8">{children}</div>
+      <div className="w-full h-full rounded-[2.25rem] bg-white overflow-hidden relative">
+        <div className="w-full h-full pt-8 pb-12">{children}</div>
+        {/* Home Indicator */}
+        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-[107px] h-1 bg-gray-900 rounded-full z-10" />
       </div>
     </div>
   )
