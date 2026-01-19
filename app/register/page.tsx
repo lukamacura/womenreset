@@ -4,7 +4,7 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { supabase } from "@/lib/supabaseClient";
 import { detectBrowser, hasBrowserMismatchIssue } from "@/lib/browserUtils";
 import {
@@ -219,6 +219,7 @@ const NOTIFICATION_MESSAGES = [
 
 export default function RegisterPage() {
   const router = useRouter();
+  const prefersReducedMotion = useReducedMotion();
 
   // Always start with quiz
   const [phase, setPhase] = useState<Phase>("quiz");
@@ -375,7 +376,7 @@ export default function RegisterPage() {
   const stepIsAnswered = useCallback((step: Step) => {
     switch (step) {
       case "q1_problems":
-        return topProblems.length === 3;
+        return topProblems.length > 0;
       case "q2_severity":
         return severity !== "";
       case "q3_timing":
@@ -429,9 +430,6 @@ export default function RegisterPage() {
     setTopProblems((prev) => {
       if (prev.includes(problemId)) {
         return prev.filter((id) => id !== problemId);
-      }
-      if (prev.length >= 3) {
-        return prev;
       }
       return [...prev, problemId];
     });
@@ -620,7 +618,7 @@ export default function RegisterPage() {
   }, [router, phase]);
 
   return (
-    <main className="overflow-x-hidden overflow-y-hidden relative mx-auto p-4 sm:p-6 h-screen flex flex-col pt-24 max-w-3xl">
+    <main className="overflow-hidden relative mx-auto p-3 sm:p-4 h-screen flex flex-col pt-20 sm:pt-24 max-w-3xl">
         {/* Random Notification Popup */}
         <AnimatePresence>
           {phase === "quiz" && showNotification && (
@@ -651,11 +649,6 @@ export default function RegisterPage() {
           )}
         </AnimatePresence>
 
-      {/* Background accents */}
-      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 opacity-40">
-        <div className="absolute -top-24 -left-24 h-56 w-56 rounded-full bg-primary/20 blur-3xl" />
-        <div className="absolute -bottom-24 -right-24 h-56 w-56 rounded-full bg-primary/10 blur-3xl" />
-      </div>
 
       {/* Results Phase */}
       {phase === "results" && (
@@ -977,38 +970,47 @@ export default function RegisterPage() {
 
       {/* Quiz Phase */}
       {phase === "quiz" && (
-        <div className="flex-1 flex flex-col min-h-0">
-          {/* Progress Bar - More visible and compact */}
-          <div className="mb-3 sm:mb-4 shrink-0">
-            <div className="flex items-center justify-between mb-2 md:pt-22">
-              <span className="text-xs sm:text-sm font-semibold text-foreground">
-                Question {stepIndex + 1} of {STEPS.length}
-              </span>
-              <span className="text-xs sm:text-sm font-semibold text-primary">
-                {Math.round(((stepIndex + 1) / STEPS.length) * 100)}%
-              </span>
-            </div>
-            <div className="h-2 sm:h-3 w-full rounded-full bg-foreground/10 overflow-hidden shadow-inner">
-              <div
-                className="h-full rounded-full bg-linear-to-r from-primary to-primary/80 transition-all duration-500 ease-out shadow-sm"
-                style={{ width: `${((stepIndex + 1) / STEPS.length) * 100}%` }}
-              />
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          {/* Animated Step Indicators */}
+          <div className="mb-4 sm:mb-5 shrink-0 pt-4 sm:pt-6">
+            <div className="flex justify-center gap-2 sm:gap-3">
+              {STEPS.map((_, index) => {
+                const stepNumber = index + 1;
+                const isActive = stepIndex === index;
+                return (
+                  <motion.div
+                    key={stepNumber}
+                    className={`h-2 rounded-full transition-colors duration-300 ${
+                      isActive
+                        ? "bg-linear-to-r from-primary to-primary/80"
+                        : "bg-foreground/20"
+                    }`}
+                    animate={{ width: isActive ? 40 : 8 }}
+                    transition={{ 
+                      type: "spring",
+                      damping: 30,
+                      stiffness: 200,
+                      duration: prefersReducedMotion ? 0 : 0.4 
+                    }}
+                  />
+                );
+              })}
             </div>
           </div>
 
-          {/* Question Content */}
+          {/* Question Content - No scrolling */}
           <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-            <div className="rounded-xl sm:rounded-2xl border border-foreground/10 bg-card backdrop-blur-sm p-4 m-2 sm:p-6 space-y-3 sm:space-y-4 flex-1 shadow-lg shadow-primary/5 overflow-y-auto">
+            <div className="rounded-xl sm:rounded-2xl border border-foreground/10 bg-card backdrop-blur-sm p-3 mx-2 sm:p-4 space-y-2 sm:space-y-3 flex-1 shadow-lg shadow-primary/5 overflow-hidden flex flex-col">
               {/* Q1: Top Problems */}
               {currentStep === "q1_problems" && (
-                <div className="space-y-3 sm:space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
-                  <div>
-                    <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-1 sm:mb-2">
+                <div className="flex-1 flex flex-col min-h-0 space-y-2 sm:space-y-3 animate-in fade-in slide-in-from-right-4 duration-300">
+                  <div className="shrink-0">
+                    <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-1">
                       What&apos;s making life hardest right now?
                     </h2>
-                    <p className="text-sm sm:text-base text-muted-foreground">Pick your TOP 3:</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground">Select all that apply:</p>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+                  <div className="flex-1 min-h-0 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-2">
                     {PROBLEM_OPTIONS.map((option) => {
                       const Icon = option.icon;
                       const isSelected = topProblems.includes(option.id);
@@ -1017,22 +1019,21 @@ export default function RegisterPage() {
                           key={option.id}
                           type="button"
                           onClick={() => toggleProblem(option.id)}
-                          disabled={!isSelected && topProblems.length >= 3}
-                          className={`p-3 sm:p-4 rounded-lg sm:rounded-xl border-2 transition-all duration-200 text-left group ${
+                          className={`p-2 sm:p-3 rounded-lg border-2 transition-all duration-200 text-left group cursor-pointer ${
                             isSelected
                               ? "border-primary bg-primary/10 shadow-md shadow-primary/20"
                               : "border-foreground/15 hover:border-primary/50 hover:bg-foreground/5"
-                          } ${!isSelected && topProblems.length >= 3 ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+                          }`}
                         >
-                          <div className="flex items-center gap-2 sm:gap-3">
-                            <div className={`p-1.5 sm:p-2 rounded-lg transition-colors shrink-0 ${
+                          <div className="flex items-center gap-2">
+                            <div className={`p-1.5 rounded-lg transition-colors shrink-0 ${
                               isSelected ? "bg-primary/20" : "bg-foreground/5 group-hover:bg-primary/10"
                             }`}>
-                              <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${isSelected ? "text-primary" : "text-muted-foreground"}`} />
+                              <Icon className={`w-4 h-4 ${isSelected ? "text-primary" : "text-muted-foreground"}`} />
                             </div>
-                            <span className="font-medium flex-1 text-sm sm:text-base">{option.label}</span>
+                            <span className="font-medium flex-1 text-xs sm:text-sm">{option.label}</span>
                             {isSelected && (
-                              <Check className="w-4 h-4 sm:w-5 sm:h-5 text-primary animate-in zoom-in duration-200 shrink-0" />
+                              <Check className="w-4 h-4 text-primary animate-in zoom-in duration-200 shrink-0" />
                             )}
                           </div>
                         </button>
@@ -1040,15 +1041,9 @@ export default function RegisterPage() {
                     })}
                   </div>
                   {topProblems.length > 0 && (
-                    <div className="flex items-center gap-2 text-xs sm:text-sm">
-                      <div className="flex-1 h-1.5 sm:h-2 rounded-full bg-foreground/10 overflow-hidden">
-                        <div
-                          className="h-full rounded-full bg-primary transition-all duration-300"
-                          style={{ width: `${(topProblems.length / 3) * 100}%` }}
-                        />
-                      </div>
-                      <span className="text-muted-foreground font-medium min-w-20 sm:min-w-[100px] text-right">
-                        {topProblems.length} of 3
+                    <div className="flex items-center justify-center gap-1 text-xs shrink-0 pt-1">
+                      <span className="text-muted-foreground font-medium">
+                        {topProblems.length} {topProblems.length === 1 ? 'symptom' : 'symptoms'} selected
                       </span>
                     </div>
                   )}
@@ -1057,13 +1052,13 @@ export default function RegisterPage() {
 
               {/* Q2: Severity */}
               {currentStep === "q2_severity" && (
-                <div className="space-y-3 sm:space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
-                  <div>
-                    <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-1 sm:mb-2">
+                <div className="flex-1 flex flex-col min-h-0 space-y-2 sm:space-y-3 animate-in fade-in slide-in-from-right-4 duration-300">
+                  <div className="shrink-0">
+                    <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-1">
                       How much is this affecting your daily life?
                     </h2>
                   </div>
-                  <div className="space-y-2 sm:space-y-3">
+                  <div className="flex-1 min-h-0 overflow-y-auto space-y-1.5 sm:space-y-2">
                     {SEVERITY_OPTIONS.map((option) => {
                       const Icon = option.icon;
                       const isSelected = severity === option.id;
@@ -1072,21 +1067,21 @@ export default function RegisterPage() {
                           key={option.id}
                           type="button"
                           onClick={() => setSeverity(option.id)}
-                          className={`w-full p-3 sm:p-4 rounded-lg sm:rounded-xl border-2 text-left transition-all duration-200 group ${
+                          className={`w-full p-2.5 sm:p-3 rounded-lg border-2 text-left transition-all duration-200 group ${
                             isSelected
                               ? "border-primary bg-primary/10 shadow-md shadow-primary/20"
                               : "border-foreground/15 hover:border-primary/50 hover:bg-foreground/5"
                           }`}
                         >
-                          <div className="flex items-center gap-2 sm:gap-3">
-                            <div className={`p-1.5 sm:p-2 rounded-lg transition-colors shrink-0 ${
+                          <div className="flex items-center gap-2">
+                            <div className={`p-1.5 rounded-lg transition-colors shrink-0 ${
                               isSelected ? "bg-primary/20" : "bg-foreground/5 group-hover:bg-primary/10"
                             }`}>
-                              <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${isSelected ? "text-primary" : "text-muted-foreground"}`} />
+                              <Icon className={`w-4 h-4 ${isSelected ? "text-primary" : "text-muted-foreground"}`} />
                             </div>
-                            <span className="font-medium flex-1 text-sm sm:text-base">{option.label}</span>
+                            <span className="font-medium flex-1 text-xs sm:text-sm">{option.label}</span>
                             {isSelected && (
-                              <Check className="w-4 h-4 sm:w-5 sm:h-5 text-primary animate-in zoom-in duration-200 shrink-0" />
+                              <Check className="w-4 h-4 text-primary animate-in zoom-in duration-200 shrink-0" />
                             )}
                           </div>
                         </button>
@@ -1098,13 +1093,13 @@ export default function RegisterPage() {
 
               {/* Q3: Timing */}
               {currentStep === "q3_timing" && (
-                <div className="space-y-3 sm:space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
-                  <div>
-                    <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-1 sm:mb-2">
+                <div className="flex-1 flex flex-col min-h-0 space-y-2 sm:space-y-3 animate-in fade-in slide-in-from-right-4 duration-300">
+                  <div className="shrink-0">
+                    <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-1">
                       When did symptoms start?
                     </h2>
                   </div>
-                  <div className="space-y-2 sm:space-y-3">
+                  <div className="flex-1 min-h-0 overflow-y-auto space-y-1.5 sm:space-y-2">
                     {TIMING_OPTIONS.map((option) => {
                       const Icon = option.icon;
                       const isSelected = timing === option.id;
@@ -1113,21 +1108,21 @@ export default function RegisterPage() {
                           key={option.id}
                           type="button"
                           onClick={() => setTiming(option.id)}
-                          className={`w-full p-3 sm:p-4 rounded-lg sm:rounded-xl border-2 text-left transition-all duration-200 group ${
+                          className={`w-full p-2.5 sm:p-3 rounded-lg border-2 text-left transition-all duration-200 group ${
                             isSelected
                               ? "border-primary bg-primary/10 shadow-md shadow-primary/20"
                               : "border-foreground/15 hover:border-primary/50 hover:bg-foreground/5"
                           }`}
                         >
-                          <div className="flex items-center gap-2 sm:gap-3">
-                            <div className={`p-1.5 sm:p-2 rounded-lg transition-colors shrink-0 ${
+                          <div className="flex items-center gap-2">
+                            <div className={`p-1.5 rounded-lg transition-colors shrink-0 ${
                               isSelected ? "bg-primary/20" : "bg-foreground/5 group-hover:bg-primary/10"
                             }`}>
-                              <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${isSelected ? "text-primary" : "text-muted-foreground"}`} />
+                              <Icon className={`w-4 h-4 ${isSelected ? "text-primary" : "text-muted-foreground"}`} />
                             </div>
-                            <span className="font-medium flex-1 text-sm sm:text-base">{option.label}</span>
+                            <span className="font-medium flex-1 text-xs sm:text-sm">{option.label}</span>
                             {isSelected && (
-                              <Check className="w-4 h-4 sm:w-5 sm:h-5 text-primary animate-in zoom-in duration-200 shrink-0" />
+                              <Check className="w-4 h-4 text-primary animate-in zoom-in duration-200 shrink-0" />
                             )}
                           </div>
                         </button>
@@ -1139,14 +1134,14 @@ export default function RegisterPage() {
 
               {/* Q4: What They've Tried */}
               {currentStep === "q4_tried" && (
-                <div className="space-y-3 sm:space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
-                  <div>
-                    <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-1 sm:mb-2">
+                <div className="flex-1 flex flex-col min-h-0 space-y-2 sm:space-y-3 animate-in fade-in slide-in-from-right-4 duration-300">
+                  <div className="shrink-0">
+                    <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-1">
                       What have you tried so far?
                     </h2>
-                    <p className="text-sm sm:text-base text-muted-foreground">Pick any that apply:</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground">Pick any that apply:</p>
                   </div>
-                  <div className="space-y-2 sm:space-y-3">
+                  <div className="flex-1 min-h-0 overflow-y-auto space-y-1.5 sm:space-y-2">
                     {TRIED_OPTIONS.map((option) => {
                       const Icon = option.icon;
                       const isSelected = triedOptions.includes(option.id);
@@ -1155,21 +1150,21 @@ export default function RegisterPage() {
                           key={option.id}
                           type="button"
                           onClick={() => toggleTriedOption(option.id)}
-                          className={`w-full p-3 sm:p-4 rounded-lg sm:rounded-xl border-2 text-left transition-all duration-200 group ${
+                          className={`w-full p-2.5 sm:p-3 rounded-lg border-2 text-left transition-all duration-200 group ${
                             isSelected
                               ? "border-primary bg-primary/10 shadow-md shadow-primary/20"
                               : "border-foreground/15 hover:border-primary/50 hover:bg-foreground/5"
                           }`}
                         >
-                          <div className="flex items-center gap-2 sm:gap-3">
-                            <div className={`p-1.5 sm:p-2 rounded-lg transition-colors shrink-0 ${
+                          <div className="flex items-center gap-2">
+                            <div className={`p-1.5 rounded-lg transition-colors shrink-0 ${
                               isSelected ? "bg-primary/20" : "bg-foreground/5 group-hover:bg-primary/10"
                             }`}>
-                              <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${isSelected ? "text-primary" : "text-muted-foreground"}`} />
+                              <Icon className={`w-4 h-4 ${isSelected ? "text-primary" : "text-muted-foreground"}`} />
                             </div>
-                            <span className="font-medium flex-1 text-sm sm:text-base">{option.label}</span>
+                            <span className="font-medium flex-1 text-xs sm:text-sm">{option.label}</span>
                             {isSelected && (
-                              <Check className="w-4 h-4 sm:w-5 sm:h-5 text-primary animate-in zoom-in duration-200 shrink-0" />
+                              <Check className="w-4 h-4 text-primary animate-in zoom-in duration-200 shrink-0" />
                             )}
                           </div>
                         </button>
@@ -1181,13 +1176,13 @@ export default function RegisterPage() {
 
               {/* Q5: Doctor Status */}
               {currentStep === "q5_doctor" && (
-                <div className="space-y-3 sm:space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
-                  <div>
-                    <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-1 sm:mb-2">
+                <div className="flex-1 flex flex-col min-h-0 space-y-2 sm:space-y-3 animate-in fade-in slide-in-from-right-4 duration-300">
+                  <div className="shrink-0">
+                    <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-1">
                       Are you working with a doctor on this?
                     </h2>
                   </div>
-                  <div className="space-y-2 sm:space-y-3">
+                  <div className="flex-1 min-h-0 overflow-y-auto space-y-1.5 sm:space-y-2">
                     {DOCTOR_OPTIONS.map((option) => {
                       const Icon = option.icon;
                       const isSelected = doctorStatus === option.id;
@@ -1196,21 +1191,21 @@ export default function RegisterPage() {
                           key={option.id}
                           type="button"
                           onClick={() => setDoctorStatus(option.id)}
-                          className={`w-full p-3 sm:p-4 rounded-lg sm:rounded-xl border-2 text-left transition-all duration-200 group ${
+                          className={`w-full p-2.5 sm:p-3 rounded-lg border-2 text-left transition-all duration-200 group ${
                             isSelected
                               ? "border-primary bg-primary/10 shadow-md shadow-primary/20"
                               : "border-foreground/15 hover:border-primary/50 hover:bg-foreground/5"
                           }`}
                         >
-                          <div className="flex items-center gap-2 sm:gap-3">
-                            <div className={`p-1.5 sm:p-2 rounded-lg transition-colors shrink-0 ${
+                          <div className="flex items-center gap-2">
+                            <div className={`p-1.5 rounded-lg transition-colors shrink-0 ${
                               isSelected ? "bg-primary/20" : "bg-foreground/5 group-hover:bg-primary/10"
                             }`}>
-                              <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${isSelected ? "text-primary" : "text-muted-foreground"}`} />
+                              <Icon className={`w-4 h-4 ${isSelected ? "text-primary" : "text-muted-foreground"}`} />
                             </div>
-                            <span className="font-medium flex-1 text-sm sm:text-base">{option.label}</span>
+                            <span className="font-medium flex-1 text-xs sm:text-sm">{option.label}</span>
                             {isSelected && (
-                              <Check className="w-4 h-4 sm:w-5 sm:h-5 text-primary animate-in zoom-in duration-200 shrink-0" />
+                              <Check className="w-4 h-4 text-primary animate-in zoom-in duration-200 shrink-0" />
                             )}
                           </div>
                         </button>
@@ -1222,14 +1217,14 @@ export default function RegisterPage() {
 
               {/* Q6: Goal */}
               {currentStep === "q6_goal" && (
-                <div className="space-y-3 sm:space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
-                  <div>
-                    <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-1 sm:mb-2">
+                <div className="flex-1 flex flex-col min-h-0 space-y-2 sm:space-y-3 animate-in fade-in slide-in-from-right-4 duration-300">
+                  <div className="shrink-0">
+                    <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-1">
                       What would success look like for you?
                     </h2>
-                    <p className="text-sm sm:text-base text-muted-foreground">Pick any that apply:</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground">Pick any that apply:</p>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+                  <div className="flex-1 min-h-0 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-2">
                     {GOAL_OPTIONS.map((option) => {
                       const Icon = option.icon;
                       const isSelected = goal.includes(option.id);
@@ -1238,21 +1233,21 @@ export default function RegisterPage() {
                           key={option.id}
                           type="button"
                           onClick={() => toggleGoal(option.id)}
-                          className={`p-3 sm:p-4 rounded-lg sm:rounded-xl border-2 transition-all duration-200 text-left group ${
+                          className={`p-2 sm:p-3 rounded-lg border-2 transition-all duration-200 text-left group ${
                             isSelected
                               ? "border-primary bg-primary/10 shadow-md shadow-primary/20"
                               : "border-foreground/15 hover:border-primary/50 hover:bg-foreground/5"
                           }`}
                         >
-                          <div className="flex items-center gap-2 sm:gap-3">
-                            <div className={`p-1.5 sm:p-2 rounded-lg transition-colors shrink-0 ${
+                          <div className="flex items-center gap-2">
+                            <div className={`p-1.5 rounded-lg transition-colors shrink-0 ${
                               isSelected ? "bg-primary/20" : "bg-foreground/5 group-hover:bg-primary/10"
                             }`}>
-                              <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${isSelected ? "text-primary" : "text-muted-foreground"}`} />
+                              <Icon className={`w-4 h-4 ${isSelected ? "text-primary" : "text-muted-foreground"}`} />
                             </div>
-                            <span className="font-medium flex-1 text-sm sm:text-base">{option.label}</span>
+                            <span className="font-medium flex-1 text-xs sm:text-sm">{option.label}</span>
                             {isSelected && (
-                              <Check className="w-4 h-4 sm:w-5 sm:h-5 text-primary animate-in zoom-in duration-200 shrink-0" />
+                              <Check className="w-4 h-4 text-primary animate-in zoom-in duration-200 shrink-0" />
                             )}
                           </div>
                         </button>
@@ -1264,12 +1259,12 @@ export default function RegisterPage() {
 
               {/* Q7: Name */}
               {currentStep === "q7_name" && (
-                <div className="space-y-3 sm:space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
+                <div className="flex-1 flex flex-col justify-center space-y-3 sm:space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
                   <div>
-                    <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-1 sm:mb-2">
+                    <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-1">
                       What should Lisa call you?
                     </h2>
-                    <p className="text-sm sm:text-base text-muted-foreground">
+                    <p className="text-xs sm:text-sm text-muted-foreground">
                       Lisa will use this to personalize your experience
                     </p>
                   </div>
@@ -1294,24 +1289,24 @@ export default function RegisterPage() {
             </div>
 
             {/* Navigation Buttons - Fixed at bottom */}
-            <div className="flex items-center justify-between mt-3 sm:mt-4 gap-3 sm:gap-4 shrink-0 py-3 sm:py-4">
+            <div className="flex items-center justify-between mt-2 gap-2 shrink-0 py-2 border-t border-foreground/10">
               <button
                 type="button"
                 onClick={goBack}
                 disabled={stepIndex === 0}
-                className="flex items-center gap-1.5 sm:gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-lg sm:rounded-xl border-2 border-foreground/15 hover:bg-foreground/5 hover:border-foreground/25 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent font-medium text-sm sm:text-base"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg border-2 border-foreground/15 hover:bg-foreground/5 hover:border-foreground/25 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent font-medium text-xs sm:text-sm"
               >
-                <ArrowLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <ArrowLeft className="w-3.5 h-3.5" />
                 Back
               </button>
               <button
                 type="button"
                 onClick={goNext}
                 disabled={!stepIsAnswered(currentStep)}
-                className="flex items-center gap-1.5 sm:gap-2 px-5 sm:px-6 py-2.5 sm:py-3 rounded-lg sm:rounded-xl bg-primary text-primary-foreground hover:brightness-110 hover:shadow-lg hover:shadow-primary/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:brightness-100 disabled:hover:shadow-none font-semibold text-sm sm:text-base"
+                className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:brightness-110 hover:shadow-lg hover:shadow-primary/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:brightness-100 disabled:hover:shadow-none font-semibold text-xs sm:text-sm"
               >
                 {stepIndex === STEPS.length - 1 ? "Continue" : "Next"}
-                <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
           </div>

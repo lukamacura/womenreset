@@ -1465,39 +1465,60 @@ function ChatPageInner() {
     const id = uid();
     const now = Date.now();
 
-    // Fetch personalized greeting
-    let greeting = "Hey, it's Lisa 🌸🌸🌸";
+    // Welcome messages array
+    const welcomeMessages = [
+      "Hi there, (NAME)! How are you doing today?",
+      "Hey, (NAME)! What can I help you with?",
+      "Hey, (NAME)! What's going on?",
+      "Hi, (NAME)! What would you like to talk about today?",
+      "Hey there, (NAME)! What do you need today?",
+      "Hi, (NAME)! How can I help?",
+      "Hey, (NAME)! Good to hear from you. What's up?",
+      "Hello, (NAME)! I'm here - what's on your mind?",
+    ];
 
+    // Get user's name
+    let userName: string | null = null;
     if (userId) {
       try {
-        const res = await fetch("/api/langchain-rag", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            user_id: userId,
-            sessionId: id,
-            userInput: "",
-            stream: false,
-          }),
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          if (data.content) { // Changed from data.reply
-            // Strip markdown formatting from personalized greeting
-            let personalizedGreeting = data.content; // Changed from data.reply
-            // Remove markdown headers, bold, etc.
-            personalizedGreeting = personalizedGreeting.replace(/^#+\s*/gm, '');
-            personalizedGreeting = personalizedGreeting.replace(/\*\*(.*?)\*\*/g, '$1');
-            personalizedGreeting = personalizedGreeting.replace(/\*(.*?)\*/g, '$1');
-            personalizedGreeting = personalizedGreeting.replace(/\n\n+/g, '\n').trim();
-            greeting = personalizedGreeting || "Hey, it's Lisa";
-          }
+        const { data: profile } = await supabase
+          .from("user_profiles")
+          .select("name")
+          .eq("user_id", userId)
+          .single();
+        
+        if (profile?.name) {
+          // Extract first name from name field (could be full name or just first name)
+          const nameParts = profile.name.trim().split(/\s+/);
+          userName = nameParts[0] || profile.name;
         }
       } catch (error) {
-        // Use default greeting on error
-        console.error("Error fetching personalized greeting:", error);
+        console.error("Error fetching user profile:", error);
       }
+    }
+
+    // Select random welcome message
+    const randomMessage = welcomeMessages[Math.floor(Math.random() * welcomeMessages.length)];
+    
+    // Replace (NAME) with actual name - if no name, use generic greetings without name
+    let greeting: string;
+    if (userName) {
+      greeting = randomMessage.replace("(NAME)", userName);
+    } else {
+      // Use generic versions when no name is available
+      const genericMessages = [
+        "Hi there! How are you doing today?",
+        "Hey! What can I help you with?",
+        "Hey! What's going on?",
+        "Hi! What would you like to talk about today?",
+        "Hey there! What do you need today?",
+        "Hi! How can I help?",
+        "Hey! Good to hear from you. What's up?",
+        "Hello! I'm here - what's on your mind?",
+      ];
+      // Use the same index as the selected message for consistency
+      const messageIndex = welcomeMessages.indexOf(randomMessage);
+      greeting = genericMessages[messageIndex] || genericMessages[0];
     }
 
     const conv: Conversation = {
