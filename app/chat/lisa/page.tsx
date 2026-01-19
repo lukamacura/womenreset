@@ -1294,18 +1294,15 @@ function ToastNotificationComponent({ notification, onDismiss }: { notification:
       style={{ pointerEvents: 'auto' }}
     >
       <div
-        className="rounded-xl shadow-xl border-2 px-3 py-3 sm:px-4 sm:py-4 bg-white/90 border-fuchsia-200 backdrop-blur-lg flex flex-col"
-        style={{
-          background: "rgba(253, 244, 255, 0.95)",
-          borderColor: THEME.fuchsia[200],
-        }}
+        className="rounded-2xl shadow-xl border-2 px-3 py-3 sm:px-4 sm:py-4 bg-card border-fuchsia-200 backdrop-blur-lg flex flex-col"
+
       >
         <div className="flex items-center gap-3">
           <div className="shrink-0 flex items-center justify-center h-9 w-9 rounded-full bg-fuchsia-100 ring-2 ring-fuchsia-200">
             <Sparkles className="h-5 w-5 text-fuchsia-500" />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="font-semibold text-base sm:text-sm text-fuchsia-900" style={{ color: THEME.text[900] }}>
+            <div className="font-bold text-base sm:text-sm text-fuchsia-900" style={{ color: THEME.text[900] }}>
               {notification.title}
             </div>
             <div className="text-sm mt-1 text-fuchsia-800" style={{ color: THEME.text[700] }}>
@@ -1780,7 +1777,21 @@ function ChatPageInner() {
                       
                       if (toolName === "log_symptom") {
                         title = "Symptom Logged";
-                        message = `${toolArgs.name} (severity ${toolArgs.severity}/10)`;
+                        // Format severity: capitalize first letter (mild -> Mild, moderate -> Moderate, severe -> Severe)
+                        const severityLabel = toolArgs.severity 
+                          ? toolArgs.severity.charAt(0).toUpperCase() + toolArgs.severity.slice(1)
+                          : 'Unknown';
+                        
+                        // Build message with symptom name and severity
+                        const messageParts = [`${toolArgs.name}`, `Severity: ${severityLabel}`];
+                        
+                        // Add triggers if they exist
+                        if (toolArgs.triggers && Array.isArray(toolArgs.triggers) && toolArgs.triggers.length > 0) {
+                          const triggersText = toolArgs.triggers.join(', ');
+                          messageParts.push(`Triggers: ${triggersText}`);
+                        }
+                        
+                        message = messageParts.join(' | ');
                       } else if (toolName === "log_nutrition") {
                         title = "Meal Logged";
                         message = `${toolArgs.food_item} (${toolArgs.meal_type})`;

@@ -837,14 +837,15 @@ IMPORTANT: The user is engaging in casual conversation, not asking for informati
     const tools = [
       new DynamicStructuredTool({
         name: "log_symptom",
-        description: "Automatically log a symptom entry for the user WITHOUT asking for permission. Use this immediately when the user mentions experiencing a symptom, even casually. Extract the symptom name, severity level (mild/moderate/severe), optional notes, and date/time reference from the user's message (e.g., 'yesterday', '2 days ago', 'this morning'). If no date is mentioned, use current time. Do NOT ask the user if they want to log it - just log it automatically.",
+        description: "Automatically log a symptom entry for the user WITHOUT asking for permission. Use this immediately when the user mentions experiencing a symptom, even casually. Extract the symptom name, severity level (mild/moderate/severe), optional triggers (what might have caused it), optional notes, and date/time reference from the user's message (e.g., 'yesterday', '2 days ago', 'this morning'). If no date is mentioned, use current time. Do NOT ask the user if they want to log it - just log it automatically.",
         schema: z.object({
           name: z.string().describe("The name of the symptom (e.g., 'hot flashes', 'sleep disturbance', 'mood swings')"),
           severity: z.enum(["mild", "moderate", "severe"]).describe("Severity level: 'mild' (noticeable but manageable), 'moderate' (affecting my day), or 'severe' (hard to function)"),
+          triggers: z.array(z.string()).optional().describe("Optional array of triggers that might have caused the symptom (e.g., ['Stress', 'Poor sleep', 'Coffee', 'Spicy food', 'Exercise', 'Hot weather', 'Work', 'Travel', 'Hormonal', 'Unknown']). Only include if the user mentions what might have triggered it."),
           notes: z.string().optional().describe("Optional additional notes about the symptom"),
           date_reference: z.string().optional().describe("Date/time reference from user's message (e.g., 'yesterday', '2 days ago', 'this morning', 'last night'). Use the exact phrase from the user's message if present, otherwise omit."),
         }),
-        func: async ({ name, severity, notes }) => {
+        func: async ({ name, severity, triggers, notes }) => {
           try {
 
             // Map severity text to number (1=mild, 2=moderate, 3=severe)
@@ -889,6 +890,13 @@ IMPORTANT: The user is engaging in casual conversation, not asking for informati
               symptomDef = newSymptom;
             }
 
+            // Normalize triggers: ensure they're valid strings and filter out empty values
+            const normalizedTriggers = triggers 
+              ? triggers
+                  .map(t => t.trim())
+                  .filter(t => t.length > 0)
+              : [];
+
             // Now insert into symptom_logs
             const { error: logError } = await supabaseClient
               .from("symptom_logs")
@@ -897,7 +905,7 @@ IMPORTANT: The user is engaging in casual conversation, not asking for informati
                   user_id,
                   symptom_id: symptomDef.id,
                   severity: severityNumber,
-                  triggers: [],
+                  triggers: normalizedTriggers,
                   notes: notes?.trim() || null,
                 },
               ]);
@@ -907,7 +915,10 @@ IMPORTANT: The user is engaging in casual conversation, not asking for informati
             }
             
             const severityLabel = severity.charAt(0).toUpperCase() + severity.slice(1);
-            return `Successfully logged 📝 symptom: ${name} (${severityLabel})`;
+            const triggersText = normalizedTriggers.length > 0 
+              ? ` | Triggers: ${normalizedTriggers.join(', ')}`
+              : '';
+            return `Successfully logged 📝 symptom: ${name} (${severityLabel})${triggersText}`;
           } catch (e: unknown) {
             const errorMessage = e instanceof Error ? e.message : String(e);
             return `Error logging symptom: ${errorMessage}`;
