@@ -20,22 +20,22 @@ import {
 const smoothSpring = {
   type: "spring" as const,
   damping: 30,
-  stiffness: 200,
+  stiffness: 400,
 }
 
 const ultraSmoothSpring = {
   type: "spring" as const,
   damping: 35,
-  stiffness: 150,
+  stiffness: 350,
 }
 
-// Animation timing constants (in ms) - KEEPING SAME
+// Animation timing constants (in ms) - OPTIMIZED FOR SPEED
 const TIMING = {
-  CROSSFADE: 500,
-  STEP_HOLD: 1500,
-  STEP_1_ANIMATION: 2000,
-  STEP_2_ANIMATION: 2500,
-  STEP_3_ANIMATION: 2500,
+  CROSSFADE: 300,
+  STEP_HOLD: 900,
+  STEP_1_ANIMATION: 1200,
+  STEP_2_ANIMATION: 1400,
+  STEP_3_ANIMATION: 1400,
 } as const
 
 export default function HowItWorksSteps() {
@@ -108,18 +108,21 @@ export default function HowItWorksSteps() {
                 <SymptomTrackingPhone
                   key="step-1"
                   prefersReducedMotion={!!prefersReducedMotion}
+                  isInView={isInView}
                 />
               )}
               {currentStep === 2 && (
                 <DataTimelinePhone
                   key="step-2"
                   prefersReducedMotion={!!prefersReducedMotion}
+                  isInView={isInView}
                 />
               )}
               {currentStep === 3 && (
                 <ChatInterfacePhone
                   key="step-3"
                   prefersReducedMotion={!!prefersReducedMotion}
+                  isInView={isInView}
                 />
               )}
             </AnimatePresence>
@@ -273,8 +276,10 @@ const phoneTransition = {
 // ============================================
 function SymptomTrackingPhone({
   prefersReducedMotion,
+  isInView,
 }: {
   prefersReducedMotion: boolean
+  isInView: boolean
 }) {
   const [phase, setPhase] = useState(0)
 
@@ -437,8 +442,10 @@ function SymptomTrackingPhone({
 // ============================================
 function DataTimelinePhone({
   prefersReducedMotion,
+  isInView,
 }: {
   prefersReducedMotion: boolean
+  isInView: boolean
 }) {
   const [phase, setPhase] = useState(0)
   const symptomDays = useMemo(() => [3, 7, 10, 14, 17, 21, 24], [])
@@ -571,8 +578,10 @@ function DataTimelinePhone({
 // ============================================
 function ChatInterfacePhone({
   prefersReducedMotion,
+  isInView,
 }: {
   prefersReducedMotion: boolean
+  isInView: boolean
 }) {
   const [phase, setPhase] = useState(0)
   const [revealedLines, setRevealedLines] = useState(0)
@@ -665,7 +674,7 @@ function ChatInterfacePhone({
                         <motion.div
                           key={i}
                           className="w-2 h-2 bg-[#FF6B9D] rounded-full"
-                          animate={{ y: [0, -4, 0] }}
+                          animate={isInView && !prefersReducedMotion ? { y: [0, -4, 0] } : {}}
                           transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.15, ease: "easeInOut" }}
                         />
                       ))}
@@ -723,7 +732,7 @@ function ChatInterfacePhone({
                       ))}
                       
                       {/* Typing cursor while revealing */}
-                      {!prefersReducedMotion && revealedLines < lisaResponse.length && (
+                      {!prefersReducedMotion && isInView && revealedLines < lisaResponse.length && (
                         <motion.span
                           className="inline-block w-1 h-3 bg-[#FF6B9D] rounded-sm"
                           animate={{ opacity: [1, 0] }}

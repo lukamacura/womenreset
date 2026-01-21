@@ -257,30 +257,30 @@ export default function QuestionStorm() {
       // Phase 2: Peak chaos - all questions visible, pulsing (faster)
       timeouts.push(setTimeout(() => {
         if (mounted) setPhase('peak')
-      }, 1500))
+      }, 900))
 
       // Phase 3: Lisa appears
       timeouts.push(setTimeout(() => {
         if (mounted) setPhase('lisa-appears')
-      }, 2800))
+      }, 1700))
 
       // Phase 4: Resolution - questions fade out
       timeouts.push(setTimeout(() => {
         if (mounted) setPhase('resolution')
-      }, 3800))
+      }, 2300))
 
       // Phase 5: Calm - final state with Lisa
       timeouts.push(setTimeout(() => {
         if (mounted) setPhase('calm')
-      }, 4800))
+      }, 2900))
 
       // Restart cycle - shorter pause
       timeouts.push(setTimeout(() => {
         if (mounted) {
           setPhase('intro')
-          setTimeout(runCycle, 400)
+          setTimeout(runCycle, 300)
         }
-      }, 8000))
+      }, 5000))
     }
 
     // Start the cycle quickly

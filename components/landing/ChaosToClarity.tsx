@@ -92,25 +92,25 @@ export default function ChaosToClarity() {
       // Start with chaos
       setPhase('chaos')
       
-      // After 2s: start organizing
+      // After 1.2s: start organizing
       timeouts.push(setTimeout(() => {
         if (mounted) setPhase('organizing')
-      }, 2000))
+      }, 1200))
       
-      // After 3s: fully organized
+      // After 1.8s: fully organized
       timeouts.push(setTimeout(() => {
         if (mounted) setPhase('organized')
-      }, 3000))
+      }, 1800))
       
-      // After 4s: show clarity
+      // After 2.4s: show clarity
       timeouts.push(setTimeout(() => {
         if (mounted) setPhase('clarity')
-      }, 4000))
+      }, 2400))
       
-      // After 7s: restart cycle
+      // After 4.2s: restart cycle
       timeouts.push(setTimeout(() => {
         if (mounted) runCycle()
-      }, 7000))
+      }, 4200))
     }
 
     runCycle()

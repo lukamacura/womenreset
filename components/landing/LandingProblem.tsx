@@ -8,13 +8,13 @@ import { Check, FileText, MessageCircle, Send } from "lucide-react"
 const smoothSpring = {
   type: "spring" as const,
   damping: 30,
-  stiffness: 200,
+  stiffness: 400,
 }
 
 const ultraSmoothSpring = {
   type: "spring" as const,
   damping: 40,
-  stiffness: 150,
+  stiffness: 350,
 }
 
 // ============================================
@@ -552,7 +552,7 @@ export default function LandingProblem() {
 
     const interval = setInterval(() => {
       setCurrentStep((prev) => (prev % 3) + 1)
-    }, 5000)
+    }, 3000)
 
     return () => clearInterval(interval)
   }, [prefersReducedMotion, isInView])

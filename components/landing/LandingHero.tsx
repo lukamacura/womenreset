@@ -157,7 +157,7 @@ export default function LandingHero() {
 
     const interval = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % heroContent.length)
-    }, 4000)
+    }, 2400)
 
     return () => clearInterval(interval)
   }, [isHovered, prefersReducedMotion])

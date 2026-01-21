@@ -23,20 +23,20 @@ import {
 const smoothSpring = {
   type: "spring" as const,
   damping: 30,
-  stiffness: 200,
+  stiffness: 400,
 }
 
 const ultraSmoothSpring = {
   type: "spring" as const,
   damping: 35,
-  stiffness: 150,
+  stiffness: 350,
 }
 
-// Animation timing constants (KEEPING SAME)
+// Animation timing constants (OPTIMIZED FOR SPEED)
 const TIMING = {
-  CROSSFADE: 500,
-  FEATURE_HOLD: 2000,
-  ANIMATION_DURATION: 2000,
+  CROSSFADE: 300,
+  FEATURE_HOLD: 1200,
+  ANIMATION_DURATION: 1200,
 } as const
 
 const features = [
@@ -130,24 +130,28 @@ export default function FeatureTheater() {
                 <AskAnythingPhone
                   key="feature-0"
                   prefersReducedMotion={!!prefersReducedMotion}
+                  isInView={isInView}
                 />
               )}
               {currentFeature === 1 && (
                 <SymptomTimelinePhone
                   key="feature-1"
                   prefersReducedMotion={!!prefersReducedMotion}
+                  isInView={isInView}
                 />
               )}
               {currentFeature === 2 && (
                 <WeeklySummaryPhone
                   key="feature-2"
                   prefersReducedMotion={!!prefersReducedMotion}
+                  isInView={isInView}
                 />
               )}
               {currentFeature === 3 && (
                 <ShareableReportsPhone
                   key="feature-3"
                   prefersReducedMotion={!!prefersReducedMotion}
+                  isInView={isInView}
                 />
               )}
             </AnimatePresence>
@@ -308,8 +312,10 @@ const phoneTransition = {
 // ============================================
 function AskAnythingPhone({
   prefersReducedMotion,
+  isInView,
 }: {
   prefersReducedMotion: boolean
+  isInView: boolean
 }) {
   const [phase, setPhase] = useState(0)
   const [revealedLines, setRevealedLines] = useState(0)
@@ -422,7 +428,7 @@ function AskAnythingPhone({
                         <motion.div
                           key={i}
                           className="w-1.5 h-1.5 bg-[#FF6B9D] rounded-full"
-                          animate={{ y: [0, -3, 0] }}
+                          animate={isInView && !prefersReducedMotion ? { y: [0, -3, 0] } : {}}
                           transition={{ duration: 0.5, repeat: Infinity, delay: i * 0.12, ease: "easeInOut" }}
                         />
                       ))}
@@ -473,7 +479,7 @@ function AskAnythingPhone({
                           )}
                         </motion.div>
                       ))}
-                      {!prefersReducedMotion && revealedLines < lisaResponse.length && (
+                      {!prefersReducedMotion && isInView && revealedLines < lisaResponse.length && (
                         <motion.span
                           className="inline-block w-0.5 h-2.5 bg-[#FF6B9D] rounded-sm"
                           animate={{ opacity: [1, 0] }}
@@ -507,8 +513,10 @@ function AskAnythingPhone({
 // ============================================
 function SymptomTimelinePhone({
   prefersReducedMotion,
+  isInView,
 }: {
   prefersReducedMotion: boolean
+  isInView: boolean
 }) {
   const [phase, setPhase] = useState(0)
 
@@ -626,8 +634,10 @@ function SymptomTimelinePhone({
 // ============================================
 function WeeklySummaryPhone({
   prefersReducedMotion,
+  isInView,
 }: {
   prefersReducedMotion: boolean
+  isInView: boolean
 }) {
   const [phase, setPhase] = useState(0)
 
@@ -739,8 +749,10 @@ function WeeklySummaryPhone({
 // ============================================
 function ShareableReportsPhone({
   prefersReducedMotion,
+  isInView,
 }: {
   prefersReducedMotion: boolean
+  isInView: boolean
 }) {
   const [phase, setPhase] = useState(0)
 

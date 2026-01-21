@@ -2,18 +2,41 @@
 
 import { useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import dynamic from "next/dynamic";
 import LandingHero from "@/components/landing/LandingHero";
-import LandingProblem from "@/components/landing/LandingProblem";
-import LandingSocialProof from "@/components/landing/LandingSocialProof";
-import LandingPricing from "@/components/landing/LandingPricing";
-import LandingFAQ from "@/components/landing/LandingFAQ";
-import LandingFinalCTA from "@/components/landing/LandingFinalCTA";
-import LandingFooter from "@/components/landing/LandingFooter";
-import HomeSwipeButton from "@/components/HomeSwipeButton";
-import ChaosToClarity from "@/components/landing/ChaosToClarity";
-import QuestionStorm from "@/components/landing/QuestionStorm";
-import HowItWorksSteps from "@/components/landing/HowItWorksSteps";
-import FeatureTheater from "@/components/landing/FeatureTheater";
+
+// Lazy load below-the-fold components for better initial page load
+const QuestionStorm = dynamic(() => import("@/components/landing/QuestionStorm"), {
+  loading: () => <div className="h-[500px]" />
+});
+const ChaosToClarity = dynamic(() => import("@/components/landing/ChaosToClarity"), {
+  loading: () => <div className="h-[500px]" />
+});
+const LandingProblem = dynamic(() => import("@/components/landing/LandingProblem"), {
+  loading: () => <div className="h-[400px]" />
+});
+const HowItWorksSteps = dynamic(() => import("@/components/landing/HowItWorksSteps"), {
+  loading: () => <div className="h-[600px]" />
+});
+const FeatureTheater = dynamic(() => import("@/components/landing/FeatureTheater"), {
+  loading: () => <div className="h-[600px]" />
+});
+const LandingSocialProof = dynamic(() => import("@/components/landing/LandingSocialProof"), {
+  loading: () => <div className="h-[300px]" />
+});
+const LandingPricing = dynamic(() => import("@/components/landing/LandingPricing"), {
+  loading: () => <div className="h-[600px]" />
+});
+const LandingFAQ = dynamic(() => import("@/components/landing/LandingFAQ"), {
+  loading: () => <div className="h-[400px]" />
+});
+const LandingFinalCTA = dynamic(() => import("@/components/landing/LandingFinalCTA"), {
+  loading: () => <div className="h-[200px]" />
+});
+const LandingFooter = dynamic(() => import("@/components/landing/LandingFooter"), {
+  loading: () => <div className="h-[200px]" />
+});
+const HomeSwipeButton = dynamic(() => import("@/components/HomeSwipeButton"));
 
 export default function Home() {
   const router = useRouter();
@@ -32,21 +55,17 @@ export default function Home() {
         border-radius: 50%;
         background: linear-gradient(
           135deg,
-          rgba(255, 182, 193, 0.7) 0%,
-          rgba(255, 218, 185, 0.6) 30%,
-          rgba(233, 213, 255, 0.65) 70%,
-          rgba(255, 255, 255, 0.4) 100%
+          rgba(255, 182, 193, 0.5) 0%,
+          rgba(255, 218, 185, 0.45) 30%,
+          rgba(233, 213, 255, 0.5) 70%,
+          rgba(255, 255, 255, 0.3) 100%
         );
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
-        border: 2px solid rgba(255, 255, 255, 0.6);
+        border: 2px solid rgba(255, 255, 255, 0.5);
         box-shadow: 
-          0 12px 48px rgba(236, 72, 153, 0.2),
-          0 4px 16px rgba(219, 39, 119, 0.15),
-          inset 0 2px 30px rgba(255, 255, 255, 0.5),
-          inset 0 -2px 15px rgba(0, 0, 0, 0.05);
+          0 8px 32px rgba(236, 72, 153, 0.15),
+          0 2px 12px rgba(219, 39, 119, 0.1);
         pointer-events: none;
-        opacity: 0.95;
+        opacity: 0.8;
       }
       
       .animate-float-1 {
@@ -180,16 +199,15 @@ export default function Home() {
           background: `
             radial-gradient(
               ellipse at 30% 50%,
-              rgba(252, 231, 243, 0.8) 0%,
+              rgba(252, 231, 243, 0.6) 0%,
               transparent 50%
             ),
             radial-gradient(
               ellipse at 80% 30%,
-              rgba(233, 213, 255, 0.6) 0%,
+              rgba(233, 213, 255, 0.5) 0%,
               transparent 40%
             )
-          `,
-          filter: 'blur(80px)'
+          `
         }}
       />
 

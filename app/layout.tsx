@@ -6,8 +6,9 @@ import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import ConditionalNavbar from "@/components/ConditionalNavbar";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+// Removed force-dynamic to enable static optimization for landing page
+// export const dynamic = "force-dynamic";
+// export const revalidate = 0;
 // app/layout.tsx
 import localFont from "next/font/local";
 import { Dancing_Script, Poppins, Lora } from "next/font/google";
