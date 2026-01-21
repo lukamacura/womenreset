@@ -21,6 +21,8 @@ import {
   Mail,
   CheckCircle2,
   Loader2,
+  Eye,
+  EyeOff,
   Goal,
   BarChart3,
   AlertTriangle,
@@ -104,7 +106,7 @@ const GOAL_OPTIONS = [
   { id: "get_body_back", label: "Get my body back", icon: Battery },
 ];
 
-type Phase = "quiz" | "results" | "email" | "email-sent";
+type Phase = "quiz" | "results" | "email";
 
 // Quality of Life Score calculation
 const calculateQualityScore = (
@@ -186,36 +188,6 @@ const getSeverityPainText = (
   }
 };
 
-const NOTIFICATION_MESSAGES = [
-// Real-time activity
-"Sarah from London just finished her quiz, took her 2 minutes.",
-"127 women are completing their symptom profile right now.",
-"Someone just matched 8 out of your 10 symptoms.",
-
-// Community insights
-"Hot flashes peak around 3am according to our tracking data this month.",
-"Women who track consistently report 40% better symptom management.",
-"The average woman discovers 3 symptoms she didn't realize were perimenopause-related.",
-
-// Personal stories (feel more authentic)
-"Maya: 'I showed my results to my GP and finally got taken seriously.'",
-"Claire just unlocked insights about her mood swings and sleep patterns.",
-"A woman in Belgrade just completed her profile and found her symptom twin.",
-
-// Trust builders
-"487 doctors have reviewed patient data from MenoLisa this year.",
-"Most women say this quiz revealed patterns they'd missed for months.",
-"Your answers are completely private and encrypted.",
-
-// Motivational
-"You're 60% done - most women say the results are worth it.",
-"The women who finish get their personalized plan in under 2 minutes.",
-"Almost there - Sophia just got her sleep strategy and called it 'life-changing.'",
-
-// Timely/urgent (use sparingly)
-"43 women joined your cohort today.",
-"Weight gain is trending as today's most-discussed symptom in the app."
-];
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -227,11 +199,6 @@ export default function RegisterPage() {
   const currentStep = STEPS[stepIndex];
   const [browserInfo, setBrowserInfo] = useState<ReturnType<typeof detectBrowser> | null>(null);
 
-  // Random notification message
-  const [notificationMessage] = useState(() => {
-    return NOTIFICATION_MESSAGES[Math.floor(Math.random() * NOTIFICATION_MESSAGES.length)];
-  });
-  const [showNotification, setShowNotification] = useState(false);
 
   // Detect browser on mount
   useEffect(() => {
@@ -244,35 +211,6 @@ export default function RegisterPage() {
     }
   }, []);
 
-  // Show notification after 3 seconds, auto-dismiss after 4 seconds of being visible
-  useEffect(() => {
-    if (phase !== "quiz") {
-      setShowNotification(false);
-      return;
-    }
-
-    let dismissTimer: NodeJS.Timeout | null = null;
-
-    const showTimer = setTimeout(() => {
-      setShowNotification(true);
-      
-      // Auto-dismiss after 4 seconds of being visible
-      dismissTimer = setTimeout(() => {
-        setShowNotification(false);
-      }, 10000);
-    }, 3000);
-    
-    return () => {
-      clearTimeout(showTimer);
-      if (dismissTimer) {
-        clearTimeout(dismissTimer);
-      }
-    };
-  }, [phase]);
-
-  const handleCloseNotification = () => {
-    setShowNotification(false);
-  };
 
   // Quiz answers - stored in state
   const [topProblems, setTopProblems] = useState<string[]>([]);
@@ -283,8 +221,10 @@ export default function RegisterPage() {
   const [goal, setGoal] = useState<string[]>([]);
   const [firstName, setFirstName] = useState<string>("");
 
-  // Email state
+  // Email & Password state
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [userExists, setUserExists] = useState(false);
@@ -370,7 +310,8 @@ export default function RegisterPage() {
 
   // Validation
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  const canSubmit = emailValid && !loading;
+  const passwordValid = password.length >= 8;
+  const canSubmit = emailValid && passwordValid && !loading;
 
   // Check if current step is answered
   const stepIsAnswered = useCallback((step: Step) => {
@@ -453,7 +394,7 @@ export default function RegisterPage() {
     });
   };
 
-  // Handle email submission
+  // Handle registration with password
   const handleEmailSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!canSubmit) return;
@@ -463,6 +404,8 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
+      const emailLower = email.toLowerCase().trim();
+      
       // Prepare quiz answers
       const quizAnswers = {
         top_problems: topProblems,
@@ -474,60 +417,64 @@ export default function RegisterPage() {
         name: firstName.trim() || null,
       };
       
-      // Debug logging - verify all quiz answers are present
       console.log("=== REGISTRATION START ===");
-      console.log("Email:", email);
+      console.log("Email:", emailLower);
       console.log("Quiz answers:", quizAnswers);
 
-      // Use our server-side magic link endpoint
-      // This bypasses PKCE and works across different browsers (Samsung Internet, Chrome, etc.)
-      console.log("Sending magic link for registration...");
-      
-      const response = await fetch("/api/auth/send-magic-link", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email,
-          redirectTo: "/dashboard",
-          isRegistration: true, // This is registration, not login
-          quizAnswers, // Include quiz answers to be saved when user verifies
-        }),
+      // Create account with Supabase password auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: emailLower,
+        password,
+        options: {
+          data: {
+            quiz_completed: true,
+          },
+        },
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        console.error("Magic link error:", { status: response.status, data });
-
-        // Check if user already exists
-        if (response.status === 409 || data.userExists) {
+      if (authError) {
+        console.error("Registration error:", authError);
+        
+        // Handle specific Supabase error messages
+        if (authError.message.includes("User already registered")) {
           setUserExists(true);
           setLoading(false);
           return;
+        } else if (authError.message.includes("Password")) {
+          setError("Password must be at least 8 characters long.");
+        } else if (authError.message.includes("email")) {
+          setError("Please enter a valid email address.");
+        } else {
+          setError(authError.message);
         }
-
-        let friendly = data.error || "An error occurred. Please try again.";
-
-        // Handle specific error cases based on status code
-        if (response.status === 429) {
-          friendly = data.error || "Too many attempts. Please wait a moment and try again.";
-        } else if (response.status === 400) {
-          if (data.error?.toLowerCase().includes("email")) {
-            friendly = data.error || "That email address is invalid. Please check and try again.";
-          }
-        } else if (response.status >= 500) {
-          friendly = "Email service is temporarily unavailable. Please try again later.";
-        }
-
-        setError(friendly);
         setLoading(false);
         return;
       }
 
-      // Success - magic link sent with quiz data
-      console.log("=== REGISTRATION COMPLETE ===");
-      console.log("Magic link sent successfully:", data);
-      setPhase("email-sent");
+      // If we have a user, save quiz answers
+      if (authData.user) {
+        try {
+          // Save quiz answers via API
+          await fetch("/api/auth/save-quiz", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              userId: authData.user.id,
+              quizAnswers,
+            }),
+          });
+        } catch (quizError) {
+          console.warn("Failed to save quiz answers:", quizError);
+          // Continue anyway - user is registered
+        }
+
+        // Registration successful! Clear sessionStorage and redirect to dashboard
+        console.log("=== REGISTRATION COMPLETE ===");
+        console.log("User created:", authData.user.id);
+        sessionStorage.removeItem("pending_quiz_answers");
+        router.push("/dashboard");
+      }
+      
       setLoading(false);
     } catch (e) {
       console.error("Unexpected error during registration:", e);
@@ -543,10 +490,10 @@ export default function RegisterPage() {
   };
 
   // Check for authenticated session and redirect if profile exists
-  // Only check when NOT in email-sent or results phase (user should stay on those pages)
+  // Only check when NOT in results phase (user should stay on that page)
   useEffect(() => {
-    // Don't check session if user is in email-sent or results phase - let them stay there
-    if (phase === "email-sent" || phase === "results") {
+    // Don't check session if user is in results phase - let them stay there
+    if (phase === "results") {
       return;
     }
 
@@ -619,36 +566,6 @@ export default function RegisterPage() {
 
   return (
     <main className="overflow-hidden relative mx-auto p-3 sm:p-4 h-screen flex flex-col pt-20 sm:pt-24 max-w-3xl">
-        {/* Random Notification Popup */}
-        <AnimatePresence>
-          {phase === "quiz" && showNotification && (
-            <motion.div
-              initial={{ opacity: 0, y: -20, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -20, scale: 0.95 }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
-              className="fixed top-20 sm:top-20 left-1/2 -translate-x-1/2 z-40 w-[calc(100vw-3rem)] max-w-2xl px-3 sm:px-6 pointer-events-none"
-            >
-              <div className="bg-card backdrop-blur-xl border border-white/40 rounded-2xl p-5 shadow-2xl flex items-center gap-4 pointer-events-auto">
-                <div className="p-2.5 rounded-xl bg-yellow-200 shrink-0">
-                  <Info className="h-5 w-5 text-yellow-800" />
-                </div>
-                <p className="text-xs md:text-sm text-foreground font-semibold flex-1 leading-relaxed">
-                  {notificationMessage}
-                </p>
-                <button
-                  onClick={handleCloseNotification}
-                  className="text-foreground/60 hover:text-primary hover:bg-white/10 rounded-lg p-1.5 transition-all duration-200 cursor-pointer shrink-0"
-                  aria-label="Close notification"
-                  type="button"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
 
       {/* Results Phase */}
       {phase === "results" && (
@@ -907,40 +824,78 @@ export default function RegisterPage() {
                 </button>
               </div>
             ) : (
-              /* Normal Email Entry Form */
+              /* Account Creation Form with Email and Password */
               <motion.form
                 onSubmit={handleEmailSubmit}
                 className="space-y-4 sm:space-y-6"
               >
                 <div>
                   <h2 className="text-2xl sm:text-3xl font-bold text-[#3D3D3D] text-center mb-2 sm:mb-3">
-                    Start your free trial
+                    Create your account
                   </h2>
                   <p className="text-sm sm:text-base text-[#5A5A5A] text-center mb-4 sm:mb-6">
-                    Enter your email to get started. Free for 3 days • No credit card required
+                    Set up your login to start your free 3-day trial. No credit card required.
                   </p>
                 </div>
 
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your email"
-                  required
-                  className="w-full px-4 py-3 sm:py-4 rounded-xl border border-[#E8DDD9] bg-white text-[#3D3D3D] placeholder:text-[#9A9A9A] focus:outline-none focus:ring-2 focus:ring-[#ff74b1]/50 focus:border-[#ff74b1] text-base sm:text-lg"
-                  autoFocus
-                />
+                {/* Email Input */}
+                <div>
+                  <label htmlFor="email" className="mb-2 block text-sm font-medium text-[#3D3D3D]">
+                    Email
+                  </label>
+                  <input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    required
+                    autoComplete="email"
+                    className="w-full px-4 py-3 sm:py-4 rounded-xl border border-[#E8DDD9] bg-white text-[#3D3D3D] placeholder:text-[#9A9A9A] focus:outline-none focus:ring-2 focus:ring-[#ff74b1]/50 focus:border-[#ff74b1] text-base sm:text-lg"
+                    autoFocus
+                  />
+                </div>
+
+                {/* Password Input */}
+                <div>
+                  <label htmlFor="password" className="mb-2 block text-sm font-medium text-[#3D3D3D]">
+                    Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Create a password (8+ characters)"
+                      required
+                      autoComplete="new-password"
+                      className="w-full px-4 py-3 sm:py-4 pr-12 rounded-xl border border-[#E8DDD9] bg-white text-[#3D3D3D] placeholder:text-[#9A9A9A] focus:outline-none focus:ring-2 focus:ring-[#ff74b1]/50 focus:border-[#ff74b1] text-base sm:text-lg"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9A9A9A] hover:text-[#5A5A5A] transition-colors p-1"
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                    >
+                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
+                  </div>
+                  {password.length > 0 && password.length < 8 && (
+                    <p className="text-xs text-[#9A9A9A] mt-1">Password must be at least 8 characters</p>
+                  )}
+                </div>
 
                 <button
                   type="submit"
-                  disabled={loading || !emailValid}
+                  disabled={!canSubmit}
                   className="w-full py-3 sm:py-4 font-bold text-foreground rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] hover:shadow-lg"
                   style={{ background: 'linear-gradient(135deg, #ff74b1 0%, #ffeb76 50%, #65dbff 100%)', boxShadow: '0 4px 15px rgba(255, 116, 177, 0.4)' }}
                 >
                   {loading ? (
                     <>
                       <Loader2 className="w-5 h-5 animate-spin" />
-                      Checking...
+                      Creating account...
                     </>
                   ) : (
                     <>
@@ -998,9 +953,9 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          {/* Question Content - No scrolling */}
-          <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-            <div className="rounded-xl sm:rounded-2xl border border-foreground/10 bg-card backdrop-blur-sm p-3 mx-2 sm:p-4 space-y-2 sm:space-y-3 flex-1 shadow-lg shadow-primary/5 overflow-hidden flex flex-col">
+          {/* Question Content - Scrollable area */}
+          <div className="flex-1 flex flex-col min-h-0 overflow-hidden mb-2">
+            <div className="rounded-xl sm:rounded-2xl border border-foreground/10 bg-card backdrop-blur-sm p-3 mx-2 sm:p-4 space-y-2 sm:space-y-3 flex-1 shadow-lg shadow-primary/5 overflow-y-auto flex flex-col">
               {/* Q1: Top Problems */}
               {currentStep === "q1_problems" && (
                 <div className="flex-1 flex flex-col min-h-0 space-y-2 sm:space-y-3 animate-in fade-in slide-in-from-right-4 duration-300">
@@ -1287,76 +1242,32 @@ export default function RegisterPage() {
                 </div>
               )}
             </div>
+          </div>
 
-            {/* Navigation Buttons - Fixed at bottom */}
-            <div className="flex items-center justify-between mt-2 gap-2 shrink-0 py-2 border-t border-foreground/10">
-              <button
-                type="button"
-                onClick={goBack}
-                disabled={stepIndex === 0}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-lg border-2 border-foreground/15 hover:bg-foreground/5 hover:border-foreground/25 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent font-medium text-xs sm:text-sm"
-              >
-                <ArrowLeft className="w-3.5 h-3.5" />
-                Back
-              </button>
-              <button
-                type="button"
-                onClick={goNext}
-                disabled={!stepIsAnswered(currentStep)}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:brightness-110 hover:shadow-lg hover:shadow-primary/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:brightness-100 disabled:hover:shadow-none font-semibold text-xs sm:text-sm"
-              >
-                {stepIndex === STEPS.length - 1 ? "Continue" : "Next"}
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
+          {/* Navigation Buttons - Always visible at bottom */}
+          <div className="flex items-center justify-between gap-2 shrink-0 py-2 px-2 border-t border-foreground/10 bg-background">
+            <button
+              type="button"
+              onClick={goBack}
+              disabled={stepIndex === 0}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg border-2 border-foreground/15 hover:bg-foreground/5 hover:border-foreground/25 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent font-medium text-xs sm:text-sm"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              Back
+            </button>
+            <button
+              type="button"
+              onClick={goNext}
+              disabled={!stepIsAnswered(currentStep)}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:brightness-110 hover:shadow-lg hover:shadow-primary/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:brightness-100 disabled:hover:shadow-none font-semibold text-xs sm:text-sm"
+            >
+              {stepIndex === STEPS.length - 1 ? "Continue" : "Next"}
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
           </div>
         </div>
       )}
 
-      {/* Email Sent Phase */}
-      {phase === "email-sent" && (
-        <div className="flex-1 flex flex-col justify-center items-center max-w-md mx-auto w-full text-center space-y-6 pt-22">
-          <div className="rounded-full bg-primary/10 p-6">
-            <Mail className="w-12 h-12 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-3xl sm:text-4xl font-bold mb-3">
-              Check your email
-            </h1>
-            <p className="text-lg text-muted-foreground">
-              We sent you a magic link at <strong>{email}</strong>
-            </p>
-            <p className="text-muted-foreground mt-2">
-              Click the <b>link in your email</b> to continue with registration.
-            </p>
-          </div>
-          {browserInfo && hasBrowserMismatchIssue(browserInfo) && (
-            <div className="rounded-xl border border-orange-400/30 bg-orange-50/80 dark:bg-orange-900/20 p-4 text-sm text-orange-700 dark:text-orange-400 max-w-md">
-              <div className="flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <p className="font-semibold mb-1">Important: Open Link in Chrome</p>
-                  <p className="text-xs mb-2">
-                    When you receive the email, long-press the link and select &quot;Open in Chrome&quot; or copy the link and paste it into Chrome. This ensures your registration works correctly.
-                  </p>
-                  <p className="text-xs font-semibold mt-2">Quick Steps:</p>
-                  <ol className="text-xs list-decimal list-inside space-y-1 mt-1">
-                    <li>Long-press the magic link in your email</li>
-                    <li>Select &quot;Open in Chrome&quot; or &quot;Copy link&quot;</li>
-                    <li>If copied, paste into Chrome&apos;s address bar</li>
-                  </ol>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {error && (
-            <div className="rounded-xl border border-error/30 bg-error/10 p-3 text-sm text-error max-w-md">
-              {error}
-            </div>
-          )}
-        </div>
-      )}
     </main>
   );
 }

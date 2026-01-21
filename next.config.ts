@@ -56,6 +56,34 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      {
+        // CORS headers for API routes to allow mobile app access
+        source: '/api/:path*',
+        headers: [
+          {
+            key: 'Access-Control-Allow-Origin',
+            value: process.env.NODE_ENV === 'development' 
+              ? '*' // Allow all origins in development (for Expo dev server)
+              : 'https://your-production-domain.com', // Replace with your production mobile app domain
+          },
+          {
+            key: 'Access-Control-Allow-Methods',
+            value: 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+          },
+          {
+            key: 'Access-Control-Allow-Headers',
+            value: 'Content-Type, Authorization, X-Requested-With',
+          },
+          {
+            key: 'Access-Control-Allow-Credentials',
+            value: 'true',
+          },
+          {
+            key: 'Access-Control-Max-Age',
+            value: '86400',
+          },
+        ],
+      },
     ];
   },
 };

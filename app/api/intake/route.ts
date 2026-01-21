@@ -34,11 +34,11 @@ export async function POST(req: Request) {
 
     // Validate required fields for new question structure (only if provided)
     // Allow partial updates for webhook/trigger created profiles
-    // Note: Quiz allows up to 3 problems, but we accept 1-3 for flexibility
+    // Note: Quiz now allows any number of symptoms
     if (top_problems !== undefined) {
-      if (!Array.isArray(top_problems) || top_problems.length === 0 || top_problems.length > 3) {
+      if (!Array.isArray(top_problems) || top_problems.length === 0) {
         return NextResponse.json(
-          { error: "Please select 1 to 3 top problems." },
+          { error: "Please select at least one problem." },
           { status: 400 }
         );
       }
@@ -62,10 +62,11 @@ export async function POST(req: Request) {
       }
     }
 
-    if (tried_options !== undefined) {
-      if (!Array.isArray(tried_options) || tried_options.length === 0) {
+    if (tried_options !== undefined && tried_options !== null) {
+      // Accept empty arrays silently - they just won't update the field
+      if (!Array.isArray(tried_options)) {
         return NextResponse.json(
-          { error: "Please select at least one option for what you've tried." },
+          { error: "tried_options must be an array." },
           { status: 400 }
         );
       }
@@ -84,14 +85,15 @@ export async function POST(req: Request) {
       // Handle both array and string for backward compatibility
       const validGoals = ["sleep_through_night", "think_clearly", "feel_like_myself", "understand_patterns", "data_for_doctor", "get_body_back"];
       if (Array.isArray(goal)) {
-        // Validate array contains only valid values
-        if (!goal.every(g => validGoals.includes(g))) {
+        // Empty arrays are fine - they just won't update the field
+        // Only validate if array has items
+        if (goal.length > 0 && !goal.every(g => validGoals.includes(g))) {
           return NextResponse.json(
             { error: "Please select valid goals." },
             { status: 400 }
           );
         }
-      } else if (!validGoals.includes(goal)) {
+      } else if (goal !== "" && !validGoals.includes(goal)) {
         return NextResponse.json(
           { error: "Please select a valid goal." },
           { status: 400 }
