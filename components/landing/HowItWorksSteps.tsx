@@ -33,7 +33,7 @@ const ultraSmoothSpring = {
 const TIMING = {
   CROSSFADE: 300,
   STEP_HOLD: 900,
-  STEP_1_ANIMATION: 1200,
+  STEP_1_ANIMATION: 1800, // User question + Lisa response
   STEP_2_ANIMATION: 1400,
   STEP_3_ANIMATION: 1400,
 } as const
@@ -89,7 +89,7 @@ export default function HowItWorksSteps() {
             </h2>
           </HeadingWithHighlight>
           <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">
-            Three simple steps to clarity
+            Clarity in three simple steps
           </p>
         </motion.div>
 
@@ -105,21 +105,21 @@ export default function HowItWorksSteps() {
           <div className="relative w-full max-w-[240px] sm:max-w-[260px]">
             <AnimatePresence mode="wait">
               {currentStep === 1 && (
-                <SymptomTrackingPhone
+                <ChatInterfacePhone
                   key="step-1"
                   prefersReducedMotion={!!prefersReducedMotion}
                   isInView={isInView}
                 />
               )}
               {currentStep === 2 && (
-                <DataTimelinePhone
+                <SymptomTrackingPhone
                   key="step-2"
                   prefersReducedMotion={!!prefersReducedMotion}
                   isInView={isInView}
                 />
               )}
               {currentStep === 3 && (
-                <ChatInterfacePhone
+                <DataTimelinePhone
                   key="step-3"
                   prefersReducedMotion={!!prefersReducedMotion}
                   isInView={isInView}
@@ -219,25 +219,27 @@ function StepLabels({
   currentStep: number
   prefersReducedMotion: boolean
 }) {
-  const labels = [
-    "Track daily — Takes 30 seconds",
-    "See your data — Organized and clear",
-    "Get answers — Chat with Lisa anytime",
+  const stepTexts = [
+    "Ask Lisa anything about menopause. Get clear answers in seconds.",
+    "Track how you feel in 30 seconds. Lisa learns your patterns.",
+    "See your data organized. Get weekly insights you can share with your doctor.",
   ]
 
   return (
     <div className="mt-6 sm:mt-10 min-h-[56px] flex items-center justify-center">
       <AnimatePresence mode="wait">
-        <motion.p
+        <motion.div
           key={`label-${currentStep}`}
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
           transition={{ ...smoothSpring, duration: prefersReducedMotion ? 0 : 0.4 }}
-          className="text-center text-base sm:text-lg text-gray-700 font-medium px-4"
+          className="text-center px-4"
         >
-          {labels[currentStep - 1]}
-        </motion.p>
+          <p className="text-lg sm:text-xl md:text-2xl text-gray-700 font-semibold leading-tight">
+            {stepTexts[currentStep - 1]}
+          </p>
+        </motion.div>
       </AnimatePresence>
     </div>
   )
@@ -276,7 +278,6 @@ const phoneTransition = {
 // ============================================
 function SymptomTrackingPhone({
   prefersReducedMotion,
-  isInView,
 }: {
   prefersReducedMotion: boolean
   isInView: boolean
@@ -442,7 +443,6 @@ function SymptomTrackingPhone({
 // ============================================
 function DataTimelinePhone({
   prefersReducedMotion,
-  isInView,
 }: {
   prefersReducedMotion: boolean
   isInView: boolean
@@ -586,19 +586,20 @@ function ChatInterfacePhone({
   const [phase, setPhase] = useState(0)
   const [revealedLines, setRevealedLines] = useState(0)
 
-  // Lisa's comprehensive response with emojis
+  // User question and Lisa's response
+  const userQuestion = "Why do I wake up at 3am every night?"
   const lisaResponse = useMemo(() => [
-    { type: "intro", content: "Great job tracking! 🌟 Here's what I found:" },
-    { type: "stat", content: "📊 Hot flashes down 20% this week!" },
-    { type: "tip", emoji: "💧", title: "Stay hydrated", desc: "Water helps regulate temperature" },
-    { type: "tip", emoji: "🌙", title: "Cool bedroom", desc: "Keep it around 65°F (18°C)" },
-    { type: "tip", emoji: "🧘", title: "Deep breathing", desc: "Can reduce intensity by 50%" },
-    { type: "outro", content: "You're doing amazing! 💪✨" },
+    { type: "intro", content: "Great question! 🌙 This is super common in perimenopause." },
+    { type: "explanation", content: "Your progesterone levels are dropping, and progesterone helps you stay asleep. Lower levels = more middle-of-the-night wake-ups." },
+    { type: "tip", emoji: "🌡️", title: "Keep your room cool", desc: "65-68°F (18-20°C) helps your body stay asleep." },
+    { type: "tip", emoji: "🚫", title: "Skip alcohol after 6pm", desc: "It disrupts deep sleep cycles." },
+    { type: "tip", emoji: "💊", title: "Try magnesium glycinate", desc: "Before bed - can help with sleep quality." },
+    { type: "outro", content: "Want me to explain more about the progesterone connection?" },
   ], [])
 
   useEffect(() => {
     if (prefersReducedMotion) {
-      setPhase(3)
+      setPhase(4)
       setRevealedLines(lisaResponse.length)
       return
     }
@@ -606,14 +607,15 @@ function ChatInterfacePhone({
     setRevealedLines(0)
     const timers: NodeJS.Timeout[] = []
     timers.push(setTimeout(() => setPhase(1), 100))   // Header
-    timers.push(setTimeout(() => setPhase(2), 500))   // Typing
-    timers.push(setTimeout(() => setPhase(3), 1200))  // Message
+    timers.push(setTimeout(() => setPhase(2), 500))   // User question appears
+    timers.push(setTimeout(() => setPhase(3), 1200))  // Lisa typing
+    timers.push(setTimeout(() => setPhase(4), 1800))  // Lisa's response
     return () => timers.forEach(clearTimeout)
   }, [prefersReducedMotion, lisaResponse.length])
 
   // Reveal lines progressively
   useEffect(() => {
-    if (phase < 3 || prefersReducedMotion) return
+    if (phase < 4 || prefersReducedMotion) return
     let line = 0
     const interval = setInterval(() => {
       if (line < lisaResponse.length) {
@@ -627,8 +629,9 @@ function ChatInterfacePhone({
   }, [phase, prefersReducedMotion, lisaResponse.length])
 
   const showHeader = phase >= 1
-  const showTyping = phase === 2
-  const showMessage = phase >= 3
+  const showUserQuestion = phase >= 2
+  const showTyping = phase === 3
+  const showMessage = phase >= 4
 
   return (
     <motion.div
@@ -654,6 +657,22 @@ function ChatInterfacePhone({
 
           {/* Chat Area */}
           <div className="flex-1 flex flex-col justify-end py-3 min-h-0 overflow-hidden">
+            {/* User Question - stays visible once shown */}
+            {showUserQuestion && (
+              <motion.div
+                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ ...smoothSpring }}
+                className="flex items-start gap-2 justify-end mb-2"
+              >
+                <div className="max-w-[85%]">
+                  <div className="bg-white rounded-2xl rounded-tr-md px-3 py-2.5 shadow-sm">
+                    <p className="text-xs text-gray-800">{userQuestion}</p>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
             <AnimatePresence mode="wait">
               {/* Typing Indicator */}
               {showTyping && (
@@ -710,6 +729,9 @@ function ChatInterfacePhone({
                         >
                           {item.type === "intro" && (
                             <p className="text-xs font-semibold text-gray-800">{item.content}</p>
+                          )}
+                          {item.type === "explanation" && (
+                            <p className="text-xs text-gray-700 leading-relaxed">{item.content}</p>
                           )}
                           {item.type === "stat" && (
                             <p className="text-xs text-gray-700 bg-white/60 rounded-lg px-2 py-1.5 font-medium">

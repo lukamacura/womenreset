@@ -42,26 +42,26 @@ const TIMING = {
 const features = [
   {
     id: "ask-anything",
-    title: "Ask Lisa Anything",
-    description: "Get clear answers to your menopause questions — backed by medical research",
+    shortTitle: "Ask Lisa",
+    title: "Ask Lisa anything. Get clear answers in seconds.",
     icon: MessageCircle,
   },
   {
     id: "symptom-timeline",
-    title: "Your Symptom Timeline",
-    description: "See all your logged symptoms organized by day, week, or month",
+    shortTitle: "Track Symptoms",
+    title: "Log how you feel in 30 seconds. See your patterns organized.",
     icon: Calendar,
   },
   {
     id: "weekly-summaries",
-    title: "Weekly Summaries",
-    description: "See your symptom frequency compared to last week — your data at a glance",
+    shortTitle: "Weekly Insights",
+    title: "Get weekly summaries. See your progress clearly.",
     icon: BarChart3,
   },
   {
     id: "shareable-reports",
-    title: "Share with Your Doctor",
-    description: "Generate professional PDF symptom reports for your appointments",
+    shortTitle: "Share Reports",
+    title: "Generate reports. Share with your doctor easily.",
     icon: FileText,
   },
 ]
@@ -102,16 +102,16 @@ export default function FeatureTheater() {
           animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
           transition={ultraSmoothSpring}
         >
-          <HeadingWithHighlight
-            isInView={isInView}
-            prefersReducedMotion={!!prefersReducedMotion}
-          >
-            <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-4 text-gray-900">
-              Everything You Need
-            </h2>
-          </HeadingWithHighlight>
+          <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-4 text-gray-900">
+            Everything You Need to{" "}
+            <HighlightedText
+              text="Understand Menopause"
+              isInView={isInView}
+              prefersReducedMotion={!!prefersReducedMotion}
+            />
+          </h2>
           <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">
-            Powerful features that work together
+            One app. Unlimited answers. Complete clarity.
           </p>
         </motion.div>
 
@@ -169,14 +169,14 @@ export default function FeatureTheater() {
 }
 
 // ============================================
-// Heading with Highlight Animation
+// Highlighted Text Component
 // ============================================
-function HeadingWithHighlight({
-  children,
+function HighlightedText({
+  text,
   isInView,
   prefersReducedMotion,
 }: {
-  children: React.ReactNode
+  text: string
   isInView: boolean
   prefersReducedMotion: boolean
 }) {
@@ -184,13 +184,13 @@ function HeadingWithHighlight({
 
   useEffect(() => {
     if (!isInView || prefersReducedMotion) return
-    const timer = setTimeout(() => setShouldHighlight(true), 300)
+    const timer = setTimeout(() => setShouldHighlight(true), 500)
     return () => clearTimeout(timer)
   }, [isInView, prefersReducedMotion])
 
   return (
-    <div className="relative inline-block">
-      <div className="relative z-10">{children}</div>
+    <span className="relative inline-block">
+      <span className="relative z-10">{text}</span>
       <motion.span
         className="absolute inset-0 bg-yellow-400/40 rounded pointer-events-none"
         initial={{ scaleX: 0, transformOrigin: "left" }}
@@ -198,7 +198,7 @@ function HeadingWithHighlight({
         transition={{ duration: 1.2, ease: [0.4, 0, 0.2, 1] }}
         style={{ zIndex: 0 }}
       />
-    </div>
+    </span>
   )
 }
 
@@ -215,7 +215,7 @@ function FeatureIndicators({
   onSelect: (index: number) => void
 }) {
   return (
-    <div className="flex justify-center items-center gap-2 sm:gap-3 mb-6 sm:mb-8 flex-wrap">
+    <div className="flex justify-center items-center gap-1.5 sm:gap-2 mb-6 sm:mb-8 flex-wrap">
       {features.map((feature, index) => {
         const isActive = currentFeature === index
         const Icon = feature.icon
@@ -226,9 +226,9 @@ function FeatureIndicators({
             onClick={() => onSelect(index)}
             aria-label={feature.title}
             className={`
-              h-10 sm:h-11 px-3 sm:px-4 rounded-full flex items-center justify-center gap-2
-              text-xs sm:text-sm font-medium transition-shadow
-              ${isActive ? "shadow-lg" : "border-2 border-gray-200 bg-white/80"}
+              h-8 sm:h-9 px-2.5 sm:px-3 rounded-full flex items-center justify-center gap-1.5
+              text-[10px] sm:text-xs font-medium transition-shadow
+              ${isActive ? "shadow-md" : "border border-gray-200 bg-white/80"}
             `}
             style={
               isActive
@@ -238,8 +238,8 @@ function FeatureIndicators({
             animate={{ scale: isActive ? 1.05 : 1 }}
             transition={{ ...smoothSpring, duration: prefersReducedMotion ? 0 : 0.3 }}
           >
-            <Icon className="h-4 w-4" />
-            <span className="hidden sm:inline">{feature.title}</span>
+            <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            <span>{feature.shortTitle}</span>
           </motion.button>
         )
       })}
@@ -258,7 +258,7 @@ function FeatureLabels({
   prefersReducedMotion: boolean
 }) {
   return (
-    <div className="mt-6 sm:mt-10 min-h-[70px] flex items-center justify-center">
+    <div className="mt-6 sm:mt-10 min-h-[56px] flex items-center justify-center">
       <AnimatePresence mode="wait">
         <motion.div
           key={`label-${currentFeature}`}
@@ -268,11 +268,8 @@ function FeatureLabels({
           transition={{ ...smoothSpring, duration: prefersReducedMotion ? 0 : 0.4 }}
           className="text-center px-4"
         >
-          <p className="text-base sm:text-lg text-gray-800 font-semibold">
+          <p className="text-lg sm:text-xl md:text-2xl text-gray-700 font-semibold leading-tight">
             {features[currentFeature].title}
-          </p>
-          <p className="text-sm text-gray-500 mt-1">
-            {features[currentFeature].description}
           </p>
         </motion.div>
       </AnimatePresence>
@@ -513,7 +510,6 @@ function AskAnythingPhone({
 // ============================================
 function SymptomTimelinePhone({
   prefersReducedMotion,
-  isInView,
 }: {
   prefersReducedMotion: boolean
   isInView: boolean
@@ -634,7 +630,6 @@ function SymptomTimelinePhone({
 // ============================================
 function WeeklySummaryPhone({
   prefersReducedMotion,
-  isInView,
 }: {
   prefersReducedMotion: boolean
   isInView: boolean
@@ -749,7 +744,6 @@ function WeeklySummaryPhone({
 // ============================================
 function ShareableReportsPhone({
   prefersReducedMotion,
-  isInView,
 }: {
   prefersReducedMotion: boolean
   isInView: boolean

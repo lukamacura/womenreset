@@ -504,16 +504,16 @@ function HighlightedText({
 function StepText({ step }: { step: number }) {
   const content = [
     {
-      headline: "You know something's wrong",
-      description: "Hot flashes, mood swings, brain fog - but when? How often? You need to see it clearly.",
+      headline: "You have questions. Lots of them.",
+      description: "Why am I gaining weight? Why can't I sleep? Is this normal? Google gives you 47 terrifying answers. Your doctor has 10 minutes. You need someone who actually knows menopause.",
     },
     {
-      headline: "Track it. See it organized.",
-      description: "Log symptoms in 30 seconds. See your data organized by day, week, month. Finally understand what's happening.",
+      headline: "Ask Lisa. Get real answers.",
+      description: "Lisa is trained on menopause research. Ask her anything — hot flashes, mood swings, supplements, HRT, sleep — and get clear, calm explanations. No judgment, no time limits.",
     },
     {
-      headline: "Take control with real data",
-      description: "Bring organized symptom reports to your doctor. Get menopause answers from Lisa 24/7. Feel informed, not confused.",
+      headline: "Track symptoms. See patterns.",
+      description: "Log how you feel in 30 seconds. Lisa spots your patterns and helps you understand what triggers what. Bring organized data to your next doctor's visit.",
     },
   ]
 
@@ -574,9 +574,9 @@ export default function LandingProblem() {
           transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
         >
           <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-6 text-gray-900 leading-tight px-2 sm:px-4">
-            The problem isn&apos;t you.<br />
+            The problem isn&apos;t menopause.<br />
             <HighlightedText
-              text="It's the confusion."
+              text="It's not having answers."
               isInView={isInView}
               prefersReducedMotion={!!prefersReducedMotion}
             />
@@ -658,7 +658,7 @@ export default function LandingProblem() {
         >
           <div className="text-center">
             <p className="text-lg sm:text-xl text-gray-700">
-              <strong>Evidence-based knowledge.</strong> Reviewed by menopause specialists. Focused on your experience.
+              <strong>Research-backed education.</strong> Simple tracking. Real clarity within your first week.
             </p>
           </div>
         </motion.div>

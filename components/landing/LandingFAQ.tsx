@@ -47,32 +47,33 @@ export default function LandingFAQ() {
   
   const faqs = [
     {
-      question: "What makes Lisa different?",
+      question: "What can I ask Lisa?",
       answer:
-        "This app focuses entirely on menopause — not a general health tracker. You get simple symptom tracking, clear data organization, weekly summaries, and a chat with Lisa who answers menopause questions using research-based information. Everything is designed for this phase of life.",
+        "Anything about menopause. Hot flashes, night sweats, mood swings, brain fog, weight gain, sleep problems, HRT, supplements, vaginal dryness, libido changes — nothing is off limits. Lisa is trained on menopause research and gives you clear, calm answers without judgment.",
     },
     {
-      question: "Is Lisa's information reliable?",
+      question: "Is Lisa a real person?",
       answer:
-        "Yes. Lisa provides general menopause education based on medical research and reviewed by specialists. She answers questions about menopause, but she doesn't diagnose conditions or recommend treatments. Always consult your doctor for medical advice.",
+        "Lisa is an AI trained specifically on menopause research and education. She's available 24/7, never rushes you, and never judges. She gives research-backed information — not medical advice. Always consult your doctor for treatment decisions.",
+    },
+    {
+      question: "How is this different from Googling?",
+      answer:
+        "Google gives you 50 different answers, half of them terrifying. Lisa gives you one clear, research-backed explanation written for real women, not medical journals. No clickbait, no scare tactics, no trying to sell you supplements.",
+    },
+    {
+      question: "What makes MenoLisa different from other tracking apps?",
+      answer:
+        "Most apps just track. MenoLisa explains. Lisa answers your questions, helps you understand your patterns, and gives you the knowledge to advocate for yourself at doctor's appointments. It's a companion, not just a tracker.",
     },
     {
       question: "Is my data private?",
-      answer: "Yes. Your data is encrypted and never shared. Only you can see it. We take your privacy seriously.",
+      answer: "Yes. Your conversations with Lisa and your symptom data are encrypted and never shared. Only you can see them.",
     },
     {
-      question: "How does the free trial work?",
+      question: "How does the guarantee work?",
       answer:
-        "Full access for 3 days. No credit card required. You decide after if Lisa is right for you.",
-    },
-    {
-      question: "Is this medical advice?",
-      answer:
-        "No. This app provides symptom tracking and menopause education, not diagnosis or treatment. Lisa gives general information about menopause based on research. Always consult your healthcare provider for medical decisions.",
-    },
-    {
-      question: "Can I cancel anytime?",
-      answer: "Yes. One click, no questions asked. Cancel anytime from your account settings.",
+        "Use MenoLisa for 7 days. If you don't feel more informed and in control, email us for a full refund. No questions, no hoops. We can offer this because most women who try Lisa never go back to guessing.",
     },
   ]
 

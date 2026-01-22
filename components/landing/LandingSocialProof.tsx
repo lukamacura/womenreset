@@ -40,19 +40,19 @@ export default function LandingSocialProof() {
   const isInView = useInView(sectionRef, { once: true, amount: 0.3 })
   const testimonials = [
     {
-      quote: "I finally have all my symptoms organized in one place. When I see my doctor, I have real data to show her instead of trying to remember everything from the last three months.",
-      author: "Michelle",
-      age: 52,
-      initial: "M",
-    },
-    {
-      quote: "The chat with Lisa is amazing. I can ask questions about menopause anytime and get clear, research-based answers. No more scary Google rabbit holes.",
+      quote: "I asked Lisa about brain fog at 2am when I couldn't sleep. She explained exactly what's happening in my brain during perimenopause and gave me three things to try. No judgment, no waiting for an appointment. I felt understood for the first time in months.",
       author: "Sarah",
       age: 49,
       initial: "S",
     },
     {
-      quote: "I track my symptoms every morning — takes 30 seconds. The weekly summary shows me that I had fewer hot flashes this week, which gives me so much hope.",
+      quote: "My doctor said my symptom report was the most useful patient data she'd ever seen. She adjusted my treatment on the spot. That one appointment was worth a year of subscription.",
+      author: "Michelle",
+      age: 52,
+      initial: "M",
+    },
+    {
+      quote: "I was embarrassed to ask my doctor about vaginal dryness. I asked Lisa instead. She explained it clearly, told me it's completely normal, and gave me options to discuss with my doctor. I finally brought it up at my next visit.",
       author: "Linda",
       age: 54,
       initial: "L",
@@ -69,10 +69,10 @@ export default function LandingSocialProof() {
           transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
         >
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-6 text-foreground">
-            Women are <HighlightedText text="taking control" isInView={isInView} prefersReducedMotion={prefersReducedMotion} /> of menopause
+            Women are <HighlightedText text="finally getting answers" isInView={isInView} prefersReducedMotion={prefersReducedMotion} />
           </h2>
           <p className="text-lg sm:text-xl text-muted-foreground">
-            Join 10,000+ women who track symptoms, get answers, and feel informed.
+            Join 10,000+ women who stopped Googling and started understanding
           </p>
         </motion.div>
 

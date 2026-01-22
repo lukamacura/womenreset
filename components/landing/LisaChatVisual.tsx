@@ -19,31 +19,7 @@ export default function LisaChatVisual() {
         gap: '12px'
       }}
     >
-      {/* Lisa's insight message (yellow) */}
-      <div
-        className="lisa-message insight"
-        style={{
-          background: '#FEF3C7',
-          color: '#DB2777',
-          padding: '16px',
-          borderRadius: '16px',
-          fontWeight: 500,
-          lineHeight: 1.5,
-          fontSize: '14px'
-        }}
-      >
-        <p style={{ margin: '0 0 8px 0' }}>
-          <span style={{ fontWeight: 700 }}>Hey!</span> I see you've been tracking for a week now.
-        </p>
-        <p style={{ margin: '0 0 8px 0' }}>
-          You logged symptoms <span style={{ fontWeight: 700 }}>6 out of 7 days</span> — that's great consistency!
-        </p>
-        <p style={{ margin: 0 }}>
-          Want to know more about managing hot flashes?
-        </p>
-      </div>
-
-      {/* User reply (pink, right-aligned) */}
+      {/* User question (pink, right-aligned) */}
       <div
         className="user-message"
         style={{
@@ -56,7 +32,7 @@ export default function LisaChatVisual() {
           fontWeight: 500
         }}
       >
-        yes
+        Why do I wake up at 3am every night?
       </div>
 
       {/* Lisa's detailed response (white) */}
@@ -78,7 +54,7 @@ export default function LisaChatVisual() {
             color: '#111827'
           }}
         >
-          Great question! Here's what research shows: ☀️
+          Great question! 🌙 This is super common in perimenopause. Here's what's happening:
         </p>
 
         <p
@@ -90,7 +66,7 @@ export default function LisaChatVisual() {
             lineHeight: 1.5
           }}
         >
-          Hot flashes happen when changing estrogen levels affect your body's temperature regulation. Here's what can help:
+          Your progesterone levels are dropping, and progesterone helps you stay asleep. Lower levels = more middle-of-the-night wake-ups.
         </p>
 
         <div
@@ -121,7 +97,7 @@ export default function LisaChatVisual() {
                   marginBottom: '2px'
                 }}
               >
-                Stay hydrated
+                Keep your room cool
               </span>
               <span
                 className="tip-text"
@@ -131,7 +107,7 @@ export default function LisaChatVisual() {
                   display: 'block'
                 }}
               >
-                Drinking water helps regulate body temperature.
+                65-68°F (18-20°C) helps your body stay asleep.
               </span>
             </div>
           </div>
@@ -156,7 +132,7 @@ export default function LisaChatVisual() {
                   marginBottom: '2px'
                 }}
               >
-                Layer your clothing
+                Skip alcohol after 6pm
               </span>
               <span
                 className="tip-text"
@@ -166,7 +142,7 @@ export default function LisaChatVisual() {
                   display: 'block'
                 }}
               >
-                Easy to remove layers when a hot flash hits.
+                It disrupts deep sleep cycles.
               </span>
             </div>
           </div>
@@ -191,7 +167,7 @@ export default function LisaChatVisual() {
                   marginBottom: '2px'
                 }}
               >
-                Try deep breathing
+                Try magnesium glycinate before bed
               </span>
               <span
                 className="tip-text"
@@ -201,11 +177,23 @@ export default function LisaChatVisual() {
                   display: 'block'
                 }}
               >
-                Slow breathing can reduce intensity and duration.
+                Can help with sleep quality and duration.
               </span>
             </div>
           </div>
         </div>
+        
+        <p
+          style={{
+            fontSize: '13px',
+            color: '#DB2777',
+            fontWeight: 600,
+            marginTop: '12px',
+            marginBottom: 0
+          }}
+        >
+          Want me to explain more about the progesterone connection?
+        </p>
       </div>
 
       {/* Fake input field */}

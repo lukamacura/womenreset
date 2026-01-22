@@ -906,23 +906,33 @@ export default function DashboardPage() {
 
       {/* Bento Grid - Simplified and more compact */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-        {/* Trial Status Card - Full width */}
-        <div className="md:col-span-2">
-          <AnimatedCard index={0} delay={0}>
-            <TrialCard
-              trial={{
-                ...trial,
-                expired: !!trial.expired, // Ensure 'expired' is always boolean
-              }}
-              symptomCount={symptomLogs.length}
-              patternCount={patternCount}
-            />
+        {/* Chat with Lisa Action Card - Simplified (Left side) */}
+        <div className="md:col-span-1">
+          <AnimatedCard index={1} delay={100} className="h-full">
+            <Link
+              href="/chat/lisa"
+              className="group relative overflow-hidden flex flex-col h-full rounded-xl border-2 border-primary/20 bg-card p-6 shadow-2xl transition-all duration-200 hover:shadow-lg hover:border-primary/40"
+            >
+              <div className="flex items-start gap-4 flex-1">
+                <div className="p-3 rounded-xl shrink-0" style={{ background: 'linear-gradient(135deg, #ff74b1 0%, #d85a9a 100%)' }}>
+                  <MessageSquare className="h-6 w-6 text-white" />
+                </div>
+                <div className="flex-1 min-w-0 flex flex-col">
+                  <h3 className="text-lg font-bold text-foreground mb-1">Chat with Lisa</h3>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Ask Lisa anything
+                  </p>
+                  <div className="h-[28px]"></div>
+                </div>
+                <ArrowRight className="h-5 w-5 text-primary transition-transform group-hover:translate-x-1 shrink-0 mt-1" />
+              </div>
+            </Link>
           </AnimatedCard>
         </div>
 
-        {/* Track Symptoms Action Card - Simplified */}
+        {/* Track Symptoms Action Card - Simplified (Right side) */}
         <div className="md:col-span-1">
-          <AnimatedCard index={1} delay={100} className="h-full">
+          <AnimatedCard index={2} delay={150} className="h-full">
             <Link
               href="/dashboard/symptoms"
               className="group relative overflow-hidden flex flex-col h-full shadow-2xl rounded-xl border-2 border-primary/20 bg-card p-6 transition-all duration-200 hover:shadow-lg hover:border-primary/40"
@@ -956,27 +966,17 @@ export default function DashboardPage() {
           </AnimatedCard>
         </div>
 
-        {/* Chat with Lisa Action Card - Simplified */}
-        <div className="md:col-span-1">
-          <AnimatedCard index={2} delay={150} className="h-full">
-            <Link
-              href="/chat/lisa"
-              className="group relative overflow-hidden flex flex-col h-full rounded-xl border-2 border-primary/20 bg-card p-6 shadow-2xl transition-all duration-200 hover:shadow-lg hover:border-primary/40"
-            >
-              <div className="flex items-start gap-4 flex-1">
-                <div className="p-3 rounded-xl shrink-0" style={{ background: 'linear-gradient(135deg, #ff74b1 0%, #d85a9a 100%)' }}>
-                  <MessageSquare className="h-6 w-6 text-white" />
-                </div>
-                <div className="flex-1 min-w-0 flex flex-col">
-                  <h3 className="text-lg font-bold text-foreground mb-1">Chat with Lisa</h3>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Ask Lisa anything
-                  </p>
-                  <div className="h-[28px]"></div>
-                </div>
-                <ArrowRight className="h-5 w-5 text-primary transition-transform group-hover:translate-x-1 shrink-0 mt-1" />
-              </div>
-            </Link>
+        {/* Trial Status Card - Full width (Under Track Symptoms and Chat with Lisa) */}
+        <div className="md:col-span-2">
+          <AnimatedCard index={0} delay={200}>
+            <TrialCard
+              trial={{
+                ...trial,
+                expired: !!trial.expired, // Ensure 'expired' is always boolean
+              }}
+              symptomCount={symptomLogs.length}
+              patternCount={patternCount}
+            />
           </AnimatedCard>
         </div>
 
