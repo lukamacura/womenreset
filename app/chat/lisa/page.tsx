@@ -116,9 +116,9 @@ type ToastNotification = {
   timestamp: number;
 };
 
-const SESSIONS_KEY = "Lisa-chat-sessions";
-const ACTIVE_KEY = "Lisa-chat-active";
+// Removed localStorage keys - now using Supabase for persistence
 const DATE_LOCALE = "en-US";
+const MAX_MESSAGES_PER_SESSION = 50; // Limit for efficiency
 
 
 /* ===== Utils ===== */
@@ -195,21 +195,9 @@ function normalizeMarkdown(src: string): string {
   return s.trim();
 }
 
-// IDs / LS helpers
+// ID helper
 const uid = () =>
   Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
-const safeLSGet = (k: string) => {
-  try {
-    return typeof window !== "undefined" ? localStorage.getItem(k) : null;
-  } catch {
-    return null;
-  }
-};
-const safeLSSet = (k: string, v: string) => {
-  try {
-    if (typeof window !== "undefined") localStorage.setItem(k, v);
-  } catch { }
-};
 
 /** Build a compact history of previous turns (NOT including the current user message). */
 function buildHistory(messages: Msg[], maxChars = 4000): string {
@@ -1255,23 +1243,21 @@ const MarkdownBubble = React.memo(function MarkdownBubble({ children }: { childr
   );
 });
 
-/* ===== LocalStorage hydration with normalization ===== */
-function hydrate(raw: string | null): Conversation[] | null {
-  if (!raw) return null;
-  try {
-    const parsed = JSON.parse(raw) as Conversation[];
-    return parsed.map((c) => ({
-      ...c,
-      messages: c.messages.map((m) =>
-        m.role === "assistant"
-          ? { ...m, content: normalizeMarkdown(m.content) }
-          : m,
-      ),
-    }));
-  } catch {
-    return null;
-  }
-}
+/* ===== Supabase session types ===== */
+type SessionFromDB = {
+  session_id: string;
+  title: string;
+  created_at: string;
+  updated_at: string;
+  message_count: number;
+};
+
+type MessageFromDB = {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  created_at: string;
+};
 
 
 /* ===== Toast Notification Component ===== */
@@ -1334,27 +1320,9 @@ function ChatPageInner() {
   }, [trialStatus.expired, trialStatus.loading, router]);
 
   /* ---- State ---- */
-  const [sessions, setSessions] = useState<Conversation[]>(() => {
-    const normalized = hydrate(safeLSGet(SESSIONS_KEY));
-    if (normalized) return normalized;
-
-    // start with no sessions; we'll create one on first mount
-    return [];
-  });
-
-
-  const [activeId, setActiveId] = useState<string | null>(() => {
-    const raw = safeLSGet(ACTIVE_KEY);
-    if (raw) return raw;
-    const rawS = safeLSGet(SESSIONS_KEY);
-    if (rawS) {
-      try {
-        const parsed: Conversation[] = JSON.parse(rawS);
-        return parsed[0]?.id ?? null;
-      } catch { }
-    }
-    return null;
-  });
+  const [sessions, setSessions] = useState<Conversation[]>([]);
+  const [sessionsLoading, setSessionsLoading] = useState(true);
+  const [activeId, setActiveId] = useState<string | null>(null);
 
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -1405,11 +1373,89 @@ function ChatPageInner() {
     [sessions, activeId],
   );
 
-  /* ---- Persist ---- */
+  /* ---- Fetch sessions from Supabase ---- */
+  const fetchSessionsFromDB = useCallback(async (user_id: string) => {
+    try {
+      const res = await fetch(`/api/chat-sessions?user_id=${encodeURIComponent(user_id)}&limit=20`);
+      if (!res.ok) throw new Error("Failed to fetch sessions");
+      const data = await res.json();
+      
+      const dbSessions: SessionFromDB[] = data.sessions || [];
+      
+      // Convert DB sessions to local Conversation format (without messages yet - lazy load)
+      const conversations: Conversation[] = dbSessions.map((s) => ({
+        id: s.session_id,
+        title: s.title || "Menopause Support Chat",
+        createdAt: new Date(s.created_at).getTime(),
+        updatedAt: new Date(s.updated_at).getTime(),
+        messages: [], // Will be loaded when session is opened
+      }));
+      
+      return conversations;
+    } catch (error) {
+      console.error("Error fetching sessions:", error);
+      return [];
+    }
+  }, []);
+
+  /* ---- Fetch messages for a session ---- */
+  const fetchMessagesForSession = useCallback(async (user_id: string, session_id: string): Promise<Msg[]> => {
+    try {
+      const res = await fetch(
+        `/api/chat-sessions?user_id=${encodeURIComponent(user_id)}&session_id=${encodeURIComponent(session_id)}&limit=${MAX_MESSAGES_PER_SESSION}`
+      );
+      if (!res.ok) throw new Error("Failed to fetch messages");
+      const data = await res.json();
+      
+      const dbMessages: MessageFromDB[] = data.messages || [];
+      
+      // Convert to local Msg format
+      return dbMessages.map((m) => ({
+        role: m.role,
+        content: m.role === "assistant" ? normalizeMarkdown(m.content) : m.content,
+        ts: new Date(m.created_at).getTime(),
+      }));
+    } catch (error) {
+      console.error("Error fetching messages:", error);
+      return [];
+    }
+  }, []);
+
+  /* ---- Load sessions when userId is available ---- */
   useEffect(() => {
-    safeLSSet(SESSIONS_KEY, JSON.stringify(sessions));
-    if (activeId) safeLSSet(ACTIVE_KEY, activeId);
-  }, [sessions, activeId]);
+    if (!userId) return;
+    
+    let mounted = true;
+    
+    const loadSessions = async () => {
+      setSessionsLoading(true);
+      const loadedSessions = await fetchSessionsFromDB(userId);
+      
+      if (!mounted) return;
+      
+      if (loadedSessions.length > 0) {
+        // Load messages for the most recent session
+        const firstSession = loadedSessions[0];
+        const messages = await fetchMessagesForSession(userId, firstSession.id);
+        
+        if (!mounted) return;
+        
+        // Update first session with messages
+        loadedSessions[0] = { ...firstSession, messages };
+        
+        setSessions(loadedSessions);
+        setActiveId(firstSession.id);
+      }
+      
+      setSessionsLoading(false);
+    };
+    
+    loadSessions();
+    
+    return () => {
+      mounted = false;
+    };
+  }, [userId, fetchSessionsFromDB, fetchMessagesForSession]);
 
   /* ---- Auto-scroll behavior ---- */
   useEffect(() => {
@@ -1594,35 +1640,90 @@ function ChatPageInner() {
     return id;
   }, [userId]);
 
-  const openChat = useCallback((id: string) => {
+  const openChat = useCallback(async (id: string) => {
     setActiveId(id);
     setMenuOpen(false);
     setStickToBottom(true);
-  }, []);
+    
+    // Lazy load messages if not already loaded
+    const session = sessions.find((s) => s.id === id);
+    if (session && session.messages.length === 0 && userId) {
+      const messages = await fetchMessagesForSession(userId, id);
+      setSessions((prev) =>
+        prev.map((s) => (s.id === id ? { ...s, messages } : s))
+      );
+    }
+  }, [sessions, userId, fetchMessagesForSession]);
   
-  // Initialize with existing chat or create new one if none exists
-  // Only run once after sessions are loaded
+  // Initialize with new chat if no sessions exist after loading completes
   useEffect(() => {
     if (didInitRef.current) return;
+    if (sessionsLoading) return; // Wait for sessions to finish loading
     
-    // Check if there are existing sessions
-    if (sessions.length > 0 && activeId) {
-      // Use existing active chat
-      didInitRef.current = true;
-      return;
-    } else if (sessions.length > 0) {
-      // Activate the first existing chat
-      didInitRef.current = true;
-      setActiveId(sessions[0].id);
-    } else if (sessions.length === 0) {
-      // Only create new chat if no sessions exist and we've confirmed sessions are loaded
-      // This prevents creating a chat before localStorage is read
+    // Sessions loaded, check if we need to create a new one
+    if (sessions.length === 0 && userId) {
       didInitRef.current = true;
       void newChat();
+    } else if (sessions.length > 0) {
+      didInitRef.current = true;
     }
-    // If sessions.length is still being determined, wait for next render
-  }, [sessions, activeId, newChat]);
+  }, [sessions, sessionsLoading, userId, newChat]);
 
+  /* ---- Delete session from Supabase ---- */
+  const deleteSession = useCallback(async (sessionId: string) => {
+    // Optimistically remove from local state
+    setSessions((prev) => {
+      const rest = prev.filter((x) => x.id !== sessionId);
+      setActiveId((curr) => (curr === sessionId ? rest[0]?.id ?? null : curr));
+      return rest;
+    });
+
+    // Delete from Supabase in background
+    if (userId) {
+      try {
+        await fetch(
+          `/api/chat-sessions?user_id=${encodeURIComponent(userId)}&session_id=${encodeURIComponent(sessionId)}`,
+          { method: "DELETE" }
+        );
+      } catch (error) {
+        console.error("Error deleting session:", error);
+      }
+    }
+  }, [userId]);
+
+  /* ---- Update session title in Supabase ---- */
+  const updateSessionTitle = useCallback(async (sessionId: string, title: string) => {
+    if (!userId) return;
+    try {
+      await fetch("/api/chat-sessions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: userId,
+          session_id: sessionId,
+          title,
+          action: "update_title",
+        }),
+      });
+    } catch (error) {
+      console.error("Error updating session title:", error);
+    }
+  }, [userId]);
+
+  // Track previous titles to detect changes and sync to Supabase
+  const prevTitlesRef = useRef<Map<string, string>>(new Map());
+  useEffect(() => {
+    if (!userId || sessionsLoading) return;
+    
+    for (const session of sessions) {
+      const prevTitle = prevTitlesRef.current.get(session.id);
+      if (prevTitle !== undefined && prevTitle !== session.title && session.title !== "Menopause Support Chat") {
+        // Title changed, sync to Supabase
+        void updateSessionTitle(session.id, session.title);
+      }
+      prevTitlesRef.current.set(session.id, session.title);
+    }
+  }, [sessions, userId, sessionsLoading, updateSessionTitle]);
 
   // Helper function to add notification
   const addNotification = useCallback((title: string, message: string) => {
@@ -1973,12 +2074,12 @@ function ChatPageInner() {
   }, [searchParams, activeId, loading, sendToAPI, router]);
 
   // Show loading or expired message
-  if (trialStatus.loading) {
+  if (trialStatus.loading || (sessionsLoading && userId)) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" style={{ color: THEME.pink[500] }} />
-          <p className="text-lg" style={{ color: THEME.text[700] }}>Loading...</p>
+          <p className="text-lg" style={{ color: THEME.text[700] }}>Loading your conversations...</p>
         </div>
       </div>
     );
@@ -2063,13 +2164,7 @@ function ChatPageInner() {
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                setSessions((prev) => {
-                  const rest = prev.filter((x) => x.id !== s.id);
-                  setActiveId((curr) =>
-                    curr === s.id ? rest[0]?.id ?? null : curr,
-                  );
-                  return rest;
-                });
+                void deleteSession(s.id);
               }}
               className="cursor-pointer p-1.5 rounded-lg transition-all active:bg-red-100 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-red-300 touch-manipulation shrink-0"
               title="Delete chat"

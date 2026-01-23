@@ -1,10 +1,8 @@
 "use client"
 
 import { useEffect, useState, useCallback } from "react"
-import Image from "next/image"
 import { BookOpen, Target, Users } from "lucide-react"
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion"
-import LisaChatVisual from "./LisaChatVisual"
 
 // Hero content variations - high-converting, outcome-based copy
 const heroContent = [
@@ -167,32 +165,6 @@ export default function LandingHero() {
     setCurrentIndex(index)
   }, [])
 
-  // Inject floating elements styles for phone mockup
-  useEffect(() => {
-    const styleId = 'hero-floating-styles'
-    if (document.getElementById(styleId)) return
-
-    const style = document.createElement('style')
-    style.id = styleId
-    style.textContent = `
-      .subtle-float {
-        animation: subtle-float 8s ease-in-out infinite;
-      }
-      @keyframes subtle-float {
-        0%, 100% { transform: translateY(0px) rotate(0deg); }
-        50% { transform: translateY(-10px) rotate(1deg); }
-      }
-    `
-    document.head.appendChild(style)
-
-    return () => {
-      const existingStyle = document.getElementById(styleId)
-      if (existingStyle) {
-        existingStyle.remove()
-      }
-    }
-  }, [])
-
   const currentContent = heroContent[currentIndex]
 
   return (
@@ -224,7 +196,7 @@ export default function LandingHero() {
 
       {/* Main Content */}
       <div className="relative z-10 max-w-7xl mx-auto w-full">
-        <div className="grid lg:grid-cols-[55%_45%] gap-6 sm:gap-8 md:gap-10 lg:gap-12 items-center">
+        <div className="grid lg:grid-cols-1 gap-6 sm:gap-8 md:gap-10 items-center">
           {/* Left: Text Content - 55% width, fully readable */}
           <div 
             className="text-center lg:text-left space-y-4 sm:space-y-5 md:space-y-6 relative z-20 w-full"
@@ -319,79 +291,6 @@ export default function LandingHero() {
                 Join 10,000+ women who stopped guessing
               </span>
             </motion.div>
-          </div>
-
-          {/* Right: App Preview Images - Stripe-style layered mockups */}
-          <div className="hidden lg:block relative w-full h-full min-h-[600px]">
-            {/* Subtle glow behind mockups */}
-            <div
-              className="absolute inset-0 z-0"
-              style={{
-                background: `radial-gradient(
-                  ellipse at center,
-                  rgba(252, 231, 243, 0.3) 0%,
-                  transparent 60%
-                )`,
-                filter: 'blur(80px)',
-                top: '20%',
-                left: '20%',
-                width: '80%',
-                height: '60%'
-              }}
-            />
-
-            {/* Layered Mockups Container - All on right side only */}
-            <div className="relative h-full flex items-start justify-start" style={{ 
-              minHeight: '700px',
-              paddingLeft: '0',
-              paddingTop: '40px'
-            }}>
-              {/* Main Phone Mockup - Front layer (z-index 20) */}
-              <div 
-                className="relative shrink-0 subtle-float" 
-                style={{ 
-                  width: '280px',
-                  height: '600px',
-                  zIndex: 20,
-                  marginLeft: '0',
-                  marginTop: '0'
-                }}
-              >
-                <div 
-                  className="absolute inset-0 rounded-[2.5rem] p-2"
-                  style={{
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    border: '2px solid rgba(0, 0, 0, 0.08)',
-                    boxShadow: '0 30px 60px -15px rgba(0, 0, 0, 0.12), 0 15px 30px -10px rgba(0, 0, 0, 0.08)',
-                  }}
-                >
-                  {/* Screen Content */}
-                  <div className="relative w-full h-full rounded-4xl overflow-hidden bg-background">
-                    <Image
-                      src="/phone.png"
-                      alt="MenoLisa mobile app preview"
-                      fill
-                      className="object-cover"
-                      priority
-                      style={{ willChange: 'transform' }}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Lisa Chat Visual - Static chat conversation demo (z-index 10) */}
-              <div 
-                className="absolute shrink-0" 
-                style={{ 
-                  top: '50%',
-                  left: '92%',
-                  zIndex: 10,
-                  transform: 'translate(-50%, -50%) scale(1.5) rotate(2deg)'
-                }}
-              >
-                <LisaChatVisual />
-              </div>
-            </div>
           </div>
         </div>
       </div>

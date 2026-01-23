@@ -19,109 +19,6 @@ import { getPersonaSystemPrompt } from "@/lib/rag/persona-prompts";
 import { addMessage, getConversationHistory } from "@/lib/rag/conversation-memory";
 import type { RetrievalMode } from "@/lib/rag/types";
 
-/**
- * Parse date/time references from user input and convert to ISO timestamp
- * Handles: "yesterday", "2 days ago", "last week", "this morning", "3 hours ago", etc.
- */
-function parseDateTimeReference(dateReference: string, defaultDate: Date = new Date()): string {
-  if (!dateReference || !dateReference.trim()) {
-    return defaultDate.toISOString();
-  }
-
-  const input = dateReference.toLowerCase().trim();
-  const now = defaultDate;
-  const result = new Date(now);
-
-  // Handle "yesterday"
-  if (input.includes("yesterday")) {
-    result.setDate(result.getDate() - 1);
-    // Try to extract time if mentioned (e.g., "yesterday at 3pm", "yesterday morning")
-    if (input.includes("morning")) {
-      result.setHours(9, 0, 0, 0);
-    } else if (input.includes("afternoon")) {
-      result.setHours(14, 0, 0, 0);
-    } else if (input.includes("evening") || input.includes("night")) {
-      result.setHours(20, 0, 0, 0);
-    } else {
-      const timeMatch = input.match(/(\d{1,2})\s*(am|pm|:)/i);
-      if (timeMatch) {
-        let hours = parseInt(timeMatch[1]);
-        const isPM = /pm/i.test(input);
-        if (isPM && hours !== 12) hours += 12;
-        if (!isPM && hours === 12) hours = 0;
-        result.setHours(hours, 0, 0, 0);
-      } else {
-        // Default to noon for yesterday if no time specified
-        result.setHours(12, 0, 0, 0);
-      }
-    }
-    return result.toISOString();
-  }
-
-  // Handle "X days ago"
-  const daysAgoMatch = input.match(/(\d+)\s*days?\s*ago/i);
-  if (daysAgoMatch) {
-    const days = parseInt(daysAgoMatch[1]);
-    result.setDate(result.getDate() - days);
-    result.setHours(12, 0, 0, 0);
-    return result.toISOString();
-  }
-
-  // Handle "last week"
-  if (input.includes("last week")) {
-    result.setDate(result.getDate() - 7);
-    result.setHours(12, 0, 0, 0);
-    return result.toISOString();
-  }
-
-  // Handle "X hours ago"
-  const hoursAgoMatch = input.match(/(\d+)\s*hours?\s*ago/i);
-  if (hoursAgoMatch) {
-    const hours = parseInt(hoursAgoMatch[1]);
-    result.setHours(result.getHours() - hours);
-    return result.toISOString();
-  }
-
-  // Handle "this morning" (today, morning hours)
-  if (input.includes("this morning")) {
-    result.setHours(9, 0, 0, 0);
-    return result.toISOString();
-  }
-
-  // Handle "this afternoon" (today, afternoon hours)
-  if (input.includes("this afternoon")) {
-    result.setHours(14, 0, 0, 0);
-    return result.toISOString();
-  }
-
-  // Handle "this evening" or "tonight" (today, evening hours)
-  if (input.includes("this evening") || input.includes("tonight")) {
-    result.setHours(19, 0, 0, 0);
-    return result.toISOString();
-  }
-
-  // Handle "last night" (yesterday evening)
-  if (input.includes("last night")) {
-    result.setDate(result.getDate() - 1);
-    result.setHours(20, 0, 0, 0);
-    return result.toISOString();
-  }
-
-  // Handle "today" with time references
-  if (input.includes("today")) {
-    if (input.includes("morning")) {
-      result.setHours(9, 0, 0, 0);
-    } else if (input.includes("afternoon")) {
-      result.setHours(14, 0, 0, 0);
-    } else if (input.includes("evening") || input.includes("night")) {
-      result.setHours(19, 0, 0, 0);
-    }
-    return result.toISOString();
-  }
-
-  // Default to current time if no date reference found
-  return now.toISOString();
-}
 
 // Initialize LLM with function calling support
 // Base LLM for normal conversation (with personalization)
@@ -574,8 +471,8 @@ export async function POST(req: NextRequest) {
         timestamp: Date.now(),
       });
       
-      // Store conversation in database (legacy)
-      await storeConversation(user_id, userMessage, orchestrationResult.response);
+      // Store conversation in database with session tracking
+      await storeConversation(user_id, userMessage, orchestrationResult.response, sessionId);
 
       if (useStreaming) {
         // Stream the response
@@ -1119,7 +1016,7 @@ IMPORTANT: The user is engaging in casual conversation, not asking for informati
                 persona: orchestrationResult.persona,
                 timestamp: Date.now(),
               });
-              await storeConversation(user_id, userMessage, fullResponse);
+              await storeConversation(user_id, userMessage, fullResponse, sessionId);
             }
 
             controller.enqueue(
@@ -1203,7 +1100,7 @@ IMPORTANT: The user is engaging in casual conversation, not asking for informati
         timestamp: Date.now(),
       });
       
-      await storeConversation(user_id, userMessage, responseText);
+      await storeConversation(user_id, userMessage, responseText, sessionId);
 
       return NextResponse.json({
         content: responseText,
@@ -1262,15 +1159,21 @@ function parseHistory(history: string): Array<["user" | "assistant", string]> {
 async function storeConversation(
   user_id: string,
   userMessage: string,
-  assistantMessage: string
+  assistantMessage: string,
+  session_id?: string,
+  title?: string
 ) {
   try {
     const supabaseClient = getSupabaseAdmin();
+    const now = new Date().toISOString();
     await supabaseClient.from("conversations").insert([
       {
         user_id,
         user_message: userMessage,
         assistant_message: assistantMessage,
+        session_id: session_id || null,
+        title: title || null,
+        updated_at: now,
       },
     ]);
   } catch (error) {
