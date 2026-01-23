@@ -1,13 +1,14 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
-import { motion, useInView, useReducedMotion } from "framer-motion"
+import { motion, useReducedMotion } from "framer-motion"
+import { useReplayableInView } from "@/hooks/useReplayableInView"
+import { useReplayableHighlight } from "@/hooks/useReplayableHighlight"
 
 function HighlightedText({
   text,
@@ -18,13 +19,7 @@ function HighlightedText({
   isInView: boolean
   prefersReducedMotion: boolean | null
 }) {
-  const [shouldHighlight, setShouldHighlight] = useState(false)
-
-  useEffect(() => {
-    if (!isInView || prefersReducedMotion) return
-    const timer = setTimeout(() => setShouldHighlight(true), 500)
-    return () => clearTimeout(timer)
-  }, [isInView, prefersReducedMotion])
+  const shouldHighlight = useReplayableHighlight(!!(isInView && !prefersReducedMotion), { delayMs: 500 })
 
   return (
     <span className="relative inline-block">
@@ -42,8 +37,7 @@ function HighlightedText({
 
 export default function LandingFAQ() {
   const prefersReducedMotion = useReducedMotion()
-  const sectionRef = useRef(null)
-  const isInView = useInView(sectionRef, { once: true, amount: 0.3 })
+  const { ref: sectionRef, isInView } = useReplayableInView<HTMLElement>({ amount: 0.3 })
   
   const faqs = [
     {

@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react"
 import { BookOpen, Target, Users } from "lucide-react"
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion"
+import { useReplayableInView } from "@/hooks/useReplayableInView"
 
 // Hero content variations - high-converting, outcome-based copy
 const heroContent = [
@@ -64,10 +65,12 @@ function HighlightedWord({
 function AnimatedHeadline({ 
   content, 
   isActive,
+  isInView,
   prefersReducedMotion 
 }: { 
   content: typeof heroContent[0]['headline']
   isActive: boolean
+  isInView: boolean
   prefersReducedMotion: boolean
 }) {
   return (
@@ -75,7 +78,7 @@ function AnimatedHeadline({
       className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight text-foreground px-2 sm:px-0"
       style={{ textShadow: '0 2px 10px rgba(255, 255, 255, 0.5)' }}
       initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
+      animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
       exit={{ opacity: 0, y: -20 }}
       transition={{ 
         duration: prefersReducedMotion ? 0.2 : 0.5, 
@@ -94,16 +97,18 @@ function AnimatedHeadline({
 // Subheadline component with animation
 function AnimatedSubheadline({ 
   text,
+  isInView,
   prefersReducedMotion 
 }: { 
   text: string
+  isInView: boolean
   prefersReducedMotion: boolean
 }) {
   return (
     <motion.p 
-      className="text-base sm:text-lg md:text-xl lg:text-2xl text-muted-foreground leading-relaxed max-w-2xl mx-auto lg:mx-0 px-2 sm:px-0"
+      className="text-base sm:text-lg md:text-xl lg:text-2xl text-muted-foreground leading-relaxed max-w-2xl mx-auto md:mx-0 px-2 sm:px-0"
       initial={{ opacity: 0, y: 15 }}
-      animate={{ opacity: 1, y: 0 }}
+      animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 15 }}
       exit={{ opacity: 0, y: -15 }}
       transition={{ 
         duration: prefersReducedMotion ? 0.2 : 0.5, 
@@ -145,20 +150,43 @@ function ProgressDots({
 }
 
 export default function LandingHero() {
+  const prefersReducedMotion = useReducedMotion()
+  const { ref: sectionRef, isInView, resetKey } = useReplayableInView<HTMLElement>({ amount: 0.35 })
+
+  return (
+    <section
+      ref={sectionRef}
+      className="relative h-screen flex items-center justify-center px-4 sm:px-6 pt-20 sm:pt-24 md:pt-28 pb-12 sm:pb-16 md:pb-20 overflow-hidden"
+    >
+      <LandingHeroInner
+        key={resetKey}
+        isInView={isInView}
+        prefersReducedMotion={!!prefersReducedMotion}
+      />
+    </section>
+  )
+}
+
+function LandingHeroInner({
+  isInView,
+  prefersReducedMotion,
+}: {
+  isInView: boolean
+  prefersReducedMotion: boolean
+}) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isHovered, setIsHovered] = useState(false)
-  const prefersReducedMotion = useReducedMotion()
 
   // Auto-rotate headlines every 4 seconds (pause on hover)
   useEffect(() => {
-    if (isHovered || prefersReducedMotion) return
+    if (!isInView || isHovered || prefersReducedMotion) return
 
     const interval = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % heroContent.length)
     }, 2400)
 
     return () => clearInterval(interval)
-  }, [isHovered, prefersReducedMotion])
+  }, [isHovered, prefersReducedMotion, isInView])
 
   // Handle manual selection
   const handleSelect = useCallback((index: number) => {
@@ -168,7 +196,7 @@ export default function LandingHero() {
   const currentContent = heroContent[currentIndex]
 
   return (
-    <section className="relative min-h-[85vh] sm:min-h-screen flex items-center justify-center px-4 sm:px-6 pt-20 sm:pt-24 md:pt-28 pb-12 sm:pb-16 md:pb-20 overflow-hidden">
+    <>
       {/* Corner Blobs - Only 2, very subtle - Reduced on mobile */}
       <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
         {/* Blob 1 - Top Right Corner (behind mockups) */}
@@ -196,38 +224,40 @@ export default function LandingHero() {
 
       {/* Main Content */}
       <div className="relative z-10 max-w-7xl mx-auto w-full">
-        <div className="grid lg:grid-cols-1 gap-6 sm:gap-8 md:gap-10 items-center">
-          {/* Left: Text Content - 55% width, fully readable */}
+        <div className="grid md:grid-cols-2 gap-8 sm:gap-10 md:gap-12 items-center">
+          {/* Left: Text Content */}
           <div 
-            className="text-center lg:text-left space-y-4 sm:space-y-5 md:space-y-6 relative z-20 w-full"
+            className="text-center md:text-left space-y-4 sm:space-y-5 md:space-y-6 relative z-20 w-full"
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
           >
             {/* Rotating Headlines */}
-            <div className="min-h-[100px] sm:min-h-[120px] md:min-h-[140px] lg:min-h-[180px]">
+            <div className="text-left min-h-[100px] sm:min-h-[120px] md:min-h-[140px] lg:min-h-[180px]">
               <AnimatePresence mode="wait">
                 <AnimatedHeadline 
                   key={`headline-${currentIndex}`}
                   content={currentContent.headline}
-                  isActive={true}
-                  prefersReducedMotion={!!prefersReducedMotion}
+                  isActive={isInView}
+                  isInView={isInView}
+                  prefersReducedMotion={prefersReducedMotion}
                 />
               </AnimatePresence>
             </div>
 
             {/* Rotating Subheadlines */}
-            <div className="min-h-[50px] sm:min-h-[60px] md:min-h-[70px] lg:min-h-[80px]">
+            <div className=" text-left min-h-[50px] sm:min-h-[60px] md:min-h-[70px] lg:min-h-[80px]">
               <AnimatePresence mode="wait">
                 <AnimatedSubheadline 
                   key={`subheadline-${currentIndex}`}
                   text={currentContent.subheadline}
-                  prefersReducedMotion={!!prefersReducedMotion}
+                  isInView={isInView}
+                  prefersReducedMotion={prefersReducedMotion}
                 />
               </AnimatePresence>
             </div>
 
             {/* Progress Dots */}
-            <div className="flex justify-center lg:justify-start">
+            <div className="flex justify-center md:justify-start">
               <ProgressDots 
                 total={heroContent.length} 
                 current={currentIndex} 
@@ -236,12 +266,12 @@ export default function LandingHero() {
             </div>
 
             {/* Trust Badges - Inline Strip - Optimized for mobile */}
-            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3 sm:gap-4 md:gap-6 text-xs sm:text-sm text-muted-foreground pt-2 px-2 sm:px-0">
+            <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 sm:gap-4 md:gap-6 text-xs sm:text-sm text-muted-foreground pt-2 px-2 sm:px-0">
               <motion.div 
                 className="flex items-center gap-1.5 sm:gap-2"
                 initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2, duration: 0.5 }}
+                animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
+                transition={{ delay: isInView ? 0.2 : 0, duration: 0.5 }}
               >
                 <BookOpen className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5 text-primary shrink-0" />
                 <span className="whitespace-nowrap">Research-backed</span>
@@ -250,8 +280,8 @@ export default function LandingHero() {
               <motion.div 
                 className="flex items-center gap-1.5 sm:gap-2"
                 initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3, duration: 0.5 }}
+                animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
+                transition={{ delay: isInView ? 0.3 : 0, duration: 0.5 }}
               >
                 <Target className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5 text-primary shrink-0" />
                 <span className="whitespace-nowrap">Available 24/7</span>
@@ -260,8 +290,8 @@ export default function LandingHero() {
               <motion.div 
                 className="flex items-center gap-1.5 sm:gap-2"
                 initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4, duration: 0.5 }}
+                animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
+                transition={{ delay: isInView ? 0.4 : 0, duration: 0.5 }}
               >
                 <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5 text-primary shrink-0" />
                 <span className="whitespace-nowrap">10,000+ trust Lisa</span>
@@ -270,10 +300,10 @@ export default function LandingHero() {
 
             {/* Social Proof - Optimized for mobile */}
             <motion.div 
-              className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-2 sm:gap-3 pt-1 px-2 sm:px-0"
+              className="flex flex-col sm:flex-row items-center justify-center md:justify-start gap-2 sm:gap-3 pt-1 px-2 sm:px-0"
               initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5, duration: 0.5 }}
+              animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
+              transition={{ delay: isInView ? 0.5 : 0, duration: 0.5 }}
             >
               <div className="flex -space-x-2 shrink-0">
                 {[1, 2, 3, 4].map((i) => (
@@ -292,8 +322,58 @@ export default function LandingHero() {
               </span>
             </motion.div>
           </div>
+
+          {/* Right: Hero Video */}
+          <div className="relative z-10 w-full flex justify-end">
+            <div className="w-full max-w-md sm:max-w-lg md:max-w-xl">
+              {/* iPad-style frame (thick bezel + visible home indicator) */}
+              <div
+                className="relative w-full rounded-[2.5rem] border-[6px] sm:border-8 border-gray-900 bg-gray-900 shadow-2xl overflow-hidden"
+                style={{
+                  boxShadow:
+                    "0 28px 70px -22px rgba(0,0,0,0.35), 0 0 0 1px rgba(0,0,0,0.08)",
+                }}
+              >
+                {/* Bezel highlight */}
+                <div
+                  className="pointer-events-none absolute inset-0 rounded-[2.5rem]"
+                  style={{
+                    boxShadow:
+                      "inset 0 1px 0 rgba(255,255,255,0.16), inset 0 -1px 0 rgba(255,255,255,0.08)",
+                  }}
+                />
+
+                {/* Camera dot (top center) */}
+                <div className="pointer-events-none absolute top-3 left-1/2 -translate-x-1/2 z-20">
+                  <div className="h-2.5 w-2.5 rounded-full bg-black/70" />
+                  <div className="absolute left-1/2 top-1/2 h-1 w-1 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/20" />
+                </div>
+
+                {/* Screen */}
+                <div
+                  className="relative rounded-[2.25rem] bg-white overflow-hidden"
+                  style={{ aspectRatio: "4 / 3", minHeight: 260 }}
+                >
+                  <video
+                    className="relative z-0 h-full w-full object-contain bg-white"
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    preload="metadata"
+                    aria-label="Lisa demo video"
+                  >
+                    <source src="/test2.webm" type="video/webm" />
+                  </video>
+
+                  {/* Navigation / home indicator (high contrast, above video) */}
+                  <div className="pointer-events-none absolute bottom-3 left-1/2 z-10 -translate-x-1/2 w-[160px] h-[6px] bg-black rounded-full shadow-sm" />
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-    </section>
+    </>
   )
 }

@@ -1,7 +1,8 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
-import { motion, useInView, useReducedMotion } from "framer-motion"
+import { motion, useReducedMotion } from "framer-motion"
+import { useReplayableInView } from "@/hooks/useReplayableInView"
+import { useReplayableHighlight } from "@/hooks/useReplayableHighlight"
 
 function HighlightedText({
   text,
@@ -12,13 +13,7 @@ function HighlightedText({
   isInView: boolean
   prefersReducedMotion: boolean | null
 }) {
-  const [shouldHighlight, setShouldHighlight] = useState(false)
-
-  useEffect(() => {
-    if (!isInView || prefersReducedMotion) return
-    const timer = setTimeout(() => setShouldHighlight(true), 500)
-    return () => clearTimeout(timer)
-  }, [isInView, prefersReducedMotion])
+  const shouldHighlight = useReplayableHighlight(!!(isInView && !prefersReducedMotion), { delayMs: 500 })
 
   return (
     <span className="relative inline-block">
@@ -36,8 +31,7 @@ function HighlightedText({
 
 export default function LandingSocialProof() {
   const prefersReducedMotion = useReducedMotion()
-  const sectionRef = useRef(null)
-  const isInView = useInView(sectionRef, { once: true, amount: 0.3 })
+  const { ref: sectionRef, isInView } = useReplayableInView<HTMLElement>({ amount: 0.3 })
   const testimonials = [
     {
       quote: "I asked Lisa about brain fog at 2am when I couldn't sleep. She explained exactly what's happening in my brain during perimenopause and gave me three things to try. No judgment, no waiting for an appointment. I felt understood for the first time in months.",

@@ -1,8 +1,8 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 "use client"
 
-import { useRef, useState, useEffect, useMemo, useCallback } from "react"
-import { motion, useInView, useReducedMotion, AnimatePresence } from "framer-motion"
+import { useState, useEffect, useMemo, useCallback } from "react"
+import { motion, useReducedMotion, AnimatePresence } from "framer-motion"
 import { 
   Hand, 
   Check, 
@@ -15,6 +15,8 @@ import {
   Sparkles,
   MessageCircle
 } from "lucide-react"
+import { useReplayableInView } from "@/hooks/useReplayableInView"
+import { useReplayableHighlight } from "@/hooks/useReplayableHighlight"
 
 // Smooth spring configs
 const smoothSpring = {
@@ -29,19 +31,44 @@ const ultraSmoothSpring = {
   stiffness: 350,
 }
 
-// Animation timing constants (in ms) - OPTIMIZED FOR SPEED
+// Animation timing constants (in ms)
 const TIMING = {
   CROSSFADE: 300,
   STEP_HOLD: 900,
-  STEP_1_ANIMATION: 1800, // User question + Lisa response
+  STEP_1_ANIMATION: 1440, // User question + typing + Lisa response (70% faster loading)
   STEP_2_ANIMATION: 1400,
   STEP_3_ANIMATION: 1400,
 } as const
 
 export default function HowItWorksSteps() {
-  const ref = useRef(null)
-  const isInView = useInView(ref, { once: true, amount: 0.3 })
   const prefersReducedMotion = useReducedMotion()
+  const { ref, isInView, resetKey } = useReplayableInView<HTMLElement>({ amount: 0.3 })
+
+  return (
+    <section
+      ref={ref}
+      id="how-it-works"
+      className="relative py-16 sm:py-20 px-4 overflow-hidden"
+      style={{
+        background: "linear-gradient(135deg, #F5E6FF 0%, #E6D5FF 100%)",
+      }}
+    >
+      <HowItWorksStepsInner
+        key={resetKey}
+        isInView={isInView}
+        prefersReducedMotion={!!prefersReducedMotion}
+      />
+    </section>
+  )
+}
+
+function HowItWorksStepsInner({
+  isInView,
+  prefersReducedMotion,
+}: {
+  isInView: boolean
+  prefersReducedMotion: boolean
+}) {
   const [currentStep, setCurrentStep] = useState(1)
 
   const getStepDuration = useCallback((step: number) => {
@@ -64,14 +91,6 @@ export default function HowItWorksSteps() {
   }, [isInView, prefersReducedMotion, currentStep, getStepDuration])
 
   return (
-    <section
-      ref={ref}
-      id="how-it-works"
-      className="relative py-16 sm:py-20 px-4 overflow-hidden"
-      style={{
-        background: "linear-gradient(135deg, #F5E6FF 0%, #E6D5FF 100%)",
-      }}
-    >
       <div className="max-w-[1200px] mx-auto">
         {/* Heading */}
         <motion.div
@@ -82,21 +101,22 @@ export default function HowItWorksSteps() {
         >
           <HeadingWithHighlight
             isInView={isInView}
-            prefersReducedMotion={!!prefersReducedMotion}
+            prefersReducedMotion={prefersReducedMotion}
           >
             <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-4 text-gray-900">
               How It Works
             </h2>
           </HeadingWithHighlight>
           <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">
-            Clarity in three simple steps
+            Three steps to clarity
           </p>
         </motion.div>
 
         {/* Step Indicators */}
         <StepIndicators
           currentStep={currentStep}
-          prefersReducedMotion={!!prefersReducedMotion}
+          prefersReducedMotion={prefersReducedMotion}
+          isInView={isInView}
           onSelect={setCurrentStep}
         />
 
@@ -107,21 +127,21 @@ export default function HowItWorksSteps() {
               {currentStep === 1 && (
                 <ChatInterfacePhone
                   key="step-1"
-                  prefersReducedMotion={!!prefersReducedMotion}
+                  prefersReducedMotion={prefersReducedMotion}
                   isInView={isInView}
                 />
               )}
               {currentStep === 2 && (
                 <SymptomTrackingPhone
                   key="step-2"
-                  prefersReducedMotion={!!prefersReducedMotion}
+                  prefersReducedMotion={prefersReducedMotion}
                   isInView={isInView}
                 />
               )}
               {currentStep === 3 && (
                 <DataTimelinePhone
                   key="step-3"
-                  prefersReducedMotion={!!prefersReducedMotion}
+                  prefersReducedMotion={prefersReducedMotion}
                   isInView={isInView}
                 />
               )}
@@ -132,10 +152,10 @@ export default function HowItWorksSteps() {
         {/* Step Labels */}
         <StepLabels
           currentStep={currentStep}
-          prefersReducedMotion={!!prefersReducedMotion}
+          prefersReducedMotion={prefersReducedMotion}
+          isInView={isInView}
         />
       </div>
-    </section>
   )
 }
 
@@ -151,13 +171,7 @@ function HeadingWithHighlight({
   isInView: boolean
   prefersReducedMotion: boolean
 }) {
-  const [shouldHighlight, setShouldHighlight] = useState(false)
-
-  useEffect(() => {
-    if (!isInView || prefersReducedMotion) return
-    const timer = setTimeout(() => setShouldHighlight(true), 300)
-    return () => clearTimeout(timer)
-  }, [isInView, prefersReducedMotion])
+  const shouldHighlight = useReplayableHighlight(isInView && !prefersReducedMotion, { delayMs: 300 })
 
   return (
     <div className="relative inline-block">
@@ -179,10 +193,12 @@ function HeadingWithHighlight({
 function StepIndicators({
   currentStep,
   prefersReducedMotion,
+  isInView,
   onSelect,
 }: {
   currentStep: number
   prefersReducedMotion: boolean
+  isInView: boolean
   onSelect?: (step: number) => void
 }) {
   return (
@@ -200,7 +216,7 @@ function StepIndicators({
                 ? "bg-linear-to-r from-[#FF6B9D] to-[#FFA07A]"
                 : "bg-gray-300 hover:bg-gray-400"
             }`}
-            animate={{ width: isActive ? 40 : 8 }}
+            animate={isInView ? { width: isActive ? 40 : 8 } : { width: 8 }}
             transition={{ ...smoothSpring, duration: prefersReducedMotion ? 0 : 0.4 }}
           />
         )
@@ -215,14 +231,16 @@ function StepIndicators({
 function StepLabels({
   currentStep,
   prefersReducedMotion,
+  isInView,
 }: {
   currentStep: number
   prefersReducedMotion: boolean
+  isInView: boolean
 }) {
   const stepTexts = [
-    "Ask Lisa anything about menopause. Get clear answers in seconds.",
-    "Track how you feel in 30 seconds. Lisa learns your patterns.",
-    "See your data organized. Get weekly insights you can share with your doctor.",
+    "Type your question. Lisa replies in seconds.",
+    "Tap a symptom. Lisa learns your patterns.",
+    "Your timeline, ready to share with your doctor.",
   ]
 
   return (
@@ -231,7 +249,7 @@ function StepLabels({
         <motion.div
           key={`label-${currentStep}`}
           initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
+          animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
           exit={{ opacity: 0, y: -10 }}
           transition={{ ...smoothSpring, duration: prefersReducedMotion ? 0 : 0.4 }}
           className="text-center px-4"
@@ -278,6 +296,7 @@ const phoneTransition = {
 // ============================================
 function SymptomTrackingPhone({
   prefersReducedMotion,
+  isInView,
 }: {
   prefersReducedMotion: boolean
   isInView: boolean
@@ -291,6 +310,7 @@ function SymptomTrackingPhone({
   ], [])
 
   useEffect(() => {
+    if (!isInView) return
     if (prefersReducedMotion) {
       setPhase(6)
       return
@@ -304,7 +324,7 @@ function SymptomTrackingPhone({
     timers.push(setTimeout(() => setPhase(5), 1500))  // Selected card
     timers.push(setTimeout(() => setPhase(6), 1800))  // Checkmark
     return () => timers.forEach(clearTimeout)
-  }, [prefersReducedMotion])
+  }, [isInView, prefersReducedMotion])
 
   const showHeader = phase >= 1
   const showButtons = phase >= 2
@@ -317,7 +337,7 @@ function SymptomTrackingPhone({
     <motion.div
       variants={phoneTransition}
       initial="initial"
-      animate="animate"
+      animate={isInView ? "animate" : "initial"}
       exit="exit"
       transition={{ ...ultraSmoothSpring, duration: prefersReducedMotion ? 0 : 0.5 }}
       className="w-full"
@@ -443,6 +463,7 @@ function SymptomTrackingPhone({
 // ============================================
 function DataTimelinePhone({
   prefersReducedMotion,
+  isInView,
 }: {
   prefersReducedMotion: boolean
   isInView: boolean
@@ -451,6 +472,7 @@ function DataTimelinePhone({
   const symptomDays = useMemo(() => [3, 7, 10, 14, 17, 21, 24], [])
 
   useEffect(() => {
+    if (!isInView) return
     if (prefersReducedMotion) {
       setPhase(7)
       return
@@ -465,7 +487,7 @@ function DataTimelinePhone({
     timers.push(setTimeout(() => setPhase(6), 1450))
     timers.push(setTimeout(() => setPhase(7), 1700))
     return () => timers.forEach(clearTimeout)
-  }, [prefersReducedMotion])
+  }, [isInView, prefersReducedMotion])
 
   const showHeader = phase >= 1
   const showCalendar = phase >= 2
@@ -476,7 +498,7 @@ function DataTimelinePhone({
     <motion.div
       variants={phoneTransition}
       initial="initial"
-      animate="animate"
+      animate={isInView ? "animate" : "initial"}
       exit="exit"
       transition={{ ...ultraSmoothSpring, duration: prefersReducedMotion ? 0 : 0.5 }}
       className="w-full"
@@ -556,9 +578,8 @@ function DataTimelinePhone({
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <TrendingDown className="w-4 h-4 text-green-600" />
-                            <span className="text-xs font-bold text-gray-800">15 logged</span>
+                            <span className="text-xs font-bold text-gray-800">15 logged • 20% vs last month</span>
                           </div>
-                          <span className="text-xs text-green-600 font-semibold">↓ 20% vs last month</span>
                         </div>
                       </motion.div>
                     )}
@@ -574,7 +595,7 @@ function DataTimelinePhone({
 }
 
 // ============================================
-// Step 3: Chat Interface Phone (ENHANCED - Longer response with emojis)
+// Step 1: Chat Interface Phone
 // ============================================
 function ChatInterfacePhone({
   prefersReducedMotion,
@@ -586,18 +607,16 @@ function ChatInterfacePhone({
   const [phase, setPhase] = useState(0)
   const [revealedLines, setRevealedLines] = useState(0)
 
-  // User question and Lisa's response
+  // User question and Lisa's response (shorter for clearer animation)
   const userQuestion = "Why do I wake up at 3am every night?"
   const lisaResponse = useMemo(() => [
-    { type: "intro", content: "Great question! 🌙 This is super common in perimenopause." },
-    { type: "explanation", content: "Your progesterone levels are dropping, and progesterone helps you stay asleep. Lower levels = more middle-of-the-night wake-ups." },
-    { type: "tip", emoji: "🌡️", title: "Keep your room cool", desc: "65-68°F (18-20°C) helps your body stay asleep." },
-    { type: "tip", emoji: "🚫", title: "Skip alcohol after 6pm", desc: "It disrupts deep sleep cycles." },
-    { type: "tip", emoji: "💊", title: "Try magnesium glycinate", desc: "Before bed - can help with sleep quality." },
-    { type: "outro", content: "Want me to explain more about the progesterone connection?" },
+    { type: "intro", content: "Great question! 🌙 Super common in perimenopause." },
+    { type: "explanation", content: "Dropping progesterone often causes night wake-ups. Cool room (65–68°F) and less evening alcohol can help." },
+    { type: "outro", content: "Want more tips? Just ask." },
   ], [])
 
   useEffect(() => {
+    if (!isInView) return
     if (prefersReducedMotion) {
       setPhase(4)
       setRevealedLines(lisaResponse.length)
@@ -606,16 +625,16 @@ function ChatInterfacePhone({
     setPhase(0)
     setRevealedLines(0)
     const timers: NodeJS.Timeout[] = []
-    timers.push(setTimeout(() => setPhase(1), 100))   // Header
-    timers.push(setTimeout(() => setPhase(2), 500))   // User question appears
-    timers.push(setTimeout(() => setPhase(3), 1200))  // Lisa typing
-    timers.push(setTimeout(() => setPhase(4), 1800))  // Lisa's response
+    timers.push(setTimeout(() => setPhase(1), 60))    // Header
+    timers.push(setTimeout(() => setPhase(2), 270))   // User question appears
+    timers.push(setTimeout(() => setPhase(3), 660))   // Lisa typing
+    timers.push(setTimeout(() => setPhase(4), 1080))  // Lisa's response starts
     return () => timers.forEach(clearTimeout)
-  }, [prefersReducedMotion, lisaResponse.length])
+  }, [isInView, prefersReducedMotion, lisaResponse.length])
 
-  // Reveal lines progressively
+  // Reveal lines progressively (slower pace for readability)
   useEffect(() => {
-    if (phase < 4 || prefersReducedMotion) return
+    if (!isInView || phase < 4 || prefersReducedMotion) return
     let line = 0
     const interval = setInterval(() => {
       if (line < lisaResponse.length) {
@@ -624,9 +643,9 @@ function ChatInterfacePhone({
       } else {
         clearInterval(interval)
       }
-    }, 180)
+    }, 114)
     return () => clearInterval(interval)
-  }, [phase, prefersReducedMotion, lisaResponse.length])
+  }, [isInView, phase, prefersReducedMotion, lisaResponse.length])
 
   const showHeader = phase >= 1
   const showUserQuestion = phase >= 2
@@ -637,7 +656,7 @@ function ChatInterfacePhone({
     <motion.div
       variants={phoneTransition}
       initial="initial"
-      animate="animate"
+      animate={isInView ? "animate" : "initial"}
       exit="exit"
       transition={{ ...ultraSmoothSpring, duration: prefersReducedMotion ? 0 : 0.5 }}
       className="w-full"
@@ -693,8 +712,12 @@ function ChatInterfacePhone({
                         <motion.div
                           key={i}
                           className="w-2 h-2 bg-[#FF6B9D] rounded-full"
-                          animate={isInView && !prefersReducedMotion ? { y: [0, -4, 0] } : {}}
-                          transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.15, ease: "easeInOut" }}
+                          animate={isInView && !prefersReducedMotion ? { y: [0, -4, 0] } : { y: 0 }}
+                          transition={
+                            isInView && !prefersReducedMotion
+                              ? { duration: 0.6, repeat: Infinity, delay: i * 0.15, ease: "easeInOut" }
+                              : { duration: 0 }
+                          }
                         />
                       ))}
                     </div>
@@ -732,20 +755,6 @@ function ChatInterfacePhone({
                           )}
                           {item.type === "explanation" && (
                             <p className="text-xs text-gray-700 leading-relaxed">{item.content}</p>
-                          )}
-                          {item.type === "stat" && (
-                            <p className="text-xs text-gray-700 bg-white/60 rounded-lg px-2 py-1.5 font-medium">
-                              {item.content}
-                            </p>
-                          )}
-                          {item.type === "tip" && (
-                            <div className="flex items-start gap-2 bg-white/40 rounded-lg px-2 py-1.5">
-                              <span className="text-sm">{item.emoji}</span>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-xs font-semibold text-gray-800">{item.title}</p>
-                                <p className="text-[10px] text-gray-600">{item.desc}</p>
-                              </div>
-                            </div>
                           )}
                           {item.type === "outro" && (
                             <p className="text-xs font-semibold text-[#FF6B9D] pt-1">{item.content}</p>

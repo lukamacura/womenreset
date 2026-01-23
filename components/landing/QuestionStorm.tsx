@@ -1,9 +1,11 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 "use client"
 
-import { useRef, useState, useEffect, useMemo } from "react"
-import { motion, useInView, useReducedMotion, AnimatePresence } from "framer-motion"
+import { useState, useEffect, useMemo } from "react"
+import { motion, useReducedMotion, AnimatePresence } from "framer-motion"
 import { MessageCircle } from "lucide-react"
+import { useReplayableInView } from "@/hooks/useReplayableInView"
+import { useReplayableHighlight } from "@/hooks/useReplayableHighlight"
 
 // HighlightedText component - same pattern as LandingProblem.tsx
 function HighlightedText({
@@ -15,13 +17,7 @@ function HighlightedText({
   isInView: boolean
   prefersReducedMotion: boolean
 }) {
-  const [shouldHighlight, setShouldHighlight] = useState(false)
-
-  useEffect(() => {
-    if (!isInView || prefersReducedMotion) return
-    const timer = setTimeout(() => setShouldHighlight(true), 500)
-    return () => clearTimeout(timer)
-  }, [isInView, prefersReducedMotion])
+  const shouldHighlight = useReplayableHighlight(isInView && !prefersReducedMotion, { delayMs: 500 })
 
   return (
     <span className="relative inline-block">
@@ -189,11 +185,41 @@ function QuestionCard({
 }
 
 export default function QuestionStorm() {
-  const containerRef = useRef<HTMLDivElement>(null)
-  const isInView = useInView(containerRef, { once: true, amount: 0.2 })
   const prefersReducedMotion = useReducedMotion()
+  const { ref, isInView, resetKey } = useReplayableInView<HTMLElement>({ amount: 0.3 })
+
+  return (
+    <section
+      ref={ref}
+      className="relative py-12 sm:py-16 md:py-20 px-4 sm:px-6 overflow-hidden"
+      style={{
+        background: "linear-gradient(180deg, #FDF2F8 0%, #FCE7F3 50%, #FDF2F8 100%)",
+      }}
+    >
+      <QuestionStormInner
+        key={resetKey}
+        isInView={isInView}
+        prefersReducedMotion={!!prefersReducedMotion}
+      />
+    </section>
+  )
+}
+
+function QuestionStormInner({
+  isInView,
+  prefersReducedMotion,
+}: {
+  isInView: boolean
+  prefersReducedMotion: boolean
+}) {
   const [phase, setPhase] = useState<AnimationPhase>('intro')
   const [isMobile, setIsMobile] = useState(false)
+
+  // When leaving the viewport, stop all floating/repeat animations by resetting to intro.
+  useEffect(() => {
+    if (isInView) return
+    setPhase('intro')
+  }, [isInView])
 
   // Detect mobile screen size
   useEffect(() => {
@@ -282,13 +308,7 @@ export default function QuestionStorm() {
   }, [phase])
 
   return (
-    <section
-      ref={containerRef}
-      className="relative py-12 sm:py-16 md:py-20 px-4 sm:px-6 overflow-hidden"
-      style={{
-        background: "linear-gradient(180deg, #FDF2F8 0%, #FCE7F3 50%, #FDF2F8 100%)",
-      }}
-    >
+    <>
       {/* Background decoration */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-0 left-1/4 w-64 h-64 sm:w-96 sm:h-96 rounded-full bg-pink-200/20 blur-3xl" />
@@ -303,7 +323,7 @@ export default function QuestionStorm() {
             <HighlightedText
               text="full of questions"
               isInView={isInView}
-              prefersReducedMotion={!!prefersReducedMotion}
+              prefersReducedMotion={prefersReducedMotion}
             />
           </h2>
         </div>
@@ -322,7 +342,7 @@ export default function QuestionStorm() {
               <motion.p
                 key={phase}
                 initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
+                animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: -10 }}
                 exit={{ opacity: 0, y: 10 }}
                 transition={{ 
                   duration: 0.5,
@@ -427,6 +447,6 @@ export default function QuestionStorm() {
           </p>
         </motion.div>
       </div>
-    </section>
+    </>
   )
 }

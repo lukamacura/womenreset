@@ -1,8 +1,10 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
-import { motion, AnimatePresence, useReducedMotion, useInView } from "framer-motion"
+import { useState, useEffect } from "react"
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion"
+import { useReplayableInView } from "@/hooks/useReplayableInView"
 import { Check, FileText, MessageCircle, Send } from "lucide-react"
+import { useReplayableHighlight } from "@/hooks/useReplayableHighlight"
 
 // Smooth spring config for premium feel
 const smoothSpring = {
@@ -87,16 +89,16 @@ function ScatteredSymptomsAnimation({
           {/* Floating question mark */}
           <motion.span
             className="absolute -top-3 -right-2 text-red-400 text-lg font-bold"
-            animate={{
-              y: [0, -6, 0],
-              opacity: [0.5, 1, 0.5],
-            }}
-            transition={{
-              duration: 2,
-              repeat: Infinity,
-              delay: index * 0.15,
-              ease: "easeInOut",
-            }}
+            animate={
+              isInView
+                ? { y: [0, -6, 0], opacity: [0.5, 1, 0.5] }
+                : { y: 0, opacity: 0 }
+            }
+            transition={
+              isInView
+                ? { duration: 2, repeat: Infinity, delay: index * 0.15, ease: "easeInOut" }
+                : { duration: 0 }
+            }
           >
             ?
           </motion.span>
@@ -269,19 +271,25 @@ function OrganizedTrackingAnimation({
       {/* Floating elements for polish */}
       <motion.div
         className="absolute top-1/4 left-1/4 w-4 h-4 rounded-full bg-pink-200"
-        animate={isInView ? {
-          y: [0, -10, 0],
-          opacity: [0.3, 0.6, 0.3],
-        } : {}}
-        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+        animate={
+          isInView
+            ? { y: [0, -10, 0], opacity: [0.3, 0.6, 0.3] }
+            : { y: 0, opacity: 0 }
+        }
+        transition={isInView ? { duration: 3, repeat: Infinity, ease: "easeInOut" } : { duration: 0 }}
       />
       <motion.div
         className="absolute bottom-1/4 right-1/4 w-3 h-3 rounded-full bg-orange-200"
-        animate={isInView ? {
-          y: [0, -8, 0],
-          opacity: [0.3, 0.6, 0.3],
-        } : {}}
-        transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+        animate={
+          isInView
+            ? { y: [0, -8, 0], opacity: [0.3, 0.6, 0.3] }
+            : { y: 0, opacity: 0 }
+        }
+        transition={
+          isInView
+            ? { duration: 2.5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }
+            : { duration: 0 }
+        }
       />
     </div>
   )
@@ -446,16 +454,16 @@ function TakeControlAnimation({
                 <motion.div
                   key={i}
                   className="w-2 h-2 rounded-full bg-pink-300"
-                  animate={isInView ? {
-                    y: [0, -4, 0],
-                    opacity: [0.5, 1, 0.5],
-                  } : {}}
-                  transition={{
-                    duration: 0.8,
-                    repeat: Infinity,
-                    delay: i * 0.15,
-                    ease: "easeInOut",
-                  }}
+                  animate={
+                    isInView
+                      ? { y: [0, -4, 0], opacity: [0.5, 1, 0.5] }
+                      : { y: 0, opacity: 0 }
+                  }
+                  transition={
+                    isInView
+                      ? { duration: 0.8, repeat: Infinity, delay: i * 0.15, ease: "easeInOut" }
+                      : { duration: 0 }
+                  }
                 />
               ))}
             </motion.div>
@@ -479,13 +487,7 @@ function HighlightedText({
   isInView: boolean
   prefersReducedMotion: boolean
 }) {
-  const [shouldHighlight, setShouldHighlight] = useState(false)
-
-  useEffect(() => {
-    if (!isInView || prefersReducedMotion) return
-    const timer = setTimeout(() => setShouldHighlight(true), 500)
-    return () => clearTimeout(timer)
-  }, [isInView, prefersReducedMotion])
+  const shouldHighlight = useReplayableHighlight(isInView && !prefersReducedMotion, { delayMs: 500 })
 
   return (
     <span className="relative inline-block">
@@ -501,39 +503,27 @@ function HighlightedText({
   )
 }
 
-function StepText({ step }: { step: number }) {
-  const content = [
-    {
-      headline: "You have questions. Lots of them.",
-      description: "Why am I gaining weight? Why can't I sleep? Is this normal? Google gives you 47 terrifying answers. Your doctor has 10 minutes. You need someone who actually knows menopause.",
-    },
-    {
-      headline: "Ask Lisa. Get real answers.",
-      description: "Lisa is trained on menopause research. Ask her anything — hot flashes, mood swings, supplements, HRT, sleep — and get clear, calm explanations. No judgment, no time limits.",
-    },
-    {
-      headline: "Track symptoms. See patterns.",
-      description: "Log how you feel in 30 seconds. Lisa spots your patterns and helps you understand what triggers what. Bring organized data to your next doctor's visit.",
-    },
+function StepText({ step, isInView }: { step: number; isInView: boolean }) {
+  const headlines = [
+    "You have questions. Lots of them.",
+    "Ask Lisa. Get real answers.",
+    "Track symptoms. See patterns.",
   ]
 
-  const current = content[step - 1]
+  const headline = headlines[step - 1]
 
   return (
     <motion.div
       key={step}
       initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
+      animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
       exit={{ opacity: 0, y: -20 }}
       transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
       className="text-center"
     >
-      <h3 className="text-2xl sm:text-3xl font-semibold text-gray-900 mb-4">
-        {current.headline}
+      <h3 className="text-2xl sm:text-3xl font-semibold text-gray-900">
+        {headline}
       </h3>
-      <p className="text-lg sm:text-xl text-gray-700 leading-relaxed max-w-2xl mx-auto">
-        {current.description}
-      </p>
     </motion.div>
   )
 }
@@ -544,8 +534,7 @@ function StepText({ step }: { step: number }) {
 export default function LandingProblem() {
   const [currentStep, setCurrentStep] = useState(1)
   const prefersReducedMotion = useReducedMotion()
-  const sectionRef = useRef(null)
-  const isInView = useInView(sectionRef, { once: false, amount: 0.3 })
+  const { ref, isInView } = useReplayableInView<HTMLElement>({ amount: 0.3 })
 
   useEffect(() => {
     if (prefersReducedMotion || !isInView) return
@@ -559,7 +548,7 @@ export default function LandingProblem() {
 
   return (
     <section
-      ref={sectionRef}
+      ref={ref}
       className="py-20 px-4"
       style={{
         background: "linear-gradient(135deg, #F5E6FF 0%, #FFE6F5 100%)",
@@ -642,9 +631,9 @@ export default function LandingProblem() {
         </div>
 
         {/* Text Content */}
-        <div className="min-h-[120px] flex items-center justify-center">
+        <div className="min-h-[72px] flex items-center justify-center">
           <AnimatePresence mode="wait">
-            <StepText key={currentStep} step={currentStep} />
+            <StepText key={currentStep} step={currentStep} isInView={isInView} />
           </AnimatePresence>
         </div>
 
@@ -653,7 +642,7 @@ export default function LandingProblem() {
           className="border-t border-gray-300/50 pt-12 mt-12"
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
+          viewport={{ once: false, amount: 0.3 }}
           transition={{ duration: 0.6, delay: 0.3 }}
         >
           <div className="text-center">

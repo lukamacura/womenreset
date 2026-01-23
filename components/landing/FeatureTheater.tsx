@@ -1,7 +1,7 @@
 "use client"
 
-import { useRef, useState, useEffect, useCallback, useMemo } from "react"
-import { motion, useInView, useReducedMotion, AnimatePresence } from "framer-motion"
+import { useState, useEffect, useCallback, useMemo } from "react"
+import { motion, useReducedMotion, AnimatePresence } from "framer-motion"
 import { 
   MessageCircle, 
   TrendingUp, 
@@ -18,6 +18,8 @@ import {
   Clock,
   BarChart3
 } from "lucide-react"
+import { useReplayableInView } from "@/hooks/useReplayableInView"
+import { useReplayableHighlight } from "@/hooks/useReplayableHighlight"
 
 // Smooth spring configs
 const smoothSpring = {
@@ -43,33 +45,57 @@ const features = [
   {
     id: "ask-anything",
     shortTitle: "Ask Lisa",
-    title: "Ask Lisa anything. Get clear answers in seconds.",
+    title: "Research-backed answers in plain English. Anytime.",
     icon: MessageCircle,
   },
   {
     id: "symptom-timeline",
     shortTitle: "Track Symptoms",
-    title: "Log how you feel in 30 seconds. See your patterns organized.",
+    title: "One-tap logging. Your patterns, mapped.",
     icon: Calendar,
   },
   {
     id: "weekly-summaries",
     shortTitle: "Weekly Insights",
-    title: "Get weekly summaries. See your progress clearly.",
+    title: "Weekly snapshots. See how you're really doing.",
     icon: BarChart3,
   },
   {
     id: "shareable-reports",
     shortTitle: "Share Reports",
-    title: "Generate reports. Share with your doctor easily.",
+    title: "One-tap reports. Walk into your next visit prepared.",
     icon: FileText,
   },
 ]
 
 export default function FeatureTheater() {
-  const ref = useRef(null)
-  const isInView = useInView(ref, { once: true, amount: 0.3 })
   const prefersReducedMotion = useReducedMotion()
+  const { ref, isInView, resetKey } = useReplayableInView<HTMLElement>({ amount: 0.3 })
+
+  return (
+    <section
+      ref={ref}
+      className="relative py-16 sm:py-20 px-4 overflow-hidden"
+      style={{
+        background: "linear-gradient(135deg, #FFF9E6 0%, #F5E6FF 100%)",
+      }}
+    >
+      <FeatureTheaterInner
+        key={resetKey}
+        isInView={isInView}
+        prefersReducedMotion={!!prefersReducedMotion}
+      />
+    </section>
+  )
+}
+
+function FeatureTheaterInner({
+  isInView,
+  prefersReducedMotion,
+}: {
+  isInView: boolean
+  prefersReducedMotion: boolean
+}) {
   const [currentFeature, setCurrentFeature] = useState(0)
 
   const getFeatureDuration = useCallback(() => {
@@ -87,13 +113,6 @@ export default function FeatureTheater() {
   }, [isInView, prefersReducedMotion, currentFeature, getFeatureDuration])
 
   return (
-    <section
-      ref={ref}
-      className="relative py-16 sm:py-20 px-4 overflow-hidden"
-      style={{
-        background: "linear-gradient(135deg, #FFF9E6 0%, #F5E6FF 100%)",
-      }}
-    >
       <div className="max-w-[1200px] mx-auto">
         {/* Heading */}
         <motion.div
@@ -111,7 +130,7 @@ export default function FeatureTheater() {
             />
           </h2>
           <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">
-            One app. Unlimited answers. Complete clarity.
+            Ask, track, and understand—all in one place.
           </p>
         </motion.div>
 
@@ -119,6 +138,7 @@ export default function FeatureTheater() {
         <FeatureIndicators
           currentFeature={currentFeature}
           prefersReducedMotion={!!prefersReducedMotion}
+          isInView={isInView}
           onSelect={setCurrentFeature}
         />
 
@@ -129,28 +149,28 @@ export default function FeatureTheater() {
               {currentFeature === 0 && (
                 <AskAnythingPhone
                   key="feature-0"
-                  prefersReducedMotion={!!prefersReducedMotion}
+                  prefersReducedMotion={prefersReducedMotion}
                   isInView={isInView}
                 />
               )}
               {currentFeature === 1 && (
                 <SymptomTimelinePhone
                   key="feature-1"
-                  prefersReducedMotion={!!prefersReducedMotion}
+                  prefersReducedMotion={prefersReducedMotion}
                   isInView={isInView}
                 />
               )}
               {currentFeature === 2 && (
                 <WeeklySummaryPhone
                   key="feature-2"
-                  prefersReducedMotion={!!prefersReducedMotion}
+                  prefersReducedMotion={prefersReducedMotion}
                   isInView={isInView}
                 />
               )}
               {currentFeature === 3 && (
                 <ShareableReportsPhone
                   key="feature-3"
-                  prefersReducedMotion={!!prefersReducedMotion}
+                  prefersReducedMotion={prefersReducedMotion}
                   isInView={isInView}
                 />
               )}
@@ -161,10 +181,10 @@ export default function FeatureTheater() {
         {/* Feature Labels */}
         <FeatureLabels
           currentFeature={currentFeature}
-          prefersReducedMotion={!!prefersReducedMotion}
+          prefersReducedMotion={prefersReducedMotion}
+          isInView={isInView}
         />
       </div>
-    </section>
   )
 }
 
@@ -180,13 +200,7 @@ function HighlightedText({
   isInView: boolean
   prefersReducedMotion: boolean
 }) {
-  const [shouldHighlight, setShouldHighlight] = useState(false)
-
-  useEffect(() => {
-    if (!isInView || prefersReducedMotion) return
-    const timer = setTimeout(() => setShouldHighlight(true), 500)
-    return () => clearTimeout(timer)
-  }, [isInView, prefersReducedMotion])
+  const shouldHighlight = useReplayableHighlight(isInView && !prefersReducedMotion, { delayMs: 500 })
 
   return (
     <span className="relative inline-block">
@@ -208,10 +222,12 @@ function HighlightedText({
 function FeatureIndicators({
   currentFeature,
   prefersReducedMotion,
+  isInView,
   onSelect,
 }: {
   currentFeature: number
   prefersReducedMotion: boolean
+  isInView: boolean
   onSelect: (index: number) => void
 }) {
   return (
@@ -235,7 +251,7 @@ function FeatureIndicators({
                 ? { background: "linear-gradient(135deg, #FF6B9D 0%, #FFA07A 100%)", color: "white" }
                 : { color: "#6B7280" }
             }
-            animate={{ scale: isActive ? 1.05 : 1 }}
+            animate={isInView ? { scale: isActive ? 1.05 : 1 } : { scale: 1 }}
             transition={{ ...smoothSpring, duration: prefersReducedMotion ? 0 : 0.3 }}
           >
             <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
@@ -253,9 +269,11 @@ function FeatureIndicators({
 function FeatureLabels({
   currentFeature,
   prefersReducedMotion,
+  isInView,
 }: {
   currentFeature: number
   prefersReducedMotion: boolean
+  isInView: boolean
 }) {
   return (
     <div className="mt-6 sm:mt-10 min-h-[56px] flex items-center justify-center">
@@ -263,7 +281,7 @@ function FeatureLabels({
         <motion.div
           key={`label-${currentFeature}`}
           initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
+          animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
           exit={{ opacity: 0, y: -10 }}
           transition={{ ...smoothSpring, duration: prefersReducedMotion ? 0 : 0.4 }}
           className="text-center px-4"
@@ -330,6 +348,7 @@ function AskAnythingPhone({
   ], [])
 
   useEffect(() => {
+    if (!isInView) return
     if (prefersReducedMotion) {
       setPhase(4)
       setRevealedLines(lisaResponse.length)
@@ -343,11 +362,11 @@ function AskAnythingPhone({
     timers.push(setTimeout(() => setPhase(3), 900))   // Typing
     timers.push(setTimeout(() => setPhase(4), 1400))  // Answer
     return () => timers.forEach(clearTimeout)
-  }, [prefersReducedMotion, lisaResponse.length])
+  }, [isInView, prefersReducedMotion, lisaResponse.length])
 
   // Progressive line reveal
   useEffect(() => {
-    if (phase < 4 || prefersReducedMotion) return
+    if (!isInView || phase < 4 || prefersReducedMotion) return
     let line = 0
     const interval = setInterval(() => {
       if (line < lisaResponse.length) {
@@ -358,7 +377,7 @@ function AskAnythingPhone({
       }
     }, 120)
     return () => clearInterval(interval)
-  }, [phase, prefersReducedMotion, lisaResponse.length])
+  }, [isInView, phase, prefersReducedMotion, lisaResponse.length])
 
   const showHeader = phase >= 1
   const showQuestion = phase >= 2
@@ -369,7 +388,7 @@ function AskAnythingPhone({
     <motion.div
       variants={phoneTransition}
       initial="initial"
-      animate="animate"
+      animate={isInView ? "animate" : "initial"}
       exit="exit"
       transition={{ ...ultraSmoothSpring, duration: prefersReducedMotion ? 0 : 0.5 }}
       className="w-full"
@@ -425,8 +444,12 @@ function AskAnythingPhone({
                         <motion.div
                           key={i}
                           className="w-1.5 h-1.5 bg-[#FF6B9D] rounded-full"
-                          animate={isInView && !prefersReducedMotion ? { y: [0, -3, 0] } : {}}
-                          transition={{ duration: 0.5, repeat: Infinity, delay: i * 0.12, ease: "easeInOut" }}
+                          animate={isInView && !prefersReducedMotion ? { y: [0, -3, 0] } : { y: 0 }}
+                          transition={
+                            isInView && !prefersReducedMotion
+                              ? { duration: 0.5, repeat: Infinity, delay: i * 0.12, ease: "easeInOut" }
+                              : { duration: 0 }
+                          }
                         />
                       ))}
                     </div>
@@ -510,6 +533,7 @@ function AskAnythingPhone({
 // ============================================
 function SymptomTimelinePhone({
   prefersReducedMotion,
+  isInView,
 }: {
   prefersReducedMotion: boolean
   isInView: boolean
@@ -525,6 +549,7 @@ function SymptomTimelinePhone({
   ], [])
 
   useEffect(() => {
+    if (!isInView) return
     const timers: NodeJS.Timeout[] = []
     if (prefersReducedMotion) {
       timers.push(setTimeout(() => setPhase(3), 0))
@@ -535,7 +560,7 @@ function SymptomTimelinePhone({
     timers.push(setTimeout(() => setPhase(2), 500))
     timers.push(setTimeout(() => setPhase(3), 1500))
     return () => timers.forEach(clearTimeout)
-  }, [prefersReducedMotion])
+  }, [isInView, prefersReducedMotion])
 
   const showHeader = phase >= 1
   const showTimeline = phase >= 2
@@ -545,7 +570,7 @@ function SymptomTimelinePhone({
     <motion.div
       variants={phoneTransition}
       initial="initial"
-      animate="animate"
+      animate={isInView ? "animate" : "initial"}
       exit="exit"
       transition={{ ...ultraSmoothSpring, duration: prefersReducedMotion ? 0 : 0.5 }}
       className="w-full"
@@ -630,6 +655,7 @@ function SymptomTimelinePhone({
 // ============================================
 function WeeklySummaryPhone({
   prefersReducedMotion,
+  isInView,
 }: {
   prefersReducedMotion: boolean
   isInView: boolean
@@ -637,6 +663,7 @@ function WeeklySummaryPhone({
   const [phase, setPhase] = useState(0)
 
   useEffect(() => {
+    if (!isInView) return
     const timers: NodeJS.Timeout[] = []
     if (prefersReducedMotion) {
       timers.push(setTimeout(() => setPhase(4), 0))
@@ -648,7 +675,7 @@ function WeeklySummaryPhone({
     timers.push(setTimeout(() => setPhase(3), 700))
     timers.push(setTimeout(() => setPhase(4), 1000))
     return () => timers.forEach(clearTimeout)
-  }, [prefersReducedMotion])
+  }, [isInView, prefersReducedMotion])
 
   const showHeader = phase >= 1
   
@@ -683,7 +710,7 @@ function WeeklySummaryPhone({
     <motion.div
       variants={phoneTransition}
       initial="initial"
-      animate="animate"
+      animate={isInView ? "animate" : "initial"}
       exit="exit"
       transition={{ ...ultraSmoothSpring, duration: prefersReducedMotion ? 0 : 0.5 }}
       className="w-full"
@@ -744,6 +771,7 @@ function WeeklySummaryPhone({
 // ============================================
 function ShareableReportsPhone({
   prefersReducedMotion,
+  isInView,
 }: {
   prefersReducedMotion: boolean
   isInView: boolean
@@ -751,6 +779,7 @@ function ShareableReportsPhone({
   const [phase, setPhase] = useState(0)
 
   useEffect(() => {
+    if (!isInView) return
     const timers: NodeJS.Timeout[] = []
     if (prefersReducedMotion) {
       timers.push(setTimeout(() => setPhase(3), 0))
@@ -761,7 +790,7 @@ function ShareableReportsPhone({
     timers.push(setTimeout(() => setPhase(2), 400))
     timers.push(setTimeout(() => setPhase(3), 1200))
     return () => timers.forEach(clearTimeout)
-  }, [prefersReducedMotion])
+  }, [isInView, prefersReducedMotion])
 
   const showHeader = phase >= 1
   const showReport = phase >= 2
@@ -777,7 +806,7 @@ function ShareableReportsPhone({
     <motion.div
       variants={phoneTransition}
       initial="initial"
-      animate="animate"
+      animate={isInView ? "animate" : "initial"}
       exit="exit"
       transition={{ ...ultraSmoothSpring, duration: prefersReducedMotion ? 0 : 0.5 }}
       className="w-full"

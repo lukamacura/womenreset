@@ -1,11 +1,13 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Check, Sparkles, Zap, Crown, Star, Lock } from "lucide-react"
-import { motion, useInView, useReducedMotion } from "framer-motion"
+import { motion, useReducedMotion } from "framer-motion"
+import { useReplayableInView } from "@/hooks/useReplayableInView"
+import { useReplayableHighlight } from "@/hooks/useReplayableHighlight"
 
 function HighlightedText({
   text,
@@ -16,13 +18,7 @@ function HighlightedText({
   isInView: boolean
   prefersReducedMotion: boolean | null
 }) {
-  const [shouldHighlight, setShouldHighlight] = useState(false)
-
-  useEffect(() => {
-    if (!isInView || prefersReducedMotion) return
-    const timer = setTimeout(() => setShouldHighlight(true), 500)
-    return () => clearTimeout(timer)
-  }, [isInView, prefersReducedMotion])
+  const shouldHighlight = useReplayableHighlight(!!(isInView && !prefersReducedMotion), { delayMs: 500 })
 
   return (
     <span className="relative inline-block">
@@ -41,8 +37,7 @@ function HighlightedText({
 export default function LandingPricing() {
   const [hoveredPlan, setHoveredPlan] = useState<"monthly" | "annual" | null>(null)
   const prefersReducedMotion = useReducedMotion()
-  const sectionRef = useRef(null)
-  const isInView = useInView(sectionRef, { once: true, amount: 0.3 })
+  const { ref: sectionRef, isInView } = useReplayableInView<HTMLElement>({ amount: 0.3 })
 
   // Inject animation styles on mount (client-side only to prevent hydration issues)
   useEffect(() => {
@@ -125,7 +120,7 @@ export default function LandingPricing() {
             ))}
           </div>
           <p className="text-sm font-bold italic mb-1" style={{ color: "var(--foreground)" }}>
-            &quot;I used to spend hours on Google getting more confused and scared. Now I just ask Lisa. Last week I asked her about night sweats and HRT — she explained it so clearly that I finally felt ready to talk to my doctor. My appointment was the best one I've ever had.&quot;
+            &quot;I used to spend hours on Google getting more confused and scared. Now I just ask Lisa. Last week I asked her about night sweats and HRT — she explained it so clearly that I finally felt ready to talk to my doctor. My appointment was the best one I&apos;ve ever had.&quot;
           </p>
           <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>- Michelle, 52</p>
         </div>
@@ -404,12 +399,18 @@ export default function LandingPricing() {
               { text: "Share professional reports with your doctor", color: "var(--chart-1)" },
               { text: "Finally understand what's happening to your body", color: "var(--chart-2)" },
             ].map((feature, index) => (
-              <div
+              <motion.div
                 key={feature.text}
                 className="flex items-center gap-2 p-2 rounded-lg hover:shadow-sm transition-all duration-300"
                 style={{
                   backgroundColor: "var(--card)",
-                  animation: `fadeInUp 0.5s ease-out ${index * 0.1}s both`,
+                }}
+                initial={{ opacity: 0, y: 10 }}
+                animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
+                transition={{
+                  duration: prefersReducedMotion ? 0 : 0.45,
+                  delay: isInView && !prefersReducedMotion ? index * 0.08 : 0,
+                  ease: [0.16, 1, 0.3, 1],
                 }}
               >
                 <div 
@@ -419,7 +420,7 @@ export default function LandingPricing() {
                   <Check className="h-4 w-4" style={{ color: "var(--primary-foreground)" }} />
                 </div>
                 <span className="font-medium text-sm sm:text-lg" style={{ color: "var(--foreground)" }}>{feature.text}</span>
-              </div>
+              </motion.div>
             ))}
           </div>
         </div>

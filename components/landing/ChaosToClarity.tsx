@@ -1,9 +1,11 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 "use client"
 
-import { useRef, useState, useEffect, useMemo } from "react"
-import { motion, useInView, useReducedMotion, AnimatePresence } from "framer-motion"
+import { useState, useEffect, useMemo } from "react"
+import { motion, useReducedMotion, AnimatePresence } from "framer-motion"
 import { CheckCircle2, Heart, Brain, Moon, Thermometer, Zap, Droplet } from "lucide-react"
+import { useReplayableInView } from "@/hooks/useReplayableInView"
+import { useReplayableHighlight } from "@/hooks/useReplayableHighlight"
 
 // Symptom data with icons and colors
 const symptoms = [
@@ -38,41 +40,35 @@ const organizedPositions = [
 type AnimationPhase = 'chaos' | 'organizing' | 'organized' | 'clarity'
 
 export default function ChaosToClarity() {
-  const ref = useRef(null)
-  const headingRef = useRef<HTMLDivElement>(null)
-  const isInView = useInView(ref, { once: true, amount: 0.3 })
   const prefersReducedMotion = useReducedMotion()
+  const { ref, isInView, resetKey } = useReplayableInView<HTMLElement>({ amount: 0.3 })
+
+  return (
+    <section
+      ref={ref}
+      className="relative py-12 sm:py-16 md:py-20 lg:py-24 px-4 overflow-hidden"
+      style={{
+        background: "linear-gradient(135deg, #F5E6FF 0%, #E6D5FF 100%)",
+      }}
+    >
+      <ChaosToClarityInner
+        key={resetKey}
+        isInView={isInView}
+        prefersReducedMotion={!!prefersReducedMotion}
+      />
+    </section>
+  )
+}
+
+function ChaosToClarityInner({
+  isInView,
+  prefersReducedMotion,
+}: {
+  isInView: boolean
+  prefersReducedMotion: boolean
+}) {
   const [phase, setPhase] = useState<AnimationPhase>('chaos')
-  const [shouldAnimateHeading, setShouldAnimateHeading] = useState(false)
-
-  // Heading intersection observer
-  useEffect(() => {
-    if (prefersReducedMotion) {
-      setShouldAnimateHeading(true)
-      return
-    }
-
-    const headingElement = headingRef.current
-    if (!headingElement) return
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
-            setShouldAnimateHeading(true)
-            observer.disconnect()
-          }
-        })
-      },
-      {
-        threshold: [0, 0.5, 1],
-        rootMargin: '0px 0px -20% 0px',
-      }
-    )
-
-    observer.observe(headingElement)
-    return () => observer.disconnect()
-  }, [prefersReducedMotion])
+  const shouldAnimateHeading = useReplayableHighlight(isInView && !prefersReducedMotion, { delayMs: 300 })
 
   // Animation timeline
   useEffect(() => {
@@ -132,17 +128,9 @@ export default function ChaosToClarity() {
   }, [phase])
 
   return (
-    <section 
-      ref={ref}
-      className="relative py-12 sm:py-16 md:py-20 lg:py-24 px-4 overflow-hidden"
-      style={{ 
-        background: "linear-gradient(135deg, #F5E6FF 0%, #E6D5FF 100%)",
-      }}
-    >
       <div className="max-w-6xl mx-auto">
         {/* Heading */}
         <div
-          ref={headingRef}
           className="text-center mb-8 sm:mb-12 md:mb-16 relative"
         >
           <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight px-2 sm:px-4">
@@ -177,7 +165,7 @@ export default function ChaosToClarity() {
             <motion.div
               key={phase}
               initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
+              animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: -10 }}
               exit={{ opacity: 0, y: 10 }}
               transition={{ duration: 0.3 }}
               className={`absolute top-0 left-1/2 -translate-x-1/2 text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-center ${phaseLabel.color}`}
@@ -269,7 +257,7 @@ export default function ChaosToClarity() {
                   </motion.div>
 
                   {/* Chaos effect: question marks floating around */}
-                  {phase === 'chaos' && (
+                  {isInView && phase === 'chaos' && (
                     <motion.span
                       className="absolute -top-3 -right-1 text-red-400 text-lg font-bold"
                       animate={{
@@ -383,6 +371,5 @@ export default function ChaosToClarity() {
           </div>
         </div>
       </div>
-    </section>
   )
 }
