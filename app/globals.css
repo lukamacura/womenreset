@@ -251,6 +251,22 @@ body {
   font-family: var(--font-sans), system-ui, sans-serif;
 }
 
+/* Mobile: touch-action manipulation (removes 300ms tap delay on buttons/links) */
+button,
+a,
+[role="button"],
+input[type="button"],
+input[type="submit"],
+input[type="reset"] {
+  touch-action: manipulation;
+}
+
+/* Utility for 48x48px minimum tap targets (WCAG 2.5.5) – use on small icon buttons */
+.min-tap-target {
+  min-width: 48px;
+  min-height: 48px;
+}
+
 /* Floating animation for Add Symptom button */
 @keyframes float {
   0%, 100% {

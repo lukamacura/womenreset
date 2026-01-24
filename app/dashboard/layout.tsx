@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Activity, LogOut, ChevronDown, Bell, MessageSquare, Settings, Compass } from "lucide-react";
@@ -11,7 +12,11 @@ import SessionVerification from "@/components/SessionVerification";
 import { NotificationProvider } from "@/components/notifications/NotificationProvider";
 import NotificationContainer from "@/components/notifications/NotificationContainer";
 import { PricingModalProvider, usePricingModal } from "@/lib/PricingModalContext";
-import { PricingModal } from "@/components/PricingModal";
+
+const PricingModal = dynamic(
+  () => import("@/components/PricingModal").then((m) => ({ default: m.PricingModal })),
+  { ssr: false, loading: () => null }
+);
 
 // Animated Navigation Item Component
 function AnimatedNavItem({

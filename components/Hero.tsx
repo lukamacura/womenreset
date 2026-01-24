@@ -45,6 +45,7 @@ const MenoLisaHero: React.FC = () => {
                   className="object-contain"
                   priority
                   loading="eager"
+                  sizes="(max-width: 1280px) 90vw, 1280px"
                 />
               </div>
             </div>

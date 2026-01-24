@@ -4,6 +4,10 @@ import { useEffect, useState, useCallback } from "react"
 import { BookOpen, Target, Users } from "lucide-react"
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion"
 import { useReplayableInView } from "@/hooks/useReplayableInView"
+import { useIsMobile } from "@/hooks/useIsMobile"
+
+const VIDEO_POSTER_DATA =
+  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='12' viewBox='0 0 16 12'%3E%3Crect fill='%23f9a8d4' width='16' height='12'/%3E%3C/svg%3E"
 
 // Hero content variations - high-converting, outcome-based copy
 // highlight: use \n to separate rows; each row gets its own highlight sweep
@@ -187,6 +191,8 @@ function LandingHeroInner({
 }) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isHovered, setIsHovered] = useState(false)
+  const isMobile = useIsMobile()
+  const videoPreload = isMobile ? "none" : "metadata"
 
   // Auto-rotate headlines every 4 seconds (pause on hover)
   useEffect(() => {
@@ -409,7 +415,8 @@ function LandingHeroInner({
                     loop
                     muted
                     playsInline
-                    preload="metadata"
+                    preload={videoPreload}
+                    poster={VIDEO_POSTER_DATA}
                     aria-label="Lisa demo video"
                   >
                     <source src="/test2.webm" type="video/webm" />

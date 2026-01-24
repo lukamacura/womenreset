@@ -40,8 +40,11 @@ const cardPositionsDesktop = [
 
 type AnimationPhase = 'intro' | 'storm' | 'peak' | 'lisa-appears' | 'resolution' | 'calm'
 
-// Lisa Video Component
-function LisaVideo() {
+const VIDEO_POSTER =
+  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='12' viewBox='0 0 16 12'%3E%3Crect fill='%23f9a8d4' width='16' height='12'/%3E%3C/svg%3E"
+
+// Lisa Video Component – preload="none" on mobile to reduce initial load
+function LisaVideo({ preload = "metadata" }: { preload?: "metadata" | "none" }) {
   return (
     <div className="relative">
       {/* Glow effect behind video */}
@@ -54,6 +57,8 @@ function LisaVideo() {
           loop
           muted
           playsInline
+          preload={preload}
+          poster={VIDEO_POSTER}
           className="w-full h-full object-cover"
         >
           <source src="/test2.webm" type="video/webm" />
@@ -362,7 +367,7 @@ function QuestionStormInner({
                   damping: 20,
                 }}
               >
-                <LisaVideo />
+                <LisaVideo preload={isMobile ? "none" : "metadata"} />
               </motion.div>
             )}
           </AnimatePresence>

@@ -18,6 +18,8 @@ export default function LandingFooter() {
                   fill
                   className="object-cover"
                   sizes="32px"
+                  loading="lazy"
+                  quality={60}
                 />
               </div>
               <span className="text-xl font-bold text-foreground">MenoLisa</span>

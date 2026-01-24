@@ -85,6 +85,8 @@ export default function MenopauseResetHero(props: MenopauseResetProps) {
             width={1200}
             height={800}
             className="w-full max-w-5xl h-auto object-contain"
+            loading="lazy"
+            sizes="(max-width: 1024px) 90vw, 1200px"
           />
         </div>
 

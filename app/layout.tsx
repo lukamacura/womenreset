@@ -12,6 +12,8 @@ import ConditionalNavbar from "@/components/ConditionalNavbar";
 // app/layout.tsx
 import localFont from "next/font/local";
 import { Dancing_Script, Poppins, Lora } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const satoshi = localFont({
   src: [
@@ -83,12 +85,24 @@ export default async function RootLayout({
   // Only pass true if we have a valid user (no error and user exists)
   const isAuthenticated = !authError && !!user;
 
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+
   return (
     <html lang="en" className={`${satoshi.variable} ${dancingScript.variable} ${poppins.variable} ${lora.variable}`}>
+      <head>
+        {/* LCP: preload navbar logo (critical above-the-fold image) */}
+        <link rel="preload" href="/lisa_profile.webp" as="image" />
+        {/* Preconnect to Supabase for faster API/auth on first request */}
+        {supabaseUrl && <link rel="preconnect" href={supabaseUrl} />}
+        {supabaseUrl && <link rel="dns-prefetch" href={supabaseUrl} />}
+      </head>
       <body className="min-h-screen flex flex-col font-sans text-foreground bg-background">
         <ConditionalNavbar isAuthenticated={isAuthenticated} />
 
         <main className="flex-1 w-full">{children}</main>
+
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );

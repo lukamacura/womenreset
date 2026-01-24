@@ -32,6 +32,7 @@ import CoffeeLoading from "@/components/CoffeeLoading";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { useTrialStatus } from "@/lib/useTrialStatus";
+import { useIsMobile } from "@/hooks/useIsMobile";
 
 /* ===== Theme (matching app pink/purple theme, optimized for 40+ vision) ===== */
 const THEME = {
@@ -1180,6 +1181,8 @@ const MarkdownBubble = React.memo(function MarkdownBubble({ children }: { childr
                   {...strip(rest)}
                   alt={alt ?? ""}
                   className="mx-auto block h-auto max-h-80 w-full max-w-full object-contain"
+                  loading="lazy"
+                  sizes="(max-width: 768px) 100vw, 800px"
                 />
                 {alt && (
                   <div className="px-3 pb-2 pt-1.5 text-center text-sm font-semibold" style={{ color: THEME.text[600] }}>
@@ -1308,9 +1311,14 @@ function ToastNotificationComponent({ notification, onDismiss }: { notification:
   );
 }
 
+const CHAT_VIDEO_POSTER =
+  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='12' viewBox='0 0 16 12'%3E%3Crect fill='%23f9a8d4' width='16' height='12'/%3E%3C/svg%3E";
+
 function ChatPageInner() {
   const router = useRouter();
   const trialStatus = useTrialStatus();
+  const isMobile = useIsMobile();
+  const videoPreload = isMobile ? "none" : "metadata";
 
   // Redirect to dashboard if trial is expired
   useEffect(() => {
@@ -2422,6 +2430,8 @@ function ChatPageInner() {
                     loop
                     muted
                     playsInline
+                    preload={videoPreload}
+                    poster={CHAT_VIDEO_POSTER}
                     className="w-full h-full object-contain opacity-60"
                     aria-hidden="true"
                   />
