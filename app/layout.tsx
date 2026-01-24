@@ -5,6 +5,7 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import ConditionalNavbar from "@/components/ConditionalNavbar";
+import PreloaderGate from "@/components/PreloaderGate";
 
 // Removed force-dynamic to enable static optimization for landing page
 // export const dynamic = "force-dynamic";
@@ -97,6 +98,7 @@ export default async function RootLayout({
         {supabaseUrl && <link rel="dns-prefetch" href={supabaseUrl} />}
       </head>
       <body className="min-h-screen flex flex-col font-sans text-foreground bg-background">
+        <PreloaderGate />
         <ConditionalNavbar isAuthenticated={isAuthenticated} />
 
         <main className="flex-1 w-full">{children}</main>
