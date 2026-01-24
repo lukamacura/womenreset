@@ -16,7 +16,7 @@ import {
   MessageCircle
 } from "lucide-react"
 import { useReplayableInView } from "@/hooks/useReplayableInView"
-import { useReplayableHighlight } from "@/hooks/useReplayableHighlight"
+import { HighlightedTextByRows } from "@/components/landing/HighlightedTextByRows"
 
 // Smooth spring configs
 const smoothSpring = {
@@ -99,14 +99,14 @@ function HowItWorksStepsInner({
           animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
           transition={ultraSmoothSpring}
         >
-          <HeadingWithHighlight
-            isInView={isInView}
-            prefersReducedMotion={prefersReducedMotion}
-          >
-            <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-4 text-gray-900">
-              How It Works
-            </h2>
-          </HeadingWithHighlight>
+          <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-4 text-gray-900">
+            <HighlightedTextByRows
+              text="How It Works"
+              isInView={isInView}
+              prefersReducedMotion={prefersReducedMotion}
+              delayMs={300}
+            />
+          </h2>
           <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">
             Three steps to clarity
           </p>
@@ -156,34 +156,6 @@ function HowItWorksStepsInner({
           isInView={isInView}
         />
       </div>
-  )
-}
-
-// ============================================
-// Heading with Highlight Animation
-// ============================================
-function HeadingWithHighlight({
-  children,
-  isInView,
-  prefersReducedMotion,
-}: {
-  children: React.ReactNode
-  isInView: boolean
-  prefersReducedMotion: boolean
-}) {
-  const shouldHighlight = useReplayableHighlight(isInView && !prefersReducedMotion, { delayMs: 300 })
-
-  return (
-    <div className="relative inline-block">
-      <div className="relative z-10">{children}</div>
-      <motion.span
-        className="absolute inset-0 bg-yellow-400/40 rounded pointer-events-none"
-        initial={{ scaleX: 0, transformOrigin: "left" }}
-        animate={shouldHighlight ? { scaleX: 1 } : { scaleX: 0 }}
-        transition={{ duration: 1.2, ease: [0.4, 0, 0.2, 1] }}
-        style={{ zIndex: 0 }}
-      />
-    </div>
   )
 }
 

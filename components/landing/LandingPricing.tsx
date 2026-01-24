@@ -7,32 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Check, Sparkles, Zap, Crown, Star, Lock } from "lucide-react"
 import { motion, useReducedMotion } from "framer-motion"
 import { useReplayableInView } from "@/hooks/useReplayableInView"
-import { useReplayableHighlight } from "@/hooks/useReplayableHighlight"
-
-function HighlightedText({
-  text,
-  isInView,
-  prefersReducedMotion,
-}: {
-  text: string
-  isInView: boolean
-  prefersReducedMotion: boolean | null
-}) {
-  const shouldHighlight = useReplayableHighlight(!!(isInView && !prefersReducedMotion), { delayMs: 500 })
-
-  return (
-    <span className="relative inline-block">
-      <span className="relative z-10">{text}</span>
-      <motion.span
-        className="absolute inset-0 bg-yellow-400/40 rounded pointer-events-none"
-        initial={{ scaleX: 0, transformOrigin: "left" }}
-        animate={shouldHighlight ? { scaleX: 1 } : { scaleX: 0 }}
-        transition={{ duration: 1.2, ease: [0.4, 0, 0.2, 1] }}
-        style={{ zIndex: 0 }}
-      />
-    </span>
-  )
-}
+import { HighlightedTextByRows } from "@/components/landing/HighlightedTextByRows"
 
 export default function LandingPricing() {
   const [hoveredPlan, setHoveredPlan] = useState<"monthly" | "annual" | null>(null)
@@ -93,7 +68,7 @@ export default function LandingPricing() {
           transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
         >
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 text-foreground">
-            <HighlightedText text="Start free. Ask Lisa anything." isInView={isInView} prefersReducedMotion={prefersReducedMotion} />
+            <HighlightedTextByRows text="Start free. Ask Lisa anything." isInView={isInView} prefersReducedMotion={prefersReducedMotion} delayMs={500} />
           </h2>
           <p className="text-xl sm:text-2xl text-center text-muted-foreground mb-4">
             <strong>3-day full access. No credit card.</strong> See if Lisa helps you.

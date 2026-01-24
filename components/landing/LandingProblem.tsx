@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion"
 import { useReplayableInView } from "@/hooks/useReplayableInView"
 import { Check, FileText, MessageCircle, Send } from "lucide-react"
-import { useReplayableHighlight } from "@/hooks/useReplayableHighlight"
+import { HighlightedTextByRows } from "@/components/landing/HighlightedTextByRows"
 
 // Smooth spring config for premium feel
 const smoothSpring = {
@@ -478,31 +478,6 @@ function TakeControlAnimation({
 // Supporting Components
 // ============================================
 
-function HighlightedText({
-  text,
-  isInView,
-  prefersReducedMotion,
-}: {
-  text: string
-  isInView: boolean
-  prefersReducedMotion: boolean
-}) {
-  const shouldHighlight = useReplayableHighlight(isInView && !prefersReducedMotion, { delayMs: 500 })
-
-  return (
-    <span className="relative inline-block">
-      <span className="relative z-10">{text}</span>
-      <motion.span
-        className="absolute inset-0 bg-yellow-400/40 rounded pointer-events-none"
-        initial={{ scaleX: 0, transformOrigin: "left" }}
-        animate={shouldHighlight ? { scaleX: 1 } : { scaleX: 0 }}
-        transition={{ duration: 1.2, ease: [0.4, 0, 0.2, 1] }}
-        style={{ zIndex: 0 }}
-      />
-    </span>
-  )
-}
-
 function StepText({ step, isInView }: { step: number; isInView: boolean }) {
   const headlines = [
     "You have questions. Lots of them.",
@@ -564,10 +539,11 @@ export default function LandingProblem() {
         >
           <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-6 text-gray-900 leading-tight px-2 sm:px-4">
             The problem isn&apos;t menopause.<br />
-            <HighlightedText
+            <HighlightedTextByRows
               text="It's not having answers."
               isInView={isInView}
               prefersReducedMotion={!!prefersReducedMotion}
+              delayMs={500}
             />
           </h2>
         </motion.div>

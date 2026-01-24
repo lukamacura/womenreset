@@ -19,7 +19,7 @@ import {
   BarChart3
 } from "lucide-react"
 import { useReplayableInView } from "@/hooks/useReplayableInView"
-import { useReplayableHighlight } from "@/hooks/useReplayableHighlight"
+import { HighlightedTextByRows } from "@/components/landing/HighlightedTextByRows"
 
 // Smooth spring configs
 const smoothSpring = {
@@ -123,10 +123,11 @@ function FeatureTheaterInner({
         >
           <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-4 text-gray-900">
             Everything You Need to{" "}
-            <HighlightedText
+            <HighlightedTextByRows
               text="Understand Menopause"
               isInView={isInView}
               prefersReducedMotion={!!prefersReducedMotion}
+              delayMs={500}
             />
           </h2>
           <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">
@@ -185,34 +186,6 @@ function FeatureTheaterInner({
           isInView={isInView}
         />
       </div>
-  )
-}
-
-// ============================================
-// Highlighted Text Component
-// ============================================
-function HighlightedText({
-  text,
-  isInView,
-  prefersReducedMotion,
-}: {
-  text: string
-  isInView: boolean
-  prefersReducedMotion: boolean
-}) {
-  const shouldHighlight = useReplayableHighlight(isInView && !prefersReducedMotion, { delayMs: 500 })
-
-  return (
-    <span className="relative inline-block">
-      <span className="relative z-10">{text}</span>
-      <motion.span
-        className="absolute inset-0 bg-yellow-400/40 rounded pointer-events-none"
-        initial={{ scaleX: 0, transformOrigin: "left" }}
-        animate={shouldHighlight ? { scaleX: 1 } : { scaleX: 0 }}
-        transition={{ duration: 1.2, ease: [0.4, 0, 0.2, 1] }}
-        style={{ zIndex: 0 }}
-      />
-    </span>
   )
 }
 

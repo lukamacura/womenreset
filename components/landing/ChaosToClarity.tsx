@@ -5,7 +5,7 @@ import { useState, useEffect, useMemo } from "react"
 import { motion, useReducedMotion, AnimatePresence } from "framer-motion"
 import { CheckCircle2, Heart, Brain, Moon, Thermometer, Zap, Droplet } from "lucide-react"
 import { useReplayableInView } from "@/hooks/useReplayableInView"
-import { useReplayableHighlight } from "@/hooks/useReplayableHighlight"
+import { HighlightedTextByRows } from "@/components/landing/HighlightedTextByRows"
 
 // Symptom data with icons and colors
 const symptoms = [
@@ -68,7 +68,6 @@ function ChaosToClarityInner({
   prefersReducedMotion: boolean
 }) {
   const [phase, setPhase] = useState<AnimationPhase>('chaos')
-  const shouldAnimateHeading = useReplayableHighlight(isInView && !prefersReducedMotion, { delayMs: 300 })
 
   // Animation timeline
   useEffect(() => {
@@ -136,22 +135,12 @@ function ChaosToClarityInner({
           <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight px-2 sm:px-4">
             Menopause isn&apos;t random.
             <br />
-            <span className="relative inline-block">
-              <span className="relative z-10">
-                It&apos;s just been poorly explained.
-              </span>
-              <motion.span
-                className="absolute inset-0 bg-yellow-400/40 rounded pointer-events-none"
-                initial={{ scaleX: 0, transformOrigin: "left" }}
-                animate={shouldAnimateHeading && !prefersReducedMotion ? { scaleX: 1 } : { scaleX: 0 }}
-                transition={{
-                  duration: prefersReducedMotion ? 0 : 1.2,
-                  delay: 0.3,
-                  ease: [0.4, 0, 0.2, 1],
-                }}
-                style={{ zIndex: 0 }}
-              />
-            </span>
+            <HighlightedTextByRows
+              text="It's just been poorly explained."
+              isInView={isInView}
+              prefersReducedMotion={prefersReducedMotion}
+              delayMs={300}
+            />
           </h2>
         </div>
 

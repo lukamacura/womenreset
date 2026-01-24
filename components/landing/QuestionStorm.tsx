@@ -5,33 +5,7 @@ import { useState, useEffect, useMemo } from "react"
 import { motion, useReducedMotion, AnimatePresence } from "framer-motion"
 import { MessageCircle } from "lucide-react"
 import { useReplayableInView } from "@/hooks/useReplayableInView"
-import { useReplayableHighlight } from "@/hooks/useReplayableHighlight"
-
-// HighlightedText component - same pattern as LandingProblem.tsx
-function HighlightedText({
-  text,
-  isInView,
-  prefersReducedMotion,
-}: {
-  text: string
-  isInView: boolean
-  prefersReducedMotion: boolean
-}) {
-  const shouldHighlight = useReplayableHighlight(isInView && !prefersReducedMotion, { delayMs: 500 })
-
-  return (
-    <span className="relative inline-block">
-      <span className="relative z-10">{text}</span>
-      <motion.span
-        className="absolute inset-0 bg-yellow-400/40 rounded pointer-events-none"
-        initial={{ scaleX: 0, transformOrigin: "left" }}
-        animate={shouldHighlight ? { scaleX: 1 } : { scaleX: 0 }}
-        transition={{ duration: 1.2, ease: [0.4, 0, 0.2, 1] }}
-        style={{ zIndex: 0 }}
-      />
-    </span>
-  )
-}
+import { HighlightedTextByRows } from "@/components/landing/HighlightedTextByRows"
 
 // The overwhelming questions women face - limited to 6
 const questions = [
@@ -320,10 +294,11 @@ function QuestionStormInner({
         <div className="text-center mb-4 sm:mb-6">
           <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 leading-tight px-2">
             Your head is{" "}
-            <HighlightedText
+            <HighlightedTextByRows
               text="full of questions"
               isInView={isInView}
               prefersReducedMotion={prefersReducedMotion}
+              delayMs={500}
             />
           </h2>
         </div>

@@ -2,32 +2,7 @@
 
 import { motion, useReducedMotion } from "framer-motion"
 import { useReplayableInView } from "@/hooks/useReplayableInView"
-import { useReplayableHighlight } from "@/hooks/useReplayableHighlight"
-
-function HighlightedText({
-  text,
-  isInView,
-  prefersReducedMotion,
-}: {
-  text: string
-  isInView: boolean
-  prefersReducedMotion: boolean | null
-}) {
-  const shouldHighlight = useReplayableHighlight(!!(isInView && !prefersReducedMotion), { delayMs: 500 })
-
-  return (
-    <span className="relative inline-block">
-      <span className="relative z-10">{text}</span>
-      <motion.span
-        className="absolute inset-0 bg-yellow-400/40 rounded pointer-events-none"
-        initial={{ scaleX: 0, transformOrigin: "left" }}
-        animate={shouldHighlight ? { scaleX: 1 } : { scaleX: 0 }}
-        transition={{ duration: 1.2, ease: [0.4, 0, 0.2, 1] }}
-        style={{ zIndex: 0 }}
-      />
-    </span>
-  )
-}
+import { HighlightedTextByRows } from "@/components/landing/HighlightedTextByRows"
 
 export default function LandingSocialProof() {
   const prefersReducedMotion = useReducedMotion()
@@ -63,7 +38,7 @@ export default function LandingSocialProof() {
           transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
         >
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-6 text-foreground">
-            Women are <HighlightedText text="finally getting answers" isInView={isInView} prefersReducedMotion={prefersReducedMotion} />
+            Women are <HighlightedTextByRows text="finally getting answers" isInView={isInView} prefersReducedMotion={prefersReducedMotion} delayMs={500} />
           </h2>
           <p className="text-lg sm:text-xl text-muted-foreground">
             Join 10,000+ women who stopped Googling and started understanding

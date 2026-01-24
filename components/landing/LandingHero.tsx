@@ -6,11 +6,12 @@ import { motion, AnimatePresence, useReducedMotion } from "framer-motion"
 import { useReplayableInView } from "@/hooks/useReplayableInView"
 
 // Hero content variations - high-converting, outcome-based copy
+// highlight: use \n to separate rows; each row gets its own highlight sweep
 const heroContent = [
   {
     headline: {
       before: "Ask Lisa anything about menopause.",
-      highlight: "Get answers in seconds.",
+      highlight: "Get answers\nin seconds.",
       after: ""
     },
     subheadline: "Lisa is your AI menopause companion. Ask her anything, track how you feel, and see your patterns clearly - all in one place."
@@ -18,7 +19,7 @@ const heroContent = [
   {
     headline: {
       before: "Your menopause questions answered,",
-      highlight: "24/7, judgement-free",
+      highlight: "24/7,\njudgement-free",
       after: ""
     },
     subheadline: "No more scary Google rabbit holes. Get clear, research-backed answers to your menopause questions anytime you need them."
@@ -26,33 +27,35 @@ const heroContent = [
   {
     headline: {
       before: "Finally understand",
-      highlight: "what's happening",
-      after: "to your body"
+      highlight: "what's happening\nto your body",
+      after: ""
     },
     subheadline: "Ask unlimited questions, log symptoms in 30 seconds, and walk into your doctor's office with real data."
   },
 ]
 
-// Animated highlight component with sweep effect - Mobile optimized
-function HighlightedWord({ 
-  children, 
+// Animated highlight per row with sweep effect - row by row
+function HighlightedRow({
+  children,
   isActive,
-  prefersReducedMotion 
-}: { 
+  prefersReducedMotion,
+  delay = 0.25,
+}: {
   children: React.ReactNode
   isActive: boolean
   prefersReducedMotion: boolean
+  delay?: number
 }) {
   return (
-    <span className="relative inline-block whitespace-nowrap sm:whitespace-normal">
+    <span className="relative inline-block">
       <span className="relative z-10">{children}</span>
       <motion.span
-        className="absolute inset-0 bg-yellow-400/50 rounded-sm pointer-events-none -mx-0.5 sm:-mx-1 px-0.5 sm:px-1"
+        className="absolute inset-0 bg-yellow-400/50 rounded-sm pointer-events-none px-0.5"
         initial={{ scaleX: 0, transformOrigin: "left" }}
         animate={isActive && !prefersReducedMotion ? { scaleX: 1 } : { scaleX: 0 }}
         transition={{
-          duration: 0.8,
-          delay: 0.3,
+          duration: 0.5,
+          delay: prefersReducedMotion ? 0 : delay,
           ease: [0.4, 0, 0.2, 1],
         }}
         style={{ zIndex: 0 }}
@@ -86,10 +89,18 @@ function AnimatedHeadline({
       }}
     >
       {content.before && <span>{content.before} </span>}
-      <HighlightedWord isActive={isActive} prefersReducedMotion={prefersReducedMotion}>
-        {content.highlight}
-      </HighlightedWord>
-      {content.after && <span> {content.after}</span>}
+      {content.highlight.split("\n").filter(Boolean).map((line, i) => (
+        <span key={i} className="block">
+          <HighlightedRow
+            isActive={isActive}
+            prefersReducedMotion={prefersReducedMotion}
+            delay={0.25 + i * 0.2}
+          >
+            {line}
+          </HighlightedRow>
+        </span>
+      ))}
+      {content.after && <span> {" "}{content.after}</span>}
     </motion.h1>
   )
 }
@@ -323,39 +334,77 @@ function LandingHeroInner({
             </motion.div>
           </div>
 
-          {/* Right: Hero Video */}
+          {/* Right: Hero Video – Tablet with entrance animation */}
           <div className="relative z-10 w-full flex justify-end">
             <div className="w-full max-w-md sm:max-w-lg md:max-w-xl">
-              {/* iPad-style frame (thick bezel + visible home indicator) */}
-              <div
-                className="relative w-full rounded-[2.5rem] border-[6px] sm:border-8 border-gray-900 bg-gray-900 shadow-2xl overflow-hidden"
+              <motion.div
+                className="relative w-full overflow-hidden"
                 style={{
+                  borderRadius: "2.5rem",
+                  border: "8px solid #111827",
+                  backgroundColor: "#111827",
                   boxShadow:
                     "0 28px 70px -22px rgba(0,0,0,0.35), 0 0 0 1px rgba(0,0,0,0.08)",
                 }}
+                initial={{ opacity: 0, y: 24, scale: 0.97 }}
+                animate={
+                  isInView
+                    ? { opacity: 1, y: 0, scale: 1 }
+                    : { opacity: 0, y: 24, scale: 0.97 }
+                }
+                transition={{
+                  duration: prefersReducedMotion ? 0.2 : 0.6,
+                  delay: prefersReducedMotion ? 0 : 0.2,
+                  ease: [0.16, 1, 0.3, 1],
+                }}
               >
-                {/* Bezel highlight */}
+                {/* Bezel highlight (inner edge) */}
                 <div
-                  className="pointer-events-none absolute inset-0 rounded-[2.5rem]"
+                  className="pointer-events-none absolute inset-0 z-10"
                   style={{
+                    borderRadius: "2.5rem",
                     boxShadow:
                       "inset 0 1px 0 rgba(255,255,255,0.16), inset 0 -1px 0 rgba(255,255,255,0.08)",
                   }}
+                  aria-hidden
                 />
 
-                {/* Camera dot (top center) */}
-                <div className="pointer-events-none absolute top-3 left-1/2 -translate-x-1/2 z-20">
-                  <div className="h-2.5 w-2.5 rounded-full bg-black/70" />
-                  <div className="absolute left-1/2 top-1/2 h-1 w-1 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/20" />
+                {/* Camera (top center) */}
+                <div
+                  className="pointer-events-none absolute left-1/2 z-20 -translate-x-1/2"
+                  style={{ top: "0.75rem" }}
+                  aria-hidden
+                >
+                  <div
+                    className="rounded-full"
+                    style={{
+                      width: 10,
+                      height: 10,
+                      backgroundColor: "rgba(0,0,0,0.7)",
+                    }}
+                  />
+                  <div
+                    className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full"
+                    style={{
+                      width: 4,
+                      height: 4,
+                      backgroundColor: "rgba(255,255,255,0.2)",
+                    }}
+                  />
                 </div>
 
                 {/* Screen */}
                 <div
-                  className="relative rounded-[2.25rem] bg-white overflow-hidden"
-                  style={{ aspectRatio: "4 / 3", minHeight: 260 }}
+                  className="relative overflow-hidden"
+                  style={{
+                    aspectRatio: "4 / 3",
+                    minHeight: 260,
+                    borderRadius: "2.25rem",
+                    background: "linear-gradient(135deg, #f9a8d4 0%, #fde047 50%, #93c5fd 100%)",
+                  }}
                 >
                   <video
-                    className="relative z-0 h-full w-full object-contain bg-white"
+                    className="relative z-0 h-full w-full object-contain"
                     autoPlay
                     loop
                     muted
@@ -366,10 +415,20 @@ function LandingHeroInner({
                     <source src="/test2.webm" type="video/webm" />
                   </video>
 
-                  {/* Navigation / home indicator (high contrast, above video) */}
-                  <div className="pointer-events-none absolute bottom-3 left-1/2 z-10 -translate-x-1/2 w-[160px] h-[6px] bg-black rounded-full shadow-sm" />
+                  {/* Home indicator (bottom center) */}
+                  <div
+                    className="pointer-events-none absolute left-1/2 z-10 -translate-x-1/2 rounded-full"
+                    style={{
+                      bottom: "0.75rem",
+                      width: 160,
+                      height: 6,
+                      backgroundColor: "#000",
+                      boxShadow: "0 1px 2px rgba(0,0,0,0.2)",
+                    }}
+                    aria-hidden
+                  />
                 </div>
-              </div>
+              </motion.div>
             </div>
           </div>
         </div>
