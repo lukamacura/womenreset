@@ -2249,6 +2249,14 @@ function ChatPageInner() {
         #composer {
           display: flex;
           align-items: center;
+          border: 1px solid #FBCFE8;
+          box-shadow: 0 2px 8px rgba(236, 72, 153, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+          transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        #composer:focus {
+          outline: none;
+          border-color: #F9A8D4;
+          box-shadow: 0 2px 8px rgba(236, 72, 153, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04), 0 0 0 2px rgba(236, 72, 153, 0.15);
         }
       `}</style>
       <div
@@ -2576,7 +2584,7 @@ function ChatPageInner() {
                   }
                   void sendToAPI(text, id);
                 }}
-                className="mx-auto flex w-full max-w-4xl items-end px-4 py-4 sm:px-6 sm:py-5"
+                className="mx-auto flex w-full max-w-4xl flex-col items-stretch gap-0 px-4 py-4 sm:px-6 sm:py-5"
               >
                 <div className="relative flex w-full items-center">
                   <label htmlFor="composer" className="sr-only">
@@ -2600,12 +2608,12 @@ function ChatPageInner() {
                       }}
                       aria-label="Type your message"
                       placeholder="Ask anything..."
-                      className={`w-full resize-none overflow-hidden text-lg sm:text-xl font-bold px-5 py-4 sm:px-6 sm:py-5 outline-none touch-manipulation shadow-md transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${input.trim() ? 'pr-14 sm:pr-16' : 'pr-5'}`}
+                      className={`w-full resize-none overflow-hidden text-lg sm:text-xl font-bold px-5 py-4 sm:px-6 sm:py-5 outline-none touch-manipulation transition-all duration-200 ease-out ${input.trim() ? 'pr-14 sm:pr-16' : 'pr-5'}`}
                       style={{
                         minHeight: '64px',
                         color: THEME.text[900],
                         backgroundColor: THEME.background.light,
-                        borderRadius: '25px',
+                        borderRadius: '12px',
                       }}
                     />
 
@@ -2640,7 +2648,11 @@ function ChatPageInner() {
                     </AnimatePresence>
                   </div>
                 </div>
-
+                <p
+                  className="mt-2 w-full text-left text-xs text-muted-foreground"
+                >
+                  Lisa is here to support you with menopause info, but she isn&apos;t a doctor and her guidance should never replace professional medical advice.
+                </p>
               </form>
             </footer>
           </main>
