@@ -296,7 +296,7 @@ const phoneTransition = {
 }
 
 // ============================================
-// Feature 1: Ask Lisa Anything (ENHANCED with longer response & emojis)
+// Feature 1: Ask Lisa Anything
 // ============================================
 function AskAnythingPhone({
   prefersReducedMotion,
@@ -306,51 +306,31 @@ function AskAnythingPhone({
   isInView: boolean
 }) {
   const [phase, setPhase] = useState(0)
-  const [revealedLines, setRevealedLines] = useState(0)
   
   const question = "Why do I get hot flashes at night?"
   
-  // Lisa's comprehensive response with emojis
+  // Lisa's concise response
   const lisaResponse = useMemo(() => [
     { type: "intro", content: "Great question! 🌙 Here's what research shows:" },
-    { type: "explanation", content: "Night sweats happen because your body's thermostat gets disrupted by hormone changes." },
-    { type: "tip", emoji: "❄️", title: "Keep it cool", desc: "Room temp around 65°F (18°C)" },
-    { type: "tip", emoji: "👚", title: "Breathable fabrics", desc: "Cotton or moisture-wicking PJs" },
-    { type: "tip", emoji: "💧", title: "Stay hydrated", desc: "Water by your bed helps!" },
+    { type: "explanation", content: "Your body's thermostat gets disrupted by hormone changes." },
+    { type: "tips", items: ["❄️ Keep room at 65°F", "👚 Breathable fabrics", "💧 Water by your bed"] },
     { type: "outro", content: "Want more tips? Just ask! 💕" },
   ], [])
 
   useEffect(() => {
     if (!isInView) return
-    if (prefersReducedMotion) {
-      setPhase(4)
-      setRevealedLines(lisaResponse.length)
-      return
-    }
-    setPhase(0)
-    setRevealedLines(0)
     const timers: NodeJS.Timeout[] = []
+    if (prefersReducedMotion) {
+      timers.push(setTimeout(() => setPhase(4), 0))
+      return () => timers.forEach(clearTimeout)
+    }
+    timers.push(setTimeout(() => setPhase(0), 0))
     timers.push(setTimeout(() => setPhase(1), 100))   // Header
     timers.push(setTimeout(() => setPhase(2), 400))   // Question
-    timers.push(setTimeout(() => setPhase(3), 900))   // Typing
-    timers.push(setTimeout(() => setPhase(4), 1400))  // Answer
+    timers.push(setTimeout(() => setPhase(3), 800))   // Typing
+    timers.push(setTimeout(() => setPhase(4), 1500))  // Answer (instant)
     return () => timers.forEach(clearTimeout)
-  }, [isInView, prefersReducedMotion, lisaResponse.length])
-
-  // Progressive line reveal
-  useEffect(() => {
-    if (!isInView || phase < 4 || prefersReducedMotion) return
-    let line = 0
-    const interval = setInterval(() => {
-      if (line < lisaResponse.length) {
-        setRevealedLines(line + 1)
-        line++
-      } else {
-        clearInterval(interval)
-      }
-    }, 120)
-    return () => clearInterval(interval)
-  }, [isInView, phase, prefersReducedMotion, lisaResponse.length])
+  }, [isInView, prefersReducedMotion])
 
   const showHeader = phase >= 1
   const showQuestion = phase >= 2
@@ -367,31 +347,31 @@ function AskAnythingPhone({
       className="w-full"
     >
       <PhoneFrame>
-        <div className="h-full p-4 flex flex-col bg-gray-50">
+        <div className="h-full p-3 flex flex-col bg-gray-50">
           {/* Header */}
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={showHeader ? { opacity: 1, y: 0 } : { opacity: 0, y: -10 }}
             transition={{ ...smoothSpring }}
-            className="h-11 bg-linear-to-r from-[#FF6B9D] to-[#FFA07A] rounded-xl flex items-center justify-center gap-2 shrink-0 shadow-sm"
+            className="h-10 bg-linear-to-r from-[#FF6B9D] to-[#FFA07A] rounded-xl flex items-center justify-center gap-2 shrink-0 shadow-sm"
           >
-            <MessageCircle className="w-4 h-4 text-white" />
-            <span className="text-white text-sm font-semibold">Ask Lisa</span>
+            <MessageCircle className="w-3.5 h-3.5 text-white" />
+            <span className="text-white text-xs font-semibold">Ask Lisa</span>
           </motion.div>
 
           {/* Chat Area */}
-          <div className="flex-1 flex flex-col gap-2 py-3 min-h-0 overflow-hidden">
-            {/* User Question */}
+          <div className="flex-1 flex flex-col gap-2 py-2 min-h-0 overflow-hidden">
+            {/* User Question - Pink background */}
             <AnimatePresence>
               {showQuestion && (
                 <motion.div
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ ...smoothSpring }}
-                  className="self-end max-w-[85%]"
+                  className="self-end max-w-[88%]"
                 >
-                  <div className="bg-[#FF6B9D] text-white rounded-2xl rounded-br-sm px-3 py-2 shadow-sm">
-                    <p className="text-xs leading-relaxed">{question}</p>
+                  <div className="bg-[#FFE5F0] rounded-2xl rounded-br-sm px-3 py-2 shadow-sm">
+                    <p className="text-xs text-gray-800 font-medium">{question}</p>
                   </div>
                 </motion.div>
               )}
@@ -406,17 +386,17 @@ function AskAnythingPhone({
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0 }}
                   transition={{ ...smoothSpring }}
-                  className="flex items-start gap-2"
+                  className="flex items-start gap-1.5"
                 >
-                  <div className="w-7 h-7 rounded-full bg-linear-to-br from-[#FF6B9D] to-[#FFA07A] flex items-center justify-center shrink-0 shadow-sm">
-                    <Sparkles className="w-3.5 h-3.5 text-white" />
+                  <div className="w-6 h-6 rounded-full bg-linear-to-br from-[#FF6B9D] to-[#FFA07A] flex items-center justify-center shrink-0 shadow-sm">
+                    <Sparkles className="w-3 h-3 text-white" />
                   </div>
-                  <div className="bg-[#FFE5F0] rounded-2xl rounded-tl-sm px-3 py-2">
-                    <div className="flex gap-1.5 items-center h-3">
+                  <div className="bg-yellow-200 rounded-2xl rounded-tl-sm px-3 py-2">
+                    <div className="flex gap-1 items-center h-3">
                       {[0, 1, 2].map((i) => (
                         <motion.div
                           key={i}
-                          className="w-1.5 h-1.5 bg-[#FF6B9D] rounded-full"
+                          className="w-1.5 h-1.5 bg-amber-600 rounded-full"
                           animate={isInView && !prefersReducedMotion ? { y: [0, -3, 0] } : { y: 0 }}
                           transition={
                             isInView && !prefersReducedMotion
@@ -431,54 +411,43 @@ function AskAnythingPhone({
               )}
             </AnimatePresence>
 
-            {/* Lisa's Response */}
+            {/* Lisa's Response - Yellow background, instant */}
             <AnimatePresence>
               {showAnswer && (
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ ...smoothSpring }}
-                  className="flex items-start gap-2"
+                  className="flex items-start gap-1.5"
                 >
-                  <div className="w-7 h-7 rounded-full bg-linear-to-br from-[#FF6B9D] to-[#FFA07A] flex items-center justify-center shrink-0 shadow-sm">
-                    <Sparkles className="w-3.5 h-3.5 text-white" />
+                  <div className="w-6 h-6 rounded-full bg-linear-to-br from-[#FF6B9D] to-[#FFA07A] flex items-center justify-center shrink-0 shadow-sm">
+                    <Sparkles className="w-3 h-3 text-white" />
                   </div>
                   <div className="flex-1 max-w-[88%]">
-                    <div className="bg-[#FFE5F0] rounded-2xl rounded-tl-sm px-2.5 py-2 shadow-sm space-y-1.5">
-                      {lisaResponse.slice(0, revealedLines).map((item, index) => (
-                        <motion.div
-                          key={index}
-                          initial={{ opacity: 0, y: 4 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ ...smoothSpring }}
-                        >
+                    <span className="text-[10px] font-semibold text-[#FF6B9D] ml-1 mb-0.5 block">Lisa</span>
+                    <div className="bg-yellow-200 rounded-2xl rounded-tl-sm px-3 py-2.5 shadow-sm space-y-2">
+                      {lisaResponse.map((item, index) => (
+                        <div key={index}>
                           {item.type === "intro" && (
-                            <p className="text-[11px] font-semibold text-gray-800">{item.content}</p>
+                            <p className="text-xs text-gray-800 font-medium">{item.content}</p>
                           )}
                           {item.type === "explanation" && (
-                            <p className="text-[10px] text-gray-600 leading-relaxed">{item.content}</p>
+                            <p className="text-xs text-gray-700 leading-relaxed">{item.content}</p>
                           )}
-                          {item.type === "tip" && (
-                            <div className="flex items-start gap-1.5 bg-white/50 rounded-lg px-2 py-1">
-                              <span className="text-xs">{item.emoji}</span>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-[10px] font-semibold text-gray-800">{item.title}</p>
-                                <p className="text-[9px] text-gray-500">{item.desc}</p>
-                              </div>
+                          {item.type === "tips" && item.items && (
+                            <div className="bg-white/40 rounded-lg p-2 space-y-1">
+                              {item.items.map((tip, tipIdx) => (
+                                <p key={tipIdx} className="text-[11px] text-gray-700 leading-snug font-medium">
+                                  {tip}
+                                </p>
+                              ))}
                             </div>
                           )}
                           {item.type === "outro" && (
-                            <p className="text-[10px] font-medium text-[#FF6B9D] pt-0.5">{item.content}</p>
+                            <p className="text-xs font-semibold text-amber-700 pt-0.5">{item.content}</p>
                           )}
-                        </motion.div>
+                        </div>
                       ))}
-                      {!prefersReducedMotion && isInView && revealedLines < lisaResponse.length && (
-                        <motion.span
-                          className="inline-block w-0.5 h-2.5 bg-[#FF6B9D] rounded-sm"
-                          animate={{ opacity: [1, 0] }}
-                          transition={{ duration: 0.5, repeat: Infinity }}
-                        />
-                      )}
                     </div>
                   </div>
                 </motion.div>
@@ -490,7 +459,7 @@ function AskAnythingPhone({
           <motion.div
             initial={{ opacity: 0 }}
             animate={showHeader ? { opacity: 1 } : { opacity: 0 }}
-            className="h-9 bg-white rounded-full border border-gray-200 flex items-center px-3 gap-2 shrink-0"
+            className="h-9 bg-white rounded-full flex items-center px-3 gap-2 shrink-0"
           >
             <span className="text-[10px] text-gray-400 flex-1">Ask anything...</span>
             <Send className="h-3.5 w-3.5 text-[#FF6B9D]" />

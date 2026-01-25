@@ -9,12 +9,12 @@ import { HighlightedTextByRows } from "@/components/landing/HighlightedTextByRow
 
 // The overwhelming questions women face - limited to 6
 const questions = [
-  "Why am I gaining weight?",
-  "Why can't I sleep?",
-  "Night sweats again?",
-  "Always exhausted...",
-  "Brain fog is real",
-  "What should I eat?",
+  "Why am I suddenly gaining weight when I'm eating the same and exercising - what is wrong with my body?",
+  "Why can't I sleep through the night anymore and will I ever sleep normally again?",
+  "Why do I wake up completely drenched in sweat every night and how do I make it stop?",
+  "Why does sex suddenly hurt so bad and is this permanent?",
+  "Why do I suddenly have to pee all the time?",
+  "Why do I look 6 months pregnant every day when I'm not eating differently?",
 ]
 
 // Mobile positions - arranged in a loose circle around center, leaving space for Lisa
@@ -50,8 +50,8 @@ function LisaVideo({ preload = "metadata" }: { preload?: "metadata" | "none" }) 
       {/* Glow effect behind video */}
       <div className="absolute inset-0 rounded-2xl bg-linear-to-br from-pink-400/30 to-purple-400/30 blur-2xl scale-125" />
       
-      {/* Video container */}
-      <div className="relative w-64 h-64 sm:w-96 sm:h-96 md:w-[450px] md:h-[450px] lg:w-[500px] lg:h-[500px] rounded-2xl overflow-hidden">
+      {/* Video container - reduced so phase text above stays visible */}
+      <div className="relative w-[130px] h-[130px] sm:w-[200px] sm:h-[200px] md:w-[240px] md:h-[240px] lg:w-[260px] lg:h-[260px] rounded-2xl overflow-hidden">
         <video
           autoPlay
           loop
@@ -147,11 +147,11 @@ function QuestionCard({
             animate={!prefersReducedMotion && !isFading ? "float" : undefined}
             custom={position.floatDelay}
           >
-            {/* Card styled like chat bubble */}
-            <div className="px-3 py-2 sm:px-4 sm:py-2.5 md:px-5 md:py-3 bg-card backdrop-blur-sm rounded-2xl shadow-lg shadow-pink-200/40 border border-pink-100 max-w-[120px] sm:max-w-[180px] md:max-w-[220px]">
-              <div className="flex items-center gap-1.5 sm:gap-2">
-                <MessageCircle className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-pink-400 shrink-0" />
-                <p className="text-[10px] sm:text-xs md:text-sm font-medium text-gray-700 leading-tight">
+            {/* Card styled like chat bubble - wider for longer questions */}
+            <div className="px-3 py-2 sm:px-4 sm:py-2.5 md:px-5 md:py-3 bg-card backdrop-blur-sm rounded-2xl shadow-lg shadow-pink-200/40 border border-pink-100 max-w-[160px] sm:max-w-[220px] md:max-w-[280px]">
+              <div className="flex items-start gap-1.5 sm:gap-2">
+                <MessageCircle className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-pink-400 shrink-0 mt-0.5" />
+                <p className="text-[10px] sm:text-[11px] md:text-xs font-medium text-gray-700 leading-snug">
                   {question}
                 </p>
               </div>
@@ -404,7 +404,7 @@ function QuestionStormInner({
                       <div>
                         <p className="text-xs sm:text-sm text-gray-400 font-medium">Lisa</p>
                         <p className="text-sm sm:text-base font-semibold text-gray-800">
-                          &ldquo;Ask me anything — I&apos;m here for you.&rdquo;
+                          &ldquo;Ask me anything - I&apos;m here for you.&rdquo;
                         </p>
                       </div>
                     </div>

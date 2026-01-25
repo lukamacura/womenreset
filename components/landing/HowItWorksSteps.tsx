@@ -35,7 +35,7 @@ const ultraSmoothSpring = {
 const TIMING = {
   CROSSFADE: 300,
   STEP_HOLD: 900,
-  STEP_1_ANIMATION: 1440, // User question + typing + Lisa response (70% faster loading)
+  STEP_1_ANIMATION: 3500, // User question + typing + Lisa response
   STEP_2_ANIMATION: 1400,
   STEP_3_ANIMATION: 1400,
 } as const
@@ -569,6 +569,27 @@ function DataTimelinePhone({
 // ============================================
 // Step 1: Chat Interface Phone
 // ============================================
+
+// Rich text renderer for Lisa's styled responses
+function RichText({ text }: { text: string }) {
+  // Parse **bold** syntax
+  const parts = text.split(/(\*\*[^*]+\*\*)/g)
+  return (
+    <>
+      {parts.map((part, i) => {
+        if (part.startsWith("**") && part.endsWith("**")) {
+          return (
+            <span key={i} className="font-bold text-amber-700">
+              {part.slice(2, -2)}
+            </span>
+          )
+        }
+        return <span key={i}>{part}</span>
+      })}
+    </>
+  )
+}
+
 function ChatInterfacePhone({
   prefersReducedMotion,
   isInView,
@@ -577,47 +598,46 @@ function ChatInterfacePhone({
   isInView: boolean
 }) {
   const [phase, setPhase] = useState(0)
-  const [revealedLines, setRevealedLines] = useState(0)
 
-  // User question and Lisa's response (shorter for clearer animation)
-  const userQuestion = "Why do I wake up at 3am every night?"
+  // User question and Lisa's response (concise)
+  const userQuestion = "Why do I suddenly gain weight?"
   const lisaResponse = useMemo(() => [
-    { type: "intro", content: "Great question! 🌙 Super common in perimenopause." },
-    { type: "explanation", content: "Dropping progesterone often causes night wake-ups. Cool room (65–68°F) and less evening alcohol can help." },
-    { type: "outro", content: "Want more tips? Just ask." },
+    { 
+      type: "intro", 
+      content: "It's **like your body hit 'update software' at 45** without warning 💜" 
+    },
+    { 
+      type: "highlight", 
+      content: "As estrogen drops, you become **more insulin resistant** — storing more around the belly." 
+    },
+    { 
+      type: "tips", 
+      items: [
+        "🏋️ Strength training",
+        "🥗 Protein + fiber meals",
+        "🌙 Protect your sleep",
+      ]
+    },
+    { 
+      type: "outro", 
+      content: "Your metabolism isn't broken — it's adaptive 🌿" 
+    },
   ], [])
 
   useEffect(() => {
     if (!isInView) return
     if (prefersReducedMotion) {
       setPhase(4)
-      setRevealedLines(lisaResponse.length)
       return
     }
     setPhase(0)
-    setRevealedLines(0)
     const timers: NodeJS.Timeout[] = []
     timers.push(setTimeout(() => setPhase(1), 60))    // Header
-    timers.push(setTimeout(() => setPhase(2), 270))   // User question appears
-    timers.push(setTimeout(() => setPhase(3), 660))   // Lisa typing
-    timers.push(setTimeout(() => setPhase(4), 1080))  // Lisa's response starts
+    timers.push(setTimeout(() => setPhase(2), 300))   // User question appears
+    timers.push(setTimeout(() => setPhase(3), 700))   // Lisa typing dots
+    timers.push(setTimeout(() => setPhase(4), 1400))  // Lisa's response appears instantly
     return () => timers.forEach(clearTimeout)
-  }, [isInView, prefersReducedMotion, lisaResponse.length])
-
-  // Reveal lines progressively (slower pace for readability)
-  useEffect(() => {
-    if (!isInView || phase < 4 || prefersReducedMotion) return
-    let line = 0
-    const interval = setInterval(() => {
-      if (line < lisaResponse.length) {
-        setRevealedLines(line + 1)
-        line++
-      } else {
-        clearInterval(interval)
-      }
-    }, 114)
-    return () => clearInterval(interval)
-  }, [isInView, phase, prefersReducedMotion, lisaResponse.length])
+  }, [isInView, prefersReducedMotion])
 
   const showHeader = phase >= 1
   const showUserQuestion = phase >= 2
@@ -634,31 +654,31 @@ function ChatInterfacePhone({
       className="w-full"
     >
       <PhoneFrame>
-        <div className="h-full p-4 flex flex-col bg-gray-50">
+        <div className="h-full p-3 flex flex-col bg-gray-50">
           {/* Header */}
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={showHeader ? { opacity: 1, y: 0 } : { opacity: 0, y: -10 }}
             transition={{ ...smoothSpring }}
-            className="h-11 bg-linear-to-r from-[#FF6B9D] to-[#FFA07A] rounded-xl flex items-center justify-center gap-2 shrink-0 shadow-sm"
+            className="h-10 bg-linear-to-r from-[#FF6B9D] to-[#FFA07A] rounded-xl flex items-center justify-center gap-2 shrink-0 shadow-sm"
           >
-            <MessageCircle className="w-4 h-4 text-white" />
-            <span className="text-white text-sm font-semibold">Chat with Lisa</span>
+            <MessageCircle className="w-3.5 h-3.5 text-white" />
+            <span className="text-white text-xs font-semibold">Chat with Lisa</span>
           </motion.div>
 
           {/* Chat Area */}
-          <div className="flex-1 flex flex-col justify-end py-3 min-h-0 overflow-hidden">
-            {/* User Question - stays visible once shown */}
+          <div className="flex-1 flex flex-col py-2 min-h-0 overflow-hidden">
+            {/* User Question */}
             {showUserQuestion && (
               <motion.div
                 initial={{ opacity: 0, y: 10, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 transition={{ ...smoothSpring }}
-                className="flex items-start gap-2 justify-end mb-2"
+                className="flex items-start gap-1.5 justify-end mb-2"
               >
-                <div className="max-w-[85%]">
-                  <div className="bg-white rounded-2xl rounded-tr-md px-3 py-2.5 shadow-sm">
-                    <p className="text-xs text-gray-800">{userQuestion}</p>
+                <div className="max-w-[88%]">
+                  <div className="bg-[#FFE5F0] rounded-2xl rounded-tr-sm px-3 py-2 shadow-sm">
+                    <p className="text-xs text-gray-800 font-medium">{userQuestion}</p>
                   </div>
                 </div>
               </motion.div>
@@ -673,18 +693,18 @@ function ChatInterfacePhone({
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
                   transition={{ ...smoothSpring }}
-                  className="flex items-start gap-2"
+                  className="flex items-start gap-1.5"
                 >
-                  <div className="w-8 h-8 rounded-full bg-linear-to-br from-[#FF6B9D] to-[#FFA07A] flex items-center justify-center shrink-0 shadow-sm">
-                    <span className="text-white text-xs font-bold">L</span>
+                  <div className="w-6 h-6 rounded-full bg-linear-to-br from-[#FF6B9D] to-[#FFA07A] flex items-center justify-center shrink-0 shadow-sm">
+                    <span className="text-white text-[9px] font-bold">L</span>
                   </div>
-                  <div className="bg-[#FFE5F0] rounded-2xl rounded-tl-md px-4 py-3">
-                    <div className="flex gap-1.5 items-center h-4">
+                  <div className="bg-[#FFE5F0] rounded-2xl rounded-tl-sm px-3 py-2">
+                    <div className="flex gap-1 items-center h-3">
                       {[0, 1, 2].map((i) => (
                         <motion.div
                           key={i}
-                          className="w-2 h-2 bg-[#FF6B9D] rounded-full"
-                          animate={isInView && !prefersReducedMotion ? { y: [0, -4, 0] } : { y: 0 }}
+                          className="w-1.5 h-1.5 bg-[#FF6B9D] rounded-full"
+                          animate={isInView && !prefersReducedMotion ? { y: [0, -3, 0] } : { y: 0 }}
                           transition={
                             isInView && !prefersReducedMotion
                               ? { duration: 0.6, repeat: Infinity, delay: i * 0.15, ease: "easeInOut" }
@@ -697,51 +717,59 @@ function ChatInterfacePhone({
                 </motion.div>
               )}
 
-              {/* Lisa's Message */}
+              {/* Lisa's Rich Message */}
               {showMessage && (
                 <motion.div
                   key="message"
                   initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ ...smoothSpring }}
-                  className="flex items-start gap-2"
+                  className="flex items-start gap-1.5"
                 >
                   {/* Avatar */}
-                  <div className="w-8 h-8 rounded-full bg-linear-to-br from-[#FF6B9D] to-[#FFA07A] flex items-center justify-center shrink-0 shadow-sm">
-                    <Sparkles className="w-4 h-4 text-white" />
+                  <div className="w-6 h-6 rounded-full bg-linear-to-br from-[#FF6B9D] to-[#FFA07A] flex items-center justify-center shrink-0 shadow-sm">
+                    <Sparkles className="w-3 h-3 text-white" />
                   </div>
                   
                   {/* Message Content */}
-                  <div className="flex-1 max-w-[85%]">
-                    <span className="text-[10px] font-semibold text-[#FF6B9D] ml-1 mb-1 block">Lisa</span>
-                    <div className="bg-[#FFE5F0] rounded-2xl rounded-tl-md px-3 py-2.5 shadow-sm space-y-2">
-                      {lisaResponse.slice(0, revealedLines).map((item, index) => (
-                        <motion.div
-                          key={index}
-                          initial={{ opacity: 0, y: 5 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ ...smoothSpring }}
-                        >
-                          {item.type === "intro" && (
-                            <p className="text-xs font-semibold text-gray-800">{item.content}</p>
+                  <div className="flex-1 max-w-[88%]">
+                    <span className="text-[10px] font-semibold text-[#FF6B9D] ml-1 mb-0.5 block">Lisa</span>
+                    <div className="bg-yellow-200 rounded-2xl rounded-tl-sm px-3 py-2.5 shadow-sm space-y-2">
+                      {lisaResponse.map((item, index) => (
+                        <div key={index}>
+                          {item.type === "intro" && item.content && (
+                            <p className="text-xs text-gray-800 leading-relaxed font-medium">
+                              <RichText text={item.content} />
+                            </p>
                           )}
-                          {item.type === "explanation" && (
-                            <p className="text-xs text-gray-700 leading-relaxed">{item.content}</p>
+                          {item.type === "explanation" && item.content && (
+                            <p className="text-xs text-gray-700 leading-relaxed">
+                              <RichText text={item.content} />
+                            </p>
                           )}
-                          {item.type === "outro" && (
-                            <p className="text-xs font-semibold text-[#FF6B9D] pt-1">{item.content}</p>
+                          {item.type === "highlight" && item.content && (
+                            <div className="bg-white/60 rounded-lg px-2.5 py-2 border-l-2 border-amber-500">
+                              <p className="text-xs text-gray-800 leading-relaxed">
+                                <RichText text={item.content} />
+                              </p>
+                            </div>
                           )}
-                        </motion.div>
+                          {item.type === "tips" && item.items && (
+                            <div className="bg-white/40 rounded-lg p-2 space-y-1">
+                              {item.items.map((tip, tipIdx) => (
+                                <p key={tipIdx} className="text-[11px] text-gray-700 leading-snug font-medium">
+                                  {tip}
+                                </p>
+                              ))}
+                            </div>
+                          )}
+                          {item.type === "outro" && item.content && (
+                            <p className="text-xs font-semibold text-amber-700 pt-0.5">
+                              <RichText text={item.content} />
+                            </p>
+                          )}
+                        </div>
                       ))}
-                      
-                      {/* Typing cursor while revealing */}
-                      {!prefersReducedMotion && isInView && revealedLines < lisaResponse.length && (
-                        <motion.span
-                          className="inline-block w-1 h-3 bg-[#FF6B9D] rounded-sm"
-                          animate={{ opacity: [1, 0] }}
-                          transition={{ duration: 0.5, repeat: Infinity }}
-                        />
-                      )}
                     </div>
                   </div>
                 </motion.div>
