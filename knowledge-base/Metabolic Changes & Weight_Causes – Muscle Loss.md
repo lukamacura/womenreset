@@ -4,18 +4,13 @@ topic: "Metabolic Changes & Weight Gain"
 subtopic: "Causes – Muscle Loss"
 
 content_text: |
-  Losing muscle after menopause is incredibly common — but it's *not* inevitable 💪.
+  Muscle loss is a major driver of metabolic changes during menopause.
   
-  Sarcopenia — age-related muscle loss — accelerates significantly during the menopausal transition, but understanding why puts you in the driver's seat.
+  As muscle mass declines, your resting metabolic rate drops — meaning you burn fewer calories at rest. This shift, combined with changes in fat distribution, makes weight management feel harder 
+  even when your habits haven't changed.
   
-  Estrogen isn't just a reproductive hormone; it's profoundly anabolic, supporting muscle protein synthesis and protecting against muscle breakdown. As levels decline, you lose approximately 3-8% of muscle mass per decade after age 30, with losses accelerating post-menopause.
-  
-  This matters beyond aesthetics. Muscle is your most metabolically active tissue — it burns calories at rest, regulates blood sugar, supports bone density, and maintains functional independence. Losing muscle means:
-  
-  • Reduced resting metabolic rate (fewer calories burned daily)
-  • Decreased insulin sensitivity and glucose regulation
-  • Lower strength and increased fall risk
-  • Reduced capacity for activities you love
+  **The good news?** Muscle is incredibly responsive to resistance training 
+  and adequate protein at any age 💪.
   
   Here's what the research is crystal clear about: **progressive resistance training 2-3 times weekly plus adequate protein intake (1.2-1.6g per kg body weight) can prevent and even reverse this loss**. 
   
@@ -39,8 +34,12 @@ habit_strategy: |
   
   🌸 **Tip:** Strength grows from repetition, not perfection. Even 10 minutes counts.
 
-follow_up_question: "Would you like to learn about the importance of strength training, or explore anti-inflammatory balanced eating?"
+follow_up_question: "Would you like to learn about the health impact of muscle loss, explore strength training, or anti-inflammatory balanced eating?"
 follow_up_links:
+  -persona: "menopause"
+  topic: "Muscle Loss & Sarcopenia"
+  subtopic: "Health Impact"
+  label: Why is muscle loss dangerous during menopause?
   -persona: "exercise"
   topic: "Exercise in Menopause"
   subtopic: "Strength Training"

@@ -1,0 +1,135 @@
+---
+persona: "menopause"
+topic: "Hot Flashes & Night Sweats"
+subtopic: "Environmental & Daily Habits — Comprehensive Lifestyle Management"
+
+content_text: |
+  Small, steady habits can make a huge difference 🌸. Studies show that comprehensive lifestyle changes can **reduce hot flashes by up to 60%** when multiple strategies are combined.
+
+  Keep your body cool, manage stress, stay hydrated, and create a sleep sanctuary. The key is **integration**: layering cooling strategies, stress management, trigger avoidance, and healthy routines. Consistency retrains your body's thermostat to react more gently 🌿.
+
+action_tips:
+  - "🌡️ Implement the '3-Zone Cool Protocol': bedroom 65-68°F, moisture-wicking sleepwear, cooling pillow with gel layer."
+  - "💨 Create a 'cooling kit': handheld fan, cooling facial mist, ice water bottle, cold compress — keep accessible at home, work, and car."
+  - "🧘‍♀️ Practice 10 minutes daily of paced breathing (6 breaths/minute) or progressive muscle relaxation to lower baseline stress."
+  - "🌿 Eliminate all evening triggers: no alcohol, caffeine, or spicy foods after 4pm; switch to herbal tea and cooling snacks."
+  - "💧 Maintain steady hydration: 8 cups water daily, front-loading morning/afternoon to avoid nighttime bathroom trips."
+
+motivation_nudge: "🌷 Your body learns through consistent repetition — gentle, multi-layered habits create cooler, steadier days faster than any single intervention."
+
+habit_strategy: |
+  **Multi-Modal Integration** — Combining environmental controls, stress management, and trigger avoidance creates synergistic symptom reduction.
+  
+  Evening routine: herbal tea at 7pm → cool shower at 8pm → breathing exercises at 8:30pm → cool bedroom by 9pm.
+  
+  🌬️ **Tip:** Stack cooling habits into existing routines: mist face after brushing teeth, sip ice water while making dinner.
+
+follow_up_question: "Would you like to explore ways to cope emotionally when a hot flash hits, or understand medical options (hormonal or non-hormonal) that can help?"
+follow_up_links:
+  -persona: "menopause"
+  topic: "Hot Flashes & Night Sweats"
+  subtopic: "Psychological Coping — Mindset, Emotional Response & Resilience"
+  label: "How to cope emotionally when a hot flash hits"
+
+  -persona: "menopause"
+  topic: "Hot Flashes & Night Sweats"
+  subtopic: "Medical Treatments — Hormonal & Pharmaceutical Interventions"
+  label: "What treatment works best for constant hot flashes?"
+
+intent_patterns:
+  - "HOW CAN I manage hot flashes with lifestyle changes?"
+  - "WHAT DAILY HABITS reduce hot flashes overall?"
+  - "WHAT works best for hot flashes?"
+  - "WHAT should I do IMMEDIATELY when a hot flash starts?"
+  - "HOW CAN I sleep better with night sweats?"
+  - "WHAT'S A COMPLETE routine for reducing night sweats?"
+  - "HOW DO I combine cooling, stress management, and trigger avoidance?"
+  - "WHAT CAN I DO right now during hot flash — immediate cooling relief?"
+  - "HOW COLD should bedroom be for night sweats — best temperature?"
+  - "BEST COOLING products that actually work — fans, pillows, sheets?"
+  - "WHAT LIFESTYLE changes stop hot flashes naturally without medication?"
+  - "HOW TO survive hot flashes at work — practical office solutions?"
+  - "COMPLETE DAILY ROUTINE for hot flashes — everything I should do?"
+  - "WHAT TO wear layering clothes hot flashes — dressing strategies?"
+  - "DESPERATE practical tips hot flashes constant need immediate relief?"
+  - "HOW DO I create a comprehensive natural management plan with multiple strategies?"
+  - "WHAT COMBINATION of cooling, stress, and trigger avoidance works best?"
+  - "HOW CAN I sleep better with environmental changes for night sweats?"
+  - "WHAT SHOULD I avoid daily to prevent triggering more hot flashes?"
+  - "HOW DO I set up my bedroom and workspace to manage hot flashes?"
+
+keywords:
+  Multi-Modal Approaches:
+    - "COMPREHENSIVE lifestyle management"
+    - "MULTI-MODAL hot flash strategy"
+    - "combined behavioral interventions"
+    - "integrated symptom approach"
+    - "layered cooling strategies"
+    - "DAILY ROUTINE hot flash management"
+    - "complete lifestyle plan"
+    - "natural ways multiple strategies"
+    - "self-care comprehensive approach"
+    - "cooling habits that work together"
+    - "lifestyle changes reduce hot flashes"
+    - "natural ways stop hot flashes"
+    - "daily habits hot flash management"
+    - "cooling products for hot flashes"
+    - "bedroom temperature night sweats"
+    - "best sheets for hot flashes"
+    - "cooling pillow night sweats"
+    - "what to wear hot flashes layers"
+    - "handheld fan hot flashes"
+    - "immediate relief hot flash starts"
+    - "cooling mist hot flashes"
+    - "trigger foods avoid hot flashes"
+    - "stress management hot flashes"
+    - "hydration reduce hot flashes"
+    - "sleep sanctuary night sweats"
+    - "workplace hot flash solutions"
+    - "practical tips hot flashes"
+    - "complete routine hot flashes"
+    - "environmental changes hot flashes"
+    - "daily strategies hot flashes"
+    - "cold compress hot flash relief"
+    - "ice water hot flashes"
+    - "what can I do when hot flash starts"
+    - "simple lifestyle changes help hot flashes"
+    - "practical tips reduce hot flashes"
+    - "daily habits that work hot flashes"
+    - "how cold bedroom for night sweats"
+    - "what to buy cooling hot flashes"
+    - "easy changes reduce hot flashes"
+    - "starting natural approach hot flashes"
+    - "soaking sheets every night what helps"
+    - "hot flashes at work need office solutions"
+    - "sweating through clothes what to wear"
+    - "waking up drenched bedroom too hot"
+    - "need cooling products that actually work"
+    - "constant hot flashes daily tips help"
+    - "desperate practical solutions hot flashes work"
+    - "tried diet exercise need more strategies"
+    - "20 hot flashes day desperate lifestyle fixes"
+    - "drenched constantly need every cooling trick"
+    - "severe hot flashes what environmental changes work"
+    - "tried everything need complete routine hot flashes"
+    - "exhausted night sweats bedroom setup help"
+    - "hot flashes unbearable need all strategies"
+    - "constant sweating desperate cooling solutions"
+    - "life falling apart need comprehensive plan hot flashes"
+    - "morning routine hot flash prevention"
+    - "evening routine avoid triggers hot flashes"
+    - "no caffeine after 4pm hot flashes"
+    - "avoid alcohol evening night sweats"
+    - "hydration schedule hot flashes"
+    - "daily stress management routine hot flashes"
+    - "bedtime routine night sweats"
+    - "workplace routine hot flash management"
+    - "consistent schedule reduce hot flashes"
+    - "room temperature control 65-68F"
+    - "cooling pillow gel layer"
+    - "moisture-wicking sleepwear"
+    - "bedroom ventilation fans"
+    - "layered clothing strategy"
+    - "sleep sanctuary setup"
+    
+   ---
