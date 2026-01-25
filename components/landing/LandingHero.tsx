@@ -1,13 +1,37 @@
 "use client"
 
-import { useEffect, useState, useCallback } from "react"
+import { useEffect, useState, useCallback, useRef } from "react"
 import { BookOpen, Target, Users } from "lucide-react"
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion"
 import { useReplayableInView } from "@/hooks/useReplayableInView"
-import { useIsMobile } from "@/hooks/useIsMobile"
 
 const VIDEO_POSTER_DATA =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='12' viewBox='0 0 16 12'%3E%3Crect fill='%23f9a8d4' width='16' height='12'/%3E%3C/svg%3E"
+
+// Breakpoint detection for tablet-specific optimizations
+function useDeviceType(): "mobile" | "tablet" | "desktop" {
+  const [deviceType, setDeviceType] = useState<"mobile" | "tablet" | "desktop">("desktop")
+
+  useEffect(() => {
+    const check = () => {
+      const width = window.innerWidth
+      const isCoarse = window.matchMedia("(pointer: coarse)").matches
+      
+      if (width < 768 || (isCoarse && width < 768)) {
+        setDeviceType("mobile")
+      } else if (width < 1024 || (isCoarse && width < 1280)) {
+        setDeviceType("tablet")
+      } else {
+        setDeviceType("desktop")
+      }
+    }
+    check()
+    window.addEventListener("resize", check, { passive: true })
+    return () => window.removeEventListener("resize", check)
+  }, [])
+
+  return deviceType
+}
 
 // Hero content variations - high-converting, outcome-based copy
 // highlight: use \n to separate rows; each row gets its own highlight sweep
@@ -39,6 +63,7 @@ const heroContent = [
 ]
 
 // Animated highlight per row with sweep effect - row by row
+// Using will-change for GPU acceleration
 function HighlightedRow({
   children,
   isActive,
@@ -62,13 +87,16 @@ function HighlightedRow({
           delay: prefersReducedMotion ? 0 : delay,
           ease: [0.4, 0, 0.2, 1],
         }}
-        style={{ zIndex: 0 }}
+        style={{ 
+          zIndex: 0,
+          willChange: isActive ? "transform" : "auto",
+        }}
       />
     </span>
   )
 }
 
-// Headline component with animation
+// Headline component with animation - optimized with will-change
 function AnimatedHeadline({ 
   content, 
   isActive,
@@ -82,8 +110,11 @@ function AnimatedHeadline({
 }) {
   return (
     <motion.h1 
-      className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight text-foreground px-2 sm:px-0"
-      style={{ textShadow: '0 2px 10px rgba(255, 255, 255, 0.5)' }}
+      className="text-3xl sm:text-4xl md:text-[2.75rem] lg:text-6xl font-extrabold leading-tight text-foreground px-2 sm:px-0"
+      style={{ 
+        textShadow: '0 2px 10px rgba(255, 255, 255, 0.5)',
+        willChange: "opacity, transform",
+      }}
       initial={{ opacity: 0, y: 20 }}
       animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
       exit={{ opacity: 0, y: -20 }}
@@ -122,6 +153,7 @@ function AnimatedSubheadline({
   return (
     <motion.p 
       className="text-base sm:text-lg md:text-xl lg:text-2xl text-muted-foreground leading-relaxed max-w-2xl mx-auto md:mx-0 px-2 sm:px-0"
+      style={{ willChange: "opacity, transform" }}
       initial={{ opacity: 0, y: 15 }}
       animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 15 }}
       exit={{ opacity: 0, y: -15 }}
@@ -136,7 +168,7 @@ function AnimatedSubheadline({
   )
 }
 
-// Progress dots indicator - Optimized for mobile
+// Progress dots indicator - Tablet/Touch optimized with proper touch targets (min 44px)
 function ProgressDots({ 
   total, 
   current, 
@@ -147,36 +179,104 @@ function ProgressDots({
   onSelect: (index: number) => void
 }) {
   return (
-    <div className="flex items-center gap-1.5 sm:gap-2 pt-3 sm:pt-4">
+    <div className="flex items-center gap-0 pt-3 sm:pt-4" role="tablist" aria-label="Hero content navigation">
       {Array.from({ length: total }).map((_, index) => (
         <button
           key={index}
           onClick={() => onSelect(index)}
-          className={`h-1 sm:h-1.5 rounded-full transition-all duration-500 ease-out touch-manipulation ${
-            index === current
-              ? "w-6 sm:w-8 bg-primary"
-              : "w-1 sm:w-1.5 bg-muted-foreground/30 hover:bg-muted-foreground/50 active:bg-muted-foreground/60"
-          }`}
+          role="tab"
+          aria-selected={index === current}
           aria-label={`Go to slide ${index + 1}`}
-        />
+          className="min-h-[44px] min-w-[44px] flex items-center justify-center touch-manipulation"
+        >
+          <span
+            className={`block rounded-full transition-all duration-500 ease-out ${
+              index === current
+                ? "w-7 sm:w-8 h-2 bg-primary"
+                : "w-2 h-2 bg-muted-foreground/30 hover:bg-muted-foreground/50 active:bg-muted-foreground/60"
+            }`}
+          />
+        </button>
       ))}
     </div>
+  )
+}
+
+// Video overlay text component - triggered after video ends
+function VideoOverlayText({
+  show,
+  prefersReducedMotion,
+}: {
+  show: boolean
+  prefersReducedMotion: boolean
+}) {
+  return (
+    <AnimatePresence>
+      {show && (
+        <motion.div
+          className="absolute inset-0 z-20 flex items-center justify-center bg-linear-to-t from-black/60 via-black/30 to-transparent"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: prefersReducedMotion ? 0.1 : 0.4 }}
+        >
+          <motion.span
+            className="relative text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white px-4 text-center"
+            style={{
+              willChange: "opacity, transform",
+            }}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{
+              duration: prefersReducedMotion ? 0.15 : 0.6,
+              delay: prefersReducedMotion ? 0 : 0.15,
+              ease: [0.16, 1, 0.3, 1],
+            }}
+          >
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute left-1/2 top-1/2 z-[-1] block aspect-9/1 w-[280%] sm:w-[320%] lg:w-[350%] -translate-x-1/2 -translate-y-1/2 select-none"
+              style={{
+                minWidth: "48rem",
+                filter: `
+                  drop-shadow(0 6px 28px rgba(0,0,0,0.82))
+                  drop-shadow(0 2px 38px #fee44088)
+                  drop-shadow(0px 15px 48px #3a86ff80)
+                  drop-shadow(0px -6px 34px #ff5ebf99)
+                `,
+              }}
+            >
+              24/7 here for you
+            </span>
+          </motion.span>
+        </motion.div>
+      )}
+    </AnimatePresence>
   )
 }
 
 export default function LandingHero() {
   const prefersReducedMotion = useReducedMotion()
   const { ref: sectionRef, isInView, resetKey } = useReplayableInView<HTMLElement>({ amount: 0.35 })
+  const deviceType = useDeviceType()
 
   return (
     <section
       ref={sectionRef}
-      className="relative h-screen flex items-center justify-center px-4 sm:px-6 pt-20 sm:pt-24 md:pt-28 pb-12 sm:pb-16 md:pb-20 overflow-hidden"
+      className="relative min-h-screen flex items-center justify-center px-4 sm:px-6 pt-20 sm:pt-24 md:pt-28 pb-12 sm:pb-16 md:pb-20 overflow-hidden"
+      style={{
+        // Safe area padding for iPads and notched devices
+        paddingLeft: "max(env(safe-area-inset-left, 0px), 1rem)",
+        paddingRight: "max(env(safe-area-inset-right, 0px), 1rem)",
+        paddingBottom: "max(env(safe-area-inset-bottom, 0px), 3rem)",
+      }}
     >
       <LandingHeroInner
         key={resetKey}
         isInView={isInView}
         prefersReducedMotion={!!prefersReducedMotion}
+        deviceType={deviceType}
       />
     </section>
   )
@@ -185,30 +285,88 @@ export default function LandingHero() {
 function LandingHeroInner({
   isInView,
   prefersReducedMotion,
+  deviceType,
 }: {
   isInView: boolean
   prefersReducedMotion: boolean
+  deviceType: "mobile" | "tablet" | "desktop"
 }) {
   const [currentIndex, setCurrentIndex] = useState(0)
-  const [isHovered, setIsHovered] = useState(false)
-  const isMobile = useIsMobile()
-  const videoPreload = isMobile ? "none" : "metadata"
+  const [isPaused, setIsPaused] = useState(false)
+  const [showVideoText, setShowVideoText] = useState(false)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Auto-rotate headlines every 4 seconds (pause on hover)
+  // Optimize video preload based on device type
+  const videoPreload = deviceType === "mobile" ? "none" : "metadata"
+  const isTouch = deviceType === "mobile" || deviceType === "tablet"
+
+  // Handle video ended event - show overlay text on every loop
+  const handleVideoEnded = useCallback(() => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current)
+      timerRef.current = null
+    }
+    setShowVideoText(true)
+
+    timerRef.current = setTimeout(() => {
+      timerRef.current = null
+      setShowVideoText(false)
+      if (videoRef.current) {
+        videoRef.current.currentTime = 0
+        videoRef.current.play().catch(() => {})
+      }
+    }, 3000)
+  }, [])
+
+  // Clean up timer on unmount to avoid setState on unmounted component
   useEffect(() => {
-    if (!isInView || isHovered || prefersReducedMotion) return
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current)
+    }
+  }, [])
+
+  // Setup video event listener with proper cleanup
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video) return
+
+    video.addEventListener("ended", handleVideoEnded)
+    
+    return () => {
+      video.removeEventListener("ended", handleVideoEnded)
+    }
+  }, [handleVideoEnded])
+
+  // Auto-rotate headlines - optimized interval management
+  // Pause on interaction for touch devices, hover for desktop
+  useEffect(() => {
+    if (!isInView || isPaused || prefersReducedMotion) return
 
     const interval = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % heroContent.length)
     }, 2400)
 
     return () => clearInterval(interval)
-  }, [isHovered, prefersReducedMotion, isInView])
+  }, [isPaused, prefersReducedMotion, isInView])
 
-  // Handle manual selection
+  // Handle manual selection with touch-optimized pause
   const handleSelect = useCallback((index: number) => {
     setCurrentIndex(index)
+    // Pause rotation briefly on selection for touch devices
+    setIsPaused(true)
+    const timer = setTimeout(() => setIsPaused(false), 4000)
+    return () => clearTimeout(timer)
   }, [])
+
+  // Hover handlers - only active on non-touch devices
+  const handleMouseEnter = useCallback(() => {
+    if (!isTouch) setIsPaused(true)
+  }, [isTouch])
+
+  const handleMouseLeave = useCallback(() => {
+    if (!isTouch) setIsPaused(false)
+  }, [isTouch])
 
   const currentContent = heroContent[currentIndex]
 
@@ -239,17 +397,17 @@ function LandingHeroInner({
         />
       </div>
 
-      {/* Main Content */}
+      {/* Main Content - Tablet-optimized grid */}
       <div className="relative z-10 max-w-7xl mx-auto w-full">
-        <div className="grid md:grid-cols-2 gap-8 sm:gap-10 md:gap-12 items-center">
+        <div className="grid md:grid-cols-2 gap-6 sm:gap-8 md:gap-10 lg:gap-12 items-center">
           {/* Left: Text Content */}
           <div 
             className="text-center md:text-left space-y-4 sm:space-y-5 md:space-y-6 relative z-20 w-full"
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
           >
-            {/* Rotating Headlines */}
-            <div className="text-left min-h-[100px] sm:min-h-[120px] md:min-h-[140px] lg:min-h-[180px]">
+            {/* Rotating Headlines - Tablet-optimized min-heights to prevent CLS */}
+            <div className="text-left min-h-[110px] sm:min-h-[130px] md:min-h-[160px] lg:min-h-[180px]">
               <AnimatePresence mode="wait">
                 <AnimatedHeadline 
                   key={`headline-${currentIndex}`}
@@ -261,8 +419,8 @@ function LandingHeroInner({
               </AnimatePresence>
             </div>
 
-            {/* Rotating Subheadlines */}
-            <div className=" text-left min-h-[50px] sm:min-h-[60px] md:min-h-[70px] lg:min-h-[80px]">
+            {/* Rotating Subheadlines - Tablet-optimized */}
+            <div className="text-left min-h-[60px] sm:min-h-[70px] md:min-h-[85px] lg:min-h-[90px]">
               <AnimatePresence mode="wait">
                 <AnimatedSubheadline 
                   key={`subheadline-${currentIndex}`}
@@ -340,17 +498,18 @@ function LandingHeroInner({
             </motion.div>
           </div>
 
-          {/* Right: Hero Video – Tablet with entrance animation */}
-          <div className="relative z-10 w-full flex justify-end">
-            <div className="w-full max-w-md sm:max-w-lg md:max-w-xl">
+          {/* Right: Hero Video – Tablet mockup with entrance animation */}
+          <div className="relative z-10 w-full flex justify-center md:justify-end">
+            <div className="w-full max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl">
               <motion.div
                 className="relative w-full overflow-hidden"
                 style={{
-                  borderRadius: "2.5rem",
-                  border: "8px solid #111827",
+                  borderRadius: deviceType === "tablet" ? "2rem" : "2.5rem",
+                  border: `${deviceType === "tablet" ? 6 : 8}px solid #111827`,
                   backgroundColor: "#111827",
                   boxShadow:
                     "0 28px 70px -22px rgba(0,0,0,0.35), 0 0 0 1px rgba(0,0,0,0.08)",
+                  willChange: "opacity, transform",
                 }}
                 initial={{ opacity: 0, y: 24, scale: 0.97 }}
                 animate={
@@ -368,7 +527,7 @@ function LandingHeroInner({
                 <div
                   className="pointer-events-none absolute inset-0 z-10"
                   style={{
-                    borderRadius: "2.5rem",
+                    borderRadius: deviceType === "tablet" ? "2rem" : "2.5rem",
                     boxShadow:
                       "inset 0 1px 0 rgba(255,255,255,0.16), inset 0 -1px 0 rgba(255,255,255,0.08)",
                   }}
@@ -404,15 +563,15 @@ function LandingHeroInner({
                   className="relative overflow-hidden"
                   style={{
                     aspectRatio: "4 / 3",
-                    minHeight: 260,
-                    borderRadius: "2.25rem",
+                    minHeight: deviceType === "tablet" ? 300 : 260,
+                    borderRadius: deviceType === "tablet" ? "1.75rem" : "2.25rem",
                     background: "linear-gradient(135deg, #f9a8d4 0%, #fde047 50%, #93c5fd 100%)",
                   }}
                 >
                   <video
+                    ref={videoRef}
                     className="relative z-0 h-full w-full object-contain"
                     autoPlay
-                    loop
                     muted
                     playsInline
                     preload={videoPreload}
@@ -422,9 +581,15 @@ function LandingHeroInner({
                     <source src="/test2.webm" type="video/webm" />
                   </video>
 
+                  {/* Video-triggered overlay text */}
+                  <VideoOverlayText 
+                    show={showVideoText} 
+                    prefersReducedMotion={prefersReducedMotion} 
+                  />
+
                   {/* Home indicator (bottom center) */}
                   <div
-                    className="pointer-events-none absolute left-1/2 z-10 -translate-x-1/2 rounded-full"
+                    className="pointer-events-none absolute left-1/2 z-30 -translate-x-1/2 rounded-full"
                     style={{
                       bottom: "0.75rem",
                       width: 160,
