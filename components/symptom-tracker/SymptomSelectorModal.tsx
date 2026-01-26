@@ -40,20 +40,20 @@ export default function SymptomSelectorModal({
       style={{ background: 'linear-gradient(to bottom, #DBEAFE, #FEF3C7, #FCE7F3)' }}
     >
       <div
-        className="bg-card backdrop-blur-lg rounded-2xl w-full max-w-2xl mx-4 p-6 shadow-xl border border-border/30 cursor-default max-h-[80vh] overflow-y-auto"
+        className="bg-card backdrop-blur-lg rounded-2xl w-full max-w-3xl mx-4 p-4 sm:p-6 shadow-xl border border-border/30 cursor-default max-h-[85vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-semibold text-card-foreground">
+        <div className="flex justify-between items-center mb-4 sm:mb-5">
+          <h2 className="text-lg sm:text-xl font-semibold text-card-foreground">
             Select a Symptom
           </h2>
           <button
             onClick={onClose}
-            className="text-muted-foreground hover:text-card-foreground transition-colors cursor-pointer"
+            className="text-muted-foreground hover:text-card-foreground transition-colors cursor-pointer p-1"
             type="button"
           >
-            <X className="h-6 w-6" />
+            <X className="h-5 w-5 sm:h-6 sm:w-6" />
           </button>
         </div>
 
@@ -66,7 +66,7 @@ export default function SymptomSelectorModal({
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
             {filteredSymptoms.map((symptom) => {
               // Map symptom names to icon names (prioritize name mapping for unique icons)
               const iconMap: Record<string, string> = {
@@ -100,14 +100,14 @@ export default function SymptomSelectorModal({
                 <button
                   key={symptom.id}
                   onClick={() => handleSymptomClick(symptom)}
-                  className="bg-card/40 backdrop-blur-md rounded-xl p-4 
-                             flex flex-row items-center gap-3
+                  className="bg-card/40 backdrop-blur-md rounded-xl p-3 
+                             flex flex-col items-center justify-center gap-2
                              border border-border/30 transition-all
                              hover:bg-card/60 hover:-translate-y-0.5 hover:shadow-lg
-                             active:scale-95 cursor-pointer text-left"
+                             active:scale-95 cursor-pointer text-center min-h-[90px]"
                 >
-                  <SymptomIcon className="h-6 w-6 text-card-foreground shrink-0" />
-                  <span className="text-card-foreground font-medium flex-1">
+                  <SymptomIcon className="h-5 w-5 text-card-foreground shrink-0" />
+                  <span className="text-card-foreground font-medium text-xs leading-tight line-clamp-2 wrap-break-word w-full">
                     {symptom.name}
                   </span>
                 </button>

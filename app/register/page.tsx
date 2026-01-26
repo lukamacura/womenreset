@@ -18,7 +18,6 @@ import {
   Bone,
   ArrowRight,
   ArrowLeft,
-  Mail,
   CheckCircle2,
   Loader2,
   Eye,
@@ -43,9 +42,7 @@ import {
   UserCircle,
   Check,
   Sparkles,
-  Info,
   Users,
-  X,
 } from "lucide-react";
 import {
   SYMPTOM_LABELS,
@@ -197,7 +194,7 @@ export default function RegisterPage() {
   const [phase, setPhase] = useState<Phase>("quiz");
   const [stepIndex, setStepIndex] = useState(0);
   const currentStep = STEPS[stepIndex];
-  const [browserInfo, setBrowserInfo] = useState<ReturnType<typeof detectBrowser> | null>(null);
+  const [, setBrowserInfo] = useState<ReturnType<typeof detectBrowser> | null>(null);
 
 
   // Detect browser on mount
@@ -974,7 +971,7 @@ export default function RegisterPage() {
                           key={option.id}
                           type="button"
                           onClick={() => toggleProblem(option.id)}
-                          className={`p-2 sm:p-3 rounded-lg border-2 transition-all duration-200 text-left group cursor-pointer ${
+                          className={`px-2  sm:px-3 rounded-lg border-2 transition-all duration-200 text-left group cursor-pointer ${
                             isSelected
                               ? "border-primary bg-primary/10 shadow-md shadow-primary/20"
                               : "border-foreground/15 hover:border-primary/50 hover:bg-foreground/5"

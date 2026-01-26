@@ -174,7 +174,7 @@ const Navbar: React.FC<NavbarProps> = ({ isAuthenticated }) => {
                 className="btn-primary px-4 py-3 text-md shadow-md text-center"
                 onClick={() => setMobileMenuOpen(false)}
               >
-                Dashboard
+                My overview
               </Link>
             ) : (
               <>

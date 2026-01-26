@@ -114,6 +114,11 @@ function AnimatedHeadline({
       style={{ 
         textShadow: '0 2px 10px rgba(255, 255, 255, 0.5)',
         willChange: "opacity, transform",
+        width: '100%',
+        maxWidth: '100%',
+        minWidth: '0',
+        wordWrap: 'break-word',
+        overflowWrap: 'break-word',
       }}
       initial={{ opacity: 0, y: 20 }}
       animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
@@ -153,7 +158,14 @@ function AnimatedSubheadline({
   return (
     <motion.p 
       className="text-base sm:text-lg md:text-xl lg:text-2xl text-muted-foreground leading-relaxed max-w-2xl mx-auto md:mx-0 px-2 sm:px-0"
-      style={{ willChange: "opacity, transform" }}
+      style={{ 
+        willChange: "opacity, transform",
+        width: '100%',
+        maxWidth: '100%',
+        minWidth: '0',
+        wordWrap: 'break-word',
+        overflowWrap: 'break-word',
+      }}
       initial={{ opacity: 0, y: 15 }}
       animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 15 }}
       exit={{ opacity: 0, y: -15 }}
@@ -214,7 +226,7 @@ function VideoOverlayText({
     <AnimatePresence>
       {show && (
         <motion.div
-          className="absolute inset-0 z-20 flex items-center justify-center bg-linear-to-t from-black/60 via-black/30 to-transparent"
+          className="absolute inset-0 z-20 flex items-center justify-center bg-linear-to-t from-black/60 via-black/30 to-transparent overflow-hidden"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -236,9 +248,11 @@ function VideoOverlayText({
           >
             <span
               aria-hidden="true"
-              className="pointer-events-none absolute left-1/2 top-1/2 z-[-1] block aspect-9/1 w-[280%] sm:w-[320%] lg:w-[350%] -translate-x-1/2 -translate-y-1/2 select-none"
+              className="pointer-events-none absolute left-1/2 top-1/2 z-[-1] block aspect-9/1 -translate-x-1/2 -translate-y-1/2 select-none"
               style={{
-                minWidth: "48rem",
+                width: "280%",
+                minWidth: "0",
+                maxWidth: "100vw",
                 filter: `
                   drop-shadow(0 6px 28px rgba(0,0,0,0.82))
                   drop-shadow(0 2px 38px #fee44088)
@@ -264,11 +278,15 @@ export default function LandingHero() {
   return (
     <section
       ref={sectionRef}
-      className="relative min-h-screen flex items-center justify-center px-4 sm:px-6 pt-20 sm:pt-24 md:pt-28 pb-12 sm:pb-16 md:pb-20 overflow-hidden"
+      className="relative min-h-screen flex items-center justify-center pt-20 sm:pt-24 md:pt-28 pb-12 sm:pb-16 md:pb-20 overflow-x-hidden"
       style={{
-        // Safe area padding for iPads and notched devices
-        paddingLeft: "max(env(safe-area-inset-left, 0px), 1rem)",
-        paddingRight: "max(env(safe-area-inset-right, 0px), 1rem)",
+        width: '100%',
+        maxWidth: '100vw',
+        minWidth: '0',
+        boxSizing: 'border-box',
+        // Safe area padding for iPads and notched devices - responsive padding that scales down on very small screens
+        paddingLeft: "max(env(safe-area-inset-left, 0px), clamp(0.75rem, 2vw, 1.5rem))",
+        paddingRight: "max(env(safe-area-inset-right, 0px), clamp(0.75rem, 2vw, 1.5rem))",
         paddingBottom: "max(env(safe-area-inset-bottom, 0px), 3rem)",
       }}
     >
@@ -398,11 +416,12 @@ function LandingHeroInner({
       </div>
 
       {/* Main Content - Tablet-optimized grid */}
-      <div className="relative z-10 max-w-7xl mx-auto w-full">
-        <div className="grid md:grid-cols-2 gap-6 sm:gap-8 md:gap-10 lg:gap-12 items-center">
+      <div className="relative z-10 w-full" style={{ width: '100%', maxWidth: 'min(100vw, 80rem)', minWidth: '0', marginLeft: 'auto', marginRight: 'auto', paddingLeft: '0', paddingRight: '0' }}>
+        <div className="grid md:grid-cols-2 gap-6 sm:gap-8 md:gap-10 lg:gap-12 items-center w-full" style={{ width: '100%', maxWidth: '100%', minWidth: '0', boxSizing: 'border-box' }}>
           {/* Left: Text Content */}
           <div 
             className="text-center md:text-left space-y-4 sm:space-y-5 md:space-y-6 relative z-20 w-full"
+            style={{ width: '100%', minWidth: '0', maxWidth: '100%' }}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
           >
@@ -499,17 +518,21 @@ function LandingHeroInner({
           </div>
 
           {/* Right: Hero Video – Tablet mockup with entrance animation */}
-          <div className="relative z-10 w-full flex justify-center md:justify-end">
-            <div className="w-full max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl">
+          <div className="relative z-10 w-full flex justify-center md:justify-end" style={{ width: '100%', maxWidth: '100%', minWidth: '0' }}>
+            <div className="w-full" style={{ width: '100%', maxWidth: '100%', minWidth: '0' }}>
               <motion.div
                 className="relative w-full overflow-hidden"
                 style={{
+                  width: '100%',
+                  maxWidth: '100%',
+                  minWidth: '0',
                   borderRadius: deviceType === "tablet" ? "2rem" : "2.5rem",
                   border: `${deviceType === "tablet" ? 6 : 8}px solid #111827`,
                   backgroundColor: "#111827",
                   boxShadow:
                     "0 28px 70px -22px rgba(0,0,0,0.35), 0 0 0 1px rgba(0,0,0,0.08)",
                   willChange: "opacity, transform",
+                  boxSizing: 'border-box',
                 }}
                 initial={{ opacity: 0, y: 24, scale: 0.97 }}
                 animate={
