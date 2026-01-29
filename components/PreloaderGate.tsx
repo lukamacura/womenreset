@@ -3,14 +3,18 @@
 import { useEffect, useState } from "react";
 import Preloader from "@/components/Preloader";
 
-const MIN_DISPLAY_MS = 600;
-const MAX_WAIT_MS = 2500;
+const MIN_DISPLAY_MS = 300; // Reduced from 600ms for faster LCP
+const MAX_WAIT_MS = 1200; // Reduced from 2500ms - faster fallback
 
 /**
  * Wraps Preloader and controls visibility based on page load.
- * - Hides after window.load (or immediately if already complete)
+ * - Hides after DOMContentLoaded (not full load) for faster LCP
  * - Ensures preloader is visible at least MIN_DISPLAY_MS so the entry animation plays
  * - Fallback: always hide after MAX_WAIT_MS
+ * 
+ * LCP Optimization: Using DOMContentLoaded instead of load event
+ * because load waits for ALL resources (images, fonts, etc.) which
+ * delays LCP significantly. DOMContentLoaded fires when HTML is parsed.
  */
 export default function PreloaderGate() {
   const [isLoading, setIsLoading] = useState(true);
@@ -33,20 +37,24 @@ export default function PreloaderGate() {
       }
     };
 
-    if (typeof document !== "undefined" && document.readyState === "complete") {
+    // Check if DOM is already ready (interactive or complete)
+    if (typeof document !== "undefined" && 
+        (document.readyState === "interactive" || document.readyState === "complete")) {
       hide();
-    } else if (typeof window !== "undefined") {
-      window.addEventListener("load", hide);
+    } else if (typeof document !== "undefined") {
+      // Use DOMContentLoaded instead of load for faster LCP
+      document.addEventListener("DOMContentLoaded", hide);
     }
 
+    // Shorter fallback for faster LCP
     const fallback = setTimeout(hide, MAX_WAIT_MS);
 
     return () => {
       mounted = false;
       if (hideTimeout) clearTimeout(hideTimeout);
       clearTimeout(fallback);
-      if (typeof window !== "undefined") {
-        window.removeEventListener("load", hide);
+      if (typeof document !== "undefined") {
+        document.removeEventListener("DOMContentLoaded", hide);
       }
     };
   }, []);

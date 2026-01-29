@@ -21,136 +21,121 @@ motivation_nudge: "💖 You don’t need perfection — just rhythm. Every peace
 
 follow_up_question: "Would you like to learn relaxation techniques like NSDR for when your mind won't stop, or explore how nutrition choices support evening calm?"
 follow_up_links: 
-  -persona: "menopause"
-  topic: "Sleep Disturbances in Menopause"
-  subtopic: "Solutions – Non-Sleep Deep Rest (NSDR)"
-  label: "learn about NSDR - Non-Sleep Deep Rest"
-  -persona: "menopause"
-  topic: "Sleep Disturbances in Menopause"
-  subtopic: "Solutions – Nutrition & Supplements for Sleep"
-  label: "Nutrition & Supplements for Sleep"
+  - persona: "menopause"
+    topic: "Sleep Disturbances in Menopause"
+    subtopic: "Solutions – Non-Sleep Deep Rest (NSDR)"
+    label: "learn about NSDR - Non-Sleep Deep Rest"
+  - persona: "menopause"
+    topic: "Sleep Disturbances in Menopause"
+    subtopic: "Solutions – Nutrition & Supplements for Sleep"
+    label: "Nutrition & Supplements for Sleep"
 
 intent_patterns:
-  # Core problem - racing mind
+- "exhausted but mind won't stop bedtime menopause"
+- "racing thoughts at bedtime perimenopause"
+- "can't shut my brain off at night menopause"
+- "tired but can't sleep mind racing menopause"
+- "why won't my mind stop at night perimenopause"
+- "My body is exhausted but I can't turn my brain off to sleep"
+- "Why does my mind race when I'm trying to sleep?"
+- "I lie in bed exhausted with a million thoughts running through my head"
+- "How do I stop my mind from racing at bedtime during menopause?"
+- "Why does my body feel so wired when I'm trying to sleep?"
+- "I feel like I'm in constant alert mode at night"
+- "How do I get my nervous system to calm down for sleep?"
+- "What should my bedtime routine look like during menopause?"
+- "How do I create a routine that actually helps me sleep?"
+- "What's a good evening routine for menopause sleep problems?"
+- "I need a bedtime routine that works for menopause insomnia"
+- "Can a bedtime routine really help with menopause sleep issues?"
+- "Can I train my brain to know it's bedtime?"
+- "How does my brain learn to relax for sleep?"
+- "What signals help my brain prepare for sleep during menopause?"
+- "Does my brain need predictability for better sleep?"
+- "How do I teach my body it's time to sleep?"
+- "how to wind down for sleep menopause"
+- "gradual bedtime routine perimenopause"
+- "gentle landing before bed menopause"
+- "transition to sleep routine menopause"
+- "slow down before bedtime perimenopause sleep"
+- "How do I create a gentle transition to sleep?"
+- "What does a gradual wind-down for sleep look like?"
+- "What grounding activities help with menopause sleep?"
+- "What should I do right before bed to help me sleep?"
+- "Are there specific calming activities for menopause insomnia?"
+- "Should I stretch, write, or breathe before bed?"
+- "What counts as a grounding bedtime activity?"
+- Why won't my mind stop racing at bedtime during menopause?
+- Why do I feel wired when I'm exhausted in perimenopause?
+- Why is my nervous system stuck in alert mode at night?
+- Why does my brain need a predictable bedtime routine?
+- Why is cortisol high at night during menopause?
+- How do I stop my mind from racing at bedtime?
+- How do I create a bedtime routine for menopause sleep?
+- How do I calm my nervous system before bed?
+- How do I signal my body it's time to rest?
+- How do I make a gentle transition to sleep?
+- How do I lower cortisol at night during menopause?
+- How do I train my brain to relax for sleep?
+- What should my bedtime routine look like during menopause?
+- What grounding activities help with sleep?
+- What signals tell my body it's time to rest?
+- What is a gentle landing approach to bedtime?
+- What bedtime habits help with menopause insomnia?
+- Can a bedtime routine really help menopause sleep?
+
+keywords:
+  - "bedtime routine for menopause sleep"
+  - "evening routine to help sleep perimenopause"
+  - "best bedtime habits menopause insomnia"
+  - "how to create sleep routine menopause"
+  - "nighttime routine for better sleep perimenopause"
+  - "teaching brain to relax at bedtime perimenopause"
+  - "brain signals for sleep menopause"
+  - "how brain learns sleep routine menopause"
   - "Can't shut my brain off at bedtime"
   - "Racing thoughts keep me awake"
   - "Mind activates when I lie down"
   - "Why do I start overthinking at night?"
-  
-  # Can't relax/wind down
   - "Can't relax at night even though exhausted"
   - "Wired but tired at bedtime"
   - "Body tired but mind awake"
   - "Stuck in alert mode at night"
-  
-  # Bedtime anxiety
   - "Feel anxious when I lie down"
   - "Bedtime anxiety keeps me awake"
   - "Dread going to bed"
   - "Scared I won't be able to sleep"
   - "Worried about not sleeping"
-  
-  # Building routines - how to
   - "What should I do before bed?"
   - "How do I build a bedtime routine?"
-  - "Give me a wind-down routine for menopause"
   - "What's a realistic bedtime routine?"
-  - "Simple 30-minute routine ideas"
-  
-  # Routine effectiveness questions
-  - "Do I need to be strict about routine?"
-  - "How long before routine helps?"
-  - "Can routine really help insomnia?"
-  
-  # Specific activities - reading
-  - "Should I read before bed?"
-  - "Is reading good for sleep?"
-  - "What kind of books before bed?"
-  - "Reading makes me more awake help"
-  
-  # Specific activities - journaling
-  - "Does journaling help sleep?"
-  - "What should I write before bed?"
-  - "How do I do a brain dump?"
-  - "Worry journal technique"
-  
-  # What to avoid
-  - "What should I avoid before bed?"
-  - "Can I watch TV before sleep?"
-  - "Should I avoid work emails at night?"
-  - "Is reading news bad at bedtime?"
-  
-  # Timing questions
   - "When should I start winding down?"
   - "How long before bed start routine?"
-  - "Is one hour enough?"
-  
-  # Day stress carrying over
-  - "Can't stop thinking about work at night"
-  - "How to let go of the day?"
-  - "Day's stress keeps me awake"
-  - "Stop replaying conversations"
-  
-  # Worry management
-  - "How do I stop worrying at night?"
-  - "Can't stop planning tomorrow"
-  - "Anxiety about tomorrow keeps me up"
-  - "Catastrophizing at night help"
-  
-  # Practical barriers
-  - "Too exhausted to do a routine"
-  - "Don't have time for bedtime routine"
-  - "Routine feels like another chore"
-  - "Kids interrupt my wind-down time"
-
-keywords:
-  - "can't shut brain off bedtime"
-  - "racing thoughts at night"
   - "mind won't stop at bedtime"
   - "can't relax at night menopause"
   - "bedtime routine menopause"
   - "wind-down routine sleep"
   - "racing mind at bedtime"
   - "overthinking at night"
-  - "can't wind down"
+  - "can't wind down at bedtime"
   - "wired but tired bedtime"
   - "body tired mind awake"
   - "stuck in alert mode night"
-  - "nervous system won't calm"
+  - "nervous system won't calm at bedtime"
   - "bedtime anxiety menopause"
   - "anxiety when lie down"
   - "dread going to bed"
   - "scared won't sleep"
   - "sleep anxiety menopause"
   - "pre-bed routine menopause"
-  - "evening relaxation routine"
+  - "evening relaxation routine for sleep"
   - "calming bedtime activities"
-  - "30-minute wind-down"
+  - "30-minute bed wind-down"
   - "build bedtime routine"
   - "reading before bed sleep"
   - "journaling for sleep"
-  - "brain dump before bed"
-  - "worry journal technique"
   - "gratitude journal bedtime"
   - "meditation before bed"
   - "breathing exercises bedtime"
-  - "what to avoid before bed"
-  - "work emails night bad"
-  - "news before bed anxiety"
-  - "when start wind down"
-  - "how long before bed routine"
-  - "can't stop thinking work night"
-  - "day stress keeps awake"
-  - "let go of day technique"
-  - "stop worrying at night"
-  - "future anxiety bedtime"
-  - "catastrophizing night help"
-  - "too tired for routine"
-  - "no time bedtime routine"
-  - "exhausted can't wind down"
-  - "too wired to relax"
-  - "thoughts spiral when lie down"
-  - "anxiety hits at bedtime"
-  - "performance anxiety sleep"
-  - "worried about not sleeping"
+ 
 ---

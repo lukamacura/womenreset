@@ -24,22 +24,21 @@ habit_strategy: |
 
 follow_up_question: "Would you like to learn a simple morning routine to calm inflammation early or a workday flow (meals, movement, stress breaks) to prevent flare-ups?"
 follow_up_links: 
-  -persona: "menopause"
-  topic: "Inflammation & Joint Pain in Menopause"
-  subtopic: "Quick Relief Toolkit — 3-Step Morning Routine"
-  label: "Quick Relief Toolkit — 3-Step Morning Routine"
+  - persona: "menopause"
+    topic: "Inflammation & Joint Pain in Menopause"
+    subtopic: "Quick Relief Toolkit — 3-Step Morning Routine"
+    label: "Quick Relief Toolkit — 3-Step Morning Routine"
 
-  -persona: "menopause"
-  topic: "Inflammation & Joint Pain in Menopause"
-  subtopic: "Workday Flow — Desk-Friendly Anti-Inflammatory Habits"
-  label: "How do I stay active and reduce stiffness during work hours?"
+  - persona: "menopause"
+    topic: "Inflammation & Joint Pain in Menopause"
+    subtopic: "Workday Flow — Desk-Friendly Anti-Inflammatory Habits"
+    label: "How do I stay active and reduce stiffness during work hours?"
 intent_patterns:
   - "What should I do throughout the day to help my joints?"
   - "How do I structure my day to reduce joint pain?"
   - "What's a good daily routine for joint pain?"
   - "How can I stay comfortable all day long?"
   - "What should I eat and when to help with stiffness?"
-  - "How do I plan my whole day around feeling better?"
   - "What daily habits will reduce my joint pain?"
   - "How can I organize my day to prevent aching?"
   - "What's the best schedule for managing joint pain?"
@@ -50,5 +49,6 @@ intent_patterns:
 keywords:
     - "anti-inflammatory daily plan for joint pain"
     - "full day routine for joint pain"
+   
   
 ---

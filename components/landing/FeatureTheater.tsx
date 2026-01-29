@@ -131,7 +131,7 @@ function FeatureTheaterInner({
             />
           </h2>
           <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">
-            Ask, track, and understand—all in one place.
+            Ask, track, and understand. All in one place.
           </p>
         </motion.div>
 

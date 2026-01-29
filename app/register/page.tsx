@@ -952,7 +952,7 @@ export default function RegisterPage() {
 
           {/* Question Content - Scrollable area */}
           <div className="flex-1 flex flex-col min-h-0 overflow-hidden mb-2">
-            <div className="rounded-xl sm:rounded-2xl border border-foreground/10 bg-card backdrop-blur-sm p-3 mx-2 sm:p-4 space-y-2 sm:space-y-3 flex-1 shadow-lg shadow-primary/5 overflow-y-auto flex flex-col">
+            <div className="rounded-xl sm:rounded-2xl border border-foreground/10 bg-card backdrop-blur-sm p-3 mx-2 my-4 sm:p-4 space-y-2 sm:space-y-3 flex-1 shadow-lg shadow-primary/5 overflow-y-auto flex flex-col">
               {/* Q1: Top Problems */}
               {currentStep === "q1_problems" && (
                 <div className="flex-1 flex flex-col min-h-0 space-y-2 sm:space-y-3 animate-in fade-in slide-in-from-right-4 duration-300">
@@ -1256,7 +1256,7 @@ export default function RegisterPage() {
               type="button"
               onClick={goNext}
               disabled={!stepIsAnswered(currentStep)}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:brightness-110 hover:shadow-lg hover:shadow-primary/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:brightness-100 disabled:hover:shadow-none font-semibold text-xs sm:text-sm"
+              className="flex  items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:brightness-110 hover:shadow-lg hover:shadow-primary/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:brightness-100 disabled:hover:shadow-none font-semibold text-xs sm:text-sm"
             >
               {stepIndex === STEPS.length - 1 ? "Continue" : "Next"}
               <ArrowRight className="w-3.5 h-3.5" />

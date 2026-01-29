@@ -77,20 +77,25 @@ export default async function RootLayout({
     }
   );
 
-  // Check for valid user - verify session is actually valid
+  // TTFB Optimization: Use getSession() instead of getUser()
+  // getSession() is faster - it reads from cookies without server validation
+  // ConditionalNavbar will verify with getUser() on the client-side
   const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
 
-  // Only pass true if we have a valid user (no error and user exists)
-  const isAuthenticated = !authError && !!user;
+  // Pass initial auth state based on session existence (fast check)
+  // Client-side will verify actual validity via getUser()
+  const isAuthenticated = !!session;
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 
   return (
     <html lang="en" className={`${satoshi.variable} ${dancingScript.variable} ${poppins.variable} ${lora.variable}`}>
       <head>
+        {/* LCP: preload critical fonts for hero text */}
+        <link rel="preload" href="/fonts/Satoshi-Bold.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
+        <link rel="preload" href="/fonts/Satoshi-Regular.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
         {/* LCP: preload navbar logo (critical above-the-fold image) */}
         <link rel="preload" href="/lisa_profile.webp" as="image" />
         {/* Preconnect to Supabase for faster API/auth on first request */}

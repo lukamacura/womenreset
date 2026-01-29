@@ -1,176 +1,135 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect } from "react"
 import { motion, useReducedMotion, AnimatePresence } from "framer-motion"
 import { MessageCircle } from "lucide-react"
 import { useReplayableInView } from "@/hooks/useReplayableInView"
 import { HighlightedTextByRows } from "@/components/landing/HighlightedTextByRows"
 
-// The overwhelming questions women face - limited to 6
+// The overwhelming questions women face - emotional, relatable, urgent
 const questions = [
-  "Why am I suddenly gaining weight when I'm eating the same and exercising - what is wrong with my body?",
-  "Why can't I sleep through the night anymore and will I ever sleep normally again?",
-  "Why do I wake up completely drenched in sweat every night and how do I make it stop?",
-  "Why does sex suddenly hurt so bad and is this permanent?",
-  "Why do I suddenly have to pee all the time?",
-  "Why do I look 6 months pregnant every day when I'm not eating differently?",
+  {
+    text: "Why am I suddenly gaining weight when I'm eating the same?",
+    emphasis: "What is wrong with my body?"
+  },
+  {
+    text: "Why can't I sleep through the night anymore?",
+    emphasis: "Will I ever feel rested again?"
+  },
+  {
+    text: "Why do I wake up completely drenched in sweat?",
+    emphasis: "How do I make it stop?"
+  },
+  {
+    text: "Why does sex suddenly hurt so much?",
+    emphasis: "Is this permanent?"
+  },
+  {
+    text: "Why do I feel so anxious all the time?",
+    emphasis: "Am I losing my mind?"
+  },
+  {
+    text: "Why does no one talk about this?",
+    emphasis: "Why do I feel so alone?"
+  },
 ]
 
-// Mobile positions - arranged in a loose circle around center, leaving space for Lisa
-// Positions use viewport-safe values (30-70% horizontal range)
-const cardPositionsMobile = [
-  { left: 22, top: 20, rotate: -4, floatDelay: 0 },    // top-left
-  { left: 78, top: 18, rotate: 3, floatDelay: 0.5 },   // top-right
-  { left: 15, top: 50, rotate: 2, floatDelay: 1 },     // mid-left
-  { left: 85, top: 52, rotate: -3, floatDelay: 1.5 },  // mid-right
-  { left: 25, top: 82, rotate: 3, floatDelay: 0.3 },   // bottom-left
-  { left: 75, top: 85, rotate: -2, floatDelay: 0.8 },  // bottom-right
-]
+// Fast spring config
+const fastSpring = {
+  type: "spring" as const,
+  stiffness: 300,
+  damping: 30,
+}
 
-// Desktop positions - wider spread with 3 columns
-const cardPositionsDesktop = [
-  { left: 12, top: 28, rotate: -4, floatDelay: 0 },    // left-top
-  { left: 50, top: 18, rotate: 2, floatDelay: 0.6 },   // center-top
-  { left: 88, top: 26, rotate: -3, floatDelay: 0.3 },  // right-top
-  { left: 15, top: 72, rotate: 3, floatDelay: 0.9 },   // left-bottom
-  { left: 50, top: 82, rotate: -2, floatDelay: 1.2 },  // center-bottom
-  { left: 85, top: 74, rotate: 4, floatDelay: 0.4 },   // right-bottom
-]
-
-type AnimationPhase = 'intro' | 'storm' | 'peak' | 'lisa-appears' | 'resolution' | 'calm'
-
-const VIDEO_POSTER =
-  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='12' viewBox='0 0 16 12'%3E%3Crect fill='%23f9a8d4' width='16' height='12'/%3E%3C/svg%3E"
-
-// Lisa Video Component – preload="none" on mobile to reduce initial load
-function LisaVideo({ preload = "metadata" }: { preload?: "metadata" | "none" }) {
+// Single Question Display - fast smooth crossfade
+function QuestionDisplay({
+  question,
+  prefersReducedMotion,
+}: {
+  question: typeof questions[0]
+  prefersReducedMotion: boolean
+}) {
   return (
-    <div className="relative">
-      {/* Glow effect behind video */}
-      <div className="absolute inset-0 rounded-2xl bg-linear-to-br from-pink-400/30 to-purple-400/30 blur-2xl scale-125" />
-      
-      {/* Video container - reduced so phase text above stays visible */}
-      <div className="relative w-[130px] h-[130px] sm:w-[200px] sm:h-[200px] md:w-[240px] md:h-[240px] lg:w-[260px] lg:h-[260px] rounded-2xl overflow-hidden">
-        <video
-          autoPlay
-          loop
-          muted
-          playsInline
-          preload={preload}
-          poster={VIDEO_POSTER}
-          className="w-full h-full object-cover"
+    <motion.div
+      className="absolute inset-0 flex flex-col items-center justify-center text-center px-4"
+      initial={{ opacity: 0, scale: 0.97 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.98 }}
+      transition={{
+        duration: prefersReducedMotion ? 0.15 : 0.35,
+        ease: [0.4, 0, 0.2, 1],
+      }}
+    >
+      {/* Question bubble */}
+      <div className="relative max-w-lg w-full">
+        {/* Subtle glow behind */}
+        <div className="absolute inset-0 bg-pink-200/30 rounded-3xl blur-xl scale-105" />
+        
+        <motion.div 
+          className="relative px-6 py-5 sm:px-8 sm:py-6 bg-card backdrop-blur-sm rounded-3xl shadow-lg shadow-pink-200/20 border border-pink-100/60"
+          initial={{ y: 8 }}
+          animate={{ y: 0 }}
+          transition={fastSpring}
         >
-          <source src="/test2.webm" type="video/webm" />
-        </video>
+          <MessageCircle className="w-5 h-5 sm:w-6 sm:h-6 text-pink-400 mx-auto mb-3" />
+          
+          {/* Main question */}
+          <p className="text-lg sm:text-xl md:text-2xl font-medium text-foreground leading-relaxed mb-2">
+            {question.text}
+          </p>
+          
+          {/* Emotional emphasis */}
+          <motion.p
+            className="text-base sm:text-lg md:text-xl font-semibold text-rose-500 italic"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ 
+              delay: prefersReducedMotion ? 0 : 0.25, 
+              duration: 0.3,
+            }}
+          >
+            {question.emphasis}
+          </motion.p>
+        </motion.div>
       </div>
-    </div>
+    </motion.div>
   )
 }
 
-// Floating animation keyframes for subtle bobbing effect
-const floatVariants = {
-  float: (floatDelay: number) => ({
-    y: [0, -6, 0],
-    rotate: [0, 1, 0],
-    transition: {
-      duration: 3,
-      ease: "easeInOut" as const,
-      repeat: Infinity,
-      delay: floatDelay,
-    },
-  }),
-}
-
-// Individual Question Card Component with spring animations
-function QuestionCard({
-  question,
-  index,
-  phase,
-  position,
-  prefersReducedMotion,
+// Progress dots
+function ProgressDots({
+  total,
+  current,
 }: {
-  question: string
-  index: number
-  phase: AnimationPhase
-  position: typeof cardPositionsMobile[0]
-  prefersReducedMotion: boolean | null
+  total: number
+  current: number
 }) {
-  const isVisible = phase !== 'intro' && phase !== 'calm'
-  const isFading = phase === 'lisa-appears' || phase === 'resolution'
-
-  // Spring config for natural motion
-  const springConfig = {
-    type: "spring" as const,
-    stiffness: 100,
-    damping: 15,
-    mass: 1,
-  }
-
   return (
-    <AnimatePresence mode="popLayout">
-      {isVisible && (
+    <div className="flex items-center justify-center gap-2 mt-6">
+      {Array.from({ length: total }).map((_, i) => (
         <motion.div
-          key={`card-${index}`}
-          className="absolute pointer-events-none"
-          style={{
-            left: `${position.left}%`,
-            top: `${position.top}%`,
-            x: "-50%",
-            y: "-50%",
-            zIndex: 10 - index,
-          }}
-          initial={{
-            opacity: 0,
-            scale: 0.3,
-            rotate: position.rotate + 10,
-          }}
+          key={i}
+          className="h-1.5 rounded-full bg-pink-200"
           animate={{
-            opacity: isFading ? 0 : 1,
-            scale: isFading ? 0.9 : 1,
-            rotate: position.rotate,
+            width: i === current ? 24 : 6,
+            backgroundColor: i === current ? "rgb(244 63 94)" : "rgb(252 231 243)",
           }}
-          exit={{
-            opacity: 0,
-            scale: 0.5,
-            rotate: position.rotate - 5,
-          }}
-          transition={{
-            ...springConfig,
-            delay: phase === 'storm' ? index * 0.15 : 0,
-            opacity: { duration: 0.4, ease: "easeOut" },
-          }}
-        >
-          {/* Floating wrapper for subtle animation */}
-          <motion.div
-            variants={floatVariants}
-            animate={!prefersReducedMotion && !isFading ? "float" : undefined}
-            custom={position.floatDelay}
-          >
-            {/* Card styled like chat bubble - wider for longer questions */}
-            <div className="px-3 py-2 sm:px-4 sm:py-2.5 md:px-5 md:py-3 bg-card backdrop-blur-sm rounded-2xl shadow-lg shadow-pink-200/40 border border-pink-100 max-w-[160px] sm:max-w-[220px] md:max-w-[280px]">
-              <div className="flex items-start gap-1.5 sm:gap-2">
-                <MessageCircle className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-pink-400 shrink-0 mt-0.5" />
-                <p className="text-[10px] sm:text-[11px] md:text-xs font-medium text-gray-700 leading-snug">
-                  {question}
-                </p>
-              </div>
-            </div>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+          transition={{ duration: 0.3, ease: "easeOut" }}
+        />
+      ))}
+    </div>
   )
 }
 
 export default function QuestionStorm() {
   const prefersReducedMotion = useReducedMotion()
-  const { ref, isInView, resetKey } = useReplayableInView<HTMLElement>({ amount: 0.3 })
+  const { ref, isInView, resetKey } = useReplayableInView<HTMLElement>({ amount: 0.4 })
 
   return (
     <section
       ref={ref}
-      className="relative py-12 sm:py-16 md:py-20 px-4 sm:px-6 overflow-hidden"
+      className="relative py-16 sm:py-20 md:py-24 px-4 sm:px-6 overflow-hidden"
       style={{
         background: "linear-gradient(180deg, #FDF2F8 0%, #FCE7F3 50%, #FDF2F8 100%)",
       }}
@@ -191,100 +150,34 @@ function QuestionStormInner({
   isInView: boolean
   prefersReducedMotion: boolean
 }) {
-  const [phase, setPhase] = useState<AnimationPhase>('intro')
-  const [isMobile, setIsMobile] = useState(false)
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
 
-  // When leaving the viewport, stop all floating/repeat animations by resetting to intro.
+  // Reset when leaving viewport
   useEffect(() => {
-    if (isInView) return
-    setPhase('intro')
+    if (!isInView) {
+      setCurrentQuestionIndex(0)
+    }
   }, [isInView])
 
-  // Detect mobile screen size
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 640)
-    }
-    
-    checkMobile()
-    window.addEventListener('resize', checkMobile)
-    return () => window.removeEventListener('resize', checkMobile)
-  }, [])
-
-  // Animation timeline - smooth transitions
+  // Animation loop - cycle through questions
   useEffect(() => {
     if (!isInView) return
 
     if (prefersReducedMotion) {
-      setPhase('calm')
       return
     }
 
-    let mounted = true
-    const timeouts: NodeJS.Timeout[] = []
+    // Time per question
+    const TIME_PER_QUESTION = 2500
 
-    const runCycle = () => {
-      if (!mounted) return
+    const interval = setInterval(() => {
+      setCurrentQuestionIndex((prev) => (prev + 1) % questions.length)
+    }, TIME_PER_QUESTION)
 
-      // Phase 1: Questions start appearing
-      setPhase('storm')
-
-      // Phase 2: Peak - all questions visible, let them float
-      timeouts.push(setTimeout(() => {
-        if (mounted) setPhase('peak')
-      }, 2000))
-
-      // Phase 3: Lisa appears - questions start fading
-      timeouts.push(setTimeout(() => {
-        if (mounted) setPhase('lisa-appears')
-      }, 4000))
-
-      // Phase 4: Resolution - questions fully gone
-      timeouts.push(setTimeout(() => {
-        if (mounted) setPhase('resolution')
-      }, 5500))
-
-      // Phase 5: Calm - final state with Lisa message
-      timeouts.push(setTimeout(() => {
-        if (mounted) setPhase('calm')
-      }, 7000))
-
-      // Restart cycle
-      timeouts.push(setTimeout(() => {
-        if (mounted) {
-          setPhase('intro')
-          setTimeout(runCycle, 600)
-        }
-      }, 11000))
-    }
-
-    // Start the cycle
-    const initialDelay = setTimeout(runCycle, 500)
-    timeouts.push(initialDelay)
-
-    return () => {
-      mounted = false
-      timeouts.forEach(clearTimeout)
-    }
+    return () => clearInterval(interval)
   }, [isInView, prefersReducedMotion])
 
-  // Phase-based text
-  const phaseText = useMemo(() => {
-    switch (phase) {
-      case 'intro':
-        return { text: "", color: "text-transparent" }
-      case 'storm':
-        return { text: "So many questions...", color: "text-rose-500" }
-      case 'peak':
-        return { text: "Google gives you 50 different answers...", color: "text-rose-600" }
-      case 'lisa-appears':
-        return { text: "But Lisa has time for all of them.", color: "text-purple-600" }
-      case 'resolution':
-        return { text: "Ask her anything. Get clear answers.", color: "text-pink-600" }
-      case 'calm':
-        return { text: "All your answers, in one place.", color: "text-emerald-600" }
-    }
-  }, [phase])
+  const currentQuestion = questions[currentQuestionIndex]
 
   return (
     <>
@@ -294,138 +187,48 @@ function QuestionStormInner({
         <div className="absolute bottom-0 right-1/4 w-48 h-48 sm:w-80 sm:h-80 rounded-full bg-purple-200/20 blur-3xl" />
       </div>
 
-      <div className="max-w-5xl mx-auto relative">
+      <div className="max-w-3xl mx-auto relative">
         {/* Header */}
-        <div className="text-center mb-4 sm:mb-6">
+        <motion.div
+          className="text-center mb-8 sm:mb-10"
+          initial={{ opacity: 0, y: 16 }}
+          animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 }}
+          transition={{ duration: 0.4, ease: "easeOut" }}
+        >
           <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 leading-tight px-2">
             Your head is{" "}
             <HighlightedTextByRows
               text="full of questions"
               isInView={isInView}
               prefersReducedMotion={prefersReducedMotion}
-              delayMs={500}
+              delayMs={200}
             />
           </h2>
-        </div>
-
-        {/* Animation Container */}
-        <div
-          className="relative mx-auto"
-          style={{
-            height: "clamp(320px, 50vh, 450px)",
-            maxWidth: "700px",
-          }}
-        >
-          {/* Phase indicator text */}
-          <div className="absolute top-0 left-0 right-0 text-center z-50 px-4">
-            <AnimatePresence mode="wait">
-              <motion.p
-                key={phase}
-                initial={{ opacity: 0, y: -10 }}
-                animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: -10 }}
-                exit={{ opacity: 0, y: 10 }}
-                transition={{ 
-                  duration: 0.5,
-                  ease: [0.22, 1, 0.36, 1],
-                }}
-                className={`text-sm sm:text-base md:text-lg lg:text-2xl font-semibold ${phaseText.color}`}
-              >
-                {phaseText.text}
-              </motion.p>
-            </AnimatePresence>
-          </div>
-
-          {/* Question cards */}
-          <div className="absolute inset-0 pt-10 sm:pt-12">
-            {questions.map((question, index) => {
-              const position = isMobile ? cardPositionsMobile[index] : cardPositionsDesktop[index]
-              
-              return (
-                <QuestionCard
-                  key={index}
-                  question={question}
-                  index={index}
-                  phase={phase}
-                  position={position}
-                  prefersReducedMotion={prefersReducedMotion}
-                />
-              )
-            })}
-          </div>
-
-          {/* Lisa video appears in center */}
-          <AnimatePresence>
-            {(phase === 'lisa-appears' || phase === 'resolution' || phase === 'calm') && (
-              <motion.div
-                className="absolute inset-0 flex items-center justify-center z-20"
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                transition={{
-                  type: "spring",
-                  stiffness: 80,
-                  damping: 20,
-                }}
-              >
-                <LisaVideo preload={isMobile ? "none" : "metadata"} />
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Final calm state message */}
-          <AnimatePresence>
-            {phase === 'calm' && (
-              <motion.div
-                className="absolute inset-0 flex items-end justify-center z-25 pointer-events-none pb-2 sm:pb-4"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
-                transition={{ 
-                  type: "spring",
-                  stiffness: 100,
-                  damping: 20,
-                  delay: 0.2,
-                }}
-              >
-                <div className="w-[92%] sm:w-auto max-w-sm">
-                  <motion.div
-                    className="px-4 py-3 sm:px-6 sm:py-4 bg-card rounded-2xl shadow-lg shadow-pink-200/30 border border-pink-100"
-                    initial={{ scale: 0.95 }}
-                    animate={{ scale: 1 }}
-                    transition={{
-                      type: "spring",
-                      stiffness: 120,
-                      damping: 15,
-                      delay: 0.3,
-                    }}
-                  >
-                    <div className="flex items-center gap-3">
-                      <MessageCircle className="w-6 h-6 sm:w-7 sm:h-7 text-pink-400 shrink-0" />
-                      <div>
-                        <p className="text-xs sm:text-sm text-gray-400 font-medium">Lisa</p>
-                        <p className="text-sm sm:text-base font-semibold text-gray-800">
-                          &ldquo;Ask me anything - I&apos;m here for you.&rdquo;
-                        </p>
-                      </div>
-                    </div>
-                  </motion.div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-
-        {/* Bottom CTA hint */}
-        <motion.div
-          className="text-center mt-2 sm:mt-4"
-          initial={{ opacity: 0 }}
-          animate={isInView && phase === 'calm' ? { opacity: 1 } : { opacity: 0 }}
-          transition={{ delay: 0.6, duration: 0.4 }}
-        >
-          <p className="text-gray-400 text-xs sm:text-sm">
-            Your personal menopause expert, available 24/7
+          <p className="mt-3 text-muted-foreground text-sm sm:text-base">
+            Questions you&apos;re afraid to ask out loud
           </p>
         </motion.div>
+
+        {/* Main Animation Container */}
+        <div
+          className="relative mx-auto"
+          style={{ minHeight: "220px" }}
+        >
+          {/* Questions - crossfade loop */}
+          <AnimatePresence mode="wait">
+            <QuestionDisplay
+              key={currentQuestionIndex}
+              question={currentQuestion}
+              prefersReducedMotion={prefersReducedMotion}
+            />
+          </AnimatePresence>
+        </div>
+
+        {/* Progress dots */}
+        <ProgressDots
+          total={questions.length}
+          current={currentQuestionIndex}
+        />
       </div>
     </>
   )

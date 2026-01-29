@@ -26,37 +26,39 @@ export default function Preloader({ isLoading }: PreloaderProps) {
     <AnimatePresence mode="wait">
       {isLoading && (
         <motion.div
-          className="fixed inset-0 z-100 flex items-center justify-center bg-white/95 backdrop-blur-sm supports-backdrop-filter:bg-white/90"
+          // LCP optimized: More transparent to allow LCP element detection
+          className="fixed inset-0 z-100 flex items-center justify-center bg-white/80 backdrop-blur-[2px]"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
+          // Faster transitions for quicker LCP
+          transition={{ duration: 0.3, ease: "easeOut" }}
           aria-live="polite"
           aria-busy="true"
           role="status"
         >
           <motion.div
             className="flex flex-col items-center justify-center"
-            initial={{ opacity: 0, scale: 0.8 }}
+            initial={{ opacity: 0, scale: 0.9 }}
             animate={{
               opacity: 1,
-              scale: [1, 1.05, 1],
+              scale: [1, 1.03, 1],
               rotate: [0, 360],
             }}
             exit={{
               opacity: 0,
-              scale: 0.85,
-              transition: { duration: 0.4, ease: "easeIn" },
+              scale: 0.9,
+              transition: { duration: 0.2, ease: "easeIn" },
             }}
             transition={{
-              opacity: { duration: 0.6, ease: "easeOut" },
+              opacity: { duration: 0.3, ease: "easeOut" },
               scale: {
-                duration: 1.2,
+                duration: 1.5,
                 repeat: Infinity,
                 ease: "easeInOut",
               },
               rotate: {
-                duration: 3,
+                duration: 4,
                 repeat: Infinity,
                 ease: "linear",
               },

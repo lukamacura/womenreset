@@ -96,16 +96,16 @@ function HighlightedRow({
   )
 }
 
-// Headline component with animation - optimized with will-change
+// Headline component with animation - optimized for LCP
+// CRITICAL: h1 starts VISIBLE (opacity: 1) for fast LCP
+// Only animate on content change (exit/enter), not initial render
 function AnimatedHeadline({ 
   content, 
   isActive,
-  isInView,
   prefersReducedMotion 
 }: { 
   content: typeof heroContent[0]['headline']
   isActive: boolean
-  isInView: boolean
   prefersReducedMotion: boolean
 }) {
   return (
@@ -113,18 +113,18 @@ function AnimatedHeadline({
       className="text-3xl sm:text-4xl md:text-[2.75rem] lg:text-6xl font-extrabold leading-tight text-foreground px-2 sm:px-0"
       style={{ 
         textShadow: '0 2px 10px rgba(255, 255, 255, 0.5)',
-        willChange: "opacity, transform",
         width: '100%',
         maxWidth: '100%',
         minWidth: '0',
         wordWrap: 'break-word',
         overflowWrap: 'break-word',
       }}
-      initial={{ opacity: 0, y: 20 }}
-      animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+      // LCP FIX: Start visible immediately (opacity: 1, y: 0)
+      initial={{ opacity: 1, y: 0 }}
+      animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
       transition={{ 
-        duration: prefersReducedMotion ? 0.2 : 0.5, 
+        duration: prefersReducedMotion ? 0.2 : 0.4, 
         ease: [0.16, 1, 0.3, 1] 
       }}
     >
@@ -145,33 +145,31 @@ function AnimatedHeadline({
   )
 }
 
-// Subheadline component with animation
+// Subheadline component with animation - optimized for LCP
+// CRITICAL: Starts VISIBLE for fast perceived load
 function AnimatedSubheadline({ 
   text,
-  isInView,
   prefersReducedMotion 
 }: { 
   text: string
-  isInView: boolean
   prefersReducedMotion: boolean
 }) {
   return (
     <motion.p 
       className="text-base sm:text-lg md:text-xl lg:text-2xl text-muted-foreground leading-relaxed max-w-2xl mx-auto md:mx-0 px-2 sm:px-0"
       style={{ 
-        willChange: "opacity, transform",
         width: '100%',
         maxWidth: '100%',
         minWidth: '0',
         wordWrap: 'break-word',
         overflowWrap: 'break-word',
       }}
-      initial={{ opacity: 0, y: 15 }}
-      animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 15 }}
+      // LCP FIX: Start visible immediately
+      initial={{ opacity: 1, y: 0 }}
+      animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -15 }}
       transition={{ 
-        duration: prefersReducedMotion ? 0.2 : 0.5, 
-        delay: 0.1,
+        duration: prefersReducedMotion ? 0.2 : 0.4, 
         ease: [0.16, 1, 0.3, 1] 
       }}
     >
@@ -432,7 +430,6 @@ function LandingHeroInner({
                   key={`headline-${currentIndex}`}
                   content={currentContent.headline}
                   isActive={isInView}
-                  isInView={isInView}
                   prefersReducedMotion={prefersReducedMotion}
                 />
               </AnimatePresence>
@@ -444,7 +441,6 @@ function LandingHeroInner({
                 <AnimatedSubheadline 
                   key={`subheadline-${currentIndex}`}
                   text={currentContent.subheadline}
-                  isInView={isInView}
                   prefersReducedMotion={prefersReducedMotion}
                 />
               </AnimatePresence>
@@ -459,45 +455,27 @@ function LandingHeroInner({
               />
             </div>
 
-            {/* Trust Badges - Inline Strip - Optimized for mobile */}
+            {/* Trust Badges - Inline Strip - LCP optimized: visible immediately */}
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 sm:gap-4 md:gap-6 text-xs sm:text-sm text-muted-foreground pt-2 px-2 sm:px-0">
-              <motion.div 
-                className="flex items-center gap-1.5 sm:gap-2"
-                initial={{ opacity: 0, y: 10 }}
-                animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
-                transition={{ delay: isInView ? 0.2 : 0, duration: 0.5 }}
-              >
+              <div className="flex items-center gap-1.5 sm:gap-2">
                 <BookOpen className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5 text-primary shrink-0" />
                 <span className="whitespace-nowrap">Research-backed</span>
-              </motion.div>
+              </div>
               <div className="hidden sm:block w-px h-3 sm:h-4 bg-border opacity-30" />
-              <motion.div 
-                className="flex items-center gap-1.5 sm:gap-2"
-                initial={{ opacity: 0, y: 10 }}
-                animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
-                transition={{ delay: isInView ? 0.3 : 0, duration: 0.5 }}
-              >
+              <div className="flex items-center gap-1.5 sm:gap-2">
                 <Target className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5 text-primary shrink-0" />
                 <span className="whitespace-nowrap">Available 24/7</span>
-              </motion.div>
+              </div>
               <div className="hidden sm:block w-px h-3 sm:h-4 bg-border opacity-30" />
-              <motion.div 
-                className="flex items-center gap-1.5 sm:gap-2"
-                initial={{ opacity: 0, y: 10 }}
-                animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
-                transition={{ delay: isInView ? 0.4 : 0, duration: 0.5 }}
-              >
+              <div className="flex items-center gap-1.5 sm:gap-2">
                 <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5 text-primary shrink-0" />
                 <span className="whitespace-nowrap">10,000+ trust Lisa</span>
-              </motion.div>
+              </div>
             </div>
 
-            {/* Social Proof - Optimized for mobile */}
-            <motion.div 
+            {/* Social Proof - LCP optimized: visible immediately */}
+            <div 
               className="flex flex-col sm:flex-row items-center justify-center md:justify-start gap-2 sm:gap-3 pt-1 px-2 sm:px-0"
-              initial={{ opacity: 0, y: 10 }}
-              animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
-              transition={{ delay: isInView ? 0.5 : 0, duration: 0.5 }}
             >
               <div className="flex -space-x-2 shrink-0">
                 {[1, 2, 3, 4].map((i) => (
@@ -514,7 +492,7 @@ function LandingHeroInner({
               <span className="text-xs sm:text-sm md:text-base text-muted-foreground text-center sm:text-left">
                 Join 10,000+ women who stopped guessing
               </span>
-            </motion.div>
+            </div>
           </div>
 
           {/* Right: Hero Video – Tablet mockup with entrance animation */}
@@ -534,15 +512,12 @@ function LandingHeroInner({
                   willChange: "opacity, transform",
                   boxSizing: 'border-box',
                 }}
-                initial={{ opacity: 0, y: 24, scale: 0.97 }}
-                animate={
-                  isInView
-                    ? { opacity: 1, y: 0, scale: 1 }
-                    : { opacity: 0, y: 24, scale: 0.97 }
-                }
+                // LCP optimized: Start visible, slight entrance animation
+                initial={{ opacity: 0.9, y: 8, scale: 0.99 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
                 transition={{
-                  duration: prefersReducedMotion ? 0.2 : 0.6,
-                  delay: prefersReducedMotion ? 0 : 0.2,
+                  duration: prefersReducedMotion ? 0.15 : 0.4,
+                  delay: 0,
                   ease: [0.16, 1, 0.3, 1],
                 }}
               >

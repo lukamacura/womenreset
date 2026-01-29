@@ -23,15 +23,15 @@ habit_strategy: |
 
 follow_up_question: "What would you like to explore next: solutions—gentle lifestyle supports that calm immune overactivation or symptoms & tracking—how to spot patterns and triggers behind flare-ups?"
 follow_up_links: 
-  -persona: "menopause"
-  topic: "Immune Function & Autoimmunity"
-  subtopic: "Solutions — Supporting Immune Balance & Reducing Inflammation"
-  label: "How to Support Immune Balance & Reduce Inflammation"
+  - persona: "menopause"
+    topic: "Immune Function & Autoimmunity"
+    subtopic: "Solutions — Supporting Immune Balance & Reducing Inflammation"
+    label: "How to Support Immune Balance & Reduce Inflammation"
 
-  -persona: "menopause"
-  topic: "Immune Function & Autoimmunity"
-  subtopic: "Symptom Patterns & When to Seek Medical Evaluation"
-  label: "Symptom Patterns & When to Seek Medical Evaluation"
+  - persona: "menopause"
+    topic: "Immune Function & Autoimmunity"
+    subtopic: "Symptom Patterns & When to Seek Medical Evaluation"
+    label: "Symptom Patterns & When to Seek Medical Evaluation"
 
 intent_patterns:
   - "How does menopause change the immune system?"

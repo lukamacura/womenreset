@@ -40,10 +40,10 @@ motivation_nudge: "🌸 Night waking isn't failure — it's feedback. Respond ge
 
 follow_up_question: "Would you like to learn Non-Sleep Deep Rest techniques for when you can't fall back asleep?"
 follow_up_links:
-  -persona: "menopause"
-  topic: "Sleep Disturbances in Menopause"
-  subtopic: "Solutions – Non-Sleep Deep Rest (NSDR)"
-  label: "Non-Sleep Deep Rest (NSDR)"
+  - persona: "menopause"
+    topic: "Sleep Disturbances in Menopause"
+    subtopic: "Solutions – Non-Sleep Deep Rest (NSDR)"
+    label: "Non-Sleep Deep Rest (NSDR)"
 
 
 intent_patterns:
@@ -52,17 +52,12 @@ intent_patterns:
   - "What do I do right now at 3am?"
   - "I'm awake right now help"
   - "I can't sleep it's 3am what do I do?"
-  - "Help I'm awake again"
+  - "Help I'm awake again at 3 a.m."
   - "I need to fall back asleep now"
-  - "What can I do immediately?"
   - "I'm lying here awake help"
-  - "Give me something that works right now"
   - "I'm desperate it's 3am again"
   - "Help me fall back asleep right now"
-  - "I'm awake and panicking what do I do"
   - "What do I do when I wake in the middle of the night"
-
-
   - "How do I fall back asleep at 3am?"
   - "How do I get back to sleep middle of night?"
   - "Can't fall back asleep after waking help"
@@ -72,43 +67,24 @@ intent_patterns:
   - "How do I return to sleep after waking?"
   - "What helps you fall back asleep?"
   - "How to get back to sleep fast"
-
- 
   - "What breathing helps at 3am?"
   - "How do I calm down at night?"
-  - "Should I do breathing exercises?"
   - "What techniques work for night waking?"
-  - "How do I calm my racing heart?"
+  - "How do I calm my racing heart at night?"
   - "What helps with night anxiety?"
   - "Can breathing help me sleep again?"
-  - "What's the calm reset technique?"
-  - "How do I use the 3am reset?"
   - "Show me a technique for night waking"
   - "What method works for middle of night?"
   - "Teach me how to calm down at 3am"
 
-  - "Should I turn on lights?"
-  - "Should I check my phone?"
-  - "Should I get out of bed?"
-  - "How long before I should get up?"
-  - "Should I stay lying down?"
-  - "Is it ok to read?"
-  - "Should I just lie there?"
-  - "When do I give up and get up?"
-  - "Should I look at the clock?"
-  - "Can I watch TV at 3am?"
-  - "Is it ok to eat something?"
-  - "Should I drink water?"
-  
-   
-
 keywords:
   - "what do I do 3am"
+  - "awake at 3 a.m. now what"
   - "help awake at 3am"
-  - "what should I do now"
+  - "what should I do now night waking"
   - "how to fall back asleep"
-  - "should I stay in bed"
-  - "should I get up"
+  - "should I stay in bed night waking"
+  - "should I get up night waking"
   - "don't check clock 3am"
   - "avoid phone night waking"
   - "stay calm 3am"

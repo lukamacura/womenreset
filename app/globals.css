@@ -699,4 +699,100 @@ input[type="button"],
     background: var(--primary);
     -webkit-text-fill-color: var(--primary);
   }
+  
+  .glassy-bubble {
+    animation: none !important;
+  }
+}
+
+/* ========================================
+   GLASSY BUBBLES (Landing Page)
+   Moved from runtime JS injection for better LCP
+   ======================================== */
+.glassy-bubble {
+  position: absolute;
+  border-radius: 50%;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 182, 193, 0.5) 0%,
+    rgba(255, 218, 185, 0.45) 30%,
+    rgba(233, 213, 255, 0.5) 70%,
+    rgba(255, 255, 255, 0.3) 100%
+  );
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 
+    0 8px 32px rgba(236, 72, 153, 0.15),
+    0 2px 12px rgba(219, 39, 119, 0.1);
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+.animate-float-1 {
+  animation: float-bubble-1 20s ease-in-out infinite;
+}
+
+.animate-float-2 {
+  animation: float-bubble-2 18s ease-in-out infinite;
+}
+
+.animate-float-3 {
+  animation: float-bubble-3 15s ease-in-out infinite;
+}
+
+.animate-float-1-slow {
+  animation: float-bubble-1 25s ease-in-out infinite;
+}
+
+.animate-float-2-medium {
+  animation: float-bubble-2 14s ease-in-out infinite;
+}
+
+.animate-float-3-fast {
+  animation: float-bubble-3 12s ease-in-out infinite;
+}
+
+.animate-float-1-fast {
+  animation: float-bubble-1 10s ease-in-out infinite;
+}
+
+.animate-float-3-slow {
+  animation: float-bubble-3 22s ease-in-out infinite;
+}
+
+@keyframes float-bubble-1 {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  25% {
+    transform: translate(40px, -50px) scale(1.08);
+  }
+  50% {
+    transform: translate(-25px, -80px) scale(1);
+  }
+  75% {
+    transform: translate(50px, -35px) scale(0.95);
+  }
+}
+
+@keyframes float-bubble-2 {
+  0%, 100% {
+    transform: translate(0, 0);
+  }
+  33% {
+    transform: translate(-60px, -70px);
+  }
+  66% {
+    transform: translate(40px, -100px);
+  }
+}
+
+@keyframes float-bubble-3 {
+  0%, 100% {
+    transform: translateY(0) translateX(0);
+    opacity: 0.9;
+  }
+  50% {
+    transform: translateY(-70px) translateX(30px);
+    opacity: 1;
+  }
 }

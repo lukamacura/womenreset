@@ -274,25 +274,21 @@ export function formatKBEntryForDisplay(entry: KBEntry, includeFollowUp: boolean
         const example = extractField(habitText, 'example');
         const habitTip = extractField(habitText, 'habit_tip');
         
-        // Add special marker for blue blur theme styling
-        formattedHabitStrategy.push('> [HABIT_STRATEGY]');
-        if (principle) formattedHabitStrategy.push(`> **Principle:** ${principle}`);
-        if (explanation) formattedHabitStrategy.push(`> **Explanation:** ${explanation}`);
-        if (example) formattedHabitStrategy.push(`> **Example:** ${example}`);
-        if (habitTip) formattedHabitStrategy.push(`> **Habit Tip:** ${habitTip}`);
+        // Format as normal text (no blockquote, no special styling)
+        if (principle) formattedHabitStrategy.push(`**Principle:** ${principle}`);
+        if (explanation) formattedHabitStrategy.push(`**Explanation:** ${explanation}`);
+        if (example) formattedHabitStrategy.push(`**Example:** ${example}`);
+        if (habitTip) formattedHabitStrategy.push(`**Habit Tip:** ${habitTip}`);
       } else {
-        // Free-form markdown format (pipe format) - output as single clean blockquote
-        // Filter out empty lines and create one continuous blockquote
-        // Add special marker for blue blur theme styling
+        // Free-form markdown format (pipe format) - output as normal text
+        // Filter out empty lines
         const lines = habitText.split('\n')
           .map(l => l.trim())
           .filter(l => l.length > 0);
         
-        // All content in one blockquote block - no separators between paragraphs
-        // Add [HABIT_STRATEGY] marker at the start to identify for special styling
-        formattedHabitStrategy.push('> [HABIT_STRATEGY]');
+        // Output as normal text (no blockquote, no special styling)
         for (const line of lines) {
-          formattedHabitStrategy.push(`> ${line}`);
+          formattedHabitStrategy.push(line);
         }
       }
       
@@ -360,15 +356,16 @@ export function formatKBEntryForDisplay(entry: KBEntry, includeFollowUp: boolean
     parts.push('\n\n---\n\n');
   }
 
-  // Motivation section - format as blockquote with special marker for pink blur theme
+  // Motivation section - format as blockquote with italic text
   if (sections.motivation.length > 0) {
     const blockquoteLines: string[] = [];
-    // Add special marker for pink blur theme styling
+    // Add special marker for styling
     blockquoteLines.push('> [MOTIVATION_NUDGE]');
     sections.motivation.forEach(line => {
       const trimmed = line.trim();
       if (trimmed) {
-        blockquoteLines.push(`> ${trimmed}`);
+        // Wrap text in italic markers
+        blockquoteLines.push(`> *${trimmed}*`);
       }
     });
     parts.push(blockquoteLines.join('\n'));

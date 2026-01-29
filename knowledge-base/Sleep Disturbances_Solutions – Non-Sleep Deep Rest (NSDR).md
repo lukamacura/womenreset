@@ -23,10 +23,10 @@ motivation_nudge: "🌸 Deep rest is a skill — not a luxury. Each session trai
 
 follow_up_question: "Would you like to know how exercise helps you sleep better in menopause?"
 follow_up_links:
-  -persona: "menopause"
-  topic: "Sleep Disturbances in Menopause"
-  subtopic: "Solutions – Exercise & Relaxation for Sleep"
-  label: "When is the best time to exercise for sleep?"
+  - persona: "menopause"
+    topic: "Sleep Disturbances in Menopause"
+    subtopic: "Solutions – Exercise & Relaxation for Sleep"
+    label: "When is the best time to exercise for sleep?"
 
 
 intent_patterns:
@@ -65,8 +65,6 @@ intent_patterns:
   - "How to do NSDR properly?"
   - "NSDR for beginners"
   - "Step by step NSDR guide"
-  - "What's the technique?"
-  - "Do I need a guide?"
   - "Can I do NSDR alone?"
   - "When should I do NSDR?"
   - "NSDR before bed or during night?"
