@@ -482,46 +482,19 @@ function renderMarkdownText(text: string) {
         }
 
         if (block.type === 'blockquote') {
-          // Check if this is a habit_strategy or motivation_nudge blockquote
-          const isHabitStrategy = block.content.includes('[HABIT_STRATEGY]');
-          const isMotivationNudge = block.content.includes('[MOTIVATION_NUDGE]');
+          // Remove any legacy markers from content
+          let cleanContent = block.content.replace(/\[HABIT_STRATEGY\]\s*/g, '');
+          cleanContent = cleanContent.replace(/\[MOTIVATION_NUDGE\]\s*/g, '');
           
-          // Blue blur theme colors for habit_strategy
-          const blueTheme = {
-            border: '#3B82F6',      // Blue-500
-            bgStart: '#DBEAFE',     // Blue-100
-            bgEnd: '#BFDBFE',       // Blue-200
-            shadow: 'rgba(59, 130, 246, 0.15)',
-            quote: '#93C5FD',       // Blue-300
-            text: '#1E40AF',        // Blue-800
-          };
-          
-          // Pink blur theme colors for motivation_nudge
-          const pinkBlurTheme = {
-            border: THEME.pink[500],      // Pink-500
-            bgStart: THEME.pink[100],     // Pink-100
-            bgEnd: THEME.pink[200],       // Pink-200
-            shadow: 'rgba(236, 72, 153, 0.15)',
-            quote: THEME.pink[300],        // Pink-300
-            text: THEME.pink[700],         // Pink-700
-          };
-          
-          // Pink theme for regular blockquotes
-          const pinkTheme = {
+          // Standard theme for all blockquotes - normal foreground color
+          const theme = {
             border: THEME.pink[400],
             bgStart: THEME.pink[50],
             bgEnd: THEME.pink[100],
             shadow: 'rgba(236, 72, 153, 0.1)',
             quote: THEME.pink[300],
-            text: THEME.text[800],
+            text: THEME.text[800],  // Normal foreground color
           };
-          
-          const theme = isHabitStrategy ? blueTheme : (isMotivationNudge ? pinkBlurTheme : pinkTheme);
-          const hasBlurTheme = isHabitStrategy || isMotivationNudge;
-          
-          // Remove the markers from content if present
-          let cleanContent = block.content.replace(/\[HABIT_STRATEGY\]\s*/g, '');
-          cleanContent = cleanContent.replace(/\[MOTIVATION_NUDGE\]\s*/g, '');
           
           return (
             <blockquote
@@ -530,39 +503,30 @@ function renderMarkdownText(text: string) {
                 borderLeft: `4px solid ${theme.border}`,
                 margin: '1.5rem 0',
                 padding: '1.25rem 1.5rem',
-                fontStyle: hasBlurTheme ? 'normal' : 'italic',
+                fontStyle: 'italic',
                 color: theme.text,
-                background: hasBlurTheme 
-                  ? `linear-gradient(135deg, ${theme.bgStart} 0%, ${theme.bgEnd} 100%)`
-                  : `linear-gradient(to right, ${theme.bgStart}, ${theme.bgEnd})`,
+                background: `linear-gradient(to right, ${theme.bgStart}, ${theme.bgEnd})`,
                 borderRadius: '0.75rem',
-                boxShadow: hasBlurTheme
-                  ? isHabitStrategy
-                    ? `0 4px 16px ${theme.shadow}, 0 0 0 1px rgba(59, 130, 246, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.5)`
-                    : `0 4px 16px ${theme.shadow}, 0 0 0 1px rgba(236, 72, 153, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.5)`
-                  : `0 2px 8px ${theme.shadow}`,
+                boxShadow: `0 2px 8px ${theme.shadow}`,
                 position: 'relative',
                 fontSize: '1.125rem',
                 lineHeight: '1.6',
-                backdropFilter: hasBlurTheme ? 'blur(8px)' : 'none',
               }}
             >
-              {!hasBlurTheme && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: '1rem',
-                    left: '1.5rem',
-                    fontSize: '2rem',
-                    color: theme.quote,
-                    opacity: 0.5,
-                    fontFamily: 'Georgia, serif',
-                  }}
-                >
-                  &ldquo;
-                </div>
-              )}
-              <div style={{ paddingLeft: hasBlurTheme ? '0' : '1.5rem' }}>
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '1rem',
+                  left: '1.5rem',
+                  fontSize: '2rem',
+                  color: theme.quote,
+                  opacity: 0.5,
+                  fontFamily: 'Georgia, serif',
+                }}
+              >
+                &ldquo;
+              </div>
+              <div style={{ paddingLeft: '1.5rem' }}>
                 {cleanContent.split('\n').map((line, lineIdx) => {
                   const trimmedLine = line.trim();
                   if (!trimmedLine) return null;

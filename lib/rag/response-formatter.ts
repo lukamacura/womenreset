@@ -356,16 +356,14 @@ export function formatKBEntryForDisplay(entry: KBEntry, includeFollowUp: boolean
     parts.push('\n\n---\n\n');
   }
 
-  // Motivation section - format as blockquote with italic text
+  // Motivation section - format as blockquote (normal foreground color)
   if (sections.motivation.length > 0) {
     const blockquoteLines: string[] = [];
-    // Add special marker for styling
-    blockquoteLines.push('> [MOTIVATION_NUDGE]');
     sections.motivation.forEach(line => {
       const trimmed = line.trim();
       if (trimmed) {
-        // Wrap text in italic markers
-        blockquoteLines.push(`> *${trimmed}*`);
+        // Just blockquote, no special markers or colors
+        blockquoteLines.push(`> ${trimmed}`);
       }
     });
     parts.push(blockquoteLines.join('\n'));
