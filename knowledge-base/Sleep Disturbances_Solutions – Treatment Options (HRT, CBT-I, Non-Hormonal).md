@@ -27,18 +27,17 @@ follow_up_links:
     label: "understand why the stress-sleep cycle happens and how to prevent it"
 
 intent_patterns:
+  # When to seek help - decision points
   - "When should I talk to my doctor about sleep?"
   - "How do I know if I need medical help for sleep?"
   - "Is my insomnia bad enough for treatment?"
   - "Tried everything nothing works for sleep"
   - "When is insomnia serious enough for doctor?"
   - "What if lifestyle changes haven't fixed my sleep?"
+  
+  # HRT - general understanding
   - "Does hormone therapy improve sleep?"
-  - "HRT for sleep problems"
-  - "Should I consider hrt for sleep issues?"
-  - "Does hrt fix sleep?"
-  - "Should I see a therapist for sleep?"
-  - "What is the best therapy for sleep?"
+  - "HRT for night sweats and sleep problems"
   - "Will HRT stop my night waking?"
 
 keywords:
@@ -50,7 +49,9 @@ keywords:
   - "non-hormonal insomnia treatment"
   - "when to see doctor sleep menopause"
   - "severe insomnia medical help"
+  - "HRT night sweats sleep"
   - "combine HRT with sleep therapy"
+  - "refractory insomnia menopause"
   - "treatment for insomnia"
 ---
 

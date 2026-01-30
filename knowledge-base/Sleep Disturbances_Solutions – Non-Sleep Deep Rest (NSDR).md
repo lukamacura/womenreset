@@ -65,6 +65,8 @@ intent_patterns:
   - "How to do NSDR properly?"
   - "NSDR for beginners"
   - "Step by step NSDR guide"
+  - "What's the technique?"
+  - "Do I need a guide?"
   - "Can I do NSDR alone?"
   - "When should I do NSDR?"
   - "NSDR before bed or during night?"

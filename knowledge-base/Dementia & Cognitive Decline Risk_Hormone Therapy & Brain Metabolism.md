@@ -17,22 +17,20 @@ action_tips:
   - "🧠 **Be specific about cognition:** Tell your provider if brain fog, memory, or focus are concerns alongside other symptoms."
   - "📚 **Stay informed:** Research on HT and brain health is evolving — ask for current evidence relevant to your situation."
 
-motivation_nudge: - "💗 It’s natural to feel uncertain about hormone therapy — every woman’s story and biology are unique. 
-                        Knowledge is power — understanding how hormones affect your brain helps you make the best choice for your body."
-
+motivation_nudge: "💗 It's natural to feel uncertain about hormone therapy — every woman's story and biology are unique. Knowledge is power — understanding how hormones affect your brain helps you make the best choice for your body."
 
 follow_up_question: "Would you like to understand the biological reasons why estrogen affects brain energy or explore natural lifestyle alternatives for brain protection?"
 
 follow_up_links: 
-    -persona: "menopause"
-    topic: "Dementia & Cognitive Decline Risk"
-    subtopic: "Causes — Estrogen Loss & Brain Energy Metabolism"
-    label: "What's happening to my brain?"
+    - persona: "menopause"
+      topic: "Dementia & Cognitive Decline Risk"
+      subtopic: "Overview — How Menopause Affects Brain Aging"
+      label: "What's happening to my brain?"
 
-    -persona: "menopause"
-    topic: "Dementia & Cognitive Decline Risk"
-    subtopic: "Long-Term Brain Health & Dementia Prevention (Natural Lifestyle Pathways)"
-    label: "What can I do to protect my brain?"
+    - persona: "menopause"
+      topic: "Dementia & Cognitive Decline Risk"
+      subtopic: "Long-Term Brain Health & Dementia Prevention (Natural Lifestyle Pathways)"
+      label: "What can I do to protect my brain?"
 
 intent_patterns:
   - "Can hormone therapy help with brain fog?"
@@ -111,14 +109,6 @@ intent_patterns:
   - "Can I stop HRT after a few years or does my brain need it longer?"
   - "Does stopping HRT reverse the brain benefits?"
   - "How long does HRT protect the brain?"
-  - "Are bioidentical hormones better for the brain?"
-  - "Do bioidentical hormones help cognition more than synthetic?"
-  - "What's the difference between hormone types for brain health?"
-  - "Should I use bioidentical estrogen for brain fog?"
-  - "Does progesterone affect brain function too?"
-  - "Should I take progesterone with estrogen for brain health?"
-  - "Does progesterone help or hurt cognition?"
-  - "What does progesterone do for the brain?"
 
 keywords:
     - "hormone therapy brain metabolism"

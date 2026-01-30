@@ -23,15 +23,15 @@ motivation_nudge: "🌿 Every nourishing habit you repeat becomes a quiet act of
 
 follow_up_question: "Would you like to understand the science behind why estrogen loss affects brain health or learn whether hormone therapy might be right for your situation?"
 follow_up_links: 
-    -persona: "menopause"
-    topic: "Dementia & Cognitive Decline Risk"
-    subtopic: "Causes — Estrogen Loss & Brain Energy Metabolism"
-    label: "What's happening to my brain?"
+    - persona: "menopause"
+      topic: "Dementia & Cognitive Decline Risk"
+      subtopic: "Overview — How Menopause Affects Brain Aging"
+      label: "What's happening to my brain?"
 
-    -persona: "menopause"
-    topic: "Dementia & Cognitive Decline Risk"
-    subtopic: "Hormone Therapy & Brain Metabolism"
-    label: "Should I consider hormone therapy for my brain?"
+    - persona: "menopause"
+      topic: "Dementia & Cognitive Decline Risk"
+      subtopic: "Hormone Therapy & Brain Metabolism"
+      label: "Should I consider hormone therapy for my brain?"
 
 
 intent_patterns:
@@ -184,8 +184,6 @@ keywords:
     - "ready to change lifestyle for brain"
     - "planning brain healthy routine"
     - "best changes for brain protection"
-    - "starting prevention plan today"
-    - "what lifestyle changes should I make"
     - "motivated to protect my brain"
     - "brain health plan menopause"
     - "committed to preventing dementia"
@@ -197,7 +195,6 @@ keywords:
     - "comprehensive dementia prevention plan"
     - "everything I need to do for brain"
     - "maximizing brain health efforts"
-    - "full commitment to prevention"
     - "implementing all brain strategies"
     - "aggressive brain protection plan"
     - "scared of losing my mind what to do"
@@ -206,7 +203,6 @@ keywords:
     - "terrified of getting dementia"
     - "desperate to prevent cognitive decline"
     - "family history Alzheimer's prevention urgent"
-    - "don't want what happened to my mom"
     - "high dementia risk need help now"
     - "prevent what killed my mother's mind"
     - "Mediterranean diet dementia prevention"
@@ -222,7 +218,15 @@ keywords:
     - "most important changes for dementia risk"
     - "proven strategies prevent cognitive decline"
     - "evidence-based brain protection"
-    - "which lifestyle changes work best"
     - "prioritizing brain health efforts"
+    - "brain health lifestyle changes"
+    - "supporting your brain during menopause"
+    - "lifestyle changes that work for brain health"
+    - "practical daily habits for brain health"
+    - "how to support my struggling brain"
+    - "does walking really help brain"
+    - "reduce stress improve memory"
+    - "quick wins for mental clarity"
+
 ---
 

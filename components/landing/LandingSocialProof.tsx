@@ -9,20 +9,20 @@ export default function LandingSocialProof() {
   const { ref: sectionRef, isInView } = useReplayableInView<HTMLElement>({ amount: 0.3 })
   const testimonials = [
     {
-      quote: "I asked Lisa about brain fog at 2am when I couldn't sleep. She explained exactly what's happening in my brain during perimenopause and gave me three things to try. No judgment, no waiting for an appointment. I felt understood for the first time in months.",
+      quote: "Honestly, I wish I'd found this sooner. The tracking part is good but being able to just ask random questions at 3am when I'm wide awake and googling 'is this normal' has saved my sanity.",
       author: "Sarah",
       age: 49,
       initial: "S",
     },
     {
-      quote: "My doctor said my symptom report was the most useful patient data she'd ever seen. She adjusted my treatment on the spot. That one appointment was worth a year of subscription.",
-      author: "Michelle",
+      quote: "I kept a journal before but never saw the patterns until I started using this. Turns out my anxiety spikes aren't random - they line up with everything else. Finally makes sense.",
+      author: "Jennifer",
       age: 52,
       initial: "M",
     },
     {
-      quote: "I was embarrassed to ask my doctor about vaginal dryness. I asked Lisa instead. She explained it clearly, told me it's completely normal, and gave me options to discuss with my doctor. I finally brought it up at my next visit.",
-      author: "Linda",
+      quote: "My daughter suggested this after I complained for the millionth time. The questions thing is clutch - I've asked stuff I'd never say out loud to my doctor. No judgment, just actual answers.",
+      author: "Maria",
       age: 54,
       initial: "L",
     },

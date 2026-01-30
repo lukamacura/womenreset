@@ -26,15 +26,15 @@ habit_strategy: |
 follow_up_question: "Would you like to learn practical lifestyle strategies that support your brain alongside these exercises, or are you interested if hormone therapy can help?"
 
 follow_up_links: 
-    -persona: "menopause"
-    topic: "Cognition in Menopause"
-    subtopic: "Brain Fog — Practical Support"
-    label: "What helps with brain fog?"
+    - persona: "menopause"
+      topic: "Cognition in Menopause"
+      subtopic: "Brain Fog — Practical Support"
+      label: "What helps with brain fog?"
     
-    -persona: "menopause"
-    topic: "Dementia & Cognitive Decline Risk"
-    subtopic: "Hormone Therapy & Brain Metabolism"
-    label: "Should I consider hormone therapy for my brain?"
+    - persona: "menopause"
+      topic: "Dementia & Cognitive Decline Risk"
+      subtopic: "Hormone Therapy & Brain Metabolism"
+      label: "Should I consider hormone therapy for my brain?"
 
 intent_patterns:
   - "How do I train my brain to work better again?"
@@ -124,7 +124,6 @@ intent_patterns:
 
 
 keywords:
-  Medical/Clinical Terms:
     - "neuroplasticity training"
     - "cognitive fitness exercises"
     - "hippocampus activation"
@@ -148,17 +147,12 @@ keywords:
     - "can I fix my memory"
     - "want to think clearly again"
     - "brain feels slow need help"
-    - "is it too late to improve"
     - "how to rewire my brain"
     - "small daily things for memory"
     - "easy ways to challenge brain"
     - "do brain games actually help"
     - "apps for better focus"
     - "puzzles help brain fog"
-    - "learning new things at my age"
-    - "stay motivated brain practice"
-    - "how long until brain improves"
-    - "what really makes a difference"
     - "brain workout for menopause"
     - "mental exercises that help"
     - "can my brain get better"
