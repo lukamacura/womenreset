@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { detectBrowser, hasBrowserMismatchIssue, getBrowserMismatchMessage } from "@/lib/browserUtils";
@@ -10,7 +10,7 @@ import { AlertCircle, X } from "lucide-react";
  * Component to verify session after authentication callback
  * Helps detect and handle browser mismatch issues on Samsung devices
  */
-export default function SessionVerification() {
+function SessionVerificationContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [showWarning, setShowWarning] = useState(false);
@@ -82,6 +82,14 @@ export default function SessionVerification() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SessionVerification() {
+  return (
+    <Suspense fallback={null}>
+      <SessionVerificationContent />
+    </Suspense>
   );
 }
 
