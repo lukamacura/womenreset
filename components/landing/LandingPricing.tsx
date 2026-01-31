@@ -237,7 +237,7 @@ export default function LandingPricing() {
                   e.currentTarget.style.boxShadow = "8px 8px 0px 0px rgba(0, 0, 0, 0.2), 8px 8px 12px 0px rgba(0, 0, 0, 0.15)";
                 }}
               >
-                <Link href="/register" className="relative z-10 flex items-center justify-center gap-2 text-white">
+                <Link href="/register" prefetch={false} className="relative z-10 flex items-center justify-center gap-2 text-white">
                   Choose Annual - Save 45%
                 </Link>
               </Button>
@@ -328,7 +328,7 @@ export default function LandingPricing() {
                   e.currentTarget.style.boxShadow = "8px 8px 0px 0px rgba(0, 0, 0, 0.2), 8px 8px 12px 0px rgba(0, 0, 0, 0.15)";
                 }}
               >
-                <Link href="/register" className="relative z-10 text-white!" style={{ color: "white" }}>Start Monthly</Link>
+                <Link href="/register" prefetch={false} className="relative z-10 text-white!" style={{ color: "white" }}>Start Monthly</Link>
                 {hoveredPlan === "monthly" && (
                   <div
                     className="absolute inset-0"

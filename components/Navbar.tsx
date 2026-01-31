@@ -31,7 +31,7 @@ const Navbar: React.FC<NavbarProps> = ({ isAuthenticated }) => {
         <div className="w-full max-w-3xl px-6 sm:px-8">
           <nav className="flex w-full items-center justify-between rounded-full bg-gray-900 px-3 sm:px-5 py-2.5 sm:py-2 shadow-lg backdrop-blur-lg border border-white/25 overflow-hidden">
             {/* Left: Logo + Brand */}
-            <Link href="/" className="flex items-center gap-2">
+            <Link href="/" prefetch={false} className="flex items-center gap-2">
               <div className="relative h-7 w-7 sm:h-8 sm:w-8 rounded-full overflow-hidden shadow-md">
                 <Image
                   src="/lisa_profile.webp"
@@ -54,24 +54,28 @@ const Navbar: React.FC<NavbarProps> = ({ isAuthenticated }) => {
             <div className="hidden items-center gap-6 lg:gap-8 text-sm lg:text-base font-medium lg:flex">
               <Link
                 href="/"
+                prefetch={false}
                 className="transition-colors duration-200 text-white!  hover:text-primary!"
               >
                 Home
               </Link>
               <Link
                 href="/#how-it-works"
+                prefetch={false}
                 className="transition-colors duration-200 text-white!  hover:text-primary!"
               >
                 How it Works
               </Link>
               <Link
                 href="/#pricing"
+                prefetch={false}
                 className="transition-colors duration-200 text-white!  hover:text-primary!"
               >
                 Pricing
               </Link>
               <Link
                 href="/#faq"
+                prefetch={false}
                 className="transition-colors duration-200 text-white!  hover:text-primary!"
               >
                 FAQ
@@ -83,6 +87,7 @@ const Navbar: React.FC<NavbarProps> = ({ isAuthenticated }) => {
               {isAuthenticated ? (
                 <Link
                   href="/dashboard"
+                  prefetch={false}
                   className="btn-primary px-5 py-1.5 text-sm shadow-md"
                 >
                   My Overview
@@ -91,12 +96,14 @@ const Navbar: React.FC<NavbarProps> = ({ isAuthenticated }) => {
                 <>
                   <Link
                     href="/login"
+                    prefetch={false}
                     className="font-medium text-white! transition-colors duration-200 hover:text-white text-sm"
                   >
                     Log in
                   </Link>
                   <Link
                     href="/register"
+                    prefetch={false}
                     className="btn-primary px-5 py-1.5 text-sm shadow-md"
                   >
                     Sign up
@@ -135,6 +142,7 @@ const Navbar: React.FC<NavbarProps> = ({ isAuthenticated }) => {
           <div className="flex flex-col gap-2">
             <Link 
               href="/" 
+              prefetch={false}
               className="px-4 py-3 rounded-lg text-white! text-center hover:bg-white/10 transition-colors text-md font-medium"
               onClick={() => setMobileMenuOpen(false)}
             >
@@ -142,6 +150,7 @@ const Navbar: React.FC<NavbarProps> = ({ isAuthenticated }) => {
             </Link>
             <Link 
               href="/#how-it-works" 
+              prefetch={false}
               className="px-4 py-3 rounded-lg text-white! text-center hover:bg-white/10 transition-colors text-md font-medium"
               onClick={() => setMobileMenuOpen(false)}
             >
@@ -149,6 +158,7 @@ const Navbar: React.FC<NavbarProps> = ({ isAuthenticated }) => {
             </Link>
             <Link 
               href="/#pricing" 
+              prefetch={false}
               className="px-4 py-3 rounded-lg text-white! text-center hover:bg-white/10 transition-colors text-md font-medium"
               onClick={() => setMobileMenuOpen(false)}
             >
@@ -156,6 +166,7 @@ const Navbar: React.FC<NavbarProps> = ({ isAuthenticated }) => {
             </Link>
             <Link 
               href="/#faq" 
+              prefetch={false}
               className="px-4 py-3 rounded-lg text-white! text-center hover:bg-white/10 transition-colors text-md font-medium"
               onClick={() => setMobileMenuOpen(false)}
             >
@@ -171,6 +182,7 @@ const Navbar: React.FC<NavbarProps> = ({ isAuthenticated }) => {
             {isAuthenticated ? (
               <Link 
                 href="/dashboard" 
+                prefetch={false}
                 className="btn-primary px-4 py-3 text-md shadow-md text-center"
                 onClick={() => setMobileMenuOpen(false)}
               >
@@ -180,6 +192,7 @@ const Navbar: React.FC<NavbarProps> = ({ isAuthenticated }) => {
               <>
                 <Link 
                   href="/login" 
+                  prefetch={false}
                   className="px-4 py-3 rounded-lg font-medium text-white! hover:bg-white/10 transition-colors text-md text-center"
                   onClick={() => setMobileMenuOpen(false)}
                 >
@@ -187,6 +200,7 @@ const Navbar: React.FC<NavbarProps> = ({ isAuthenticated }) => {
                 </Link>
                 <Link 
                   href="/register" 
+                  prefetch={false}
                   className="btn-primary px-4 py-3 text-md shadow-md text-center"
                   onClick={() => setMobileMenuOpen(false)}
                 >

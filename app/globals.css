@@ -725,6 +725,8 @@ input[type="button"],
     0 2px 12px rgba(219, 39, 119, 0.1);
   pointer-events: none;
   opacity: 0.8;
+  contain: layout paint;
+  will-change: transform;
 }
 
 .animate-float-1 {

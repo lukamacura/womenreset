@@ -194,6 +194,7 @@ export default function DashboardLayout({
                       <Link
                         key={item.href}
                         href={item.href}
+                        prefetch={false}
                         onClick={(e) => {
                           setIsDropdownOpen(false);
                           handleNavClick(item, e);
@@ -244,6 +245,7 @@ export default function DashboardLayout({
                   <AnimatedNavItem key={item.href} delay={index * 50}>
                     <Link
                       href={item.href}
+                      prefetch={false}
                       onClick={(e) => handleNavClick(item, e)}
                       className={`
                         flex  items-center gap-2 rounded-lg px-4 py-2 font-medium text-sm transition-all duration-300

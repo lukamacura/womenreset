@@ -1,43 +1,287 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { motion, useReducedMotion, AnimatePresence } from "framer-motion"
-import { CheckCircle2, Heart, Brain, Moon, Thermometer, Zap, Droplet } from "lucide-react"
+import { Sun, Wind, Moon, Heart, Sparkles } from "lucide-react"
 import { useReplayableInView } from "@/hooks/useReplayableInView"
 import { HighlightedTextByRows } from "@/components/landing/HighlightedTextByRows"
 
-// Symptom data with icons and colors
-const symptoms = [
-  { id: "hotflash", label: "Hot Flashes", icon: Thermometer, color: "bg-orange-100 border-orange-300 text-orange-800" },
-  { id: "mood", label: "Mood Swings", icon: Heart, color: "bg-pink-100 border-pink-300 text-pink-800" },
-  { id: "brainfog", label: "Brain Fog", icon: Brain, color: "bg-purple-100 border-purple-300 text-purple-800" },
-  { id: "sleep", label: "Poor Sleep", icon: Moon, color: "bg-indigo-100 border-indigo-300 text-indigo-800" },
-  { id: "fatigue", label: "Fatigue", icon: Zap, color: "bg-yellow-100 border-yellow-300 text-yellow-800" },
-  { id: "dryness", label: "Dryness", icon: Droplet, color: "bg-blue-100 border-blue-300 text-blue-800" },
+// Actionable tips with emotional content from knowledge base
+const actionTips = [
+  {
+    id: "morning-light",
+    icon: Sun,
+    category: "Morning Ritual",
+    tip: "Get 10–20 minutes of outdoor light within an hour of waking.",
+    motivation: "Every sunrise you meet whispers to your body: it's time to wake, move, and shine again.",
+    color: "from-amber-400 to-orange-400",
+    bgColor: "bg-amber-50",
+    iconColor: "text-amber-500",
+  },
+  {
+    id: "breathwork",
+    icon: Wind,
+    category: "Stress Relief",
+    tip: "Try 4-7-8 breathing for 2–3 minutes when tension rises.",
+    motivation: "You can't think your way out of stress — but you can breathe your way through it.",
+    color: "from-sky-400 to-blue-400",
+    bgColor: "bg-sky-50",
+    iconColor: "text-sky-500",
+  },
+  {
+    id: "sleep-reset",
+    icon: Moon,
+    category: "Night Waking",
+    tip: "If awake at 3am, breathe slowly and let your body feel heavy and supported.",
+    motivation: "Night waking isn't failure — it's feedback. Respond gently, and your body learns safety.",
+    color: "from-indigo-400 to-purple-400",
+    bgColor: "bg-indigo-50",
+    iconColor: "text-indigo-500",
+  },
+  {
+    id: "movement",
+    icon: Heart,
+    category: "Daily Movement",
+    tip: "Walk mindfully — focus on sights and sounds, not thoughts.",
+    motivation: "Calm isn't passive — it's a daily practice your body learns to trust again.",
+    color: "from-rose-400 to-pink-400",
+    bgColor: "bg-rose-50",
+    iconColor: "text-rose-500",
+  },
+  {
+    id: "evening",
+    icon: Sparkles,
+    category: "Evening Wind Down",
+    tip: "Write one gratitude or release note before bed to offload stress.",
+    motivation: "With daily practice, calm becomes your default, not your exception.",
+    color: "from-violet-400 to-fuchsia-400",
+    bgColor: "bg-violet-50",
+    iconColor: "text-violet-500",
+  },
 ]
 
-// Chaotic positions - overlapping, rotated, messy
-const chaoticPositions = [
-  { x: 25, y: 30, rotate: -15, scale: 0.9 },
-  { x: 70, y: 25, rotate: 12, scale: 1.1 },
-  { x: 35, y: 55, rotate: -8, scale: 0.95 },
-  { x: 60, y: 60, rotate: 18, scale: 1.05 },
-  { x: 45, y: 40, rotate: -20, scale: 0.85 },
-  { x: 80, y: 45, rotate: 10, scale: 1 },
-]
+// Typewriter component with letter-by-letter animation
+function TypewriterText({
+  text,
+  isActive,
+  onComplete,
+  className = "",
+  typingSpeed = 35,
+}: {
+  text: string
+  isActive: boolean
+  onComplete?: () => void
+  className?: string
+  typingSpeed?: number
+}) {
+  const [displayedText, setDisplayedText] = useState("")
+  const [isTyping, setIsTyping] = useState(false)
+  const completedRef = useRef(false)
 
-// Organized positions - neat 2x3 grid
-const organizedPositions = [
-  { x: 25, y: 30 },
-  { x: 50, y: 30 },
-  { x: 75, y: 30 },
-  { x: 25, y: 60 },
-  { x: 50, y: 60 },
-  { x: 75, y: 60 },
-]
+  useEffect(() => {
+    if (!isActive) {
+      setDisplayedText("")
+      setIsTyping(false)
+      completedRef.current = false
+      return
+    }
 
-type AnimationPhase = 'chaos' | 'organizing' | 'organized' | 'clarity'
+    setIsTyping(true)
+    setDisplayedText("")
+    completedRef.current = false
+    
+    let currentIndex = 0
+    const interval = setInterval(() => {
+      if (currentIndex < text.length) {
+        setDisplayedText(text.slice(0, currentIndex + 1))
+        currentIndex++
+      } else {
+        clearInterval(interval)
+        setIsTyping(false)
+        if (!completedRef.current) {
+          completedRef.current = true
+          onComplete?.()
+        }
+      }
+    }, typingSpeed)
+
+    return () => clearInterval(interval)
+  }, [text, isActive, typingSpeed, onComplete])
+
+  return (
+    <span className={className}>
+      {displayedText}
+      {isTyping && (
+        <motion.span
+          className="inline-block w-0.5 h-[1em] bg-current ml-0.5 align-middle"
+          animate={{ opacity: [1, 0] }}
+          transition={{ duration: 0.5, repeat: Infinity, repeatType: "reverse" }}
+        />
+      )}
+    </span>
+  )
+}
+
+// Single tip card with animations
+function TipCard({
+  tip,
+  isActive,
+  onTypingComplete,
+  prefersReducedMotion,
+}: {
+  tip: typeof actionTips[0]
+  isActive: boolean
+  onTypingComplete: () => void
+  prefersReducedMotion: boolean
+}) {
+  const Icon = tip.icon
+  const [showMotivation, setShowMotivation] = useState(false)
+  const [tipComplete, setTipComplete] = useState(false)
+
+  useEffect(() => {
+    if (!isActive) {
+      setShowMotivation(false)
+      setTipComplete(false)
+    }
+  }, [isActive])
+
+  const handleTipComplete = useCallback(() => {
+    setTipComplete(true)
+    // Small delay before showing motivation
+    setTimeout(() => {
+      setShowMotivation(true)
+    }, 300)
+  }, [])
+
+  const handleMotivationComplete = useCallback(() => {
+    // Wait a bit after motivation completes before calling parent
+    setTimeout(() => {
+      onTypingComplete()
+    }, 1500)
+  }, [onTypingComplete])
+
+  if (prefersReducedMotion) {
+    return (
+      <div className="text-center px-4">
+        <div className={`inline-flex items-center justify-center w-16 h-16 rounded-2xl ${tip.bgColor} mb-6`}>
+          <Icon className={`w-8 h-8 ${tip.iconColor}`} />
+        </div>
+        <p className="text-xs uppercase tracking-widest text-muted-foreground mb-3">{tip.category}</p>
+        <p className="text-xl sm:text-2xl md:text-3xl font-medium text-foreground leading-relaxed mb-6 max-w-2xl mx-auto">
+          {tip.tip}
+        </p>
+        <p className="text-base sm:text-lg text-muted-foreground italic max-w-xl mx-auto">
+          &ldquo;{tip.motivation}&rdquo;
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <motion.div
+      className="text-center px-4"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
+    >
+      {/* Icon with gradient ring */}
+      <motion.div
+        className="relative inline-flex items-center justify-center mb-6"
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 0.4, delay: 0.1 }}
+      >
+        <div className={`absolute inset-0 rounded-2xl bg-linear-to-br ${tip.color} opacity-20 blur-xl scale-150`} />
+        <div className={`relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl ${tip.bgColor} flex items-center justify-center shadow-lg`}>
+          <Icon className={`w-8 h-8 sm:w-10 sm:h-10 ${tip.iconColor}`} />
+        </div>
+      </motion.div>
+
+      {/* Category label */}
+      <motion.p
+        className="text-xs uppercase tracking-widest text-muted-foreground mb-4"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3, delay: 0.2 }}
+      >
+        {tip.category}
+      </motion.p>
+
+      {/* Main tip with typewriter effect */}
+      <div className="min-h-18 sm:min-h-20 md:min-h-24 flex items-center justify-center mb-6">
+        <p className="text-xl sm:text-2xl md:text-3xl font-medium text-foreground leading-relaxed max-w-2xl">
+          <TypewriterText
+            text={tip.tip}
+            isActive={isActive}
+            onComplete={handleTipComplete}
+            typingSpeed={30}
+          />
+        </p>
+      </div>
+
+      {/* Motivation quote with fade-in after tip completes */}
+      <div className="min-h-12 sm:min-h-16">
+        <AnimatePresence mode="wait">
+          {tipComplete && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.4 }}
+              className="max-w-xl mx-auto"
+            >
+              <p className="text-base sm:text-lg text-muted-foreground italic">
+                &ldquo;<TypewriterText
+                  text={tip.motivation}
+                  isActive={showMotivation}
+                  onComplete={handleMotivationComplete}
+                  typingSpeed={25}
+                />&rdquo;
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </motion.div>
+  )
+}
+
+// Progress indicator with smooth transitions
+function ProgressBar({
+  total,
+  current,
+  progress,
+}: {
+  total: number
+  current: number
+  progress: number
+}) {
+  return (
+    <div className="flex items-center justify-center gap-2 mt-8">
+      {Array.from({ length: total }).map((_, i) => (
+        <div
+          key={i}
+          className="relative h-1.5 rounded-full bg-purple-200/50 overflow-hidden"
+          style={{ width: i === current ? 48 : 8 }}
+        >
+          {i === current && (
+            <motion.div
+              className="absolute inset-y-0 left-0 bg-linear-to-r from-purple-400 to-pink-400 rounded-full"
+              initial={{ width: "0%" }}
+              animate={{ width: `${progress}%` }}
+              transition={{ duration: 0.1, ease: "linear" }}
+            />
+          )}
+          {i < current && (
+            <div className="absolute inset-0 bg-linear-to-r from-purple-400 to-pink-400 rounded-full" />
+          )}
+        </div>
+      ))}
+    </div>
+  )
+}
 
 export default function ChaosToClarity() {
   const prefersReducedMotion = useReducedMotion()
@@ -46,11 +290,18 @@ export default function ChaosToClarity() {
   return (
     <section
       ref={ref}
-      className="relative py-12 sm:py-16 md:py-20 lg:py-24 px-4 overflow-hidden"
+      className="relative py-16 sm:py-20 md:py-24 lg:py-28 px-4 overflow-hidden"
       style={{
-        background: "linear-gradient(135deg, #F5E6FF 0%, #E6D5FF 100%)",
+        background: "linear-gradient(180deg, #F5E6FF 0%, #E6D5FF 50%, #F5E6FF 100%)",
       }}
     >
+      {/* Background decorations */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-1/4 left-1/4 w-64 h-64 sm:w-96 sm:h-96 rounded-full bg-purple-300/20 blur-3xl" />
+        <div className="absolute bottom-1/4 right-1/4 w-48 h-48 sm:w-80 sm:h-80 rounded-full bg-pink-300/20 blur-3xl" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-violet-200/10 blur-3xl" />
+      </div>
+
       <ChaosToClarityInner
         key={resetKey}
         isInView={isInView}
@@ -67,298 +318,130 @@ function ChaosToClarityInner({
   isInView: boolean
   prefersReducedMotion: boolean
 }) {
-  const [phase, setPhase] = useState<AnimationPhase>('chaos')
+  const [currentTipIndex, setCurrentTipIndex] = useState(0)
+  const [progress, setProgress] = useState(0)
+  const [canAdvance, setCanAdvance] = useState(false)
+  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
-  // Animation timeline
+  // Reset when leaving viewport
   useEffect(() => {
-    if (!isInView) return
-    
+    if (!isInView) {
+      setCurrentTipIndex(0)
+      setProgress(0)
+      setCanAdvance(false)
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current)
+      }
+    }
+  }, [isInView])
+
+  // Handle progression after typing completes
+  const handleTypingComplete = useCallback(() => {
+    setCanAdvance(true)
+  }, [])
+
+  // Progress bar animation and auto-advance
+  useEffect(() => {
+    if (!isInView || !canAdvance) return
+
     if (prefersReducedMotion) {
-      setPhase('clarity')
-      return
+      // For reduced motion, just advance after a delay
+      const timeout = setTimeout(() => {
+        setCurrentTipIndex((prev) => (prev + 1) % actionTips.length)
+        setCanAdvance(false)
+      }, 2000)
+      return () => clearTimeout(timeout)
     }
 
-    let mounted = true
-    const timeouts: NodeJS.Timeout[] = []
-
-    const runCycle = () => {
-      if (!mounted) return
-      
-      // Start with chaos
-      setPhase('chaos')
-      
-      // After 1.2s: start organizing
-      timeouts.push(setTimeout(() => {
-        if (mounted) setPhase('organizing')
-      }, 1200))
-      
-      // After 1.8s: fully organized
-      timeouts.push(setTimeout(() => {
-        if (mounted) setPhase('organized')
-      }, 1800))
-      
-      // After 2.4s: show clarity
-      timeouts.push(setTimeout(() => {
-        if (mounted) setPhase('clarity')
-      }, 2400))
-      
-      // After 4.2s: restart cycle
-      timeouts.push(setTimeout(() => {
-        if (mounted) runCycle()
-      }, 4200))
-    }
-
-    runCycle()
+    // Start progress bar animation
+    setProgress(0)
+    const duration = 500 // 0.5 second hold after typing completes
+    const updateInterval = 50
+    const incrementPerUpdate = (100 / duration) * updateInterval
+    
+    progressIntervalRef.current = setInterval(() => {
+      setProgress((prev) => {
+        const next = prev + incrementPerUpdate
+        if (next >= 100) {
+          if (progressIntervalRef.current) {
+            clearInterval(progressIntervalRef.current)
+          }
+          // Advance to next tip
+          setTimeout(() => {
+            setCurrentTipIndex((prev) => (prev + 1) % actionTips.length)
+            setProgress(0)
+            setCanAdvance(false)
+          }, 100)
+          return 100
+        }
+        return next
+      })
+    }, updateInterval)
 
     return () => {
-      mounted = false
-      timeouts.forEach(clearTimeout)
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current)
+      }
     }
-  }, [isInView, prefersReducedMotion])
+  }, [isInView, canAdvance, prefersReducedMotion])
 
-  // Memoize phase labels
-  const phaseLabel = useMemo(() => {
-    switch (phase) {
-      case 'chaos': return { text: "This feels overwhelming...", color: "text-red-600" }
-      case 'organizing': return { text: "Let's organize this...", color: "text-amber-600" }
-      case 'organized': return { text: "Now you can see it clearly", color: "text-emerald-600" }
-      case 'clarity': return { text: "Clarity comes from organized tracking", color: "text-emerald-600" }
-    }
-  }, [phase])
+  const currentTip = actionTips[currentTipIndex]
 
   return (
-      <div className="max-w-6xl mx-auto">
-        {/* Heading */}
-        <div
-          className="text-center mb-8 sm:mb-12 md:mb-16 relative"
-        >
-          <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight px-2 sm:px-4">
-            Menopause isn&apos;t random.
-            <br />
-            <HighlightedTextByRows
-              text="It's just been poorly explained."
-              isInView={isInView}
-              prefersReducedMotion={prefersReducedMotion}
-              delayMs={300}
-            />
-          </h2>
-        </div>
+    <div className="max-w-4xl mx-auto relative">
+      {/* Heading */}
+      <motion.div
+        className="text-center mb-12 sm:mb-16"
+        initial={{ opacity: 0, y: 16 }}
+        animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+      >
+        <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight px-2 sm:px-4">
+          Small habits,{" "}
+          <HighlightedTextByRows
+            text="lasting change."
+            isInView={isInView}
+            prefersReducedMotion={prefersReducedMotion}
+            delayMs={300}
+          />
+        </h2>
+        <p className="mt-4 text-muted-foreground text-sm sm:text-base md:text-lg max-w-xl mx-auto">
+          Simple action tips & habits that help your body find its rhythm again
+        </p>
+      </motion.div>
 
-        {/* Animation Container */}
-        <div className="relative w-full mx-auto" style={{ 
-          height: "clamp(350px, 45vh, 500px)",
-          maxWidth: "800px" 
-        }}>
-          {/* Phase label indicator */}
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={phase}
-              initial={{ opacity: 0, y: -10 }}
-              animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: -10 }}
-              exit={{ opacity: 0, y: 10 }}
-              transition={{ duration: 0.3 }}
-              className={`absolute top-0 left-1/2 -translate-x-1/2 text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-center ${phaseLabel.color}`}
-            >
-              {phaseLabel.text}
-            </motion.div>
-          </AnimatePresence>
-
-          {/* Main animation area */}
-          <div className="relative w-full h-full pt-8">
-            {/* Symptom cards */}
-            {symptoms.map((symptom, index) => {
-              const Icon = symptom.icon
-              const chaotic = chaoticPositions[index]
-              const organized = organizedPositions[index]
-              
-              // Determine current position based on phase
-              const isOrganized = phase === 'organizing' || phase === 'organized' || phase === 'clarity'
-              const currentX = isOrganized ? organized.x : chaotic.x
-              const currentY = isOrganized ? organized.y : chaotic.y
-              const currentRotate = isOrganized ? 0 : chaotic.rotate
-              const currentScale = isOrganized ? 1 : chaotic.scale
-              
-              // Visual effects based on phase
-              const isBlurred = phase === 'chaos'
-              const showCheckmark = phase === 'clarity'
-              
-              return (
-                <motion.div
-                  key={symptom.id}
-                  className="absolute"
-                  initial={false}
-                  animate={{
-                    left: `${currentX}%`,
-                    top: `${currentY}%`,
-                    rotate: currentRotate,
-                    scale: currentScale,
-                    x: "-50%",
-                    y: "-50%",
-                  }}
-                  transition={{
-                    type: "spring",
-                    damping: 25,
-                    stiffness: 120,
-                    mass: 0.8,
-                    delay: phase === 'organizing' ? index * 0.08 : 0,
-                  }}
-                  style={{ zIndex: phase === 'clarity' ? 5 : 10 - index }}
-                >
-                  <motion.div 
-                    className={`
-                      relative px-3 py-2 sm:px-4 sm:py-2.5 md:px-5 md:py-3 
-                      rounded-xl shadow-lg border-2 
-                      flex items-center gap-2 sm:gap-2.5 whitespace-nowrap
-                      ${symptom.color}
-                    `}
-                    animate={{
-                      filter: isBlurred ? "blur(1px)" : "blur(0px)",
-                      boxShadow: isOrganized 
-                        ? "0 4px 15px rgba(0,0,0,0.1)" 
-                        : "0 8px 25px rgba(0,0,0,0.15)",
-                    }}
-                    transition={{ duration: 0.4 }}
-                  >
-                    <Icon className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
-                    <span className="text-sm sm:text-base font-semibold">
-                      {symptom.label}
-                    </span>
-                    
-                    {/* Checkmark that appears in clarity phase */}
-                    <AnimatePresence>
-                      {showCheckmark && (
-                        <motion.div
-                          initial={{ scale: 0, opacity: 0 }}
-                          animate={{ scale: 1, opacity: 1 }}
-                          exit={{ scale: 0, opacity: 0 }}
-                          transition={{ 
-                            type: "spring", 
-                            damping: 15, 
-                            stiffness: 300,
-                            delay: index * 0.1 
-                          }}
-                          className="absolute -top-2 -right-2 bg-emerald-500 rounded-full p-0.5 shadow-md"
-                        >
-                          <CheckCircle2 className="h-4 w-4 text-white" />
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </motion.div>
-
-                  {/* Chaos effect: question marks floating around */}
-                  {isInView && phase === 'chaos' && (
-                    <motion.span
-                      className="absolute -top-3 -right-1 text-red-400 text-lg font-bold"
-                      animate={{
-                        y: [0, -5, 0],
-                        opacity: [0.6, 1, 0.6],
-                        rotate: [-10, 10, -10],
-                      }}
-                      transition={{
-                        duration: 1.5,
-                        repeat: Infinity,
-                        delay: index * 0.2,
-                      }}
-                    >
-                      ?
-                    </motion.span>
-                  )}
-                </motion.div>
-              )
-            })}
-
-            {/* Clarity celebration overlay */}
-            <AnimatePresence>
-              {phase === 'clarity' && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8 }}
-                  transition={{ 
-                    type: "spring", 
-                    damping: 20, 
-                    stiffness: 150,
-                    delay: 0.5 
-                  }}
-                  className="absolute inset-0 flex items-center justify-center pointer-events-none"
-                  style={{ zIndex: 20 }}
-                >
-                  <div 
-                    className="px-8 py-4 sm:px-12 sm:py-6 bg-linear-to-br from-emerald-100 to-green-100 rounded-2xl shadow-2xl border-2 border-emerald-300"
-                    style={{
-                      boxShadow: "0 15px 40px rgba(16, 185, 129, 0.3), 0 0 80px rgba(16, 185, 129, 0.15)",
-                    }}
-                  >
-                    <div className="flex items-center gap-3 sm:gap-4">
-                      <motion.div
-                        animate={{ 
-                          rotate: [0, 10, -10, 0],
-                          scale: [1, 1.1, 1.1, 1],
-                        }}
-                        transition={{ 
-                          duration: 0.6, 
-                          delay: 0.8,
-                        }}
-                      >
-                        <CheckCircle2 className="h-8 w-8 sm:h-10 sm:w-10 text-emerald-600" />
-                      </motion.div>
-                      <span className="text-2xl sm:text-3xl md:text-4xl font-bold text-emerald-800">
-                        Clarity
-                      </span>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Visual grid lines that appear during organizing */}
-            <AnimatePresence>
-              {(phase === 'organizing' || phase === 'organized') && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.5 }}
-                  className="absolute inset-0 pointer-events-none"
-                  style={{ zIndex: 1 }}
-                >
-                  {/* Horizontal guide lines */}
-                  <motion.div
-                    className="absolute left-[10%] right-[10%] top-[30%] h-px bg-linear-to-r from-transparent via-purple-300 to-transparent"
-                    initial={{ scaleX: 0 }}
-                    animate={{ scaleX: 1 }}
-                    transition={{ duration: 0.6, delay: 0.2 }}
-                  />
-                  <motion.div
-                    className="absolute left-[10%] right-[10%] top-[60%] h-px bg-linear-to-r from-transparent via-purple-300 to-transparent"
-                    initial={{ scaleX: 0 }}
-                    animate={{ scaleX: 1 }}
-                    transition={{ duration: 0.6, delay: 0.3 }}
-                  />
-                  {/* Vertical guide lines */}
-                  <motion.div
-                    className="absolute top-[15%] bottom-[25%] left-[25%] w-px bg-linear-to-b from-transparent via-purple-300 to-transparent"
-                    initial={{ scaleY: 0 }}
-                    animate={{ scaleY: 1 }}
-                    transition={{ duration: 0.6, delay: 0.4 }}
-                  />
-                  <motion.div
-                    className="absolute top-[15%] bottom-[25%] left-[50%] w-px bg-linear-to-b from-transparent via-purple-300 to-transparent"
-                    initial={{ scaleY: 0 }}
-                    animate={{ scaleY: 1 }}
-                    transition={{ duration: 0.6, delay: 0.5 }}
-                  />
-                  <motion.div
-                    className="absolute top-[15%] bottom-[25%] left-[75%] w-px bg-linear-to-b from-transparent via-purple-300 to-transparent"
-                    initial={{ scaleY: 0 }}
-                    animate={{ scaleY: 1 }}
-                    transition={{ duration: 0.6, delay: 0.6 }}
-                  />
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        </div>
+      {/* Main Animation Container */}
+      <div
+        className="relative mx-auto"
+        style={{ minHeight: "320px" }}
+      >
+        <AnimatePresence mode="wait">
+          <TipCard
+            key={currentTip.id}
+            tip={currentTip}
+            isActive={isInView}
+            onTypingComplete={handleTypingComplete}
+            prefersReducedMotion={prefersReducedMotion}
+          />
+        </AnimatePresence>
       </div>
+
+      {/* Progress indicator */}
+      <ProgressBar
+        total={actionTips.length}
+        current={currentTipIndex}
+        progress={canAdvance ? progress : 0}
+      />
+
+      {/* Subtle hint */}
+      <motion.p
+        className="text-center underline text-md text-muted-foreground/60 mt-6"
+        initial={{ opacity: 0 }}
+        animate={isInView ? { opacity: 1 } : { opacity: 0 }}
+        transition={{ delay: 1, duration: 0.5 }}
+      >
+        Evidence-based strategies for your menopause journey
+      </motion.p>
+    </div>
   )
 }

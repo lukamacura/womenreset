@@ -2,15 +2,8 @@
 import "./globals.css";
 
 import type { Metadata } from "next";
-import { cookies } from "next/headers";
-import { createServerClient } from "@supabase/ssr";
 import ConditionalNavbar from "@/components/ConditionalNavbar";
 import PreloaderGate from "@/components/PreloaderGate";
-
-// Removed force-dynamic to enable static optimization for landing page
-// export const dynamic = "force-dynamic";
-// export const revalidate = 0;
-// app/layout.tsx
 import localFont from "next/font/local";
 import { Dancing_Script, Poppins, Lora } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
@@ -56,38 +49,12 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function RootLayout({
+// Sync layout for faster TTFB: auth is resolved on client by ConditionalNavbar
+export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const cookieStore = await cookies();
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-        set() {},
-        remove() {},
-      },
-    }
-  );
-
-  // TTFB Optimization: Use getSession() instead of getUser()
-  // getSession() is faster - it reads from cookies without server validation
-  // ConditionalNavbar will verify with getUser() on the client-side
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  // Pass initial auth state based on session existence (fast check)
-  // Client-side will verify actual validity via getUser()
-  const isAuthenticated = !!session;
-
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 
   return (
@@ -104,7 +71,7 @@ export default async function RootLayout({
       </head>
       <body className="min-h-screen flex flex-col font-sans text-foreground bg-background">
         <PreloaderGate />
-        <ConditionalNavbar isAuthenticated={isAuthenticated} />
+        <ConditionalNavbar isAuthenticated={false} />
 
         <main className="flex-1 w-full">{children}</main>
 

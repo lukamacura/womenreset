@@ -2021,25 +2021,12 @@ function ChatPageInner() {
   // Handle URL prompt parameter (for "Ask Lisa" button from tracker)
   // Moved here after sendToAPI definition to avoid temporal dead zone error
   useEffect(() => {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/117acbca-7710-4e6c-a5b5-905727104271',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/chat/lisa/page.tsx:1847',message:'URL prompt handler useEffect entry',data:{hasPrompt:!!searchParams.get('prompt'),activeId,loading,sendToAPIDefined:typeof sendToAPI==='function'},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
     const prompt = searchParams.get('prompt');
     if (prompt && activeId && !loading) {
-      // Only handle if we haven't already handled this exact prompt for this session
       const promptKey = `${activeId}-${prompt}`;
       if (promptHandledRef.current !== promptKey) {
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/117acbca-7710-4e6c-a5b5-905727104271',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/chat/lisa/page.tsx:1855',message:'About to call sendToAPI',data:{promptKey,decodedPrompt:decodeURIComponent(prompt)},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'A'})}).catch(()=>{});
-        // #endregion
-        const decodedPrompt = decodeURIComponent(prompt);
-        // Auto-send the message
         promptHandledRef.current = promptKey;
-        sendToAPI(decodedPrompt, activeId);
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/117acbca-7710-4e6c-a5b5-905727104271',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/chat/lisa/page.tsx:1861',message:'sendToAPI called successfully',data:{promptKey},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'A'})}).catch(()=>{});
-        // #endregion
-        // Clear URL param
+        sendToAPI(decodeURIComponent(prompt), activeId);
         router.replace('/chat/lisa');
       }
     }
@@ -2341,7 +2328,7 @@ function ChatPageInner() {
           {/* Main */}
           <main className="flex min-w-0 flex-1 flex-col transition-all duration-500 ease-in-out lg:pl-72">
             {/* Top bar (mobile) */}
-            <div className="fixed w-full z-100 top-0 flex items-center justify-between  px-4 py-2 lg:hidden bg-primary-light/30 backdrop-blur-lg " style={{
+            <div className="fixed w-full z-100 top-0 flex items-center justify-between px-4 py-2 lg:hidden bg-primary-light/30 backdrop-blur-lg" style={{
             }}>
               <button
                 onClick={() => setMenuOpen(true)}

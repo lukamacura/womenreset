@@ -39,3 +39,13 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Knowledge base (proprietary RAG content)
+/knowledge-base/
+
+# IDE/AI assistant configs (user-specific)
+.cursor/
+.claude/
+
+# Accidental files
+npx

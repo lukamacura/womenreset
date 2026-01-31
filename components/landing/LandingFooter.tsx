@@ -10,7 +10,7 @@ export default function LandingFooter() {
         <div className="grid md:grid-cols-4 gap-8 mb-8">
           {/* Logo */}
           <div>
-            <Link href="/" className="flex items-center gap-2 mb-4">
+            <Link href="/" prefetch={false} className="flex items-center gap-2 mb-4">
               <div className="relative h-8 w-8 rounded-full overflow-hidden">
                 <Image
                   src="/lisa_profile.webp"
@@ -31,22 +31,22 @@ export default function LandingFooter() {
             <h3 className="font-semibold mb-4 text-foreground">Company</h3>
             <ul className="space-y-2">
               <li>
-                <Link href="/" className="text-muted-foreground hover:text-foreground transition-colors">
+                <Link href="/" prefetch={false} className="text-muted-foreground hover:text-foreground transition-colors">
                   Home
                 </Link>
               </li>
               <li>
-                <Link href="/#how-it-works" className="text-muted-foreground hover:text-foreground transition-colors">
+                <Link href="/#how-it-works" prefetch={false} className="text-muted-foreground hover:text-foreground transition-colors">
                   How it Works
                 </Link>
               </li>
               <li>
-                <Link href="/#pricing" className="text-muted-foreground hover:text-foreground transition-colors">
+                <Link href="/#pricing" prefetch={false} className="text-muted-foreground hover:text-foreground transition-colors">
                   Pricing
                 </Link>
               </li>
               <li>
-                <Link href="/#faq" className="text-muted-foreground hover:text-foreground transition-colors">
+                <Link href="/#faq" prefetch={false} className="text-muted-foreground hover:text-foreground transition-colors">
                   FAQ
                 </Link>
               </li>
@@ -57,12 +57,12 @@ export default function LandingFooter() {
             <h3 className="font-semibold mb-4 text-foreground">Legal</h3>
             <ul className="space-y-2">
               <li>
-                <Link href="/privacy" className="text-muted-foreground hover:text-foreground transition-colors">
+                <Link href="/privacy" prefetch={false} className="text-muted-foreground hover:text-foreground transition-colors">
                   Privacy Policy
                 </Link>
               </li>
               <li>
-                <Link href="/terms" className="text-muted-foreground hover:text-foreground transition-colors">
+                <Link href="/terms" prefetch={false} className="text-muted-foreground hover:text-foreground transition-colors">
                   Terms of Service
                 </Link>
               </li>

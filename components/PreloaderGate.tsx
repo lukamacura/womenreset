@@ -3,18 +3,12 @@
 import { useEffect, useState } from "react";
 import Preloader from "@/components/Preloader";
 
-const MIN_DISPLAY_MS = 300; // Reduced from 600ms for faster LCP
-const MAX_WAIT_MS = 1200; // Reduced from 2500ms - faster fallback
+const MIN_DISPLAY_MS = 0; // No minimum so content shows as soon as ready
+const MAX_WAIT_MS = 400; // Short fallback so we never block long
 
 /**
  * Wraps Preloader and controls visibility based on page load.
- * - Hides after DOMContentLoaded (not full load) for faster LCP
- * - Ensures preloader is visible at least MIN_DISPLAY_MS so the entry animation plays
- * - Fallback: always hide after MAX_WAIT_MS
- * 
- * LCP Optimization: Using DOMContentLoaded instead of load event
- * because load waits for ALL resources (images, fonts, etc.) which
- * delays LCP significantly. DOMContentLoaded fires when HTML is parsed.
+ * Hides after DOMContentLoaded (or immediately if already ready) for faster LCP.
  */
 export default function PreloaderGate() {
   const [isLoading, setIsLoading] = useState(true);
@@ -37,16 +31,21 @@ export default function PreloaderGate() {
       }
     };
 
-    // Check if DOM is already ready (interactive or complete)
-    if (typeof document !== "undefined" && 
-        (document.readyState === "interactive" || document.readyState === "complete")) {
-      hide();
-    } else if (typeof document !== "undefined") {
-      // Use DOMContentLoaded instead of load for faster LCP
-      document.addEventListener("DOMContentLoaded", hide);
+    const runHide = () => {
+      if (typeof document !== "undefined" && (document.readyState === "interactive" || document.readyState === "complete")) {
+        hide();
+      } else if (typeof document !== "undefined") {
+        document.addEventListener("DOMContentLoaded", hide);
+      }
+    };
+
+    // Hide on next paint when doc already ready (e.g. client nav)
+    if (typeof requestAnimationFrame !== "undefined") {
+      requestAnimationFrame(runHide);
+    } else {
+      runHide();
     }
 
-    // Shorter fallback for faster LCP
     const fallback = setTimeout(hide, MAX_WAIT_MS);
 
     return () => {

@@ -98,6 +98,10 @@ export default {
         xl: "var(--shadow-xl)",
         "2xl": "var(--shadow-2xl)",
       },
+      zIndex: {
+        "5": "5",
+        "100": "100",
+      },
     },
   },
   plugins: [],

@@ -10,6 +10,7 @@ export default function NotificationBell() {
   return (
     <Link
       href="/dashboard/notifications"
+      prefetch={false}
       className="relative flex items-center justify-center p-2 rounded-lg hover:bg-foreground/5 transition-colors duration-200"
       aria-label={`Notifications${count > 0 ? ` (${count} unread)` : ""}`}
     >

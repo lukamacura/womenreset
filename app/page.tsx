@@ -5,45 +5,53 @@ import { useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import LandingHero from "@/components/landing/LandingHero";
 
+// Section placeholder: fixed height reserves space to reduce layout shift (CLS)
+function SectionPlaceholder({ className = "h-[280px]" }: { className?: string }) {
+  return (
+    <div className={`w-full ${className}`} role="status" aria-label="Loading" aria-busy="true" />
+  );
+}
+
 // Lazy load below-the-fold components for better initial page load
 const QuestionStorm = dynamic(() => import("@/components/landing/QuestionStorm"), {
-  loading: () => <div className="h-[500px]" />
+  loading: () => <SectionPlaceholder className="h-[420px]" />
 });
 const ChaosToClarity = dynamic(() => import("@/components/landing/ChaosToClarity"), {
-  loading: () => <div className="h-[500px]" />
+  loading: () => <SectionPlaceholder className="h-[420px]" />
 });
 const LandingProblem = dynamic(() => import("@/components/landing/LandingProblem"), {
-  loading: () => <div className="h-[400px]" />
+  loading: () => <SectionPlaceholder className="h-[320px]" />
 });
 const HowItWorksSteps = dynamic(() => import("@/components/landing/HowItWorksSteps"), {
-  loading: () => <div className="h-[600px]" />
+  loading: () => <SectionPlaceholder className="h-[480px]" />
 });
 const FeatureTheater = dynamic(() => import("@/components/landing/FeatureTheater"), {
-  loading: () => <div className="h-[600px]" />
+  loading: () => <SectionPlaceholder className="h-[480px]" />
 });
 const LandingSocialProof = dynamic(() => import("@/components/landing/LandingSocialProof"), {
-  loading: () => <div className="h-[300px]" />
+  loading: () => <SectionPlaceholder className="h-[260px]" />
 });
 const LandingPricing = dynamic(() => import("@/components/landing/LandingPricing"), {
-  loading: () => <div className="h-[600px]" />
+  loading: () => <SectionPlaceholder className="h-[480px]" />
 });
 const LandingFAQ = dynamic(() => import("@/components/landing/LandingFAQ"), {
-  loading: () => <div className="h-[400px]" />
+  loading: () => <SectionPlaceholder className="h-[320px]" />
 });
 const LandingFinalCTA = dynamic(() => import("@/components/landing/LandingFinalCTA"), {
-  loading: () => <div className="h-[200px]" />
+  loading: () => <SectionPlaceholder className="h-[160px]" />
 });
 const LandingFooter = dynamic(() => import("@/components/landing/LandingFooter"), {
-  loading: () => <div className="h-[200px]" />
+  loading: () => <SectionPlaceholder className="h-[180px]" />
 });
 const HomeSwipeButton = dynamic(() => import("@/components/HomeSwipeButton"));
+
+const LANDING_GRADIENT = {
+  backgroundImage: `linear-gradient(135deg, #FDF2F8 0%, #FCE7F3 25%, #F5D0FE 50%, #E9D5FF 75%, #FDF2F8 100%)`,
+};
 
 export default function Home() {
   const router = useRouter();
   const searchParams = useSearchParams();
-
-  // Glassy bubble styles moved to globals.css for better LCP
-  // No runtime CSS injection needed
 
   // Handle Supabase auth errors that redirect to home page
   useEffect(() => {
@@ -53,57 +61,31 @@ export default function Home() {
 
     if (error || errorCode) {
       let errorMessage = "Authentication failed. Please try again.";
-      
       if (errorCode === "otp_expired") {
         errorMessage = "The email link has expired. Please request a new magic link.";
       } else if (errorCode === "access_denied") {
-        errorMessage = errorDescription 
+        errorMessage = errorDescription
           ? decodeURIComponent(errorDescription)
           : "Access denied. Please try again.";
       } else if (errorDescription) {
         errorMessage = decodeURIComponent(errorDescription);
       }
-
-      // Redirect to login with error message
       router.replace(`/login?error=auth_callback_error&message=${encodeURIComponent(errorMessage)}`);
     }
   }, [searchParams, router]);
 
   return (
-    <main 
-      className="relative overflow-hidden min-h-screen"
-      style={{
-        background: `linear-gradient(
-          135deg,
-          #FDF2F8 0%,
-          #FCE7F3 25%,
-          #F5D0FE 50%,
-          #E9D5FF 75%,
-          #FDF2F8 100%
-        )`
-      }}
-    >
+    <main className="relative overflow-hidden min-h-screen" style={LANDING_GRADIENT}>
       {/* Subtle Radial Spotlights */}
       <div 
         className="fixed inset-0 -z-10 pointer-events-none"
         style={{
-          background: `
-            radial-gradient(
-              ellipse at 30% 50%,
-              rgba(252, 231, 243, 0.6) 0%,
-              transparent 50%
-            ),
-            radial-gradient(
-              ellipse at 80% 30%,
-              rgba(233, 213, 255, 0.5) 0%,
-              transparent 40%
-            )
-          `
+          backgroundImage: `radial-gradient(ellipse at 30% 50%, rgba(252, 231, 243, 0.6) 0%, transparent 50%), radial-gradient(ellipse at 80% 30%, rgba(233, 213, 255, 0.5) 0%, transparent 40%)`
         }}
       />
 
       {/* Glassy Bubbles - Page-wide, 40% smaller */}
-      <div className="fixed inset-0 z-5 pointer-events-none overflow-hidden">
+      <div className="fixed inset-0 z-5 pointer-events-none overflow-hidden" aria-hidden="true">
         {/* Large bubble - top right */}
         <div
           className="glassy-bubble animate-float-1-slow"

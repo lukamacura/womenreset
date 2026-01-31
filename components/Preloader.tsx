@@ -26,13 +26,12 @@ export default function Preloader({ isLoading }: PreloaderProps) {
     <AnimatePresence mode="wait">
       {isLoading && (
         <motion.div
-          // LCP optimized: More transparent to allow LCP element detection
-          className="fixed inset-0 z-100 flex items-center justify-center bg-white/80 backdrop-blur-[2px]"
+          className="fixed inset-0 flex items-center justify-center bg-white/80 backdrop-blur-[2px]"
+          style={{ zIndex: 9999 }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          // Faster transitions for quicker LCP
-          transition={{ duration: 0.3, ease: "easeOut" }}
+          transition={{ duration: 0.2, ease: "easeOut" }}
           aria-live="polite"
           aria-busy="true"
           role="status"
@@ -47,8 +46,8 @@ export default function Preloader({ isLoading }: PreloaderProps) {
             }}
             exit={{
               opacity: 0,
-              scale: 0.9,
-              transition: { duration: 0.2, ease: "easeIn" },
+              scale: 0.98,
+              transition: { duration: 0.12, ease: "easeIn" },
             }}
             transition={{
               opacity: { duration: 0.3, ease: "easeOut" },

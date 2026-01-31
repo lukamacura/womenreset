@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Cleanup Script: Remove or Split Oversized Documents
  * 
