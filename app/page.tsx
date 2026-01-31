@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from "react";
+import { useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import LandingHero from "@/components/landing/LandingHero";
@@ -49,7 +49,8 @@ const LANDING_GRADIENT = {
   backgroundImage: `linear-gradient(135deg, #FDF2F8 0%, #FCE7F3 25%, #F5D0FE 50%, #E9D5FF 75%, #FDF2F8 100%)`,
 };
 
-export default function Home() {
+// Separate component that handles auth error params - needs Suspense boundary
+function AuthErrorHandler() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -74,8 +75,17 @@ export default function Home() {
     }
   }, [searchParams, router]);
 
+  return null;
+}
+
+export default function Home() {
   return (
     <main className="relative overflow-hidden min-h-screen" style={LANDING_GRADIENT}>
+      {/* Auth error handler - wrapped in Suspense for useSearchParams */}
+      <Suspense fallback={null}>
+        <AuthErrorHandler />
+      </Suspense>
+      
       {/* Subtle Radial Spotlights */}
       <div 
         className="fixed inset-0 -z-10 pointer-events-none"
