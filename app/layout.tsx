@@ -50,9 +50,9 @@ export const metadata: Metadata = {
   title: "MenoLisa | AI support for women in menopause",
   description: "AI companion for women's health and menopause support",
   icons: {
-    icon: "/lisa_profile.webp",
-    shortcut: "/lisa_profile.webp",
-    apple: "/lisa_profile.webp",
+    icon: [{ url: "/favicon.png", type: "image/png" }],
+    shortcut: "/favicon.png",
+    apple: "/favicon.png",
   },
 };
 
@@ -97,7 +97,7 @@ export default async function RootLayout({
         <link rel="preload" href="/fonts/Satoshi-Bold.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
         <link rel="preload" href="/fonts/Satoshi-Regular.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
         {/* LCP: preload navbar logo (critical above-the-fold image) */}
-        <link rel="preload" href="/lisa_profile.webp" as="image" />
+        <link rel="preload" href="/favicon.png" as="image" />
         {/* Preconnect to Supabase for faster API/auth on first request */}
         {supabaseUrl && <link rel="preconnect" href={supabaseUrl} />}
         {supabaseUrl && <link rel="dns-prefetch" href={supabaseUrl} />}
