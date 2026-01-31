@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { detectBrowser } from "@/lib/browserUtils";
 import { AlertCircle, ExternalLink } from "lucide-react";
 import Link from "next/link";
 
-export default function OpenInChromePage() {
+function OpenInChromeContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const authCode = searchParams.get("code");
@@ -119,5 +119,24 @@ export default function OpenInChromePage() {
         </Link>
       </div>
     </main>
+  );
+}
+
+function LoadingFallback() {
+  return (
+    <main className="min-h-screen flex items-center justify-center p-4">
+      <div className="text-center space-y-4">
+        <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
+        <p className="text-muted-foreground">Loading...</p>
+      </div>
+    </main>
+  );
+}
+
+export default function OpenInChromePage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <OpenInChromeContent />
+    </Suspense>
   );
 }
