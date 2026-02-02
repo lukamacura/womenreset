@@ -189,9 +189,11 @@ export default function PrivacyPage() {
           <h2 className="text-2xl font-semibold mb-4">12. Contact Us</h2>
           <p>If you have any questions, concerns, or requests regarding this Privacy Policy or our privacy practices, please contact us:</p>
           <p>
-            <strong>Macura Solutions LLC</strong>
+            <strong>Macura Solutions LLC</strong>, registered in Wyoming
             <br />
-            Email: <a href="mailto:menolisahelp@gmail.com" className="text-primary hover:underline">menolisahelp@gmail.com</a>
+            30 N Gould St, Ste N, Sheridan, WY 82801, United States
+            <br />
+            Email: <a href="mailto:support@macurasolutions.us" className="text-primary hover:underline">support@macurasolutions.us</a>
           </p>
           <p>We will respond to your inquiry within a reasonable timeframe.</p>
         </section>

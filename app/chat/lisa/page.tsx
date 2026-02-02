@@ -2428,9 +2428,9 @@ function ChatPageInner() {
                               boxShadow: "0 4px 16px rgba(251, 113, 133, 0.4)",
                             }
                             : {
-                              color: THEME.text[900],
-                              backgroundColor: '#FEF3C7', // Warmer yellow (amber-100)
-                              boxShadow: "0 4px 20px rgba(251, 191, 36, 0.3), 0 0 0 1px rgba(251, 191, 36, 0.12)",
+                              color: THEME.text[800],
+                              backgroundColor: THEME.background.white,
+                              boxShadow: "0 2px 12px rgba(31, 41, 55, 0.08), 0 0 0 1px rgba(236, 72, 153, 0.12)",
                             })
                         }}
                       >
@@ -2440,10 +2440,10 @@ function ChatPageInner() {
                               <div className="streaming-text wrap-break-words" style={{
                                 fontSize: '1rem',
                                 lineHeight: '1.4',
-                                color: THEME.text[900],
+                                color: THEME.text[800],
                                 fontWeight: 500,
                                 letterSpacing: '0.01em',
-                                textShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+                                textShadow: '0 1px 2px rgba(0, 0, 0, 0.03)',
                                 WebkitFontSmoothing: 'antialiased',
                                 MozOsxFontSmoothing: 'grayscale',
                               }}>
@@ -2451,7 +2451,7 @@ function ChatPageInner() {
                                 <span
                                   className="inline-block w-0.5 h-5 ml-1 mb-0.5 align-middle rounded-sm streaming-cursor"
                                   style={{
-                                    backgroundColor: '#D97706', // Amber-600 to match warm yellow theme
+                                    backgroundColor: THEME.pink[500],
                                     transition: 'opacity 0.2s ease-in-out',
                                   }}
                                 />
@@ -2465,10 +2465,10 @@ function ChatPageInner() {
                             <div className="wrap-break-words" style={{
                               fontSize: '1rem',
                               lineHeight: '1.4',
-                              color: THEME.text[900],
+                              color: THEME.text[800],
                               fontWeight: 500,
                               letterSpacing: '0.01em',
-                              textShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+                              textShadow: '0 1px 2px rgba(0, 0, 0, 0.03)',
                               WebkitFontSmoothing: 'antialiased',
                               MozOsxFontSmoothing: 'grayscale',
                             }}>
@@ -2516,8 +2516,8 @@ function ChatPageInner() {
                     <motion.div
                       className="rounded-2xl px-4 py-3 text-base leading-relaxed sm:px-5 sm:py-4 sm:text-lg shadow-lg max-w-full sm:max-w-[80%]"
                       style={{
-                        backgroundColor: '#FEF3C7',
-                        boxShadow: "0 4px 20px rgba(251, 191, 36, 0.3), 0 0 0 1px rgba(251, 191, 36, 0.12)",
+                        backgroundColor: THEME.background.white,
+                        boxShadow: "0 2px 12px rgba(31, 41, 55, 0.08), 0 0 0 1px rgba(236, 72, 153, 0.12)",
                       }}
                     >
                       <CoffeeLoading />
@@ -2528,93 +2528,146 @@ function ChatPageInner() {
               </div>
             </section>
 
-            {/* Composer */}
+            {/* Composer — cloud-top surface: irregular wavy top, straight sides & bottom */}
             <footer className="fixed bottom-0 left-0 right-0 z-20 safe-area-inset-bottom lg:left-72" style={{
-              borderColor: THEME.pink[300],
               paddingBottom: 'env(safe-area-inset-bottom, 0)',
             }}>
-              <form
-                onSubmit={async (e) => {
-                  e.preventDefault();
-                  const text = input.trim();
-                  if (!text || loading) return;
-                  const id = activeId ?? await newChat();
-                  // Reset textarea height immediately
-                  if (textareaRef.current) {
-                    textareaRef.current.style.height = "64px";
-                  }
-                  void sendToAPI(text, id);
-                }}
-                className="mx-auto flex w-full max-w-4xl flex-col items-stretch gap-0 px-4 py-4 sm:px-6 sm:py-5"
-              >
-                <div className="relative flex w-full items-center">
-                  <label htmlFor="composer" className="sr-only">
-                    Message Lisa
-                  </label>
-                  <div className="relative w-full">
-                    <textarea
-                      id="composer"
-                      ref={textareaRef}
-                      rows={1}
-                      value={input}
-                      onChange={(e) => setInput(e.target.value)}
-                      onKeyDown={async (e) => {
-                        if (e.key === "Enter" && !e.shiftKey) {
-                          e.preventDefault();
-                          const text = input.trim();
-                          if (!text || loading) return;
-                          const id = activeId ?? await newChat();
-                          void sendToAPI(text, id);
-                        }
-                      }}
-                      aria-label="Type your message"
-                      placeholder="Ask anything..."
-                      className={`w-full resize-none overflow-hidden text-lg sm:text-xl font-bold px-5 py-4 sm:px-6 sm:py-5 outline-none touch-manipulation transition-all duration-200 ease-out ${input.trim() ? 'pr-14 sm:pr-16' : 'pr-5'}`}
-                      style={{
-                        minHeight: '64px',
-                        color: THEME.text[900],
-                        backgroundColor: THEME.background.light,
-                        borderRadius: '12px',
-                      }}
-                    />
-
-                    <AnimatePresence mode="wait">
-                      {input.trim() && (
-                        <motion.button
-                          type="submit"
-                          disabled={loading}
-                          initial={{ opacity: 0, scale: 0.5 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0.5 }}
-                          transition={{
-                            type: "spring",
-                            stiffness: 400,
-                            damping: 25,
-                            mass: 0.8,
-                          }}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-full text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 focus:outline-none touch-manipulation shadow-lg z-10"
-                          style={{
-                            backgroundColor: THEME.pink[500],
-                            color: '#FFFFFF',
-                          }}
-                          aria-label="Send message"
-                        >
-                          {loading ? (
-                            <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin" />
-                          ) : (
-                            <Send className="h-4 w-4 sm:h-5 sm:w-5" />
-                          )}
-                        </motion.button>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                </div>
-                <p
-                  className="mt-2 w-full text-left text-xs text-muted-foreground"
+              {/* Cloud top bumps — SVG wave that sits above the main panel */}
+              <div className="relative">
+                <svg
+                  viewBox="0 0 400 32"
+                  preserveAspectRatio="none"
+                  className="absolute bottom-full left-0 right-0 w-full h-6 sm:h-8"
+                  style={{ filter: 'drop-shadow(0 -4px 8px rgba(236, 72, 153, 0.12))' }}
                 >
-                  Lisa is here to support you with menopause info, but she isn&apos;t a doctor and her guidance should never replace professional medical advice.
-                </p>
-              </form>
+                  <defs>
+                    <linearGradient id="cloudGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="rgba(253, 242, 248, 0.98)" />
+                      <stop offset="35%" stopColor="rgba(252, 231, 243, 0.98)" />
+                      <stop offset="65%" stopColor="rgba(243, 232, 255, 0.98)" />
+                      <stop offset="100%" stopColor="rgba(237, 233, 254, 0.98)" />
+                    </linearGradient>
+                  </defs>
+                  <path
+                    d="M0 32 
+                       C20 32, 25 18, 50 18 
+                       C75 18, 80 28, 100 28 
+                       C120 28, 130 12, 160 12 
+                       C190 12, 195 26, 220 26 
+                       C245 26, 255 8, 290 8 
+                       C325 8, 330 22, 355 22 
+                       C380 22, 390 32, 400 32 
+                       L400 32 L0 32 Z"
+                    fill="url(#cloudGradient)"
+                  />
+                </svg>
+
+                {/* Main panel — straight sides and bottom */}
+                <div
+                  className="pt-4 pb-5 px-4 sm:px-5 sm:pt-5 sm:pb-6"
+                  style={{
+                    background: `linear-gradient(135deg, 
+                      rgba(253, 242, 248, 0.98) 0%, 
+                      rgba(252, 231, 243, 0.98) 25%,
+                      rgba(250, 232, 255, 0.98) 50%,
+                      rgba(243, 232, 255, 0.98) 75%,
+                      rgba(237, 233, 254, 0.98) 100%
+                    )`,
+                    backdropFilter: 'blur(16px)',
+                    WebkitBackdropFilter: 'blur(16px)',
+                    boxShadow: `
+                      inset 0 1px 0 rgba(255, 255, 255, 0.8),
+                      0 -2px 20px rgba(168, 85, 247, 0.08),
+                      0 4px 24px rgba(236, 72, 153, 0.1)
+                    `,
+                  }}
+                >
+                  <form
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      const text = input.trim();
+                      if (!text || loading) return;
+                      const id = activeId ?? await newChat();
+                      if (textareaRef.current) {
+                        textareaRef.current.style.height = "64px";
+                      }
+                      void sendToAPI(text, id);
+                    }}
+                    className="mx-auto flex w-full max-w-4xl flex-col items-stretch gap-0"
+                  >
+                    <div className="relative flex w-full items-center">
+                      <label htmlFor="composer" className="sr-only">
+                        Message Lisa
+                      </label>
+                      <div className="relative w-full">
+                        <textarea
+                          id="composer"
+                          ref={textareaRef}
+                          rows={1}
+                          value={input}
+                          onChange={(e) => setInput(e.target.value)}
+                          onKeyDown={async (e) => {
+                            if (e.key === "Enter" && !e.shiftKey) {
+                              e.preventDefault();
+                              const text = input.trim();
+                              if (!text || loading) return;
+                              const id = activeId ?? await newChat();
+                              void sendToAPI(text, id);
+                            }
+                          }}
+                          aria-label="Type your message"
+                          placeholder="Ask anything..."
+                          className={`w-full resize-none overflow-hidden text-lg sm:text-xl font-bold px-5 py-4 sm:px-6 sm:py-5 outline-none touch-manipulation transition-all duration-200 ease-out ${input.trim() ? 'pr-14 sm:pr-16' : 'pr-5'}`}
+                          style={{
+                            minHeight: '64px',
+                            color: THEME.text[900],
+                            background: 'linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.88) 100%)',
+                            borderRadius: '20px',
+                            border: '1.5px solid rgba(216, 180, 254, 0.5)',
+                            boxShadow: 'inset 0 2px 4px rgba(168, 85, 247, 0.06), 0 2px 8px rgba(236, 72, 153, 0.08)',
+                          }}
+                        />
+
+                        <AnimatePresence mode="wait">
+                          {input.trim() && (
+                            <motion.button
+                              type="submit"
+                              disabled={loading}
+                              initial={{ opacity: 0, scale: 0.5 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              exit={{ opacity: 0, scale: 0.5 }}
+                              transition={{
+                                type: "spring",
+                                stiffness: 400,
+                                damping: 25,
+                                mass: 0.8,
+                              }}
+                              className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-full text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 focus:outline-none touch-manipulation z-10"
+                              style={{
+                                background: `linear-gradient(135deg, ${THEME.pink[500]} 0%, ${THEME.purple[500]} 100%)`,
+                                boxShadow: '0 4px 14px rgba(168, 85, 247, 0.4), 0 2px 6px rgba(236, 72, 153, 0.3)',
+                              }}
+                              aria-label="Send message"
+                            >
+                              {loading ? (
+                                <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin" />
+                              ) : (
+                                <Send className="h-4 w-4 sm:h-5 sm:w-5" />
+                              )}
+                            </motion.button>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    </div>
+                    <p
+                      className="mt-3 w-full text-center text-xs leading-relaxed"
+                      style={{ color: THEME.text[600] }}
+                    >
+                      Lisa is here to support you with menopause info, but she isn&apos;t a doctor and her guidance should never replace professional medical advice.
+                    </p>
+                  </form>
+                </div>
+              </div>
             </footer>
           </main>
         </div>

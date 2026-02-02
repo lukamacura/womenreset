@@ -73,8 +73,8 @@ export default function LandingFooter() {
             <h3 className="font-semibold mb-4 text-foreground">Support</h3>
             <ul className="space-y-2">
               <li>
-                <a href="mailto:menolisainfo@gmail.com" className="text-muted-foreground hover:text-foreground transition-colors">
-                  menolisainfo@gmail.com
+                <a href="mailto:support@macurasolutions.us" className="text-muted-foreground hover:text-foreground transition-colors">
+                  support@macurasolutions.us
                 </a>
               </li>
             </ul>
@@ -85,7 +85,10 @@ export default function LandingFooter() {
           <div className="text-center space-y-2 text-muted-foreground text-sm">
             <p>© {new Date().getFullYear()} MenoLisa. All rights reserved.</p>
             <p className="text-lg">
-              MenoLisa is a product of <span className="font-medium text-foreground">Macura Solutions LLC</span>
+              MenoLisa is a product of <span className="font-medium text-foreground">Macura Solutions LLC</span>, registered in Wyoming
+            </p>
+            <p className="text-sm">
+              30 N Gould St, Ste N, Sheridan, WY 82801, United States
             </p>
           </div>
         </div>

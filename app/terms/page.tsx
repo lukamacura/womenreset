@@ -97,7 +97,7 @@ export default function TermsPage() {
           <p>We offer a 7-day refund policy from the date of your initial subscription purchase. If you are not satisfied with MenoLisa for any reason, you may request a full refund within this period.</p>
 
           <h3 className="text-xl font-semibold mb-3 mt-6">5.2 How to Request a Refund</h3>
-          <p>To request a refund, you must contact us at <a href="mailto:menolisahelp@gmail.com" className="text-primary hover:underline">menolisahelp@gmail.com</a> within 7 days of your purchase date. Your refund request must include:</p>
+          <p>To request a refund, you must contact us at <a href="mailto:support@macurasolutions.us" className="text-primary hover:underline">support@macurasolutions.us</a> within 7 days of your purchase date. Your refund request must include:</p>
           <ul>
             <li>The email address associated with your account</li>
             <li>Your purchase date</li>
@@ -124,7 +124,7 @@ export default function TermsPage() {
           <h2 className="text-2xl font-semibold mb-4">6. Cancellation</h2>
           
           <h3 className="text-xl font-semibold mb-3">6.1 How to Cancel</h3>
-          <p>You may cancel your subscription at any time through your account settings or by contacting us at <a href="mailto:menolisahelp@gmail.com" className="text-primary hover:underline">menolisahelp@gmail.com</a>. Cancellation will take effect at the end of your current billing period.</p>
+          <p>You may cancel your subscription at any time through your account settings or by contacting us at <a href="mailto:support@macurasolutions.us" className="text-primary hover:underline">support@macurasolutions.us</a>. Cancellation will take effect at the end of your current billing period.</p>
 
           <h3 className="text-xl font-semibold mb-3 mt-6">6.2 Effect of Cancellation</h3>
           <p>After cancellation:</p>
@@ -318,7 +318,7 @@ export default function TermsPage() {
           <h3 className="text-xl font-semibold mb-3 mt-6">16.2 Dispute Resolution</h3>
           <p>Any dispute, claim, or controversy arising out of or relating to these Terms or the Service shall be resolved through the following process:</p>
           <ul>
-            <li><strong>Informal Resolution:</strong> Before initiating formal proceedings, you agree to contact us at <a href="mailto:menolisahelp@gmail.com" className="text-primary hover:underline">menolisahelp@gmail.com</a> to attempt to resolve the dispute informally. We will attempt to resolve the dispute within 30 days.</li>
+            <li><strong>Informal Resolution:</strong> Before initiating formal proceedings, you agree to contact us at <a href="mailto:support@macurasolutions.us" className="text-primary hover:underline">support@macurasolutions.us</a> to attempt to resolve the dispute informally. We will attempt to resolve the dispute within 30 days.</li>
             <li><strong>Binding Arbitration:</strong> If informal resolution fails, any dispute shall be resolved by binding arbitration administered by the American Arbitration Association in accordance with its Consumer Arbitration Rules. The arbitration shall be conducted in the English language and shall take place in Delaware or remotely via video conference.</li>
             <li><strong>Class Action Waiver:</strong> YOU AND MACURA SOLUTIONS LLC AGREE THAT ANY DISPUTE RESOLUTION PROCEEDINGS WILL BE CONDUCTED ONLY ON AN INDIVIDUAL BASIS AND NOT IN A CLASS, CONSOLIDATED, OR REPRESENTATIVE ACTION.</li>
           </ul>
@@ -356,13 +356,15 @@ export default function TermsPage() {
           <h2 className="text-2xl font-semibold mb-4">18. Contact Information</h2>
           <p>If you have any questions, concerns, or feedback about these Terms of Service, please contact us:</p>
           <p>
-            <strong>Macura Solutions LLC</strong>
+            <strong>Macura Solutions LLC</strong>, registered in Wyoming
             <br />
-            For general inquiries: <a href="mailto:menolisahelp@gmail.com" className="text-primary hover:underline">menolisahelp@gmail.com</a>
+            30 N Gould St, Ste N, Sheridan, WY 82801, United States
             <br />
-            For legal matters: <a href="mailto:menolisahelp@gmail.com" className="text-primary hover:underline">menolisahelp@gmail.com</a>
+            For general inquiries: <a href="mailto:support@macurasolutions.us" className="text-primary hover:underline">support@macurasolutions.us</a>
             <br />
-            For privacy concerns: <a href="mailto:menolisahelp@gmail.com" className="text-primary hover:underline">menolisahelp@gmail.com</a>
+            For legal matters: <a href="mailto:support@macurasolutions.us" className="text-primary hover:underline">support@macurasolutions.us</a>
+            <br />
+            For privacy concerns: <a href="mailto:support@macurasolutions.us" className="text-primary hover:underline">support@macurasolutions.us</a>
           </p>
         </section>
 
