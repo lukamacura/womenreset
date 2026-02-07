@@ -7,6 +7,7 @@ import { z } from "zod";
 import { fetchTrackerData, analyzeTrackerData, formatTrackerSummary, type PlainLanguageInsight, type TrackerSummary } from "@/lib/trackerAnalysis";
 import type { SymptomLog } from "@/lib/symptom-tracker-constants";
 import { checkTrialExpired } from "@/lib/checkTrialStatus";
+import { getAuthenticatedUser } from "@/lib/getAuthenticatedUser";
 
 export const runtime = "nodejs";
 
@@ -345,10 +346,15 @@ async function generatePersonalizedGreeting(user_id: string): Promise<string> {
 
 export async function POST(req: NextRequest) {
   try {
-    const { message, userInput, user_id, sessionId, history, mode, stream: streamParam } = (await req.json()) as {
+    const authUser = await getAuthenticatedUser(req);
+    if (!authUser) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const user_id = authUser.id;
+
+    const { message, userInput, sessionId, history, mode, stream: streamParam } = (await req.json()) as {
       message?: string; // New parameter name
       userInput?: string; // Legacy support
-      user_id?: string;
       sessionId?: string;
       history?: string;
       mode?: RetrievalMode;
@@ -360,15 +366,8 @@ export async function POST(req: NextRequest) {
 
     // Check if this is a greeting request (empty message)
     if (!userMessage?.trim()) {
-      if (user_id) {
-        const greeting = await generatePersonalizedGreeting(user_id);
-        return NextResponse.json({ content: greeting, persona: "menopause_specialist", source: "llm", isGreeting: true });
-      }
-      return NextResponse.json({ error: "Missing message" }, { status: 400 });
-    }
-
-    if (!user_id?.trim()) {
-      return NextResponse.json({ error: "Missing user_id" }, { status: 400 });
+      const greeting = await generatePersonalizedGreeting(user_id);
+      return NextResponse.json({ content: greeting, persona: "menopause_specialist", source: "llm", isGreeting: true });
     }
 
     if (!sessionId?.trim()) {

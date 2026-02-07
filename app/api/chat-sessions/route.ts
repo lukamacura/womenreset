@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { getAuthenticatedUser } from "@/lib/getAuthenticatedUser";
 
 // Types for API responses
 type SessionSummary = {
@@ -30,15 +31,16 @@ type Message = {
  */
 export async function GET(request: NextRequest) {
   try {
+    const user = await getAuthenticatedUser(request);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const user_id = user.id;
+
     const { searchParams } = new URL(request.url);
-    const user_id = searchParams.get("user_id");
     const session_id = searchParams.get("session_id");
     const limit = parseInt(searchParams.get("limit") || "20", 10);
     const offset = parseInt(searchParams.get("offset") || "0", 10);
-
-    if (!user_id) {
-      return NextResponse.json({ error: "Missing user_id" }, { status: 400 });
-    }
 
     const supabase = getSupabaseAdmin();
 
@@ -146,11 +148,17 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { user_id, session_id, title, action = "create" } = body;
+    const user = await getAuthenticatedUser(request);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const user_id = user.id;
 
-    if (!user_id || !session_id) {
-      return NextResponse.json({ error: "Missing user_id or session_id" }, { status: 400 });
+    const body = await request.json();
+    const { session_id, title, action = "create" } = body;
+
+    if (!session_id) {
+      return NextResponse.json({ error: "Missing session_id" }, { status: 400 });
     }
 
     const supabase = getSupabaseAdmin();
@@ -194,12 +202,17 @@ export async function POST(request: NextRequest) {
  */
 export async function DELETE(request: NextRequest) {
   try {
+    const user = await getAuthenticatedUser(request);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const user_id = user.id;
+
     const { searchParams } = new URL(request.url);
-    const user_id = searchParams.get("user_id");
     const session_id = searchParams.get("session_id");
 
-    if (!user_id || !session_id) {
-      return NextResponse.json({ error: "Missing user_id or session_id" }, { status: 400 });
+    if (!session_id) {
+      return NextResponse.json({ error: "Missing session_id" }, { status: 400 });
     }
 
     const supabase = getSupabaseAdmin();

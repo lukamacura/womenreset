@@ -2369,7 +2369,7 @@ function ChatPageInner() {
               style={{
                 scrollBehavior: 'smooth',
                 WebkitOverflowScrolling: 'touch',
-                paddingBottom: '120px',
+                paddingBottom: '200px',
               }}
             >
               {/* Fixed background video positioned at center */}

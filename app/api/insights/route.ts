@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from "next/server";
-import { createServerClient } from "@supabase/ssr";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { ChatOpenAI } from "@langchain/openai";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
+import { getAuthenticatedUser } from "@/lib/getAuthenticatedUser";
 
 export const runtime = "nodejs";
 
@@ -24,34 +24,6 @@ interface InsightResponse {
 
 const insightCache = new Map<string, { insight: InsightResponse; timestamp: number }>();
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
-
-// Helper: Get authenticated user from request
-async function getAuthenticatedUser(req: NextRequest) {
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return req.cookies.get(name)?.value;
-        },
-        set() {},
-        remove() {},
-      },
-    }
-  );
-
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-
-  if (error || !user) {
-    return null;
-  }
-
-  return user;
-}
 
 // Initialize LLM
 const llm = new ChatOpenAI({
