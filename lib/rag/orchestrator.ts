@@ -29,86 +29,7 @@ interface SupabaseDocumentMetadata {
   id?: string;
 }
 
-/**
- * Detect if a query is a follow-up question that needs context enhancement
- */
-function isFollowUpQuestion(
-  query: string,
-  conversationHistory: Array<["user" | "assistant", string]>
-): boolean {
-  // Must have conversation history to be a follow-up
-  if (!conversationHistory || conversationHistory.length === 0) {
-    return false;
-  }
-  
-  const normalized = query.toLowerCase().trim();
-  
-  // Short ambiguous queries that likely reference previous conversation
-  const followUpPatterns = [
-    /^(what|how|why|when|where|which|who)\s+(about|is|are|was|were|do|does|did|can|could|should|will|would)\s+(that|this|it|them|those|these)/i,
-    /^(tell me more|more about|what else|anything else|how about|what about)/i,
-    /^(and|also|plus|what|how|why)\s+(about|is|are)/i,
-    /^(can you|could you|will you|would you)\s+(tell|explain|give|show|help)/i,
-    /^(what|how|why)\s+(is|are|was|were|do|does|did)\s+(that|this|it)/i,
-  ];
-  
-  // Check if query matches follow-up patterns
-  const matchesPattern = followUpPatterns.some(pattern => pattern.test(normalized));
-  
-  // Also check if query is very short (< 20 chars) and has history
-  const isShort = normalized.length < 20;
-  
-  return matchesPattern || (isShort && conversationHistory.length > 0);
-}
 
-/**
- * Enhance a follow-up query with conversation context for better KB matching
- */
-function enhanceQueryWithContext(
-  query: string,
-  conversationHistory: Array<["user" | "assistant", string]>
-): string {
-  if (!conversationHistory || conversationHistory.length === 0) {
-    return query;
-  }
-  
-  // Get the last few turns of conversation (last 4 messages = 2 user + 2 assistant)
-  const recentHistory = conversationHistory.slice(-4);
-  
-  // Extract key topics/entities from recent conversation
-  const contextParts: string[] = [];
-  
-  for (let i = recentHistory.length - 1; i >= 0; i--) {
-    const [role, content] = recentHistory[i];
-    
-    // Extract nouns and key phrases from assistant responses
-    if (role === "assistant" && content) {
-      // Look for topic mentions (menopause-related terms)
-      const topicMatch = content.match(/\b(sleep|insomnia|hot flash|night sweat|hormone|estrogen|progesterone|menopause|perimenopause|symptom|weight|exercise|nutrition|diet|workout)\b/gi);
-      if (topicMatch) {
-        contextParts.push(...topicMatch.map(t => t.toLowerCase()));
-      }
-    }
-    
-    // Extract key terms from user questions
-    if (role === "user" && content) {
-      // Remove question words and extract meaningful terms
-      const cleaned = content.replace(/\b(what|how|why|when|where|which|who|can|could|should|will|would|do|does|did|is|are|was|were|tell|me|more|about|that|this|it)\b/gi, '');
-      const terms = cleaned.split(/\s+/).filter(w => w.length > 3);
-      if (terms.length > 0) {
-        contextParts.push(...terms.slice(0, 3)); // Take first 3 meaningful terms
-      }
-    }
-  }
-  
-  // Combine original query with context
-  const uniqueContext = [...new Set(contextParts)].slice(0, 5); // Max 5 context terms
-  if (uniqueContext.length > 0) {
-    return `${query} ${uniqueContext.join(' ')}`.trim();
-  }
-  
-  return query;
-}
 
 /**
  * Check if retrieval result has exact intent match
@@ -158,163 +79,9 @@ function getRetrievalMode(persona: Persona): RetrievalMode {
   }
 }
 
-/**
- * Extract follow-up question from KB entry content
- */
-function extractFollowUpQuestion(content: string): string | null {
-  const match = content.match(/###\s*\*\*Follow-Up (?:Question|Questions)?\*\*\s*\n([\s\S]*?)(?=###|$)/i);
-  return match ? match[1].trim() : null;
-}
 
-/**
- * Find matching follow-up link for an option text or user query
- * Uses subtopic as stable identifier for matching, label is only for display
- */
-function findMatchingLink(
-  queryText: string,
-  followUpLinks: FollowUpLink[]
-): FollowUpLink | null {
-  const normalized = queryText.toLowerCase().trim();
-  
-  // PRIORITY 1: Try exact subtopic match first (stable identifier)
-  // This is the primary matching method when links are clicked
-  for (const link of followUpLinks) {
-    if (link.subtopic.toLowerCase() === normalized) {
-      return link;
-    }
-  }
-  
-  // PRIORITY 2: Try partial subtopic match
-  for (const link of followUpLinks) {
-    const linkSubtopic = link.subtopic.toLowerCase();
-    if (normalized.includes(linkSubtopic) || linkSubtopic.includes(normalized)) {
-      // Only match if substantial overlap (at least 5 characters)
-      if (linkSubtopic.length >= 5 && normalized.length >= 5) {
-        return link;
-      }
-    }
-  }
-  
-  // PRIORITY 3: Try exact label match (for backward compatibility with text queries)
-  for (const link of followUpLinks) {
-    if (link.label.toLowerCase() === normalized) {
-      return link;
-    }
-  }
-  
-  // PRIORITY 4: Try partial label match (query contains label or label contains query)
-  for (const link of followUpLinks) {
-    const linkLabel = link.label.toLowerCase();
-    if (normalized.includes(linkLabel) || linkLabel.includes(normalized)) {
-      // Only match if substantial overlap (at least 5 characters or key terms match)
-      if (linkLabel.length >= 5 && normalized.length >= 5) {
-        return link;
-      }
-      // Check for key terms match
-      const labelWords = linkLabel.split(/\s+/).filter(w => w.length > 3);
-      const queryWords = normalized.split(/\s+/).filter(w => w.length > 3);
-      const matchingWords = labelWords.filter(w => queryWords.includes(w));
-      if (matchingWords.length >= 2 || (matchingWords.length === 1 && labelWords.length <= 2)) {
-        return link;
-      }
-    }
-  }
-  
-  // PRIORITY 5: Try matching by topic/subtopic keywords (fallback for natural language queries)
-  for (const link of followUpLinks) {
-    const linkLabel = link.label.toLowerCase();
-    const linkTopic = link.topic.toLowerCase();
-    const linkSubtopic = link.subtopic.toLowerCase();
-    
-    // Extract meaningful terms from query (length > 3)
-    const queryTerms = normalized.split(/\s+/).filter(term => term.length > 3);
-    
-    // Extract terms from label, topic, and subtopic
-    const linkTerms = [
-      ...linkLabel.split(/\s+/),
-      ...linkTopic.split(/\s+/),
-      ...linkSubtopic.split(/\s+/)
-    ].filter(term => term.length > 3);
-    
-    // Count matching terms
-    const matchingTerms = queryTerms.filter(term => linkTerms.includes(term));
-    
-    // Match if at least 2 key terms match, or 1 term matches in short queries/labels
-    if (matchingTerms.length >= 2 || 
-        (matchingTerms.length >= 1 && (queryTerms.length <= 3 || linkTerms.length <= 5))) {
-      return link;
-    }
-  }
-  
-  return null;
-}
 
-/**
- * Parse follow-up question to extract options and match to follow-up links
- */
-function parseFollowUpOptions(
-  followUpQuestion: string,
-  followUpLinks: FollowUpLink[]
-): Array<{ option: string; link: FollowUpLink | null }> {
-  const options: Array<{ option: string; link: FollowUpLink | null }> = [];
-  
-  // Pattern 1: Square brackets [option A], [option B]
-  const bracketPattern = /\[([^\]]+)\]/g;
-  let match;
-  while ((match = bracketPattern.exec(followUpQuestion)) !== null) {
-    const optionText = match[1].trim();
-    const link = findMatchingLink(optionText, followUpLinks);
-    options.push({ option: optionText, link });
-  }
-  
-  // Pattern 2: Comma-separated options (if no brackets found)
-  if (options.length === 0) {
-    // Split by "or" and comma patterns, extract meaningful phrases
-    // Look for patterns like: "Would you like to [X], [Y], or [Z]?"
-    const orPattern = /(?:^|,|\s+or\s+)([^,]+?)(?=,|\s+or\s+|$)/gi;
-    while ((match = orPattern.exec(followUpQuestion)) !== null) {
-      const optionText = match[1].trim();
-      // Filter out question starters and short phrases
-      if (optionText.length > 10 && !/^(would|like|to|learn|understand|explore|or)$/i.test(optionText)) {
-        const link = findMatchingLink(optionText, followUpLinks);
-        options.push({ option: optionText, link });
-      }
-    }
-  }
-  
-  return options;
-}
 
-/**
- * Extract key phrases from text for reverse KB lookup
- */
-function extractKeyPhrases(text: string): string[] {
-  // Extract meaningful phrases (3+ words) that are likely KB-related
-  const phrases: string[] = [];
-  
-  // Remove markdown and special characters
-  const cleaned = text.replace(/[#*`\[\]()]/g, ' ').replace(/\s+/g, ' ').trim();
-  
-  // Extract noun phrases (simplified - look for capitalized words and common terms)
-  const words = cleaned.split(/\s+/);
-  const menopauseTerms = ['hormone', 'menopause', 'estrogen', 'progesterone', 'hot flash', 'night sweat', 'sleep', 'nutrition', 'exercise', 'workout', 'diet', 'symptom'];
-  
-  // Find phrases containing menopause-related terms
-  for (let i = 0; i < words.length - 2; i++) {
-    const threeWords = words.slice(i, i + 3).join(' ').toLowerCase();
-    if (menopauseTerms.some(term => threeWords.includes(term))) {
-      phrases.push(threeWords);
-    }
-  }
-  
-  // Also extract capitalized phrases (likely proper nouns or topics)
-  const capitalizedPhrases = cleaned.match(/\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,2}\b/g);
-  if (capitalizedPhrases) {
-    phrases.push(...capitalizedPhrases.map(p => p.toLowerCase()));
-  }
-  
-  return [...new Set(phrases)].slice(0, 5); // Return unique phrases, max 5
-}
 
 /**
  * Retrieve KB entry by exact metadata match
@@ -496,8 +263,8 @@ async function findFollowUpLinkByQuery(userQuery: string): Promise<FollowUpLink 
         continue;
       }
       
-      // PRIORITY 1: Exact subtopic match (stable identifier - this is what frontend sends)
-      // This is the primary matching method when users click follow-up links
+      // PRIORITY 1: Exact subtopic match (stable identifier - this is what frontend sends on link click)
+      // Only real link clicks send this exact text; plain-text queries must not match.
       for (const link of followUpLinks) {
         const linkSubtopic = link.subtopic.toLowerCase().trim();
         if (linkSubtopic === normalizedQuery) {
@@ -506,20 +273,8 @@ async function findFollowUpLinkByQuery(userQuery: string): Promise<FollowUpLink 
         }
       }
       
-      // PRIORITY 2: Partial subtopic match (for backward compatibility)
-      // Only match if both are substantial (>= 5 chars) to avoid false matches
-      for (const link of followUpLinks) {
-        const linkSubtopic = link.subtopic.toLowerCase().trim();
-        if (normalizedQuery.includes(linkSubtopic) || linkSubtopic.includes(normalizedQuery)) {
-          if (linkSubtopic.length >= 5 && normalizedQuery.length >= 5) {
-            console.log(`[Follow-up Link] ✅ Partial subtopic match found: "${link.subtopic}"`);
-            return link;
-          }
-        }
-      }
-      
-      // PRIORITY 3: Exact label match (for backward compatibility only)
-      // Only if query is substantial (>= 5 chars) to avoid matching greetings
+      // PRIORITY 2: Exact label match (when frontend sends label on link click)
+      // Require >= 5 chars to avoid matching short greetings as links
       if (normalizedQuery.length >= 5) {
         for (const link of followUpLinks) {
           const linkLabel = link.label.toLowerCase().trim();
@@ -629,7 +384,6 @@ export async function orchestrateRAG(
     const allHistory = conversationHistory || memoryHistory.map(msg => [msg.role, msg.content] as ["user" | "assistant", string]);
 
     // Step 1.5: Detect and enhance follow-up questions
-    const isFollowUp = isFollowUpQuestion(userQuery, allHistory);
     const queryForKB = userQuery;
     
     // Step 2: Classify persona (use original query, not enhanced) - do this early for follow-up link resolution
@@ -791,19 +545,24 @@ async function handleKBStrictMode(
     });
   }
 
-  // TRUST RETRIEVAL RESULTS: If retrieveFromKBByIntentOnly returned entries with hasMatch=true,
-  // those entries already passed the 0.80 intent threshold, so return verbatim immediately
-  // No need to recalculate intent scores - retrieval already did that
-  if (retrievalResult.hasMatch && retrievalResult.kbEntries.length > 0) {
-    console.log(`[KB Strict Mode] ✅ VERBATIM RESPONSE triggered (intent-matched entries from retrieval)`);
+  // TRUST RETRIEVAL RESULTS only when BOTH intent and semantic agree (prevents wrong-topic verbatim)
+  // Semantic gate: require topSemanticScore >= 0.30 so queries like "i don't feel like myself anymore"
+  // don't get verbatim from a doc that matched only on fuzzy intent (e.g. word "anymore") with low semantic
+  const SEMANTIC_THRESHOLD_VERBATIM = 0.30;
+  const semanticOkForVerbatim =
+    retrievalResult.topSemanticScore !== undefined &&
+    retrievalResult.topSemanticScore >= SEMANTIC_THRESHOLD_VERBATIM;
+
+  if (retrievalResult.hasMatch && retrievalResult.kbEntries.length > 0 && semanticOkForVerbatim) {
+    console.log(`[KB Strict Mode] ✅ VERBATIM RESPONSE triggered (intent + semantic gate passed)`);
     if (retrievalResult.topSemanticScore !== undefined) {
-      console.log(`  - Top semantic score: ${retrievalResult.topSemanticScore.toFixed(3)}`);
+      console.log(`  - Top semantic score: ${retrievalResult.topSemanticScore.toFixed(3)} >= ${SEMANTIC_THRESHOLD_VERBATIM}`);
     }
     if (retrievalResult.topScore !== undefined) {
       console.log(`  - Top hybrid score: ${retrievalResult.topScore.toFixed(3)}`);
     }
     const verbatimResponse = formatVerbatimResponse(retrievalResult.kbEntries, true); // Pass excludeMetadata=true
-    
+
     return {
       response: verbatimResponse,
       persona,
@@ -815,8 +574,14 @@ async function handleKBStrictMode(
     };
   }
 
-  // No KB match
-  console.log(`[KB Strict Mode] ❌ No verbatim response (no KB entries found)`);
+  if (retrievalResult.hasMatch && retrievalResult.kbEntries.length > 0 && !semanticOkForVerbatim) {
+    console.log(`[KB Strict Mode] ❌ Verbatim skipped: semantic score below threshold (top semantic: ${retrievalResult.topSemanticScore?.toFixed(3) ?? "n/a"} < ${SEMANTIC_THRESHOLD_VERBATIM}) → LLM fallback`);
+  }
+
+  // No KB match (or semantic gate failed) - continue to refusal check / LLM fallback
+  if (!retrievalResult.hasMatch || retrievalResult.kbEntries.length === 0) {
+    console.log(`[KB Strict Mode] ❌ No verbatim response (no KB entries found)`);
+  }
 
   // No KB match - check safety (mode-aware)
   const hasKBAnswer = retrievalResult.hasMatch && retrievalResult.kbEntries.length > 0;

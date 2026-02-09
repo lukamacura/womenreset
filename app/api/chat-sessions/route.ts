@@ -9,6 +9,9 @@ type SessionSummary = {
   created_at: string;
   updated_at: string;
   message_count: number;
+  /** First user message in session (by created_at), for deriving title */
+  first_user_message?: string;
+  first_created_at?: string;
 };
 
 type Message = {
@@ -83,10 +86,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ messages: transformedMessages });
     } else {
       // List all sessions for the user (for sidebar)
-      // Group by session_id and get the latest message info
       const { data: sessions, error } = await supabase
         .from("conversations")
-        .select("session_id, title, created_at, updated_at")
+        .select("session_id, title, created_at, updated_at, user_message")
         .eq("user_id", user_id)
         .not("session_id", "is", null)
         .order("updated_at", { ascending: false });
@@ -96,37 +98,57 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: "Failed to fetch sessions" }, { status: 500 });
       }
 
-      // Deduplicate by session_id and count messages
       const sessionMap = new Map<string, SessionSummary>();
+      const DEFAULT_TITLES = new Set(["Menopause Support Chat", "New chat", ""]);
+
       for (const row of sessions || []) {
         if (!row.session_id) continue;
-        
+
         if (!sessionMap.has(row.session_id)) {
           sessionMap.set(row.session_id, {
             session_id: row.session_id,
-            title: row.title || "Menopause Support Chat",
+            title: row.title ?? "",
             created_at: row.created_at,
             updated_at: row.updated_at || row.created_at,
             message_count: 1,
+            first_user_message: row.user_message?.trim() || undefined,
+            first_created_at: row.created_at,
           });
         } else {
           const existing = sessionMap.get(row.session_id)!;
           existing.message_count++;
-          // Keep earliest created_at
           if (new Date(row.created_at) < new Date(existing.created_at)) {
             existing.created_at = row.created_at;
+            existing.first_created_at = row.created_at;
+            existing.first_user_message =
+              row.user_message?.trim() || existing.first_user_message;
           }
-          // Keep latest updated_at
           if (row.updated_at && new Date(row.updated_at) > new Date(existing.updated_at)) {
             existing.updated_at = row.updated_at;
           }
         }
       }
 
-      // Convert to array and sort by updated_at desc
+      const maxTitleLen = 48;
       const sessionList = Array.from(sessionMap.values())
         .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
-        .slice(offset, offset + limit);
+        .slice(offset, offset + limit)
+        .map((s) => {
+          let title = s.title?.trim() || "";
+          if (!title || DEFAULT_TITLES.has(title)) {
+            const first = (s.first_user_message || "").trim();
+            title =
+              first.length <= maxTitleLen ? first : first.slice(0, maxTitleLen).trim() + "…";
+          }
+          if (!title) title = "Chat";
+          return {
+            session_id: s.session_id,
+            title,
+            created_at: s.created_at,
+            updated_at: s.updated_at,
+            message_count: s.message_count,
+          };
+        });
 
       return NextResponse.json({ sessions: sessionList });
     }

@@ -2,10 +2,31 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, PATCH, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
+  "Access-Control-Max-Age": "86400",
+};
+
 export async function middleware(req: NextRequest) {
   const res = NextResponse.next();
 
   const { pathname } = req.nextUrl;
+
+  // CORS preflight: must return 200 with CORS headers, no redirect (browser blocks redirect on preflight)
+  if (req.method === "OPTIONS") {
+    return new NextResponse(null, { status: 200, headers: CORS_HEADERS });
+  }
+
+  // API routes called with Bearer token (e.g. mobile app): skip cookie check; the route will validate the token
+  if (pathname.startsWith("/api/") && req.headers.get("Authorization")?.startsWith("Bearer ")) {
+    const response = NextResponse.next();
+    Object.entries(CORS_HEADERS).forEach(([key, value]) => {
+      response.headers.set(key, value);
+    });
+    return response;
+  }
 
   // ✅ define protected areas
   const isProtected =

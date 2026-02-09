@@ -1154,6 +1154,8 @@ function parseHistory(history: string): Array<["user" | "assistant", string]> {
   return messages;
 }
 
+const MAX_SESSION_TITLE_LENGTH = 48;
+
 // Helper: Store conversation for long-term memory
 async function storeConversation(
   user_id: string,
@@ -1165,13 +1167,28 @@ async function storeConversation(
   try {
     const supabaseClient = getSupabaseAdmin();
     const now = new Date().toISOString();
+    let resolvedTitle = title ?? null;
+    if (session_id && !resolvedTitle && userMessage?.trim()) {
+      const { count } = await supabaseClient
+        .from("conversations")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user_id)
+        .eq("session_id", session_id);
+      if (count === 0) {
+        const trimmed = userMessage.trim();
+        resolvedTitle =
+          trimmed.length <= MAX_SESSION_TITLE_LENGTH
+            ? trimmed
+            : trimmed.slice(0, MAX_SESSION_TITLE_LENGTH).trim() + "…";
+      }
+    }
     await supabaseClient.from("conversations").insert([
       {
         user_id,
         user_message: userMessage,
         assistant_message: assistantMessage,
         session_id: session_id || null,
-        title: title || null,
+        title: resolvedTitle,
         updated_at: now,
       },
     ]);
