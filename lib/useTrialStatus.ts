@@ -17,11 +17,12 @@ export type TrialStatus = {
   progressPct: number;
   remaining: { d: number; h: number; m: number; s: number };
   trialDays?: number;
+  accountStatus: string;
   loading: boolean;
   error: string | null;
 };
 
-export function useTrialStatus() {
+export function useTrialStatus(): TrialStatus & { refetch: () => Promise<void> } {
   const [trialStatus, setTrialStatus] = useState<TrialStatus>({
     expired: false,
     start: null,
@@ -30,6 +31,7 @@ export function useTrialStatus() {
     elapsedDays: 0,
     progressPct: 0,
     remaining: { d: 3, h: 0, m: 0, s: 0 },
+    accountStatus: "trial",
     loading: true,
     error: null,
   });
@@ -149,68 +151,59 @@ export function useTrialStatus() {
     subscriptionEndsAt: Date | null;
   } | null>(null);
 
-  // Fetch trial data once on mount
-  useEffect(() => {
-    let mounted = true;
+  const notAuthenticatedState: TrialStatus = {
+    expired: false,
+    start: null,
+    end: null,
+    daysLeft: 3,
+    elapsedDays: 0,
+    progressPct: 0,
+    remaining: { d: 3, h: 0, m: 0, s: 0 },
+    accountStatus: "trial",
+    loading: false,
+    error: "User not authenticated",
+  };
 
-    (async () => {
-      try {
-        setTrialStatus((prev) => ({ ...prev, loading: true, error: null }));
+  const loadTrial = useCallback(async () => {
+    setTrialStatus((prev) => ({ ...prev, loading: true, error: null }));
+    try {
+      const { data, error } = await supabase.auth.getUser();
+      if (error) throw error;
 
-        const { data, error } = await supabase.auth.getUser();
-        if (error) throw error;
-
-        const userId = data.user?.id;
-        if (!userId) {
-          if (mounted) {
-            setTrialStatus({
-              expired: false,
-              start: null,
-              end: null,
-              daysLeft: 3,
-              elapsedDays: 0,
-              progressPct: 0,
-              remaining: { d: 3, h: 0, m: 0, s: 0 },
-              loading: false,
-              error: "User not authenticated",
-            });
-          }
-          return;
-        }
-
-        const userTrial = await fetchUserTrial(userId);
-        if (!mounted) return;
-
-        const trialDays = userTrial.trial_days || 3;
-        const start = userTrial.trial_start ? new Date(userTrial.trial_start) : null;
-        const end = userTrial.trial_end ? new Date(userTrial.trial_end) : null;
-        const subEnd = (userTrial as { subscription_ends_at?: string | null }).subscription_ends_at;
-        const subscriptionEndsAt = subEnd ? new Date(subEnd) : null;
-
-        setTrialData({
-          trialDays,
-          start,
-          end,
-          accountStatus: userTrial.account_status || "trial",
-          subscriptionEndsAt,
-        });
-
-        setTrialStatus((prev) => ({ ...prev, loading: false }));
-      } catch (e) {
-        if (mounted) {
-          setTrialStatus((prev) => ({
-            ...prev,
-            loading: false,
-            error: e instanceof Error ? e.message : "Unknown error",
-          }));
-        }
+      const userId = data.user?.id;
+      if (!userId) {
+        setTrialStatus(notAuthenticatedState);
+        return;
       }
-    })();
 
-    return () => {
-      mounted = false;
-    };
+      const userTrial = await fetchUserTrial(userId);
+      const trialDays = userTrial.trial_days || 3;
+      const start = userTrial.trial_start ? new Date(userTrial.trial_start) : null;
+      const end = userTrial.trial_end ? new Date(userTrial.trial_end) : null;
+      const subEnd = (userTrial as { subscription_ends_at?: string | null }).subscription_ends_at;
+      const subscriptionEndsAt = subEnd ? new Date(subEnd) : null;
+
+      setTrialData({
+        trialDays,
+        start,
+        end,
+        accountStatus: userTrial.account_status || "trial",
+        subscriptionEndsAt,
+      });
+      setTrialStatus((prev) => ({ ...prev, loading: false }));
+    } catch (e) {
+      setTrialStatus((prev) => ({
+        ...prev,
+        loading: false,
+        error: e instanceof Error ? e.message : "Unknown error",
+      }));
+    }
   }, [fetchUserTrial]);
+
+  // Fetch trial data on mount
+  useEffect(() => {
+    loadTrial();
+  }, [loadTrial]);
 
   // Update calculations based on current time (runs every second but doesn't re-fetch)
   useEffect(() => {
@@ -238,6 +231,7 @@ export function useTrialStatus() {
         progressPct: 0,
         remaining: { d, h, m, s },
         trialDays,
+        accountStatus: "paid",
         loading: false,
         error: null,
       });
@@ -254,6 +248,7 @@ export function useTrialStatus() {
         progressPct: 0,
         remaining: { d: trialDays, h: 0, m: 0, s: 0 },
         trialDays,
+        accountStatus: accountStatus ?? "trial",
         loading: false,
         error: null,
       });
@@ -286,11 +281,14 @@ export function useTrialStatus() {
       progressPct,
       remaining: { d, h, m, s },
       trialDays,
+      accountStatus: accountStatus ?? "trial",
       loading: false,
       error: null,
     });
   }, [trialData, now, trialStatus.loading]);
 
-  return trialStatus;
+  return { ...trialStatus, refetch: loadTrial };
 }
+
+export type UseTrialStatusReturn = TrialStatus & { refetch: () => Promise<void> };
 

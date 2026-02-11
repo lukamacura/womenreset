@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
@@ -170,7 +170,7 @@ export default function DashboardPage() {
   const [userName, setUserName] = useState<string | null>(null);
   const [loading] = useState(false); // Start as false - don't block rendering
   const [err, setErr] = useState<string | null>(null);
-  const [now, setNow] = useState<Date>(new Date());
+  const [, setNow] = useState<Date>(new Date());
   const lastNotifiedStateRef = useRef<TrialState | null>(null);
   const { logs: symptomLogs, loading: symptomLogsLoading, refetch: refetchSymptomLogs } = useSymptomLogs(30);
   const { symptoms, refetch: refetchSymptoms } = useSymptoms();
@@ -186,12 +186,6 @@ export default function DashboardPage() {
     }
   }, [user, refetchSymptomLogs]);
 
-  const [userTrial, setUserTrial] = useState<{
-    trial_start: string | null;
-    trial_end: string | null;
-    trial_days: number;
-    account_status: string;
-  } | null>(null);
   const [patternCount, setPatternCount] = useState<number>(0);
   const [, setPatternCountLoading] = useState(true);
   
@@ -224,106 +218,6 @@ export default function DashboardPage() {
   const [editingLog, setEditingLog] = useState<SymptomLog | null>(null);
   const [isLogModalOpen, setIsLogModalOpen] = useState(false);
 
-  // Fetch user trial info from user_trials table - Define BEFORE useEffects that use it
-  const fetchUserTrial = useCallback(async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from("user_trials")
-        .select("trial_start, trial_end, trial_days, account_status")
-        .eq("user_id", userId)
-        .single();
-
-      if (error) {
-        // Check if table doesn't exist
-        const errorMsg = error.message?.toLowerCase() || "";
-        const isTableMissing = errorMsg.includes("does not exist") || 
-                               errorMsg.includes("relation") ||
-                               error.code === "42P01";
-        
-        if (isTableMissing) {
-          // Table doesn't exist yet - return defaults silently
-          return {
-            trial_start: new Date().toISOString(),
-            trial_end: null,
-            trial_days: 3,
-            account_status: "trial",
-          };
-        }
-        
-        // If row doesn't exist (PGRST116), try to create it
-        if (error.code === "PGRST116") {
-          const nowIso = new Date().toISOString();
-          const { data: newTrial, error: insertError } = await supabase
-            .from("user_trials")
-            .insert([
-              {
-                user_id: userId,
-                trial_start: nowIso,
-                trial_days: 3,
-                account_status: "trial",
-              },
-            ])
-            .select("trial_start, trial_end, trial_days, account_status")
-            .single();
-
-          if (insertError) {
-            // If insert fails, return defaults
-            return {
-              trial_start: nowIso,
-              trial_end: null,
-              trial_days: 3,
-              account_status: "trial",
-            };
-          }
-          return newTrial;
-        }
-        
-        // Any other error - return defaults silently
-        return {
-          trial_start: new Date().toISOString(),
-          trial_end: null,
-          trial_days: 3,
-          account_status: "trial",
-        };
-      }
-
-      // If trial_start is null, initialize it
-      if (!data.trial_start) {
-        const nowIso = new Date().toISOString();
-        const { data: updated, error: updateError } = await supabase
-          .from("user_trials")
-          .update({
-            trial_start: nowIso,
-            trial_days: data.trial_days || 3,
-            account_status: "trial",
-          })
-          .eq("user_id", userId)
-          .select("trial_start, trial_end, trial_days, account_status")
-          .single();
-
-        if (updateError) {
-          return {
-            trial_start: nowIso,
-            trial_end: null,
-            trial_days: data.trial_days || 3,
-            account_status: "trial",
-          };
-        }
-        return updated;
-      }
-
-      return data;
-    } catch {
-      // Silently return defaults on any error
-      return {
-        trial_start: new Date().toISOString(),
-        trial_end: null,
-        trial_days: 3,
-        account_status: "trial",
-      };
-    }
-  }, []);
-
   // Ticker for live countdown
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), MS.SECOND);
@@ -338,32 +232,19 @@ export default function DashboardPage() {
       }
       if (event === "TOKEN_REFRESHED" || event === "USER_UPDATED") {
         const { data } = await supabase.auth.getUser();
-        if (data.user) {
-          setUser(data.user);
-          // Refetch trial data when user updates
-          fetchUserTrial(data.user.id).then((trial) => {
-            setUserTrial(trial);
-          });
-        }
+        if (data.user) setUser(data.user);
       }
       if (event === "SIGNED_IN") {
-        // Session was established - refresh user data and all data
         const { data } = await supabase.auth.getUser();
         if (data.user) {
           setUser(data.user);
-          // Refetch trial data
-          fetchUserTrial(data.user.id).then((trial) => {
-            setUserTrial(trial);
-          });
-          // Clear Next.js cache and refetch all data
           router.refresh();
-          // Dispatch event to trigger refetch in hooks
           window.dispatchEvent(new CustomEvent('auth-state-changed'));
         }
       }
     });
     return () => sub.subscription.unsubscribe();
-  }, [router, fetchUserTrial]);
+  }, [router]);
 
   // Verify session on mount and save quiz data if present
   useEffect(() => {
@@ -494,11 +375,6 @@ export default function DashboardPage() {
 
         if (mounted) {
           setUser(u);
-          // Fetch user trial info in background - don't block
-          fetchUserTrial(u.id).then((trial) => {
-            if (mounted) setUserTrial(trial);
-          });
-          // Refresh router to clear cache
           router.refresh();
         }
       } catch (e) {
@@ -508,34 +384,30 @@ export default function DashboardPage() {
     return () => {
       mounted = false;
     };
-  }, [router, fetchUserTrial]);
-
-  // Refetch data when user becomes available (after redirect from auth)
-  useEffect(() => {
-    if (user && !userTrial) {
-      // User is set but trial data not loaded yet - fetch it
-      fetchUserTrial(user.id).then((trial) => {
-        setUserTrial(trial);
-      });
-    }
-  }, [user, userTrial, fetchUserTrial]);
+  }, [router]);
 
   // Handle URL query params from auth redirect (clear cache)
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('auth') === 'success') {
-      // Clear the query param
       window.history.replaceState({}, '', '/dashboard');
-      // Refetch all data
-      if (user) {
-        refetchSymptomLogs();
-        fetchUserTrial(user.id).then((trial) => {
-          setUserTrial(trial);
-        });
-      }
+      if (user) refetchSymptomLogs();
       router.refresh();
     }
-  }, [user, refetchSymptomLogs, fetchUserTrial, router]);
+  }, [user, refetchSymptomLogs, router]);
+
+  // Ref to call trial refetch without depending on full trialStatus (avoids effect re-runs on every tick)
+  const refetchTrialRef = useRef<(() => Promise<void>) | null>(null);
+  refetchTrialRef.current = trialStatus.refetch;
+
+  // Handle return from Stripe checkout: refresh subscription/trial state without full reload
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get("checkout") !== "success") return;
+    window.history.replaceState({}, "", "/dashboard");
+    router.refresh();
+    refetchTrialRef.current?.();
+  }, [router]);
 
   // Fetch pattern count for expired state
   const fetchPatternCount = useCallback(async () => {
@@ -584,76 +456,14 @@ export default function DashboardPage() {
     }
   }, [user, fetchPatternCount]);
 
-  // Trial computations (UTC-safe) - now from user_trials
-  const trial = useMemo(() => {
-    if (!userTrial) {
-      return {
-        start: null as Date | null,
-        end: null as Date | null,
-        expired: false,
-        daysLeft: 3,
-        elapsedDays: 0,
-        progressPct: 0,
-        remaining: { d: 3, h: 0, m: 0, s: 0 },
-      };
-    }
-
-    const trialDays = userTrial.trial_days || 3;
-    const start = userTrial.trial_start ? new Date(userTrial.trial_start) : null;
-    const end = userTrial.trial_end ? new Date(userTrial.trial_end) : null;
-
-    if (!start) {
-      return {
-        start: null,
-        end: null,
-        expired: false,
-        daysLeft: trialDays,
-        elapsedDays: 0,
-        progressPct: 0,
-        remaining: { d: trialDays, h: 0, m: 0, s: 0 },
-      };
-    }
-
-    // Use trial_end from database if available, otherwise calculate
-    const endTs = end ? end.getTime() : start.getTime() + trialDays * MS.DAY;
-    const startTs = start.getTime();
-    const nowTs = now.getTime();
-
-    const remainingMs = Math.max(0, endTs - nowTs);
-    const expired =
-      userTrial.account_status === "expired" ||
-      remainingMs === 0 ||
-      (end && end.getTime() < nowTs);
-
-    const elapsedDays = Math.floor((nowTs - startTs) / MS.DAY);
-    const daysLeft = Math.max(0, Math.ceil(remainingMs / MS.DAY));
-    const progressPct = Math.min(100, (elapsedDays / trialDays) * 100);
-
-    const d = Math.floor(remainingMs / MS.DAY);
-    const h = Math.floor((remainingMs % MS.DAY) / MS.HOUR);
-    const m = Math.floor((remainingMs % MS.HOUR) / MS.MINUTE);
-    const s = Math.floor((remainingMs % MS.MINUTE) / MS.SECOND);
-
-    return {
-      start,
-      end: new Date(endTs),
-      expired,
-      daysLeft,
-      elapsedDays,
-      progressPct,
-      remaining: { d, h, m, s },
-      trialDays,
-    };
-  }, [userTrial, now]);
-
-  // Send trial phase notifications
+  // Send trial phase notifications (uses trialStatus from useTrialStatus)
   useEffect(() => {
-    if (!user || !trial.end || trial.expired === true) {
+    if (!user || !trialStatus.end || trialStatus.expired === true) {
       lastNotifiedStateRef.current = null;
       return;
     }
 
-    const currentState = getTrialState(!!trial.expired, trial.daysLeft, trial.remaining);
+    const currentState = getTrialState(!!trialStatus.expired, trialStatus.daysLeft, trialStatus.remaining);
     
     // Only send notifications for warning and urgent states
     if (currentState !== "warning" && currentState !== "urgent") {
@@ -677,11 +487,11 @@ export default function DashboardPage() {
 
         if (currentState === "warning") {
           title = "Trial Ending Soon";
-          message = `Your trial ends in ${trial.daysLeft} ${trial.daysLeft === 1 ? "day" : "days"}. Upgrade now to keep your progress and access Lisa's insights.`;
+          message = `Your trial ends in ${trialStatus.daysLeft} ${trialStatus.daysLeft === 1 ? "day" : "days"}. Upgrade now to keep your progress and access Lisa's insights.`;
           priority = "medium";
         } else if (currentState === "urgent") {
           title = "Trial Ending Today";
-          message = `Your trial ends in ${trial.remaining.h}h ${trial.remaining.m}m. Upgrade now to save your progress and unlock Lisa's patterns.`;
+          message = `Your trial ends in ${trialStatus.remaining.h}h ${trialStatus.remaining.m}m. Upgrade now to save your progress and unlock Lisa's patterns.`;
           priority = "high";
         } else {
           return;
@@ -721,7 +531,7 @@ export default function DashboardPage() {
 
     // Send notification when entering warning or urgent state
     sendNotification();
-  }, [user, trial.expired, trial.daysLeft, trial.remaining, trial.end]);
+  }, [user, trialStatus.expired, trialStatus.daysLeft, trialStatus.remaining, trialStatus.end]);
 
   // ---------------------------
   // Event handlers
@@ -971,9 +781,16 @@ export default function DashboardPage() {
           <AnimatedCard index={0} delay={200}>
             <TrialCard
               trial={{
-                ...trial,
-                expired: !!trial.expired, // Ensure 'expired' is always boolean
+                expired: trialStatus.expired,
+                start: trialStatus.start,
+                end: trialStatus.end,
+                daysLeft: trialStatus.daysLeft,
+                elapsedDays: trialStatus.elapsedDays,
+                progressPct: trialStatus.progressPct,
+                remaining: trialStatus.remaining,
+                trialDays: trialStatus.trialDays,
               }}
+              accountStatus={trialStatus.accountStatus}
               symptomCount={symptomLogs.length}
               patternCount={patternCount}
             />

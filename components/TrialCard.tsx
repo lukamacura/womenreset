@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { AlertTriangle, Clock } from "lucide-react";
 import { PricingModal } from "./PricingModal";
 
-export type TrialState = "calm" | "warning" | "urgent" | "expired";
+export type TrialState = "calm" | "warning" | "urgent" | "expired" | "subscriber";
 
 export interface TrialCardProps {
   trial: {
@@ -17,6 +17,7 @@ export interface TrialCardProps {
     remaining: { d: number; h: number; m: number; s: number };
     trialDays?: number;
   };
+  accountStatus?: string;
   symptomCount?: number;
   patternCount?: number;
 }
@@ -42,26 +43,31 @@ export function formatCountdown(
   state: TrialState,
   remaining: { d: number; h: number; m: number; s: number }
 ): string {
+  if (state === "subscriber") {
+    return `Renews in ${remaining.d}d ${remaining.h}h ${remaining.m}m`;
+  }
   if (state === "urgent") {
     return `${remaining.h}h ${remaining.m}m remaining`;
   }
   return `Ends in ${remaining.d}d ${remaining.h}h ${remaining.m}m`;
 }
 
-export function TrialCard({ trial, symptomCount = 0, patternCount = 0 }: TrialCardProps) {
+export function TrialCard({ trial, accountStatus, symptomCount = 0, patternCount = 0 }: TrialCardProps) {
   const [now, setNow] = useState(new Date());
   const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
 
+  const isSubscriber = accountStatus === "paid";
+
   // Live countdown for urgent state (updates every minute)
   useEffect(() => {
-    const state = getTrialState(trial.expired, trial.daysLeft, trial.remaining);
+    const state = isSubscriber ? "subscriber" : getTrialState(trial.expired, trial.daysLeft, trial.remaining);
     if (state === "urgent" && !trial.expired) {
       const interval = setInterval(() => {
         setNow(new Date());
       }, 60000); // Update every minute
       return () => clearInterval(interval);
     }
-  }, [trial.expired, trial.daysLeft, trial.remaining]);
+  }, [isSubscriber, trial.expired, trial.daysLeft, trial.remaining]);
 
   // Recalculate remaining time for urgent state
   const currentRemaining = trial.expired
@@ -78,12 +84,23 @@ export function TrialCard({ trial, symptomCount = 0, patternCount = 0 }: TrialCa
       })()
     : trial.remaining;
 
-  const state = getTrialState(trial.expired, trial.daysLeft, currentRemaining);
+  const state = isSubscriber ? "subscriber" : getTrialState(trial.expired, trial.daysLeft, currentRemaining);
   const countdownText = formatCountdown(state, currentRemaining);
 
   // Get state-specific styling
   const getStateStyles = () => {
     switch (state) {
+      case "subscriber":
+        return {
+          background: "from-gray-900 via-blue-900 to-pink-900",
+          badgeBg: "bg-green-500/30",
+          badgeText: "text-green-300",
+          badgeBorder: "border-green-500/50",
+          badgeLabel: "Subscriber",
+          progressBar: "from-primary via-accent to-secondary",
+          buttonStyle: "bg-white/10 hover:bg-white/20 text-white! border border-white/30 w-full",
+          title: "Your plan",
+        };
       case "calm":
         return {
           background: "from-gray-900 via-blue-900 to-pink-900",
@@ -136,6 +153,8 @@ export function TrialCard({ trial, symptomCount = 0, patternCount = 0 }: TrialCa
   // Get CTA button text based on state
   const getCTAText = () => {
     switch (state) {
+      case "subscriber":
+        return "Manage subscription";
       case "calm":
         return "Upgrade for $6.58/mo";
       case "warning":
@@ -158,7 +177,13 @@ export function TrialCard({ trial, symptomCount = 0, patternCount = 0 }: TrialCa
               <h2 className="text-2xl lg:text-3xl font-extrabold text-white! mb-2">
                 {styles.title}
               </h2>
-              {state === "expired" ? (
+              {state === "subscriber" ? (
+                <p className="text-sm text-white/80">
+                  {trial.end
+                    ? `Active until ${trial.end.toLocaleDateString(undefined, { month: "numeric", day: "numeric", year: "numeric" })}`
+                    : "Your subscription is active"}
+                </p>
+              ) : state === "expired" ? (
                 <p className="text-sm text-white/80">
                   Your data is saved for 30 days
                 </p>
@@ -173,7 +198,7 @@ export function TrialCard({ trial, symptomCount = 0, patternCount = 0 }: TrialCa
                   <li>Lisa&apos;s patterns will be hidden</li>
                   <li>You&apos;ll lose access to insights</li>
                 </ul>
-              ) : (
+              ) : state === "calm" ? (
                 <p className="text-sm text-white/80">
                   {trial.start && (
                     <>
@@ -182,7 +207,7 @@ export function TrialCard({ trial, symptomCount = 0, patternCount = 0 }: TrialCa
                     </>
                   )}
                 </p>
-              )}
+              ) : null}
             </div>
             <div
               className={`rounded-full px-3 py-1.5 text-xs font-semibold shrink-0 ml-2 ${styles.badgeBg} ${styles.badgeText} ${styles.badgeBorder} border`}
@@ -212,7 +237,9 @@ export function TrialCard({ trial, symptomCount = 0, patternCount = 0 }: TrialCa
                     <span className="text-5xl lg:text-6xl font-extrabold text-white tracking-tight">
                       {trial.daysLeft}
                     </span>
-                    <span className="text-lg text-white/80">days left</span>
+                    <span className="text-lg text-white/80">
+                      {state === "subscriber" ? "days until renewal" : "days left"}
+                    </span>
                   </>
                 )}
               </div>
@@ -225,10 +252,14 @@ export function TrialCard({ trial, symptomCount = 0, patternCount = 0 }: TrialCa
                 />
               </div>
               <div className="mt-2 flex items-center justify-between text-xs text-white/70">
-                <span>
-                  {Math.min(trial.trialDays || 3, trial.elapsedDays)} / {trial.trialDays || 3}{" "}
-                  days used
-                </span>
+                {state === "subscriber" ? (
+                  <span>Renews {trial.end?.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</span>
+                ) : (
+                  <span>
+                    {Math.min(trial.trialDays || 3, trial.elapsedDays)} / {trial.trialDays || 3}{" "}
+                    days used
+                  </span>
+                )}
                 <span>{trial.progressPct.toFixed(0)}%</span>
               </div>
             </div>
