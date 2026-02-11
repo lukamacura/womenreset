@@ -6,8 +6,25 @@ export const runtime = "nodejs";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
-function getBaseUrl(): string {
-  if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL;
+function getAllowedOrigins(): string[] {
+  const origins: string[] = [];
+  if (process.env.NEXT_PUBLIC_APP_URL) origins.push(process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, ""));
+  if (process.env.NEXT_PUBLIC_SITE_URL) origins.push(process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, ""));
+  if (process.env.VERCEL_URL) origins.push(`https://${process.env.VERCEL_URL}`);
+  origins.push("https://menolisa.com", "https://www.menolisa.com");
+  origins.push("https://womenreset.com", "https://www.womenreset.com");
+  origins.push("http://localhost:3000", "http://127.0.0.1:3000");
+  return [...new Set(origins)];
+}
+
+function getBaseUrl(originFromRequest?: string | null): string {
+  if (originFromRequest) {
+    const allowed = getAllowedOrigins();
+    const normalized = originFromRequest.replace(/\/$/, "");
+    if (allowed.includes(normalized)) return normalized;
+  }
+  if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
+  if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, "");
   if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
   return "http://localhost:3000";
 }
@@ -21,6 +38,7 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
     const plan = body?.plan as string | undefined;
+    const returnOrigin = (body?.return_origin as string | undefined) || req.headers.get("origin") || req.headers.get("referer");
     if (plan !== "monthly" && plan !== "annual") {
       return NextResponse.json(
         { error: "Invalid plan. Use 'monthly' or 'annual'." },
@@ -42,7 +60,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const baseUrl = getBaseUrl();
+    const baseUrl = getBaseUrl(
+      typeof returnOrigin === "string" && returnOrigin.startsWith("http")
+        ? new URL(returnOrigin).origin
+        : returnOrigin
+    );
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       payment_method_types: ["card"],

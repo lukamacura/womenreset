@@ -134,7 +134,10 @@ export function PricingModal({
       const res = await fetch("/api/stripe/create-checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan }),
+        body: JSON.stringify({
+          plan,
+          return_origin: typeof window !== "undefined" ? window.location.origin : undefined,
+        }),
         credentials: "include",
       });
       const data = await res.json().catch(() => ({}));

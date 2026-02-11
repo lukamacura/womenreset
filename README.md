@@ -40,16 +40,16 @@ Checkout uses Stripe. Set these in `.env.local` (and in Vercel for production):
 
 Get the **Price IDs** from Stripe Dashboard → Products → open each product → copy the Price ID.
 
-**Webhook (required for marking users as paid):**
+**Webhook (required for marking users as paid and adding subscription period):**
 
 1. In Stripe Dashboard → Developers → Webhooks → Add endpoint.
-2. URL: `https://your-domain.com/api/stripe/webhook`
-3. Events: `checkout.session.completed`
+2. URL must be the **same domain your users actually use** (e.g. `https://menolisa.com/api/stripe/webhook`). If the webhook points at a different or broken domain, payments will succeed but users will not be marked as paid and will not get access.
+3. Events: `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`
 4. Copy the **Signing secret** and set `STRIPE_WEBHOOK_SECRET` in your env.
 
 For local testing use [Stripe CLI](https://stripe.com/docs/stripe-cli): `stripe listen --forward-to localhost:3000/api/stripe/webhook` and use the printed signing secret.
 
-Optional: `NEXT_PUBLIC_APP_URL` for correct success/cancel redirect URLs in production (e.g. `https://yoursite.com`).
+**Redirects:** After checkout, users are sent back to the same origin they started from (e.g. your app at menolisa.com → back to menolisa.com/dashboard). Ensure your app domain is in the allowed list (menolisa.com, womenreset.com, localhost, or set `NEXT_PUBLIC_APP_URL` / `NEXT_PUBLIC_SITE_URL`).
 
 ## Deploy on Vercel
 
