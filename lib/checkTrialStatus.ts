@@ -5,7 +5,7 @@ export async function checkTrialExpired(userId: string): Promise<boolean> {
     const supabaseAdmin = getSupabaseAdmin();
     const { data, error } = await supabaseAdmin
       .from("user_trials")
-      .select("trial_start, trial_end, trial_days, account_status")
+      .select("trial_start, trial_end, trial_days, account_status, subscription_ends_at")
       .eq("user_id", userId)
       .single();
 
@@ -15,6 +15,15 @@ export async function checkTrialExpired(userId: string): Promise<boolean> {
         return false;
       }
       // For other errors, assume trial is active to avoid blocking users
+      return false;
+    }
+
+    // Paid: expire only when subscription_ends_at is set and in the past
+    if (data.account_status === "paid") {
+      if (data.subscription_ends_at) {
+        const end = new Date(data.subscription_ends_at);
+        if (end < new Date()) return true;
+      }
       return false;
     }
 

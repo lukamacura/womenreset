@@ -131,19 +131,19 @@ export default function WhatLisaNoticed() {
       
       // Handle both old format (string) and new format (object)
       if (typeof insightData === "string") {
-        // Legacy format - convert to new structure
+        // Legacy format - convert to new structure with Lisa-noticed copy
         setInsight({
-          patternHeadline: insightData.split('\n')[0] || "Your patterns this week",
-          why: insightData.substring(0, 200) || "Let's explore what your data shows.",
+          patternHeadline: insightData.split('\n')[0] || "Lisa didn't have enough data yet to notice something specific.",
+          why: insightData.substring(0, 200) || "Keep logging your symptoms and mood so Lisa can share what she notices.",
           whatsWorking: null,
           actionSteps: {
-            easy: "Keep tracking your symptoms to see patterns",
-            medium: "Try one small change this week and see if it helps",
-            advanced: "Create a consistent routine that supports your body"
+            easy: "Keep tracking so Lisa can spot what helps.",
+            medium: "Try one small change this week and see if it helps.",
+            advanced: "Build a consistent routine that supports your body."
           },
-          doctorNote: "Tracking symptoms and patterns. Reviewing data with healthcare provider.",
+          doctorNote: "Symptom and mood tracking in progress. Can review with healthcare provider when ready.",
           trend: "stable",
-          whyThisMatters: "Understanding your patterns helps you and your healthcare team make informed decisions."
+          whyThisMatters: "When Lisa has a bit more data, she can point out things that might be useful to you and your healthcare team."
         });
       } else {
         setInsight(insightData);
@@ -251,7 +251,7 @@ export default function WhatLisaNoticed() {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <Network className="h-8 w-8 text-pink-500" />
-            <h3 className="text-2xl font-semibold text-card-foreground">Your Insights This Week</h3>
+            <h3 className="text-2xl font-semibold text-card-foreground">What Lisa noticed</h3>
           </div>
         </div>
         <p className="text-sm text-muted-foreground">{error}</p>
@@ -259,9 +259,19 @@ export default function WhatLisaNoticed() {
     );
   }
 
-  // No insight available
+  // No insight available - show empty state card
   if (!insight) {
-    return null;
+    return (
+      <div className="bg-card backdrop-blur-lg rounded-2xl border border-border/30 p-4 sm:p-6 shadow-xl mb-6">
+        <div className="flex items-center gap-3 mb-4">
+          <Network className="h-8 w-8 text-pink-500 shrink-0" />
+          <h3 className="text-2xl font-semibold text-card-foreground">What Lisa noticed</h3>
+        </div>
+        <p className="text-muted-foreground text-base leading-relaxed">
+          Keep logging symptoms and Lisa will share what she noticed.
+        </p>
+      </div>
+    );
   }
 
   const trendColor = getTrendColor(insight.trend);
@@ -279,7 +289,7 @@ export default function WhatLisaNoticed() {
           <Network className="h-8 w-8 text-pink-500 shrink-0" />
           <div className="flex-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="text-2xl font-semibold text-card-foreground">Your Insights This Week</h3>
+              <h3 className="text-2xl font-semibold text-card-foreground">What Lisa noticed</h3>
               <span className={`px-2 py-1 rounded-full text-xs font-medium border ${trendColor}`}>
                 {insight.trend}
               </span>
@@ -290,7 +300,7 @@ export default function WhatLisaNoticed() {
           onClick={handleRefresh}
           disabled={isRefreshing}
           className="p-2 rounded-lg text-muted-foreground hover:bg-card/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
-          aria-label="Refresh insight"
+          aria-label="Refresh what Lisa noticed"
         >
           <RefreshCw
             className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`}

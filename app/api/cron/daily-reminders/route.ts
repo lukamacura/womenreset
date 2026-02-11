@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { checkTrialExpired } from "@/lib/checkTrialStatus";
+import { sendPushNotification } from "@/lib/sendPushNotification";
 
 export const runtime = "nodejs";
 
@@ -137,6 +138,11 @@ export async function GET(req: NextRequest) {
           errors++;
         } else {
           notificationsCreated++;
+          sendPushNotification({
+            userId: userPref.user_id,
+            title: "Time to check in",
+            body: "How are you feeling today? Track your symptoms to see patterns.",
+          }).catch(() => {});
         }
       } catch (error) {
         console.error(`Error processing user ${userPref.user_id}:`, error);

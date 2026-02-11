@@ -29,6 +29,28 @@ To learn more about Next.js, take a look at the following resources:
 
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
+## Stripe (Payments)
+
+Checkout uses Stripe. Set these in `.env.local` (and in Vercel for production):
+
+- `STRIPE_SECRET_KEY` – Stripe secret key (test or live)
+- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` – Publishable key (optional for hosted Checkout)
+- `STRIPE_PRICE_MONTHLY` – Price ID for the monthly plan (e.g. `price_xxx`)
+- `STRIPE_PRICE_ANNUAL` – Price ID for the annual plan (e.g. `price_yyy`)
+
+Get the **Price IDs** from Stripe Dashboard → Products → open each product → copy the Price ID.
+
+**Webhook (required for marking users as paid):**
+
+1. In Stripe Dashboard → Developers → Webhooks → Add endpoint.
+2. URL: `https://your-domain.com/api/stripe/webhook`
+3. Events: `checkout.session.completed`
+4. Copy the **Signing secret** and set `STRIPE_WEBHOOK_SECRET` in your env.
+
+For local testing use [Stripe CLI](https://stripe.com/docs/stripe-cli): `stripe listen --forward-to localhost:3000/api/stripe/webhook` and use the printed signing secret.
+
+Optional: `NEXT_PUBLIC_APP_URL` for correct success/cancel redirect URLs in production (e.g. `https://yoursite.com`).
+
 ## Deploy on Vercel
 
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.

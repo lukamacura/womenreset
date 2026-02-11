@@ -45,7 +45,7 @@ export function useTrialStatus() {
     try {
       const { data, error } = await supabase
         .from("user_trials")
-        .select("trial_start, trial_end, trial_days, account_status")
+        .select("trial_start, trial_end, trial_days, account_status, subscription_ends_at")
         .eq("user_id", userId)
         .single();
 
@@ -146,6 +146,7 @@ export function useTrialStatus() {
     start: Date | null;
     end: Date | null;
     accountStatus: string;
+    subscriptionEndsAt: Date | null;
   } | null>(null);
 
   // Fetch trial data once on mount
@@ -183,13 +184,16 @@ export function useTrialStatus() {
         const trialDays = userTrial.trial_days || 3;
         const start = userTrial.trial_start ? new Date(userTrial.trial_start) : null;
         const end = userTrial.trial_end ? new Date(userTrial.trial_end) : null;
+        const subscriptionEndsAt = (userTrial as { subscription_ends_at?: string | null }).subscription_ends_at
+          ? new Date((userTrial as { subscription_ends_at: string }).subscription_ends_at)
+          : null;
 
-        // Store the raw data
         setTrialData({
           trialDays,
           start,
           end,
           accountStatus: userTrial.account_status || "trial",
+          subscriptionEndsAt,
         });
 
         setTrialStatus((prev) => ({ ...prev, loading: false }));
@@ -213,7 +217,33 @@ export function useTrialStatus() {
   useEffect(() => {
     if (!trialData || trialStatus.loading) return;
 
-    const { trialDays, start, end, accountStatus } = trialData;
+    const { trialDays, start, end, accountStatus, subscriptionEndsAt } = trialData;
+    const nowTs = now.getTime();
+
+    // Paid: expire only when subscription_ends_at is past; show subscription end as "end"
+    if (accountStatus === "paid") {
+      const endTs = subscriptionEndsAt ? subscriptionEndsAt.getTime() : nowTs + 365 * MS.DAY;
+      const remainingMs = Math.max(0, endTs - nowTs);
+      const expired = subscriptionEndsAt ? subscriptionEndsAt.getTime() < nowTs : false;
+      const daysLeft = Math.max(0, Math.ceil(remainingMs / MS.DAY));
+      const d = Math.floor(remainingMs / MS.DAY);
+      const h = Math.floor((remainingMs % MS.DAY) / MS.HOUR);
+      const m = Math.floor((remainingMs % MS.HOUR) / MS.MINUTE);
+      const s = Math.floor((remainingMs % MS.MINUTE) / MS.SECOND);
+      setTrialStatus({
+        expired,
+        start: start ?? new Date(nowTs - MS.DAY),
+        end: subscriptionEndsAt ?? new Date(endTs),
+        daysLeft,
+        elapsedDays: 0,
+        progressPct: 0,
+        remaining: { d, h, m, s },
+        trialDays,
+        loading: false,
+        error: null,
+      });
+      return;
+    }
 
     if (!start) {
       setTrialStatus({
@@ -231,11 +261,8 @@ export function useTrialStatus() {
       return;
     }
 
-    // Use trial_end from database if available, otherwise calculate
     const endTs = end ? end.getTime() : start.getTime() + trialDays * MS.DAY;
     const startTs = start.getTime();
-    const nowTs = now.getTime();
-
     const remainingMs = Math.max(0, endTs - nowTs);
     const expired: boolean =
       accountStatus === "expired" ||

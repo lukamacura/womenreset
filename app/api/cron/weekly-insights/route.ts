@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { generateWeeklyInsights, getWeekBoundaries, getPreviousWeekBoundaries } from "@/lib/insights/generateInsights";
+import { sendPushNotification } from "@/lib/sendPushNotification";
 import type { SymptomLog } from "@/lib/symptom-tracker-constants";
 
 export const runtime = "nodejs";
@@ -127,11 +128,18 @@ export async function GET(req: NextRequest) {
             type: "weekly_insights",
             title: "Your weekly summary is ready",
             message: notificationContent,
-            data: {
+            metadata: {
               weekStart: weekStart.toISOString().split('T')[0],
               weekEnd: weekEnd.toISOString().split('T')[0],
             },
           }]);
+
+        sendPushNotification({
+          userId: userPref.user_id,
+          title: "Your weekly summary is ready",
+          body: notificationContent,
+          data: { screen: "Notifications" },
+        }).catch(() => {});
 
         notificationsSent++;
         processed++;

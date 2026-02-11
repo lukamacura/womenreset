@@ -20,7 +20,7 @@ import PersonalizedGreeting from "@/components/symptom-tracker/PersonalizedGreet
 import EmptyState from "@/components/symptom-tracker/EmptyState";
 import HealthSummaryButton from "@/components/symptom-tracker/HealthSummaryButton";
 import DailyMoodSelector from "@/components/symptom-tracker/DailyMoodSelector";
-import WeeklyInsights from "@/components/insights/WeeklyInsights";
+import WhatLisaNoticed from "@/components/symptom-tracker/WhatLisaNoticed";
 import GoodDayCard from "@/components/symptom-tracker/GoodDayCard";
 import DeleteConfirmationDialog from "@/components/DeleteConfirmationDialog";
 import TriggerPromptModal from "@/components/symptom-tracker/TriggerPromptModal";
@@ -514,7 +514,7 @@ export default function SymptomsPage() {
     [symptoms, logs, sessionState, show]
   );
 
-  // Check for end-of-day notification
+  // Check for end-of-day notification (mood prompt only when user has logged — avoids redundant "log symptoms" nudge)
   useEffect(() => {
     const checkEndOfDay = () => {
       const now = new Date();
@@ -540,8 +540,9 @@ export default function SymptomsPage() {
         return logDate.getTime() === today.getTime();
       });
 
+      // Only show EOD reminder when user has logged today (prompt to set mood).
+      // When they haven't logged, we do not show a second nudge — the daily "Time to check in" reminder is enough.
       if (todayLogs.length > 0) {
-        // Has logged symptoms
         show(
           "reminder",
           "🌙 End of Day",
@@ -552,7 +553,6 @@ export default function SymptomsPage() {
             primaryAction: {
               label: "Set mood",
               action: () => {
-                // Scroll to mood selector or focus it
                 const moodSelector = document.querySelector('[data-daily-mood-selector]');
                 if (moodSelector) {
                   moodSelector.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -566,53 +566,15 @@ export default function SymptomsPage() {
             showOnce: true,
           }
         );
-      } else {
-        // No logs today
-        show(
-          "reminder",
-          "🌙 End of Day",
-          {
-            message: "No symptoms logged today - was it a good day?",
-            priority: "low",
-            autoDismiss: false,
-            primaryAction: {
-              label: "Yes! 🌟",
-              action: async () => {
-                try {
-                  // This will be handled by DailyMoodSelector component
-                  const moodSelector = document.querySelector('[data-daily-mood-selector]');
-                  if (moodSelector) {
-                    moodSelector.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    // Trigger click on "Great" button
-                    const greatButton = moodSelector.querySelector('[data-mood="4"]');
-                    if (greatButton instanceof HTMLElement) {
-                      greatButton.click();
-                    }
-                  }
-                } catch (error) {
-                  console.error("Failed to set mood:", error);
-                }
-              },
-            },
-            secondaryAction: {
-              label: "Just forgot to log",
-              action: () => {
-                setIsSelectorOpen(true);
-              },
-            },
-            showOnce: true,
-          }
-        );
+        sessionStorage.setItem(todayKey, 'true');
       }
-
-      sessionStorage.setItem(todayKey, 'true');
     };
 
     // Check on mount and when logs/mood change
     if (!trialStatus.loading && !trialStatus.expired) {
       checkEndOfDay();
     }
-  }, [logs, dailyMood, trialStatus, show, setIsSelectorOpen]);
+  }, [logs, dailyMood, trialStatus, show]);
 
   // Handle save symptom log (create or update)
   const handleSaveLog = useCallback(
@@ -866,9 +828,9 @@ export default function SymptomsPage() {
           </AnimatedSection>
         )}
 
-        {/* Weekly Insights */}
+        {/* What Lisa noticed */}
         <AnimatedSection delay={0}>
-          <WeeklyInsights />
+          <WhatLisaNoticed />
         </AnimatedSection>
 
         {/* Recent Logs */}

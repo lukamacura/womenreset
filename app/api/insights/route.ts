@@ -254,7 +254,7 @@ ${symptomLogsText}
 DAILY MOODS (Last 7 days):
 ${dailyMoodsText}`;
 
-    const systemPrompt = `You are Lisa, a knowledgeable and empathetic menopause health advisor. Generate personalized, actionable insights based on the user's profile and recent symptom/mood tracking data.
+    const systemPrompt = `You are Lisa, a knowledgeable and empathetic menopause health advisor. Generate what Lisa noticed this week from the user's profile and recent symptom/mood tracking data: one clear observation (headline), why it might be happening, what's helping, and simple things to try. This is what Lisa noticed from their data—observations and suggestions, not "insights" or "pattern analysis." Vary sentence structure; avoid generic filler; one concrete observation preferred.
 
 CRITICAL: You must respond with VALID JSON only. No markdown, no explanations, just pure JSON.
 
@@ -445,19 +445,19 @@ Generate a helpful, personalized insight now.`;
       console.error("Failed to parse LLM response as JSON:", parseError);
       console.error("Response was:", responseText);
       
-      // Fallback: create a basic insight structure from the text
+      // Fallback: create a basic insight structure with Lisa-noticed copy
       insightData = {
-        patternHeadline: responseText.split('\n')[0] || "Your patterns this week",
-        why: responseText.substring(0, 200) || "Let's explore what your data shows.",
+        patternHeadline: responseText.split('\n')[0] || "Lisa didn't have enough data yet to notice something specific.",
+        why: responseText.substring(0, 200) || "Keep logging your symptoms and mood so Lisa can share what she notices.",
         whatsWorking: null,
         actionSteps: {
-          easy: "Keep tracking your symptoms to see patterns",
-          medium: "Try one small change this week and see if it helps",
-          advanced: "Create a consistent routine that supports your body"
+          easy: "Keep tracking so Lisa can spot what helps.",
+          medium: "Try one small change this week and see if it helps.",
+          advanced: "Build a consistent routine that supports your body."
         },
-        doctorNote: "Tracking symptoms and patterns. Reviewing data with healthcare provider.",
+        doctorNote: "Symptom and mood tracking in progress. Can review with healthcare provider when ready.",
         trend: "stable",
-        whyThisMatters: "Understanding your patterns helps you and your healthcare team make informed decisions about your menopause journey."
+        whyThisMatters: "When Lisa has a bit more data, she can point out things that might be useful to you and your healthcare team."
       };
     }
 

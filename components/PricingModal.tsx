@@ -28,6 +28,8 @@ export function PricingModal({
   const [selectedPlan, setSelectedPlan] = useState<"monthly" | "annual" | null>(null);
   const [hoveredPlan, setHoveredPlan] = useState<"monthly" | "annual" | null>(null);
   const [showContent, setShowContent] = useState(false);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
   // Inject animation styles on mount (client-side only to prevent hydration issues)
   useEffect(() => {
@@ -125,11 +127,31 @@ export function PricingModal({
 
   if (!isOpen) return null;
 
-  const handlePlanSelect = (plan: "monthly" | "annual") => {
-    // Placeholder: Log selection or show toast
-    console.log(`Selected plan: ${plan}`);
-    // TODO: When Stripe is integrated, redirect to checkout
-    alert(`Payment system coming soon! You selected the ${plan} plan.`);
+  const handlePlanSelect = async (plan: "monthly" | "annual") => {
+    setCheckoutError(null);
+    setCheckoutLoading(true);
+    try {
+      const res = await fetch("/api/stripe/create-checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan }),
+        credentials: "include",
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setCheckoutError(data.error ?? "Something went wrong. Please try again.");
+        return;
+      }
+      if (data.url) {
+        window.location.href = data.url;
+        return;
+      }
+      setCheckoutError("Checkout could not be started. Please try again.");
+    } catch {
+      setCheckoutError("Network error. Please try again.");
+    } finally {
+      setCheckoutLoading(false);
+    }
   };
 
   // Calculate days until trial ends from timeRemaining string (e.g., "2h 30m" or "3 days")
@@ -295,6 +317,15 @@ export function PricingModal({
         {/* Pricing Cards */}
         <div className="p-3 sm:p-4 pb-16">{/* Extra bottom padding for fixed notification */}
 
+          {checkoutError && (
+            <div
+              className="mb-4 p-3 rounded-lg text-center text-sm font-medium"
+              style={{ backgroundColor: "rgba(239, 68, 68, 0.15)", color: "var(--foreground)", border: "1px solid rgba(239, 68, 68, 0.4)" }}
+            >
+              {checkoutError}
+            </div>
+          )}
+
           {/* Testimonial - Above pricing cards */}
           <div 
             className="mb-4 p-3 rounded-lg text-center border"
@@ -452,7 +483,8 @@ export function PricingModal({
                     e.stopPropagation();
                     handlePlanSelect("annual");
                   }}
-                  className="w-full px-4 py-3 sm:py-4 rounded-xl font-bold text-sm sm:text-lg transition-all duration-300 transform hover:scale-105 relative overflow-hidden group"
+                  disabled={checkoutLoading}
+                  className="w-full px-4 py-3 sm:py-4 rounded-xl font-bold text-sm sm:text-lg transition-all duration-300 transform hover:scale-105 relative overflow-hidden group disabled:opacity-70 disabled:pointer-events-none"
                   style={{
                     backgroundColor: "var(--primary)",
                     color: "var(--primary-foreground)",
@@ -466,7 +498,7 @@ export function PricingModal({
                   }}
                 >
                   <span className="relative z-10 flex items-center justify-center gap-2">
-                    Choose Annual - Save 45%
+                    {checkoutLoading ? "Redirecting…" : "Choose Annual - Save 45%"}
                   </span>
                 </button>
               </div>
@@ -555,7 +587,8 @@ export function PricingModal({
                   e.stopPropagation();
                   handlePlanSelect("monthly");
                 }}
-                className="w-full px-4 py-3 sm:py-4 rounded-xl font-bold text-sm sm:text-base transition-all duration-300 transform hover:scale-105 relative overflow-hidden group"
+                disabled={checkoutLoading}
+                className="w-full px-4 py-3 sm:py-4 rounded-xl font-bold text-sm sm:text-base transition-all duration-300 transform hover:scale-105 relative overflow-hidden group disabled:opacity-70 disabled:pointer-events-none"
                 style={{
                   backgroundColor: hoveredPlan === "monthly" ? "var(--chart-2)" : "var(--secondary)",
                   color: "var(--primary-foreground)",
@@ -573,7 +606,7 @@ export function PricingModal({
                   e.currentTarget.style.opacity = "1";
                 }}
               >
-                <span className="relative z-10">Start Monthly</span>
+                <span className="relative z-10">{checkoutLoading ? "Redirecting…" : "Start Monthly"}</span>
                 {hoveredPlan === "monthly" && (
                   <div
                     className="absolute inset-0"

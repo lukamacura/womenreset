@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { checkTrialExpired } from "@/lib/checkTrialStatus";
 import { getAuthenticatedUser } from "@/lib/getAuthenticatedUser";
+import { sendPushNotification } from "@/lib/sendPushNotification";
 
 export const runtime = "nodejs";
 
@@ -194,6 +195,30 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Daily symptom-logging reminder: only one "Time to check in" per user per day (avoids duplicate toasts/cron re-runs)
+    if (type === "reminder" && title === "Time to check in") {
+      const supabaseAdmin = getSupabaseAdmin();
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      const { data: existingReminder } = await supabaseAdmin
+        .from("notifications")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("type", "reminder")
+        .eq("title", "Time to check in")
+        .gte("created_at", today.toISOString())
+        .lt("created_at", tomorrow.toISOString())
+        .limit(1)
+        .maybeSingle();
+
+      if (existingReminder) {
+        return NextResponse.json({ data: existingReminder }, { status: 200 });
+      }
+    }
+
     // Insert notification
     const supabaseAdmin = getSupabaseAdmin();
     const { data, error: insertError } = await supabaseAdmin
@@ -222,6 +247,16 @@ export async function POST(req: NextRequest) {
         { status: 500 }
       );
     }
+
+    // Push: same title/body as in-app; trial/urgent bypass preference
+    const isTrialOrUrgent = type === "trial" || priority === "high";
+    sendPushNotification({
+      userId: user.id,
+      title,
+      body: finalMessage,
+      skipPreferenceCheck: isTrialOrUrgent,
+      ...(type === "trial" ? { data: { action: "upgrade" } } : {}),
+    }).catch(() => {});
 
     return NextResponse.json({ data }, { status: 201 });
   } catch (e) {
