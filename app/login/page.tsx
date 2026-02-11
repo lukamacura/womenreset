@@ -34,6 +34,11 @@ function LoginForm() {
     }
   }, [searchParams]);
 
+  // Login flow must not touch quiz data: clear any stale pending quiz so dashboard won't save it after redirect
+  useEffect(() => {
+    sessionStorage.removeItem("pending_quiz_answers");
+  }, []);
+
   const emailValid = useMemo(() => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email), [email]);
   const passwordValid = useMemo(() => password.length >= 8, [password]);
   const canSubmit = emailValid && passwordValid && !loading;
