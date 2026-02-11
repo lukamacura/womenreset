@@ -38,34 +38,34 @@ export default function CheckoutSuccessPage() {
 
         <div className="space-y-2">
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
-            You&apos;re in — welcome.
+            You&apos;re all set. Welcome.
           </h1>
           <p className="text-muted-foreground text-base sm:text-lg">
-            Your subscription is active. You now have full access to Lisa, your symptoms, and your insights.
+            Your subscription is live and Lisa is ready for you. You can explore your symptoms and insights whenever you like.
           </p>
         </div>
 
         <div className="flex items-center justify-center gap-2 text-muted-foreground">
           <Heart className="h-5 w-5 text-primary/80" aria-hidden />
-          <span className="text-sm">We&apos;re here for you every step of the way.</span>
+          <span className="text-sm">You&apos;re not alone in this. We&apos;re with you.</span>
         </div>
 
         <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-          This phase of life can feel overwhelming — you&apos;ve just taken a real step for yourself. Head to your dashboard whenever you&apos;re ready; Lisa and your data are waiting.
+          This phase of life can feel overwhelming. You just took a real step for yourself. When you&apos;re ready, your dashboard is waiting with Lisa and your insights.
         </p>
 
         <div className="pt-4 space-y-4">
           <Link
             href="/dashboard"
-            className="inline-flex items-center justify-center gap-2 w-full sm:w-auto min-w-[200px] px-6 py-3.5 rounded-xl font-semibold text-primary-foreground bg-primary hover:bg-primary/90 shadow-lg hover:shadow-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+            className="btn-landing-primary inline-flex items-center justify-center gap-2 w-full sm:w-auto min-w-[200px] px-6 focus:outline-none focus:ring-2 focus:ring-[#ff8da1] focus:ring-offset-2"
           >
-            Go to my dashboard
+            Take me to my dashboard
             <ArrowRight className="h-5 w-5" aria-hidden />
           </Link>
           {countdown > 0 && (
             <p className="text-xs text-muted-foreground flex items-center justify-center gap-1.5">
               <Sparkles className="h-3.5 w-3.5" aria-hidden />
-              Redirecting in {countdown} {countdown === 1 ? "second" : "seconds"}…
+              We&apos;ll take you there in {countdown} {countdown === 1 ? "second" : "seconds"}
             </p>
           )}
         </div>

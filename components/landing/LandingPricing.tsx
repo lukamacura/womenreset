@@ -222,22 +222,9 @@ export default function LandingPricing() {
 
               <Button
                 asChild
-                className="w-full px-4 py-3 sm:py-8 rounded-xl font-bold text-sm sm:text-lg transition-all duration-300 transform hover:scale-105 relative overflow-hidden group"
-                style={{
-                  backgroundColor: "var(--primary)",
-                  color: "white",
-                  boxShadow: "8px 8px 0px 0px rgba(0, 0, 0, 0.2), 8px 8px 12px 0px rgba(0, 0, 0, 0.15)",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.opacity = "0.9";
-                  e.currentTarget.style.boxShadow = "10px 10px 0px 0px rgba(0, 0, 0, 0.25), 10px 10px 16px 0px rgba(0, 0, 0, 0.2)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.opacity = "1";
-                  e.currentTarget.style.boxShadow = "8px 8px 0px 0px rgba(0, 0, 0, 0.2), 8px 8px 12px 0px rgba(0, 0, 0, 0.15)";
-                }}
+                className="btn-landing-primary w-full px-4"
               >
-                <Link href="/register" prefetch={false} className="relative z-10 flex items-center justify-center gap-2 text-white">
+                <Link href="/register" prefetch={false} className="relative z-10 flex items-center justify-center gap-2">
                   Choose Annual - Save 45%
                 </Link>
               </Button>
@@ -308,36 +295,11 @@ export default function LandingPricing() {
 
               <Button
                 asChild
-                className="w-full px-4 py-3 sm:py-8 rounded-xl font-bold text-sm sm:text-base transition-all duration-300 transform hover:scale-105 relative overflow-hidden group text-white!"
-                style={{
-                  backgroundColor: hoveredPlan === "monthly" ? "var(--chart-2)" : "var(--secondary)",
-                  color: "white",
-                  boxShadow: "8px 8px 0px 0px rgba(0, 0, 0, 0.2), 8px 8px 12px 0px rgba(0, 0, 0, 0.15)",
-                  transform: hoveredPlan === "monthly" ? "scale(1.02)" : "scale(1)",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = "var(--chart-2)";
-                  e.currentTarget.style.opacity = "0.95";
-                  e.currentTarget.style.color = "white";
-                  e.currentTarget.style.boxShadow = "10px 10px 0px 0px rgba(0, 0, 0, 0.25), 10px 10px 16px 0px rgba(0, 0, 0, 0.2)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = "var(--secondary)";
-                  e.currentTarget.style.opacity = "1";
-                  e.currentTarget.style.color = "white";
-                  e.currentTarget.style.boxShadow = "8px 8px 0px 0px rgba(0, 0, 0, 0.2), 8px 8px 12px 0px rgba(0, 0, 0, 0.15)";
-                }}
+                className="btn-landing-secondary w-full px-4"
               >
-                <Link href="/register" prefetch={false} className="relative z-10 text-white!" style={{ color: "white" }}>Start Monthly</Link>
-                {hoveredPlan === "monthly" && (
-                  <div
-                    className="absolute inset-0"
-                    style={{
-                      background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)",
-                      animation: "shimmer 1s infinite",
-                    }}
-                  />
-                )}
+                <Link href="/register" prefetch={false} className="relative z-10">
+                  Start Monthly
+                </Link>
               </Button>
             </div>
           </div>

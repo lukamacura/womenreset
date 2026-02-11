@@ -133,7 +133,7 @@ export default function NotificationSettingsPage() {
         {/* Daily Reminder Card */}
         <div className="bg-white rounded-2xl border-2 border-[#E8E0DB] p-5 sm:p-6 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-start gap-4">
-            <div className="p-3 rounded-xl bg-gradient-to-br from-[#ff74b1] to-[#d85a9a] shrink-0">
+            <div className="p-3 rounded-xl bg-linear-to-br from-[#ff74b1] to-primary-dark shrink-0">
               <Bell className="h-6 w-6 text-white" />
             </div>
             <div className="flex-1 min-w-0">
@@ -166,7 +166,7 @@ export default function NotificationSettingsPage() {
         {/* Weekly Insights Card */}
         <div className="bg-white rounded-2xl border-2 border-[#E8E0DB] p-5 sm:p-6 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-start gap-4">
-            <div className="p-3 rounded-xl bg-gradient-to-br from-[#ff74b1] to-[#d85a9a] shrink-0">
+            <div className="p-3 rounded-xl bg-linear-to-br from-[#ff74b1] to-primary-dark shrink-0">
               <Calendar className="h-6 w-6 text-white" />
             </div>
             <div className="flex-1 min-w-0">
@@ -231,7 +231,7 @@ export default function NotificationSettingsPage() {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="px-6 py-3 bg-[#ff74b1] hover:bg-[#d85a9a] text-white font-bold rounded-xl transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed text-base sm:text-base shadow-lg order-1 sm:order-2 active:scale-95"
+          className="px-6 py-3 bg-[#ff74b1] hover:bg-primary-dark text-white font-bold rounded-xl transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed text-base sm:text-base shadow-lg order-1 sm:order-2 active:scale-95"
           type="button"
         >
           {saving ? "Saving..." : "Save Preferences"}

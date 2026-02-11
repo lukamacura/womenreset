@@ -35,14 +35,7 @@ export async function POST(req: Request) {
     // Validate required fields for new question structure (only if provided)
     // Allow partial updates for webhook/trigger created profiles
     // Note: Quiz now allows any number of symptoms
-    if (top_problems !== undefined) {
-      if (!Array.isArray(top_problems) || top_problems.length === 0) {
-        return NextResponse.json(
-          { error: "Please select at least one problem." },
-          { status: 400 }
-        );
-      }
-    }
+    // We'll check "at least one problem" only after we know if this is insert vs update (see below)
 
     if (severity !== undefined && severity !== null) {
       if (!["mild", "moderate", "severe"].includes(severity)) {
@@ -210,6 +203,14 @@ export async function POST(req: Request) {
       }
 
       return NextResponse.json({ success: true, updated: true });
+    }
+
+    // Insert new user profile - require at least one problem for new profiles
+    if (top_problems !== undefined && (!Array.isArray(top_problems) || top_problems.length === 0)) {
+      return NextResponse.json(
+        { error: "Please select at least one problem." },
+        { status: 400 }
+      );
     }
 
     // Insert new user profile

@@ -434,6 +434,47 @@ input[type="reset"] {
   transform: translateY(-2px);
 }
 
+/* Landing pricing buttons – pill shape, bold uppercase, primary filled + secondary outlined (design system colors) */
+.btn-landing-primary,
+.btn-landing-secondary {
+  border-radius: 9999px;
+  font-weight: 700;
+  font-size: 0.9375rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  font-family: var(--font-sans), system-ui, sans-serif;
+  transition: all 0.2s ease;
+  min-height: 2.75rem;
+  padding: 0.625rem 1.25rem;
+  border: none;
+}
+
+.btn-landing-primary {
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+  box-shadow: 0 4px 8px rgba(60, 60, 60, 0.2), 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.btn-landing-primary:hover {
+  filter: brightness(1.05);
+  box-shadow: 0 6px 12px rgba(60, 60, 60, 0.25), 0 3px 6px rgba(0, 0, 0, 0.12);
+  transform: translateY(-1px);
+}
+
+.btn-landing-secondary {
+  background-color: var(--muted);
+  color: var(--primary);
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 8px rgba(60, 60, 60, 0.18), 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+.btn-landing-secondary:hover {
+  background-color: var(--muted);
+  filter: brightness(1.08);
+  border-color: var(--border);
+  box-shadow: 0 6px 12px rgba(60, 60, 60, 0.22), 0 3px 6px rgba(0, 0, 0, 0.1);
+}
+
 /* Link Styles */
 a {
   color: var(--primary);
@@ -725,8 +766,6 @@ input[type="button"],
     0 2px 12px rgba(219, 39, 119, 0.1);
   pointer-events: none;
   opacity: 0.8;
-  contain: layout paint;
-  will-change: transform;
 }
 
 .animate-float-1 {

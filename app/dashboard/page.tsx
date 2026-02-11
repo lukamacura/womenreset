@@ -326,12 +326,24 @@ export default function DashboardPage() {
               if (response.ok) {
                 const result = await response.json();
                 console.log("Dashboard: Quiz data saved successfully:", result);
-                // Clear sessionStorage after successful save
                 sessionStorage.removeItem("pending_quiz_answers");
               } else {
-                const errorData = await response.json();
+                let errorData: { error?: string; details?: string; status?: number } = {};
+                try {
+                  const parsed = await response.json();
+                  errorData = typeof parsed === "object" && parsed !== null ? parsed : { error: "Invalid response" };
+                } catch {
+                  errorData = { error: "Response was not valid JSON", status: response.status };
+                }
+                if (!errorData.error) {
+                  errorData.error = `Request failed with status ${response.status}`;
+                }
+                errorData.status = response.status;
                 console.error("Dashboard: Failed to save quiz data:", errorData);
-                // Don't clear on error - allow retry (though sessionStorage will clear on tab close)
+                // Clear stale/invalid pending data on validation errors so user isn't stuck on every load
+                if (response.status === 400) {
+                  sessionStorage.removeItem("pending_quiz_answers");
+                }
               }
             } else {
               // Invalid quiz data - clear it

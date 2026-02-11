@@ -55,6 +55,7 @@ export function formatCountdown(
 export function TrialCard({ trial, accountStatus, symptomCount = 0, patternCount = 0 }: TrialCardProps) {
   const [now, setNow] = useState(new Date());
   const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
+  const [isPortalLoading, setIsPortalLoading] = useState(false);
 
   const isSubscriber = accountStatus === "paid";
 
@@ -154,7 +155,7 @@ export function TrialCard({ trial, accountStatus, symptomCount = 0, patternCount
   const getCTAText = () => {
     switch (state) {
       case "subscriber":
-        return "Manage subscription";
+        return isPortalLoading ? "Opening…" : "Manage subscription";
       case "calm":
         return "Upgrade for $6.58/mo";
       case "warning":
@@ -163,6 +164,28 @@ export function TrialCard({ trial, accountStatus, symptomCount = 0, patternCount
         return "Save your progress - Upgrade today";
       case "expired":
         return "Pick up where you left off";
+    }
+  };
+
+  const handleCTAClick = async () => {
+    if (state === "subscriber") {
+      setIsPortalLoading(true);
+      try {
+        const res = await fetch("/api/stripe/create-portal", { method: "POST" });
+        const data = await res.json();
+        if (res.ok && data?.url) {
+          window.location.href = data.url;
+          return;
+        }
+        // Fallback if no portal (e.g. no stripe_customer_id)
+        setIsPricingModalOpen(true);
+      } catch {
+        setIsPricingModalOpen(true);
+      } finally {
+        setIsPortalLoading(false);
+      }
+    } else {
+      setIsPricingModalOpen(true);
     }
   };
 
@@ -284,7 +307,8 @@ export function TrialCard({ trial, accountStatus, symptomCount = 0, patternCount
           )}
 
           <button
-            onClick={() => setIsPricingModalOpen(true)}
+            onClick={handleCTAClick}
+            disabled={state === "subscriber" && isPortalLoading}
             className={`px-6 py-3 rounded-lg font-semibold text-sm transition-all duration-200 ${styles.buttonStyle}`}
           >
             {getCTAText()}
