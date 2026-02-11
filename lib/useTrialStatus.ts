@@ -184,9 +184,8 @@ export function useTrialStatus() {
         const trialDays = userTrial.trial_days || 3;
         const start = userTrial.trial_start ? new Date(userTrial.trial_start) : null;
         const end = userTrial.trial_end ? new Date(userTrial.trial_end) : null;
-        const subscriptionEndsAt = (userTrial as { subscription_ends_at?: string | null }).subscription_ends_at
-          ? new Date((userTrial as { subscription_ends_at: string }).subscription_ends_at)
-          : null;
+        const subEnd = (userTrial as { subscription_ends_at?: string | null }).subscription_ends_at;
+        const subscriptionEndsAt = subEnd ? new Date(subEnd) : null;
 
         setTrialData({
           trialDays,

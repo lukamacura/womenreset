@@ -23,8 +23,11 @@ async function handleCheckoutSessionCompleted(
   if (session.subscription && typeof session.subscription === "string") {
     try {
       const subscription = await stripe.subscriptions.retrieve(session.subscription);
-      subscription_ends_at = new Date(subscription.current_period_end * 1000).toISOString();
-      stripe_customer_id = typeof subscription.customer === "string" ? subscription.customer : subscription.customer?.id ?? null;
+      const firstItem = subscription.items?.data?.[0];
+      if (firstItem && "current_period_end" in firstItem) {
+        subscription_ends_at = new Date(firstItem.current_period_end * 1000).toISOString();
+      }
+      stripe_customer_id = typeof subscription.customer === "string" ? subscription.customer : (subscription.customer as { id?: string })?.id ?? null;
       stripe_subscription_id = subscription.id;
     } catch (err) {
       console.error("Webhook: failed to fetch subscription:", err);
@@ -59,7 +62,12 @@ async function handleSubscriptionUpdated(
   subscription: Stripe.Subscription
 ): Promise<{ ok: boolean; error?: string }> {
   const supabaseAdmin = getSupabaseAdmin();
-  const subscription_ends_at = new Date(subscription.current_period_end * 1000).toISOString();
+  const firstItem = subscription.items?.data?.[0];
+  const periodEnd = firstItem && "current_period_end" in firstItem ? firstItem.current_period_end : null;
+  if (!periodEnd) {
+    return { ok: true };
+  }
+  const subscription_ends_at = new Date(periodEnd * 1000).toISOString();
 
   const { error } = await supabaseAdmin
     .from("user_trials")
