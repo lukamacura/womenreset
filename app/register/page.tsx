@@ -538,12 +538,9 @@ export default function RegisterPage() {
         }
 
         // Profile doesn't exist - user might need to complete quiz
-        // This should rarely happen now since profile is created in auth callback
-        // But keep this as a fallback
-        if (mounted) {
+        // Only send back to quiz when not in the middle of registration (results -> email flow)
+        if (mounted && phase !== "results" && phase !== "email") {
           // User has confirmed email but profile wasn't created
-          // This might happen if quiz answers weren't passed correctly
-          // Let them complete the quiz again
           setPhase("quiz");
           setStepIndex(0);
         }
@@ -924,7 +921,7 @@ export default function RegisterPage() {
       {phase === "quiz" && (
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
           {/* Animated Step Indicators */}
-          <div className="mb-4 sm:mb-5 shrink-0 pt-4 sm:pt-6">
+          <div className="mb-2 sm:mb-3 shrink-0 pt-2 sm:pt-3">
             <div className="flex justify-center gap-2 sm:gap-3">
               {STEPS.map((_, index) => {
                 const stepNumber = index + 1;
@@ -951,18 +948,18 @@ export default function RegisterPage() {
           </div>
 
           {/* Question Content - Scrollable area */}
-          <div className="flex-1 flex flex-col min-h-0 overflow-hidden mb-2">
-            <div className="rounded-xl sm:rounded-2xl border border-foreground/10 bg-card backdrop-blur-sm p-3 mx-2 my-4 sm:p-4 space-y-2 sm:space-y-3 flex-1 shadow-lg shadow-primary/5 overflow-y-auto flex flex-col">
+          <div className="flex-1 flex flex-col min-h-0 overflow-hidden mb-1">
+            <div className="rounded-xl sm:rounded-2xl border border-foreground/10 bg-card backdrop-blur-sm p-2.5 mx-2 my-2 sm:p-3 space-y-1.5 sm:space-y-2 flex-1 shadow-lg shadow-primary/5 overflow-y-auto flex flex-col">
               {/* Q1: Top Problems */}
               {currentStep === "q1_problems" && (
-                <div className="flex-1 flex flex-col min-h-0 space-y-2 sm:space-y-3 animate-in fade-in slide-in-from-right-4 duration-300">
+                <div className="flex-1 flex flex-col min-h-0 space-y-1.5 sm:space-y-2 animate-in fade-in slide-in-from-right-4 duration-300">
                   <div className="shrink-0">
-                    <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-1">
+                    <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-0.5">
                       What&apos;s making life hardest right now?
                     </h2>
                     <p className="text-xs sm:text-sm text-muted-foreground">Select all that apply:</p>
                   </div>
-                  <div className="flex-1 min-h-0 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-2">
+                  <div className="flex-1 min-h-0 overflow-y-auto grid grid-cols-1 gap-1">
                     {PROBLEM_OPTIONS.map((option) => {
                       const Icon = option.icon;
                       const isSelected = topProblems.includes(option.id);
@@ -971,14 +968,14 @@ export default function RegisterPage() {
                           key={option.id}
                           type="button"
                           onClick={() => toggleProblem(option.id)}
-                          className={`px-2  sm:px-3 rounded-lg border-2 transition-all duration-200 text-left group cursor-pointer ${
+                          className={`py-2 px-2.5 sm:px-3 rounded-lg border-2 transition-all duration-200 text-left group cursor-pointer ${
                             isSelected
                               ? "border-primary bg-primary/10 shadow-md shadow-primary/20"
                               : "border-foreground/15 hover:border-primary/50 hover:bg-foreground/5"
                           }`}
                         >
                           <div className="flex items-center gap-2">
-                            <div className={`p-1.5 rounded-lg transition-colors shrink-0 ${
+                            <div className={`p-1 rounded-md transition-colors shrink-0 ${
                               isSelected ? "bg-primary/20" : "bg-foreground/5 group-hover:bg-primary/10"
                             }`}>
                               <Icon className={`w-4 h-4 ${isSelected ? "text-primary" : "text-muted-foreground"}`} />
@@ -993,7 +990,7 @@ export default function RegisterPage() {
                     })}
                   </div>
                   {topProblems.length > 0 && (
-                    <div className="flex items-center justify-center gap-1 text-xs shrink-0 pt-1">
+                    <div className="flex items-center justify-center gap-1 text-xs shrink-0 pt-0.5">
                       <span className="text-muted-foreground font-medium">
                         {topProblems.length} {topProblems.length === 1 ? 'symptom' : 'symptoms'} selected
                       </span>
@@ -1004,13 +1001,13 @@ export default function RegisterPage() {
 
               {/* Q2: Severity */}
               {currentStep === "q2_severity" && (
-                <div className="flex-1 flex flex-col min-h-0 space-y-2 sm:space-y-3 animate-in fade-in slide-in-from-right-4 duration-300">
+                <div className="flex-1 flex flex-col min-h-0 space-y-1.5 sm:space-y-2 animate-in fade-in slide-in-from-right-4 duration-300">
                   <div className="shrink-0">
-                    <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-1">
+                    <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-0.5">
                       How much is this affecting your daily life?
                     </h2>
                   </div>
-                  <div className="flex-1 min-h-0 overflow-y-auto space-y-1.5 sm:space-y-2">
+                  <div className="flex-1 min-h-0 overflow-y-auto space-y-1">
                     {SEVERITY_OPTIONS.map((option) => {
                       const Icon = option.icon;
                       const isSelected = severity === option.id;
@@ -1019,14 +1016,14 @@ export default function RegisterPage() {
                           key={option.id}
                           type="button"
                           onClick={() => setSeverity(option.id)}
-                          className={`w-full p-2.5 sm:p-3 rounded-lg border-2 text-left transition-all duration-200 group ${
+                          className={`w-full py-2 px-2.5 sm:px-3 rounded-lg border-2 text-left transition-all duration-200 group ${
                             isSelected
                               ? "border-primary bg-primary/10 shadow-md shadow-primary/20"
                               : "border-foreground/15 hover:border-primary/50 hover:bg-foreground/5"
                           }`}
                         >
                           <div className="flex items-center gap-2">
-                            <div className={`p-1.5 rounded-lg transition-colors shrink-0 ${
+                            <div className={`p-1 rounded-md transition-colors shrink-0 ${
                               isSelected ? "bg-primary/20" : "bg-foreground/5 group-hover:bg-primary/10"
                             }`}>
                               <Icon className={`w-4 h-4 ${isSelected ? "text-primary" : "text-muted-foreground"}`} />
@@ -1045,13 +1042,13 @@ export default function RegisterPage() {
 
               {/* Q3: Timing */}
               {currentStep === "q3_timing" && (
-                <div className="flex-1 flex flex-col min-h-0 space-y-2 sm:space-y-3 animate-in fade-in slide-in-from-right-4 duration-300">
+                <div className="flex-1 flex flex-col min-h-0 space-y-1.5 sm:space-y-2 animate-in fade-in slide-in-from-right-4 duration-300">
                   <div className="shrink-0">
-                    <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-1">
+                    <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-0.5">
                       When did symptoms start?
                     </h2>
                   </div>
-                  <div className="flex-1 min-h-0 overflow-y-auto space-y-1.5 sm:space-y-2">
+                  <div className="flex-1 min-h-0 overflow-y-auto space-y-1">
                     {TIMING_OPTIONS.map((option) => {
                       const Icon = option.icon;
                       const isSelected = timing === option.id;
@@ -1060,14 +1057,14 @@ export default function RegisterPage() {
                           key={option.id}
                           type="button"
                           onClick={() => setTiming(option.id)}
-                          className={`w-full p-2.5 sm:p-3 rounded-lg border-2 text-left transition-all duration-200 group ${
+                          className={`w-full py-2 px-2.5 sm:px-3 rounded-lg border-2 text-left transition-all duration-200 group ${
                             isSelected
                               ? "border-primary bg-primary/10 shadow-md shadow-primary/20"
                               : "border-foreground/15 hover:border-primary/50 hover:bg-foreground/5"
                           }`}
                         >
                           <div className="flex items-center gap-2">
-                            <div className={`p-1.5 rounded-lg transition-colors shrink-0 ${
+                            <div className={`p-1 rounded-md transition-colors shrink-0 ${
                               isSelected ? "bg-primary/20" : "bg-foreground/5 group-hover:bg-primary/10"
                             }`}>
                               <Icon className={`w-4 h-4 ${isSelected ? "text-primary" : "text-muted-foreground"}`} />
@@ -1086,14 +1083,14 @@ export default function RegisterPage() {
 
               {/* Q4: What They've Tried */}
               {currentStep === "q4_tried" && (
-                <div className="flex-1 flex flex-col min-h-0 space-y-2 sm:space-y-3 animate-in fade-in slide-in-from-right-4 duration-300">
+                <div className="flex-1 flex flex-col min-h-0 space-y-1.5 sm:space-y-2 animate-in fade-in slide-in-from-right-4 duration-300">
                   <div className="shrink-0">
-                    <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-1">
+                    <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-0.5">
                       What have you tried so far?
                     </h2>
                     <p className="text-xs sm:text-sm text-muted-foreground">Pick any that apply:</p>
                   </div>
-                  <div className="flex-1 min-h-0 overflow-y-auto space-y-1.5 sm:space-y-2">
+                  <div className="flex-1 min-h-0 overflow-y-auto space-y-1">
                     {TRIED_OPTIONS.map((option) => {
                       const Icon = option.icon;
                       const isSelected = triedOptions.includes(option.id);
@@ -1102,14 +1099,14 @@ export default function RegisterPage() {
                           key={option.id}
                           type="button"
                           onClick={() => toggleTriedOption(option.id)}
-                          className={`w-full p-2.5 sm:p-3 rounded-lg border-2 text-left transition-all duration-200 group ${
+                          className={`w-full py-2 px-2.5 sm:px-3 rounded-lg border-2 text-left transition-all duration-200 group ${
                             isSelected
                               ? "border-primary bg-primary/10 shadow-md shadow-primary/20"
                               : "border-foreground/15 hover:border-primary/50 hover:bg-foreground/5"
                           }`}
                         >
                           <div className="flex items-center gap-2">
-                            <div className={`p-1.5 rounded-lg transition-colors shrink-0 ${
+                            <div className={`p-1 rounded-md transition-colors shrink-0 ${
                               isSelected ? "bg-primary/20" : "bg-foreground/5 group-hover:bg-primary/10"
                             }`}>
                               <Icon className={`w-4 h-4 ${isSelected ? "text-primary" : "text-muted-foreground"}`} />
@@ -1128,13 +1125,13 @@ export default function RegisterPage() {
 
               {/* Q5: Doctor Status */}
               {currentStep === "q5_doctor" && (
-                <div className="flex-1 flex flex-col min-h-0 space-y-2 sm:space-y-3 animate-in fade-in slide-in-from-right-4 duration-300">
+                <div className="flex-1 flex flex-col min-h-0 space-y-1.5 sm:space-y-2 animate-in fade-in slide-in-from-right-4 duration-300">
                   <div className="shrink-0">
-                    <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-1">
+                    <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-0.5">
                       Are you working with a doctor on this?
                     </h2>
                   </div>
-                  <div className="flex-1 min-h-0 overflow-y-auto space-y-1.5 sm:space-y-2">
+                  <div className="flex-1 min-h-0 overflow-y-auto space-y-1">
                     {DOCTOR_OPTIONS.map((option) => {
                       const Icon = option.icon;
                       const isSelected = doctorStatus === option.id;
@@ -1143,14 +1140,14 @@ export default function RegisterPage() {
                           key={option.id}
                           type="button"
                           onClick={() => setDoctorStatus(option.id)}
-                          className={`w-full p-2.5 sm:p-3 rounded-lg border-2 text-left transition-all duration-200 group ${
+                          className={`w-full py-2 px-2.5 sm:px-3 rounded-lg border-2 text-left transition-all duration-200 group ${
                             isSelected
                               ? "border-primary bg-primary/10 shadow-md shadow-primary/20"
                               : "border-foreground/15 hover:border-primary/50 hover:bg-foreground/5"
                           }`}
                         >
                           <div className="flex items-center gap-2">
-                            <div className={`p-1.5 rounded-lg transition-colors shrink-0 ${
+                            <div className={`p-1 rounded-md transition-colors shrink-0 ${
                               isSelected ? "bg-primary/20" : "bg-foreground/5 group-hover:bg-primary/10"
                             }`}>
                               <Icon className={`w-4 h-4 ${isSelected ? "text-primary" : "text-muted-foreground"}`} />
@@ -1169,14 +1166,14 @@ export default function RegisterPage() {
 
               {/* Q6: Goal */}
               {currentStep === "q6_goal" && (
-                <div className="flex-1 flex flex-col min-h-0 space-y-2 sm:space-y-3 animate-in fade-in slide-in-from-right-4 duration-300">
+                <div className="flex-1 flex flex-col min-h-0 space-y-1.5 sm:space-y-2 animate-in fade-in slide-in-from-right-4 duration-300">
                   <div className="shrink-0">
-                    <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-1">
+                    <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-0.5">
                       What would success look like for you?
                     </h2>
                     <p className="text-xs sm:text-sm text-muted-foreground">Pick any that apply:</p>
                   </div>
-                  <div className="flex-1 min-h-0 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-2">
+                  <div className="flex-1 min-h-0 overflow-y-auto grid grid-cols-1 gap-1">
                     {GOAL_OPTIONS.map((option) => {
                       const Icon = option.icon;
                       const isSelected = goal.includes(option.id);
@@ -1185,14 +1182,14 @@ export default function RegisterPage() {
                           key={option.id}
                           type="button"
                           onClick={() => toggleGoal(option.id)}
-                          className={`p-2 sm:p-3 rounded-lg border-2 transition-all duration-200 text-left group ${
+                          className={`py-2 px-2.5 sm:px-3 rounded-lg border-2 transition-all duration-200 text-left group ${
                             isSelected
                               ? "border-primary bg-primary/10 shadow-md shadow-primary/20"
                               : "border-foreground/15 hover:border-primary/50 hover:bg-foreground/5"
                           }`}
                         >
                           <div className="flex items-center gap-2">
-                            <div className={`p-1.5 rounded-lg transition-colors shrink-0 ${
+                            <div className={`p-1 rounded-md transition-colors shrink-0 ${
                               isSelected ? "bg-primary/20" : "bg-foreground/5 group-hover:bg-primary/10"
                             }`}>
                               <Icon className={`w-4 h-4 ${isSelected ? "text-primary" : "text-muted-foreground"}`} />
