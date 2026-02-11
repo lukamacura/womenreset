@@ -18,6 +18,8 @@ export type TrialStatus = {
   remaining: { d: number; h: number; m: number; s: number };
   trialDays?: number;
   accountStatus: string;
+  /** True when subscription is set to cancel (show "Access until" not "Renews") */
+  subscriptionCanceled: boolean;
   loading: boolean;
   error: string | null;
 };
@@ -32,6 +34,7 @@ export function useTrialStatus(): TrialStatus & { refetch: () => Promise<void> }
     progressPct: 0,
     remaining: { d: 3, h: 0, m: 0, s: 0 },
     accountStatus: "trial",
+    subscriptionCanceled: false,
     loading: true,
     error: null,
   });
@@ -47,7 +50,7 @@ export function useTrialStatus(): TrialStatus & { refetch: () => Promise<void> }
     try {
       const { data, error } = await supabase
         .from("user_trials")
-        .select("trial_start, trial_end, trial_days, account_status, subscription_ends_at")
+        .select("trial_start, trial_end, trial_days, account_status, subscription_ends_at, subscription_canceled")
         .eq("user_id", userId)
         .single();
 
@@ -149,6 +152,7 @@ export function useTrialStatus(): TrialStatus & { refetch: () => Promise<void> }
     end: Date | null;
     accountStatus: string;
     subscriptionEndsAt: Date | null;
+    subscriptionCanceled: boolean;
   } | null>(null);
 
   const notAuthenticatedState: TrialStatus = {
@@ -160,6 +164,7 @@ export function useTrialStatus(): TrialStatus & { refetch: () => Promise<void> }
     progressPct: 0,
     remaining: { d: 3, h: 0, m: 0, s: 0 },
     accountStatus: "trial",
+    subscriptionCanceled: false,
     loading: false,
     error: "User not authenticated",
   };
@@ -176,12 +181,22 @@ export function useTrialStatus(): TrialStatus & { refetch: () => Promise<void> }
         return;
       }
 
-      const userTrial = await fetchUserTrial(userId);
+      let userTrial = await fetchUserTrial(userId);
+      // Sync subscription from Stripe for paid users so "Access until" is correct even if webhook missed
+      if (userTrial.account_status === "paid") {
+        try {
+          await fetch("/api/stripe/sync-subscription", { method: "POST", credentials: "include" });
+          userTrial = await fetchUserTrial(userId);
+        } catch {
+          // ignore sync errors; use existing data
+        }
+      }
       const trialDays = userTrial.trial_days || 3;
       const start = userTrial.trial_start ? new Date(userTrial.trial_start) : null;
       const end = userTrial.trial_end ? new Date(userTrial.trial_end) : null;
       const subEnd = (userTrial as { subscription_ends_at?: string | null }).subscription_ends_at;
       const subscriptionEndsAt = subEnd ? new Date(subEnd) : null;
+      const subscriptionCanceled = !!(userTrial as { subscription_canceled?: boolean }).subscription_canceled;
 
       setTrialData({
         trialDays,
@@ -189,6 +204,7 @@ export function useTrialStatus(): TrialStatus & { refetch: () => Promise<void> }
         end,
         accountStatus: userTrial.account_status || "trial",
         subscriptionEndsAt,
+        subscriptionCanceled,
       });
       setTrialStatus((prev) => ({ ...prev, loading: false }));
     } catch (e) {
@@ -209,7 +225,7 @@ export function useTrialStatus(): TrialStatus & { refetch: () => Promise<void> }
   useEffect(() => {
     if (!trialData || trialStatus.loading) return;
 
-    const { trialDays, start, end, accountStatus, subscriptionEndsAt } = trialData;
+    const { trialDays, start, end, accountStatus, subscriptionEndsAt, subscriptionCanceled } = trialData;
     const nowTs = now.getTime();
 
     // Paid: expire only when subscription_ends_at is past; show subscription end as "end"
@@ -232,6 +248,7 @@ export function useTrialStatus(): TrialStatus & { refetch: () => Promise<void> }
         remaining: { d, h, m, s },
         trialDays,
         accountStatus: "paid",
+        subscriptionCanceled,
         loading: false,
         error: null,
       });
@@ -249,6 +266,7 @@ export function useTrialStatus(): TrialStatus & { refetch: () => Promise<void> }
         remaining: { d: trialDays, h: 0, m: 0, s: 0 },
         trialDays,
         accountStatus: accountStatus ?? "trial",
+        subscriptionCanceled: false,
         loading: false,
         error: null,
       });
@@ -282,6 +300,7 @@ export function useTrialStatus(): TrialStatus & { refetch: () => Promise<void> }
       remaining: { d, h, m, s },
       trialDays,
       accountStatus: accountStatus ?? "trial",
+      subscriptionCanceled: false,
       loading: false,
       error: null,
     });

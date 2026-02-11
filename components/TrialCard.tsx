@@ -18,6 +18,8 @@ export interface TrialCardProps {
     trialDays?: number;
   };
   accountStatus?: string;
+  /** When true, subscription is set to cancel (show "Access until" not "Renews") */
+  subscriptionCanceled?: boolean;
   symptomCount?: number;
   patternCount?: number;
 }
@@ -41,10 +43,13 @@ export function getTrialState(
 // Format countdown text
 export function formatCountdown(
   state: TrialState,
-  remaining: { d: number; h: number; m: number; s: number }
+  remaining: { d: number; h: number; m: number; s: number },
+  subscriptionCanceled?: boolean
 ): string {
   if (state === "subscriber") {
-    return `Renews in ${remaining.d}d ${remaining.h}h ${remaining.m}m`;
+    return subscriptionCanceled
+      ? `Access ends in ${remaining.d}d ${remaining.h}h ${remaining.m}m`
+      : `Renews in ${remaining.d}d ${remaining.h}h ${remaining.m}m`;
   }
   if (state === "urgent") {
     return `${remaining.h}h ${remaining.m}m remaining`;
@@ -52,7 +57,7 @@ export function formatCountdown(
   return `Ends in ${remaining.d}d ${remaining.h}h ${remaining.m}m`;
 }
 
-export function TrialCard({ trial, accountStatus, symptomCount = 0, patternCount = 0 }: TrialCardProps) {
+export function TrialCard({ trial, accountStatus, subscriptionCanceled = false, symptomCount = 0, patternCount = 0 }: TrialCardProps) {
   const [now, setNow] = useState(new Date());
   const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
   const [isPortalLoading, setIsPortalLoading] = useState(false);
@@ -86,7 +91,7 @@ export function TrialCard({ trial, accountStatus, symptomCount = 0, patternCount
     : trial.remaining;
 
   const state = isSubscriber ? "subscriber" : getTrialState(trial.expired, trial.daysLeft, currentRemaining);
-  const countdownText = formatCountdown(state, currentRemaining);
+  const countdownText = formatCountdown(state, currentRemaining, subscriptionCanceled);
 
   // Get state-specific styling
   const getStateStyles = () => {
@@ -203,7 +208,9 @@ export function TrialCard({ trial, accountStatus, symptomCount = 0, patternCount
               {state === "subscriber" ? (
                 <p className="text-sm text-white/80">
                   {trial.end
-                    ? `Active until ${trial.end.toLocaleDateString(undefined, { month: "numeric", day: "numeric", year: "numeric" })}`
+                    ? subscriptionCanceled
+                      ? `Access until ${trial.end.toLocaleDateString(undefined, { month: "numeric", day: "numeric", year: "numeric" })}`
+                      : `Active until ${trial.end.toLocaleDateString(undefined, { month: "numeric", day: "numeric", year: "numeric" })}`
                     : "Your subscription is active"}
                 </p>
               ) : state === "expired" ? (
@@ -261,7 +268,11 @@ export function TrialCard({ trial, accountStatus, symptomCount = 0, patternCount
                       {trial.daysLeft}
                     </span>
                     <span className="text-lg text-white/80">
-                      {state === "subscriber" ? "days until renewal" : "days left"}
+                      {state === "subscriber"
+                        ? subscriptionCanceled
+                          ? "days of access left"
+                          : "days until renewal"
+                        : "days left"}
                     </span>
                   </>
                 )}
@@ -276,7 +287,10 @@ export function TrialCard({ trial, accountStatus, symptomCount = 0, patternCount
               </div>
               <div className="mt-2 flex items-center justify-between text-xs text-white/70">
                 {state === "subscriber" ? (
-                  <span>Renews {trial.end?.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</span>
+                  <span>
+                    {subscriptionCanceled ? "Access until" : "Renews"}{" "}
+                    {trial.end?.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+                  </span>
                 ) : (
                   <span>
                     {Math.min(trial.trialDays || 3, trial.elapsedDays)} / {trial.trialDays || 3}{" "}

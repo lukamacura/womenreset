@@ -30,12 +30,32 @@ function getBaseUrl(originFromRequest?: string | null): string {
   return "http://localhost:3000";
 }
 
+const MOBILE_APP_SCHEME = "menolisa";
+
+/** Allow mobile deep link for portal return (e.g. menolisa://settings). */
+function validateReturnUrl(url: unknown): string | null {
+  if (typeof url !== "string" || !url.trim()) return null;
+  const trimmed = url.trim();
+  if (trimmed.startsWith(`${MOBILE_APP_SCHEME}://`)) return trimmed;
+  try {
+    const u = new URL(trimmed);
+    const allowed = getAllowedOrigins();
+    if (allowed.includes(u.origin)) return trimmed;
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const user = await getAuthenticatedUser(req);
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const body = await req.json().catch(() => ({}));
+    const customReturnUrl = validateReturnUrl(body?.return_url);
 
     const returnOrigin = req.headers.get("origin") || req.headers.get("referer");
     const baseUrl = getBaseUrl(
@@ -58,9 +78,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const portalReturnUrl = customReturnUrl ?? `${baseUrl}/dashboard`;
+
     const session = await stripe.billingPortal.sessions.create({
       customer: row.stripe_customer_id,
-      return_url: `${baseUrl}/dashboard`,
+      return_url: portalReturnUrl,
     });
 
     if (!session.url) {

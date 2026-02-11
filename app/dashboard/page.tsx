@@ -791,6 +791,7 @@ export default function DashboardPage() {
                 trialDays: trialStatus.trialDays,
               }}
               accountStatus={trialStatus.accountStatus}
+              subscriptionCanceled={trialStatus.subscriptionCanceled}
               symptomCount={symptomLogs.length}
               patternCount={patternCount}
             />

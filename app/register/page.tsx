@@ -25,16 +25,6 @@ import {
   Goal,
   BarChart3,
   AlertTriangle,
-  Clock,
-  Calendar,
-  CalendarClock,
-  CalendarRange,
-  Circle,
-  Pill,
-  UtensilsCrossed,
-  Dumbbell,
-  MessageSquare,
-  Smartphone,
   Stethoscope,
   UserCheck,
   HeartPulse,
@@ -48,9 +38,9 @@ import {
   SYMPTOM_LABELS,
 } from "@/lib/quiz-results-helpers";
 
-type Step = "q1_problems" | "q2_severity" | "q3_timing" | "q4_tried" | "q5_doctor" | "q6_goal" | "q7_name";
+type Step = "q1_problems" | "q2_severity" | "q5_doctor" | "q6_goal" | "q7_name";
 
-const STEPS: Step[] = ["q1_problems", "q2_severity", "q3_timing", "q4_tried", "q5_doctor", "q6_goal", "q7_name"];
+const STEPS: Step[] = ["q1_problems", "q2_severity", "q5_doctor", "q6_goal", "q7_name"];
 
 // Question options with Lucide icons
 const PROBLEM_OPTIONS = [
@@ -68,23 +58,6 @@ const SEVERITY_OPTIONS = [
   { id: "mild", label: "Mild - Annoying but manageable", icon: Goal },
   { id: "moderate", label: "Moderate - Affecting my work/relationships", icon: BarChart3 },
   { id: "severe", label: "Severe - I'm struggling every day", icon: AlertTriangle },
-];
-
-const TIMING_OPTIONS = [
-  { id: "just_started", label: "Just started (0-6 months)", icon: Clock },
-  { id: "been_while", label: "Been a while (6-12 months)", icon: Calendar },
-  { id: "over_year", label: "Over a year", icon: CalendarClock },
-  { id: "several_years", label: "Several years", icon: CalendarRange },
-];
-
-const TRIED_OPTIONS = [
-  { id: "nothing", label: "Nothing yet", icon: Circle },
-  { id: "supplements", label: "Supplements / Vitamins", icon: Pill },
-  { id: "diet", label: "Diet changes", icon: UtensilsCrossed },
-  { id: "exercise", label: "Exercise", icon: Dumbbell },
-  { id: "hrt", label: "HRT / Medication", icon: Pill },
-  { id: "doctor_talk", label: "Talked to doctor", icon: MessageSquare },
-  { id: "apps", label: "Apps / Tracking", icon: Smartphone },
 ];
 
 const DOCTOR_OPTIONS = [
@@ -212,8 +185,8 @@ export default function RegisterPage() {
   // Quiz answers - stored in state
   const [topProblems, setTopProblems] = useState<string[]>([]);
   const [severity, setSeverity] = useState<string>("");
-  const [timing, setTiming] = useState<string>("");
-  const [triedOptions, setTriedOptions] = useState<string[]>([]);
+  const [timing] = useState<string>("");
+  const [triedOptions] = useState<string[]>([]);
   const [doctorStatus, setDoctorStatus] = useState<string>("");
   const [goal, setGoal] = useState<string[]>([]);
   const [firstName, setFirstName] = useState<string>("");
@@ -317,10 +290,6 @@ export default function RegisterPage() {
         return topProblems.length > 0;
       case "q2_severity":
         return severity !== "";
-      case "q3_timing":
-        return timing !== "";
-      case "q4_tried":
-        return triedOptions.length > 0;
       case "q5_doctor":
         return doctorStatus !== "";
       case "q6_goal":
@@ -330,7 +299,7 @@ export default function RegisterPage() {
       default:
         return false;
     }
-  }, [topProblems, severity, timing, triedOptions, doctorStatus, goal, firstName]);
+  }, [topProblems, severity, doctorStatus, goal, firstName]);
 
   // Save quiz answers to sessionStorage (cleared when tab closes)
   const saveQuizAnswers = useCallback(() => {
@@ -370,15 +339,6 @@ export default function RegisterPage() {
         return prev.filter((id) => id !== problemId);
       }
       return [...prev, problemId];
-    });
-  };
-
-  const toggleTriedOption = (optionId: string) => {
-    setTriedOptions((prev) => {
-      if (prev.includes(optionId)) {
-        return prev.filter((id) => id !== optionId);
-      }
-      return [...prev, optionId];
     });
   };
 
@@ -1016,89 +976,6 @@ export default function RegisterPage() {
                           key={option.id}
                           type="button"
                           onClick={() => setSeverity(option.id)}
-                          className={`w-full py-2 px-2.5 sm:px-3 rounded-lg border-2 text-left transition-all duration-200 group ${
-                            isSelected
-                              ? "border-primary bg-primary/10 shadow-md shadow-primary/20"
-                              : "border-foreground/15 hover:border-primary/50 hover:bg-foreground/5"
-                          }`}
-                        >
-                          <div className="flex items-center gap-2">
-                            <div className={`p-1 rounded-md transition-colors shrink-0 ${
-                              isSelected ? "bg-primary/20" : "bg-foreground/5 group-hover:bg-primary/10"
-                            }`}>
-                              <Icon className={`w-4 h-4 ${isSelected ? "text-primary" : "text-muted-foreground"}`} />
-                            </div>
-                            <span className="font-medium flex-1 text-xs sm:text-sm">{option.label}</span>
-                            {isSelected && (
-                              <Check className="w-4 h-4 text-primary animate-in zoom-in duration-200 shrink-0" />
-                            )}
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Q3: Timing */}
-              {currentStep === "q3_timing" && (
-                <div className="flex-1 flex flex-col min-h-0 space-y-1.5 sm:space-y-2 animate-in fade-in slide-in-from-right-4 duration-300">
-                  <div className="shrink-0">
-                    <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-0.5">
-                      When did symptoms start?
-                    </h2>
-                  </div>
-                  <div className="flex-1 min-h-0 overflow-y-auto space-y-1">
-                    {TIMING_OPTIONS.map((option) => {
-                      const Icon = option.icon;
-                      const isSelected = timing === option.id;
-                      return (
-                        <button
-                          key={option.id}
-                          type="button"
-                          onClick={() => setTiming(option.id)}
-                          className={`w-full py-2 px-2.5 sm:px-3 rounded-lg border-2 text-left transition-all duration-200 group ${
-                            isSelected
-                              ? "border-primary bg-primary/10 shadow-md shadow-primary/20"
-                              : "border-foreground/15 hover:border-primary/50 hover:bg-foreground/5"
-                          }`}
-                        >
-                          <div className="flex items-center gap-2">
-                            <div className={`p-1 rounded-md transition-colors shrink-0 ${
-                              isSelected ? "bg-primary/20" : "bg-foreground/5 group-hover:bg-primary/10"
-                            }`}>
-                              <Icon className={`w-4 h-4 ${isSelected ? "text-primary" : "text-muted-foreground"}`} />
-                            </div>
-                            <span className="font-medium flex-1 text-xs sm:text-sm">{option.label}</span>
-                            {isSelected && (
-                              <Check className="w-4 h-4 text-primary animate-in zoom-in duration-200 shrink-0" />
-                            )}
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Q4: What They've Tried */}
-              {currentStep === "q4_tried" && (
-                <div className="flex-1 flex flex-col min-h-0 space-y-1.5 sm:space-y-2 animate-in fade-in slide-in-from-right-4 duration-300">
-                  <div className="shrink-0">
-                    <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-0.5">
-                      What have you tried so far?
-                    </h2>
-                    <p className="text-xs sm:text-sm text-muted-foreground">Pick any that apply:</p>
-                  </div>
-                  <div className="flex-1 min-h-0 overflow-y-auto space-y-1">
-                    {TRIED_OPTIONS.map((option) => {
-                      const Icon = option.icon;
-                      const isSelected = triedOptions.includes(option.id);
-                      return (
-                        <button
-                          key={option.id}
-                          type="button"
-                          onClick={() => toggleTriedOption(option.id)}
                           className={`w-full py-2 px-2.5 sm:px-3 rounded-lg border-2 text-left transition-all duration-200 group ${
                             isSelected
                               ? "border-primary bg-primary/10 shadow-md shadow-primary/20"

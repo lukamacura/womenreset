@@ -29,6 +29,30 @@ function getBaseUrl(originFromRequest?: string | null): string {
   return "http://localhost:3000";
 }
 
+/** Allowed app scheme for mobile deep links (must be exact). */
+const MOBILE_APP_SCHEME = "menolisa";
+
+/**
+ * Validates that a URL is either (1) an allowed web origin path, or (2) the mobile app deep link.
+ * Returns the URL if valid, otherwise null.
+ */
+function validateReturnUrl(url: unknown, kind: "success" | "cancel"): string | null {
+  if (typeof url !== "string" || !url.trim()) return null;
+  const trimmed = url.trim();
+  // Allow mobile deep link: menolisa://checkout/success or menolisa://checkout/cancel
+  if (trimmed === `${MOBILE_APP_SCHEME}://checkout/${kind}`) return trimmed;
+  if (trimmed.startsWith(`${MOBILE_APP_SCHEME}://checkout/${kind}?`)) return trimmed;
+  // Allow same-origin web paths
+  try {
+    const u = new URL(trimmed);
+    const allowed = getAllowedOrigins();
+    if (allowed.includes(u.origin)) return trimmed;
+  } catch {
+    // not a valid URL
+  }
+  return null;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const user = await getAuthenticatedUser(req);
@@ -65,12 +89,16 @@ export async function POST(req: NextRequest) {
         ? new URL(returnOrigin).origin
         : returnOrigin
     );
+    const customSuccess = validateReturnUrl(body?.success_url, "success");
+    const customCancel = validateReturnUrl(body?.cancel_url, "cancel");
+    const useMobileReturns =
+      customSuccess && customCancel;
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       payment_method_types: ["card"],
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${baseUrl}/checkout/success`,
-      cancel_url: `${baseUrl}/dashboard`,
+      success_url: useMobileReturns ? customSuccess : `${baseUrl}/checkout/success`,
+      cancel_url: useMobileReturns ? customCancel : `${baseUrl}/dashboard`,
       client_reference_id: user.id,
       customer_email: user.email ?? undefined,
       subscription_data: {

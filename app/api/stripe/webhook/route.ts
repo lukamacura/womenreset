@@ -20,12 +20,17 @@ async function handleCheckoutSessionCompleted(
   let stripe_customer_id: string | null = null;
   let stripe_subscription_id: string | null = null;
 
+  let subscription_canceled = false;
   if (session.subscription && typeof session.subscription === "string") {
     try {
       const subscription = await stripe.subscriptions.retrieve(session.subscription);
       const firstItem = subscription.items?.data?.[0];
-      if (firstItem && "current_period_end" in firstItem) {
-        subscription_ends_at = new Date(firstItem.current_period_end * 1000).toISOString();
+      const periodEnd = firstItem && "current_period_end" in firstItem ? firstItem.current_period_end : null;
+      if (subscription.cancel_at) {
+        subscription_ends_at = new Date(subscription.cancel_at * 1000).toISOString();
+        subscription_canceled = true;
+      } else if (periodEnd) {
+        subscription_ends_at = new Date(periodEnd * 1000).toISOString();
       }
       stripe_customer_id = typeof subscription.customer === "string" ? subscription.customer : (subscription.customer as { id?: string })?.id ?? null;
       stripe_subscription_id = subscription.id;
@@ -38,21 +43,22 @@ async function handleCheckoutSessionCompleted(
   }
 
   const supabaseAdmin = getSupabaseAdmin();
-  const update: Record<string, unknown> = {
+  const row: Record<string, unknown> = {
+    user_id: userId,
     account_status: "paid",
+    subscription_canceled,
     updated_at: new Date().toISOString(),
   };
-  if (subscription_ends_at) update.subscription_ends_at = subscription_ends_at;
-  if (stripe_customer_id) update.stripe_customer_id = stripe_customer_id;
-  if (stripe_subscription_id) update.stripe_subscription_id = stripe_subscription_id;
+  if (subscription_ends_at) row.subscription_ends_at = subscription_ends_at;
+  if (stripe_customer_id) row.stripe_customer_id = stripe_customer_id;
+  if (stripe_subscription_id) row.stripe_subscription_id = stripe_subscription_id;
 
   const { error } = await supabaseAdmin
     .from("user_trials")
-    .update(update)
-    .eq("user_id", userId);
+    .upsert(row, { onConflict: "user_id" });
 
   if (error) {
-    console.error("Webhook: failed to update user_trials:", error);
+    console.error("Webhook: failed to upsert user_trials:", error);
     return { ok: false, error: error.message };
   }
   return { ok: true };
@@ -64,22 +70,76 @@ async function handleSubscriptionUpdated(
   const supabaseAdmin = getSupabaseAdmin();
   const firstItem = subscription.items?.data?.[0];
   const periodEnd = firstItem && "current_period_end" in firstItem ? firstItem.current_period_end : null;
-  if (!periodEnd) {
+  const endTs = subscription.cancel_at ?? periodEnd;
+  if (!endTs) {
     return { ok: true };
   }
-  const subscription_ends_at = new Date(periodEnd * 1000).toISOString();
+  const subscription_ends_at = new Date(endTs * 1000).toISOString();
+  const subscription_canceled = !!subscription.cancel_at;
+  const stripe_customer_id =
+    typeof subscription.customer === "string"
+      ? subscription.customer
+      : (subscription.customer as { id?: string })?.id ?? null;
 
-  const { error } = await supabaseAdmin
+  const updatePayload = {
+    subscription_ends_at,
+    subscription_canceled,
+    stripe_subscription_id: subscription.id,
+    ...(stripe_customer_id && { stripe_customer_id }),
+    account_status: "paid",
+    updated_at: new Date().toISOString(),
+  };
+
+  const { data: bySubId, error: err1 } = await supabaseAdmin
     .from("user_trials")
-    .update({
-      subscription_ends_at,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("stripe_subscription_id", subscription.id);
+    .update(updatePayload)
+    .eq("stripe_subscription_id", subscription.id)
+    .select("user_id");
 
-  if (error) {
-    console.error("Webhook: subscription.updated update failed:", error);
-    return { ok: false, error: error.message };
+  if (err1) {
+    console.error("Webhook: subscription.updated update by stripe_subscription_id failed:", err1);
+    return { ok: false, error: err1.message };
+  }
+  if (bySubId && bySubId.length > 0) {
+    return { ok: true };
+  }
+
+  const userId = (subscription.metadata?.user_id as string) ?? null;
+  if (!userId) {
+    console.warn("Webhook: subscription.updated no row matched and no metadata.user_id", subscription.id);
+    return { ok: true };
+  }
+
+  const { data: byUserId, error: err2 } = await supabaseAdmin
+    .from("user_trials")
+    .update(updatePayload)
+    .eq("user_id", userId)
+    .select("user_id");
+
+  if (err2) {
+    console.error("Webhook: subscription.updated update by user_id failed:", err2);
+    return { ok: false, error: err2.message };
+  }
+  if (byUserId && byUserId.length > 0) {
+    return { ok: true };
+  }
+
+  const { error: upsertErr } = await supabaseAdmin.from("user_trials").upsert(
+    {
+      user_id: userId,
+      account_status: "paid",
+      subscription_ends_at,
+      subscription_canceled,
+      stripe_subscription_id: subscription.id,
+      ...(stripe_customer_id && { stripe_customer_id }),
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id" }
+  );
+
+  if (upsertErr) {
+    console.error("Webhook: subscription.updated upsert failed:", upsertErr);
+    return { ok: false, error: upsertErr.message };
   }
   return { ok: true };
 }
@@ -89,17 +149,37 @@ async function handleSubscriptionDeleted(
 ): Promise<{ ok: boolean; error?: string }> {
   const supabaseAdmin = getSupabaseAdmin();
 
-  const { error } = await supabaseAdmin
+  const updatePayload = {
+    account_status: "expired",
+    updated_at: new Date().toISOString(),
+  };
+
+  const { data: updatedRows, error } = await supabaseAdmin
     .from("user_trials")
-    .update({
-      account_status: "expired",
-      updated_at: new Date().toISOString(),
-    })
-    .eq("stripe_subscription_id", subscription.id);
+    .update(updatePayload)
+    .eq("stripe_subscription_id", subscription.id)
+    .select("user_id");
 
   if (error) {
     console.error("Webhook: subscription.deleted update failed:", error);
     return { ok: false, error: error.message };
+  }
+
+  if (updatedRows && updatedRows.length > 0) {
+    return { ok: true };
+  }
+
+  const userId = subscription.metadata?.user_id as string | undefined;
+  if (!userId) return { ok: true };
+
+  const { error: fallbackError } = await supabaseAdmin
+    .from("user_trials")
+    .update(updatePayload)
+    .eq("user_id", userId);
+
+  if (fallbackError) {
+    console.error("Webhook: subscription.deleted fallback by user_id failed:", fallbackError);
+    return { ok: false, error: fallbackError.message };
   }
   return { ok: true };
 }
