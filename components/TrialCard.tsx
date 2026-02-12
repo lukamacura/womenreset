@@ -61,8 +61,21 @@ export function TrialCard({ trial, accountStatus, subscriptionCanceled = false, 
   const [now, setNow] = useState(new Date());
   const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
   const [isPortalLoading, setIsPortalLoading] = useState(false);
+  const [referralDiscountEligible, setReferralDiscountEligible] = useState(false);
 
   const isSubscriber = accountStatus === "paid";
+
+  useEffect(() => {
+    if (isSubscriber) return;
+    let cancelled = false;
+    fetch("/api/referral/discount-eligible", { credentials: "include" })
+      .then((res) => (res.ok ? res.json() : { eligible: false }))
+      .then((data) => {
+        if (!cancelled && data?.eligible) setReferralDiscountEligible(true);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [isSubscriber]);
 
   // Live countdown for urgent state (updates every minute)
   useEffect(() => {
@@ -162,13 +175,13 @@ export function TrialCard({ trial, accountStatus, subscriptionCanceled = false, 
       case "subscriber":
         return isPortalLoading ? "Opening…" : "Manage subscription";
       case "calm":
-        return "Upgrade for $6.58/mo";
+        return referralDiscountEligible ? "50% off — $3.29/mo" : "Upgrade for $6.58/mo";
       case "warning":
-        return "Keep going - Upgrade now";
+        return referralDiscountEligible ? "50% off — Upgrade now" : "Keep going - Upgrade now";
       case "urgent":
-        return "Save your progress - Upgrade today";
+        return referralDiscountEligible ? "50% off — Save your progress" : "Save your progress - Upgrade today";
       case "expired":
-        return "Pick up where you left off";
+        return referralDiscountEligible ? "50% off — Pick up where you left off" : "Pick up where you left off";
     }
   };
 

@@ -1,11 +1,42 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { Settings as SettingsIcon, Bell, ArrowRight } from "lucide-react";
+import { Bell, ArrowRight, Gift, Copy, Share2 } from "lucide-react";
+import { TrialCard } from "@/components/TrialCard";
+import { useTrialStatus } from "@/lib/useTrialStatus";
+import { useSymptomLogs } from "@/hooks/useSymptomLogs";
 
 export default function SettingsPage() {
-  const router = useRouter();
+  const trialStatus = useTrialStatus();
+  const { logs: symptomLogs } = useSymptomLogs(30);
+  const [patternCount, setPatternCount] = useState(0);
+
+  const fetchPatternCount = useCallback(async () => {
+    try {
+      const response = await fetch("/api/tracker-insights?days=30", {
+        method: "GET",
+        cache: "no-store",
+      });
+      if (!response.ok) return;
+      const { data } = await response.json();
+      const patterns = data?.plainLanguageInsights?.filter(
+        (insight: { type: string }) => insight.type === "pattern"
+      ) || [];
+      setPatternCount(patterns.length);
+    } catch {
+      setPatternCount(0);
+    }
+  }, []);
+
+  useEffect(() => {
+    // Using an async function inside the effect to avoid calling setState synchronously
+    const loadPatternCount = async () => {
+      await fetchPatternCount();
+    };
+    loadPatternCount();
+    // Only fetchPatternCount is a dependency as before
+  }, [fetchPatternCount]);
 
   const settingsSections = [
     {
@@ -26,6 +57,29 @@ export default function SettingsPage() {
           Manage your account preferences and notifications
         </p>
       </div>
+
+      {/* Trial / subscription card */}
+      <div className="mb-8">
+        <TrialCard
+          trial={{
+            expired: trialStatus.expired,
+            start: trialStatus.start,
+            end: trialStatus.end,
+            daysLeft: trialStatus.daysLeft,
+            elapsedDays: trialStatus.elapsedDays,
+            progressPct: trialStatus.progressPct,
+            remaining: trialStatus.remaining,
+            trialDays: trialStatus.trialDays,
+          }}
+          accountStatus={trialStatus.accountStatus}
+          subscriptionCanceled={trialStatus.subscriptionCanceled}
+          symptomCount={symptomLogs.length}
+          patternCount={patternCount}
+        />
+      </div>
+
+      {/* Invite friends / referral */}
+      <InviteReferralSection className="mb-8" />
 
       <div className="space-y-4">
         {settingsSections.map((section) => {
@@ -55,6 +109,101 @@ export default function SettingsPage() {
             </Link>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+function InviteReferralSection({ className = "" }: { className?: string }) {
+  const [code, setCode] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    fetch("/api/referral/code", { credentials: "include" })
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error("Failed to load"))))
+      .then((data) => {
+        if (mounted && data?.code) setCode(data.code);
+        else if (mounted) setCode(null);
+      })
+      .catch(() => {
+        if (mounted) setCode(null);
+      })
+      .finally(() => {
+        if (mounted) setLoading(false);
+      });
+    return () => { mounted = false; };
+  }, []);
+
+  const link =
+    typeof window !== "undefined" && code
+      ? `${window.location.origin}/register?ref=${encodeURIComponent(code)}`
+      : "";
+
+  const copyLink = useCallback(() => {
+    if (!link) return;
+    navigator.clipboard.writeText(link).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }, [link]);
+
+  const share = useCallback(() => {
+    if (!link) return;
+    if (navigator.share) {
+      navigator.share({
+        title: "Try MenoLisa",
+        text: "Give 3 days free. Get 50% off. Invite friends to try MenoLisa.",
+        url: link,
+      }).catch(() => copyLink());
+    } else {
+      copyLink();
+    }
+  }, [link, copyLink]);
+
+  return (
+    <div className={className}>
+      <div className="rounded-2xl border-2 border-amber-200/80 dark:border-amber-800/40 bg-transparent dark:from-amber-950/40 dark:to-orange-950/30 p-6 shadow-xl">
+        <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+          <div className="p-3 rounded-xl shrink-0 bg-orange-200 w-14 h-14 flex items-center justify-center">
+            <Gift className="h-7 w-7 text-orange-600 " />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-lg font-bold text-foreground mb-1">
+              Give 3 days free. Get 50% off.
+            </h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Invite friends to try MenoLisa. They get 3 days free; you get 50% off your first subscription when you upgrade.
+            </p>
+            {loading ? (
+              <div className="h-9 w-24 rounded-lg bg-amber-200/50 dark:bg-amber-800/30 animate-pulse" />
+            ) : link ? (
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={copyLink}
+                  className="inline-flex items-center gap-2 rounded-lg border border-amber-300 bg-orange-200 text-orange-600! px-3 py-2 text-sm font-medium  dark:text-amber-200 hover:bg-orange-400  transition-colors"
+                >
+                  <Copy className="h-4 w-4" />
+                  {copied ? "Copied!" : "Copy link"}
+                </button>
+                <button
+                  type="button"
+                  onClick={share}
+                  className="inline-flex items-center gap-2 rounded-lg border  bg-amber-600 text-white px-3 py-2 text-sm font-medium hover:bg-amber-600 dark:hover:bg-amber-500 transition-colors"
+                >
+                  <Share2 className="h-4 w-4" />
+                  Share
+                </button>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Could not load your referral link. Please try again.
+              </p>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

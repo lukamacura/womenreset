@@ -9,22 +9,22 @@ export default function LandingSocialProof() {
   const { ref: sectionRef, isInView } = useReplayableInView<HTMLElement>({ amount: 0.3 })
   const testimonials = [
     {
-      quote: "Honestly, I wish I'd found this sooner. The tracking part is good but being able to just ask random questions at 3am when I'm wide awake and googling 'is this normal' has saved my sanity.",
+      quote: "The hardest part of menopause for me wasn't even the symptoms, it was the loneliness. I went into menopause early, and it felt like nobody around me could relate, so I kept a lot of it to myself. MenoLisa has been such a comfort. It's like having someone there who gets it. I can ask questions anytime, get answers right away, plus practical tips on what to do to manage my symptoms. It makes me feel less alone in what I'm going through.",
       author: "Sarah",
       age: 49,
       initial: "S",
     },
     {
-      quote: "I kept a journal before but never saw the patterns until I started using this. Turns out my anxiety spikes aren't random - they line up with everything else. Finally makes sense.",
+      quote: "Most of my symptoms were honestly just… confusing, and some were too embarrassing to bring up. I couldn't even explain them to myself, let alone to my husband or a friend. That's why MenoLisa has helped so much. I can ask the awkward questions, get a clear explanation of what might be going on, get tips on what to do, and feel supported without feeling judged.",
       author: "Jennifer",
       age: 52,
-      initial: "M",
+      initial: "J",
     },
     {
-      quote: "My daughter suggested this after I complained for the millionth time. The questions thing is clutch - I've asked stuff I'd never say out loud to my doctor. No judgment, just actual answers.",
+      quote: "I never in a million years would've thought there was a connection between my symptoms and the things I do every day. I honestly believed they were just random, and that there was nothing I could do about them. But once I started using MenoLisa's symptom tracker, everything became so much clearer. I could start noticing possible triggers and patterns, and then talk them through with my menopause specialist at my appointment.",
       author: "Maria",
       age: 54,
-      initial: "L",
+      initial: "M",
     },
   ]
 
@@ -62,7 +62,7 @@ export default function LandingSocialProof() {
                   {testimonial.initial}
                 </div>
               </div>
-              <p className="text-lg text-foreground mb-6 leading-relaxed">
+              <p className="text-base text-foreground mb-6 leading-relaxed">
                 &quot;{testimonial.quote}&quot;
               </p>
               <p className="text-muted-foreground font-medium text-center">

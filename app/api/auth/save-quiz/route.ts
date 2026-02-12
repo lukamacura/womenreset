@@ -11,7 +11,7 @@ export const runtime = "nodejs";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userId, quizAnswers } = body;
+    const { userId, quizAnswers, referralCode } = body;
 
     if (!userId) {
       return NextResponse.json({ error: "User ID is required" }, { status: 400 });
@@ -111,6 +111,28 @@ export async function POST(request: NextRequest) {
       }
     } catch (e) {
       console.warn("Trial creation error:", e);
+    }
+
+    if (referralCode && typeof referralCode === "string" && referralCode.trim()) {
+      try {
+        const origin =
+          request.nextUrl?.origin ||
+          process.env.NEXT_PUBLIC_APP_URL ||
+          "http://localhost:3000";
+        const applyRes = await fetch(`${origin}/api/referral/apply`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            referredUserId: userId,
+            referralCode: referralCode.trim(),
+          }),
+        });
+        if (!applyRes.ok) {
+          console.warn("Referral apply failed:", await applyRes.text());
+        }
+      } catch (e) {
+        console.warn("Referral apply error:", e);
+      }
     }
 
     console.log("Quiz answers saved successfully for user:", userId);

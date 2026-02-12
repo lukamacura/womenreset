@@ -16,7 +16,7 @@ export default function NotificationContainer() {
       <div className="max-w-md mx-auto sm:ml-auto sm:mr-6 space-y-3 pointer-events-auto">
         {notifications.map((notification, index) => (
           <div
-            key={notification.id}
+            key={`${notification.id}-${index}`}
             style={{
               animationDelay: `${index * 50}ms`,
             }}

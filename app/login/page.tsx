@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import { Eye, EyeOff, AlertCircle, Loader2 } from "lucide-react";
+import { Eye, EyeOff, AlertCircle, Loader2, CheckCircle } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -19,18 +19,22 @@ function LoginForm() {
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [errorType, setErrorType] = useState<'user_not_found' | 'invalid_credentials' | 'invalid_email' | 'rate_limit' | 'network' | 'unknown' | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // Get redirect target from URL params
   const redirectTarget = searchParams.get("redirectedFrom") || "/dashboard";
 
-  // Handle error query parameter from previous navigation
+  // Handle error or success query parameters from previous navigation
   useEffect(() => {
     const errorParam = searchParams.get("error");
-    const errorMessage = searchParams.get("message");
-    
-    if (errorParam && errorMessage) {
-      setErr(decodeURIComponent(errorMessage));
-      setErrorType('unknown');
+    const message = searchParams.get("message");
+    if (!message) return;
+    const decoded = decodeURIComponent(message);
+    if (errorParam) {
+      setErr(decoded);
+      setErrorType("unknown");
+    } else {
+      setSuccessMessage(decoded);
     }
   }, [searchParams]);
 
@@ -147,11 +151,16 @@ function LoginForm() {
             />
           </div>
 
-          {/* Password */}
+          {/* Password + Forgot link */}
           <div>
-            <label htmlFor="password" className="mb-2 block text-sm font-medium text-foreground">
-              Password
-            </label>
+            <div className="mb-2 flex items-center justify-between">
+              <label htmlFor="password" className="block text-sm font-medium text-foreground">
+                Password
+              </label>
+              <Link href="/forgot-password" className="text-sm text-primary font-medium hover:underline">
+                Forgot password?
+              </Link>
+            </div>
             <div className="relative">
               <input
                 id="password"
@@ -195,6 +204,16 @@ function LoginForm() {
             )}
           </button>
         </form>
+
+        {successMessage && (
+          <div
+            role="status"
+            className="mt-4 rounded-xl border border-green-400/30 bg-green-50/80 dark:bg-green-900/20 p-4 text-sm text-green-800 dark:text-green-300 flex items-start gap-3"
+          >
+            <CheckCircle className="w-5 h-5 shrink-0 mt-0.5" />
+            <p>{successMessage}</p>
+          </div>
+        )}
 
         {err && (
           <div 

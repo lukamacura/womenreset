@@ -1,8 +1,8 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
-import React, { useState, useCallback, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import React, { useState, useCallback, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { supabase } from "@/lib/supabaseClient";
@@ -159,9 +159,30 @@ const getSeverityPainText = (
 };
 
 
-export default function RegisterPage() {
+const REFERRAL_STORAGE_KEY = "pending_referral_code";
+
+function RegisterPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const prefersReducedMotion = useReducedMotion();
+
+  const [ref, setRef] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fromUrl = searchParams.get("ref");
+    if (fromUrl && fromUrl.trim()) {
+      const code = fromUrl.trim();
+      setRef(code);
+      if (typeof sessionStorage !== "undefined") {
+        sessionStorage.setItem(REFERRAL_STORAGE_KEY, code);
+      }
+      return;
+    }
+    if (typeof sessionStorage !== "undefined") {
+      const stored = sessionStorage.getItem(REFERRAL_STORAGE_KEY);
+      if (stored) setRef(stored);
+    }
+  }, [searchParams]);
 
   // Always start with quiz
   const [phase, setPhase] = useState<Phase>("quiz");
@@ -418,6 +439,7 @@ export default function RegisterPage() {
             body: JSON.stringify({
               userId: authData.user.id,
               quizAnswers,
+              ...(ref ? { referralCode: ref } : {}),
             }),
           });
         } catch (quizError) {
@@ -429,6 +451,7 @@ export default function RegisterPage() {
         console.log("=== REGISTRATION COMPLETE ===");
         console.log("User created:", authData.user.id);
         sessionStorage.removeItem("pending_quiz_answers");
+        if (typeof sessionStorage !== "undefined") sessionStorage.removeItem(REFERRAL_STORAGE_KEY);
         router.push("/dashboard");
       }
       
@@ -1140,5 +1163,20 @@ export default function RegisterPage() {
       )}
 
     </main>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="overflow-hidden relative mx-auto p-3 sm:p-4 h-screen flex flex-col pt-20 sm:pt-24 max-w-3xl items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-r-transparent" />
+          <p className="text-sm text-muted-foreground mt-4">Loading...</p>
+        </main>
+      }
+    >
+      <RegisterPageContent />
+    </Suspense>
   );
 }

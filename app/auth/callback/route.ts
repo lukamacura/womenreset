@@ -130,10 +130,13 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Redirect to dashboard with cache-busting parameter
-    // This ensures Next.js doesn't serve cached page
-    const redirectUrl = `${baseUrl}/dashboard?auth=success&t=${Date.now()}`;
-    console.log("Auth callback: Redirecting to dashboard");
+    // Redirect: use ?next= path for recovery (e.g. /reset-password), otherwise dashboard
+    const nextPath = requestUrl.searchParams.get("next");
+    const safeNext = nextPath && nextPath.startsWith("/") && !nextPath.startsWith("//") ? nextPath : null;
+    const redirectUrl = safeNext
+      ? `${baseUrl}${safeNext}${safeNext.includes("?") ? "&" : "?"}t=${Date.now()}`
+      : `${baseUrl}/dashboard?auth=success&t=${Date.now()}`;
+    console.log("Auth callback: Redirecting to", safeNext || "dashboard");
 
     // Copy cookies from temp response to final response
     const isHttps = requestUrl.protocol === "https:";

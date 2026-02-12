@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { getAuthenticatedUser } from "@/lib/getAuthenticatedUser";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
 export const runtime = "nodejs";
 
@@ -93,7 +94,23 @@ export async function POST(req: NextRequest) {
     const customCancel = validateReturnUrl(body?.cancel_url, "cancel");
     const useMobileReturns =
       customSuccess && customCancel;
-    const session = await stripe.checkout.sessions.create({
+
+    let referralCouponId: string | null = null;
+    const couponId = process.env.STRIPE_REFERRAL_COUPON_ID;
+    if (couponId) {
+      const supabaseAdmin = getSupabaseAdmin();
+      const [refRes, trialRes] = await Promise.all([
+        supabaseAdmin.from("referrals").select("id").eq("referrer_id", user.id).limit(1),
+        supabaseAdmin.from("user_trials").select("referral_discount_used_at").eq("user_id", user.id).maybeSingle(),
+      ]);
+      const hasReferred = (refRes.data?.length ?? 0) > 0;
+      const discountNotUsed = trialRes.data?.referral_discount_used_at == null;
+      if (hasReferred && discountNotUsed) {
+        referralCouponId = couponId;
+      }
+    }
+
+    const sessionParams: Stripe.Checkout.SessionCreateParams = {
       mode: "subscription",
       payment_method_types: ["card"],
       line_items: [{ price: priceId, quantity: 1 }],
@@ -104,7 +121,11 @@ export async function POST(req: NextRequest) {
       subscription_data: {
         metadata: { user_id: user.id },
       },
-    });
+    };
+    if (referralCouponId) {
+      sessionParams.discounts = [{ coupon: referralCouponId }];
+    }
+    const session = await stripe.checkout.sessions.create(sessionParams);
 
     if (!session.url) {
       return NextResponse.json(

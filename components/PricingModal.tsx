@@ -6,6 +6,13 @@ import { createPortal } from "react-dom";
 import { X, Check, Lock, Zap, Crown, Sparkles, Clock, Star } from "lucide-react";
 import type { TrialState } from "./TrialCard";
 
+const PRICE_MONTHLY_FULL = 12;
+const PRICE_ANNUAL_FULL = 79;
+const PRICE_ANNUAL_PER_MONTH_FULL = 6.58;
+const PRICE_MONTHLY_HALF = 6;
+const PRICE_ANNUAL_HALF = 39.5;
+const PRICE_ANNUAL_PER_MONTH_HALF = 3.29;
+
 interface PricingModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -30,6 +37,7 @@ export function PricingModal({
   const [showContent, setShowContent] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [referralDiscountEligible, setReferralDiscountEligible] = useState(false);
 
   // Inject animation styles on mount (client-side only to prevent hydration issues)
   useEffect(() => {
@@ -118,6 +126,22 @@ export function PricingModal({
       // Move state update out of the effect
       setTimeout(() => setShowContent(false), 0);
     }
+  }, [isOpen]);
+
+  // Fetch referral 50% discount eligibility when modal opens
+  useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
+    fetch("/api/referral/discount-eligible", { credentials: "include" })
+      .then((res) => (res.ok ? res.json() : { eligible: false }))
+      .then((data) => {
+        if (!cancelled && data?.eligible) setReferralDiscountEligible(true);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [isOpen]);
+  useEffect(() => {
+    if (!isOpen) setReferralDiscountEligible(false);
   }, [isOpen]);
   useEffect(() => {
     return () => {
@@ -329,6 +353,15 @@ export function PricingModal({
             </div>
           )}
 
+          {referralDiscountEligible && (
+            <div
+              className="mb-4 p-3 rounded-lg text-center text-sm font-bold border"
+              style={{ backgroundColor: "var(--primary)", color: "var(--primary-foreground)", borderColor: "var(--primary)" }}
+            >
+              50% off your first subscription — your price below
+            </div>
+          )}
+
           {/* Testimonial - Above pricing cards */}
           <div 
             className="mb-4 p-3 rounded-lg text-center border"
@@ -416,7 +449,7 @@ export function PricingModal({
                   }}
                 >
                   <Crown className="w-3 h-3" />
-                  SAVE 45%
+                  {referralDiscountEligible ? "50% OFF" : "SAVE 45%"}
                 </div>
 
                 {/* Icon */}
@@ -452,29 +485,50 @@ export function PricingModal({
                       Most Popular
                     </span>
                   </h3>
-                  {/* Price anchoring with strikethrough */}
+                  {/* Price anchoring with strikethrough; show 50% off price when eligible */}
                   <div className="flex items-baseline gap-2 mb-1">
-                    <span
-                      className="text-xl sm:text-2xl font-bold line-through"
-                      style={{ color: "var(--muted-foreground)" }}
-                    >
-                      $144
-                    </span>
-                    <span className="text-2xl sm:text-3xl font-bold" style={{ color: "var(--chart-1)" }}>→</span>
-                    <span
-                      className="text-3xl sm:text-4xl font-extrabold transition-all duration-300"
-                      style={{ color: "var(--primary)" }}
-                    >
-                      $79
-                    </span>
-                    <span className="text-base sm:text-lg font-medium" style={{ color: "var(--foreground)" }}>/year</span>
+                    {referralDiscountEligible ? (
+                      <>
+                        <span
+                          className="text-xl sm:text-2xl font-bold line-through"
+                          style={{ color: "var(--muted-foreground)" }}
+                        >
+                          ${PRICE_ANNUAL_FULL}
+                        </span>
+                        <span className="text-2xl sm:text-3xl font-bold" style={{ color: "var(--chart-1)" }}>→</span>
+                        <span
+                          className="text-3xl sm:text-4xl font-extrabold transition-all duration-300"
+                          style={{ color: "var(--primary)" }}
+                        >
+                          ${PRICE_ANNUAL_HALF}
+                        </span>
+                        <span className="text-base sm:text-lg font-medium" style={{ color: "var(--foreground)" }}>/year</span>
+                      </>
+                    ) : (
+                      <>
+                        <span
+                          className="text-xl sm:text-2xl font-bold line-through"
+                          style={{ color: "var(--muted-foreground)" }}
+                        >
+                          $144
+                        </span>
+                        <span className="text-2xl sm:text-3xl font-bold" style={{ color: "var(--chart-1)" }}>→</span>
+                        <span
+                          className="text-3xl sm:text-4xl font-extrabold transition-all duration-300"
+                          style={{ color: "var(--primary)" }}
+                        >
+                          ${PRICE_ANNUAL_FULL}
+                        </span>
+                        <span className="text-base sm:text-lg font-medium" style={{ color: "var(--foreground)" }}>/year</span>
+                      </>
+                    )}
                   </div>
                   <div className="mb-1">
                     <span
                       className="text-lg sm:text-xl font-medium"
                       style={{ color: "var(--foreground)" }}
                     >
-                      $6.58/mo
+                      ${referralDiscountEligible ? PRICE_ANNUAL_PER_MONTH_HALF : PRICE_ANNUAL_PER_MONTH_FULL}/mo
                     </span>
                   </div>
                   <p className="text-xs font-medium" style={{ color: "var(--muted-foreground)" }}>Billed annually • Best value</p>
@@ -501,7 +555,7 @@ export function PricingModal({
                   }}
                 >
                   <span className="relative z-10 flex items-center justify-center gap-2">
-                    {checkoutLoading ? "Redirecting…" : "Choose Annual - Save 45%"}
+                    {checkoutLoading ? "Redirecting…" : referralDiscountEligible ? `Choose Annual — $${PRICE_ANNUAL_HALF}/year` : "Choose Annual - Save 45%"}
                   </span>
                 </button>
               </div>
@@ -570,7 +624,15 @@ export function PricingModal({
                 <h3 className="text-lg sm:text-3xl font-bold mb-1.5" style={{ color: "var(--foreground)" }}>
                   Monthly
                 </h3>
-                <div className="flex items-baseline gap-1 mb-1">
+                <div className="flex items-baseline gap-1 mb-1 flex-wrap">
+                  {referralDiscountEligible && (
+                    <span
+                      className="text-xl sm:text-2xl font-bold line-through mr-1"
+                      style={{ color: "var(--muted-foreground)" }}
+                    >
+                      ${PRICE_MONTHLY_FULL}
+                    </span>
+                  )}
                   <span
                     className="text-3xl sm:text-4xl font-extrabold transition-all duration-300"
                     style={{ 
@@ -578,7 +640,7 @@ export function PricingModal({
                       textShadow: hoveredPlan === "monthly" ? "0 2px 8px rgba(0,0,0,0.1)" : "none",
                     }}
                   >
-                    $12
+                    ${referralDiscountEligible ? PRICE_MONTHLY_HALF : PRICE_MONTHLY_FULL}
                   </span>
                   <span className="text-base sm:text-lg font-medium" style={{ color: "var(--foreground)" }}>/month</span>
                 </div>
@@ -609,7 +671,7 @@ export function PricingModal({
                   e.currentTarget.style.opacity = "1";
                 }}
               >
-                <span className="relative z-10">{checkoutLoading ? "Redirecting…" : "Start Monthly"}</span>
+                <span className="relative z-10">{checkoutLoading ? "Redirecting…" : referralDiscountEligible ? `Start Monthly — $${PRICE_MONTHLY_HALF}/mo` : "Start Monthly"}</span>
                 {hoveredPlan === "monthly" && (
                   <div
                     className="absolute inset-0"

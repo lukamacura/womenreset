@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Activity, LogOut, ChevronDown, Bell, MessageSquare, Settings, Compass } from "lucide-react";
+import { Activity, LogOut, ChevronDown, Bell, MessageSquare, Settings } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import LisaSwipeButton from "@/components/LisaSwipeButton";
 import { useTrialStatus } from "@/lib/useTrialStatus";
@@ -60,14 +60,8 @@ export default function DashboardLayout({
 
   const navItems = [
     {
-      href: "/dashboard",
-      label: "My Overview",
-      icon: Compass,
-      requiresActiveTrial: false,
-    },
-    {
       href: "/dashboard/symptoms",
-      label: "Track Symptoms",
+      label: "Home",
       icon: Activity,
       requiresActiveTrial: true,
     },
@@ -94,10 +88,7 @@ export default function DashboardLayout({
   const handleNavClick = (item: typeof navItems[0], e: React.MouseEvent) => {
     if (item.requiresActiveTrial && trialStatus.expired) {
       e.preventDefault();
-      // Stay on dashboard if trial is expired
-      if (pathname !== "/dashboard") {
-        router.push("/dashboard");
-      }
+      // Block navigation to trial-gated pages when expired
     }
   };
 
@@ -105,7 +96,7 @@ export default function DashboardLayout({
   const activeItem = navItems.find(
     (item) =>
       pathname === item.href ||
-      (item.href !== "/dashboard" && item.href !== "/chat/lisa" && pathname?.startsWith(item.href)) ||
+      (item.href !== "/chat/lisa" && pathname?.startsWith(item.href)) ||
       (item.href === "/chat/lisa" && pathname === "/chat/lisa")
   ) || navItems[0];
 

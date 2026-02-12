@@ -43,11 +43,13 @@ async function handleCheckoutSessionCompleted(
   }
 
   const supabaseAdmin = getSupabaseAdmin();
+  const nowIso = new Date().toISOString();
   const row: Record<string, unknown> = {
     user_id: userId,
     account_status: "paid",
     subscription_canceled,
-    updated_at: new Date().toISOString(),
+    updated_at: nowIso,
+    referral_discount_used_at: nowIso,
   };
   if (subscription_ends_at) row.subscription_ends_at = subscription_ends_at;
   if (stripe_customer_id) row.stripe_customer_id = stripe_customer_id;
