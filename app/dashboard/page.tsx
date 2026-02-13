@@ -1,15 +1,14 @@
 "use client";
 
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
 /**
- * Dashboard root: redirect to Home (symptoms page).
- * Home = symptoms; My Overview = /dashboard/overview.
+ * Inner component that uses useSearchParams - must be wrapped in Suspense for Next.js static generation.
  */
-export default function DashboardPage() {
+function DashboardRedirect() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -22,4 +21,16 @@ export default function DashboardPage() {
   }, [router, searchParams]);
 
   return null;
+}
+
+/**
+ * Dashboard root: redirect to Home (symptoms page).
+ * Home = symptoms; My Overview = /dashboard/overview.
+ */
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={null}>
+      <DashboardRedirect />
+    </Suspense>
+  );
 }
